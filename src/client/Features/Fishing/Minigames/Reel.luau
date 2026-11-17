@@ -13,6 +13,7 @@ local FishingConfig = require(
 		:WaitForChild("Config")
 		:WaitForChild("Fishing")
 )
+local Control = require(Fishing:WaitForChild("Control"))
 local PressInput = require(Fishing:WaitForChild("PressInput"))
 local Ui = require(Fishing:WaitForChild("Ui"))
 
@@ -20,11 +21,12 @@ local Reel = {}
 
 function Reel.run(area: Frame, tier: number, color: Color3, done: (boolean) -> ()): () -> ()
 	local cfg = FishingConfig.REEL
-	local zoneWidth = FishingConfig.tierValue(cfg.zoneWidth, tier)
+	local ease = Control.ease()
+	local zoneWidth = math.min(FishingConfig.tierValue(cfg.zoneWidth, tier) * ease, 0.5)
 	local fishSpeed = FishingConfig.tierValue(cfg.fishSpeed, tier)
 	local retarget = FishingConfig.tierValue(cfg.fishRetarget, tier)
 	local gain = FishingConfig.tierValue(cfg.gain, tier)
-	local failRise = FishingConfig.tierValue(cfg.failRise, tier)
+	local failRise = FishingConfig.tierValue(cfg.failRise, tier) / ease
 
 	local failBack = Ui.frame(
 		area,

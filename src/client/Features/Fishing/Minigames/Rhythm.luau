@@ -14,6 +14,7 @@ local FishingConfig = require(
 		:WaitForChild("Config")
 		:WaitForChild("Fishing")
 )
+local Control = require(Fishing:WaitForChild("Control"))
 local PressInput = require(Fishing:WaitForChild("PressInput"))
 local Ui = require(Fishing:WaitForChild("Ui"))
 
@@ -24,11 +25,18 @@ local RED = Color3.fromRGB(255, 60, 70)
 local TARGET_SIZE = 0.62 -- of the area height
 local START_SCALE = 2.6
 
-function Rhythm.run(area: Frame, tier: number, color: Color3, done: (boolean) -> ()): () -> ()
+-- ringCount overrides the tier's ring count (training uses 1-2 rings).
+function Rhythm.run(
+	area: Frame,
+	tier: number,
+	color: Color3,
+	done: (boolean) -> (),
+	ringCount: number?
+): () -> ()
 	local cfg = FishingConfig.RHYTHM
-	local total = math.floor(FishingConfig.tierValue(cfg.rings, tier))
+	local total = ringCount or math.floor(FishingConfig.tierValue(cfg.rings, tier))
 	local shrink = FishingConfig.tierValue(cfg.shrinkSeconds, tier)
-	local window = shrink * cfg.window
+	local window = shrink * cfg.window * Control.ease()
 
 	local field = Ui.frame(
 		area,

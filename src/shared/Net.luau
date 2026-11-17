@@ -11,12 +11,24 @@ export type FishingUpdate = {
 	reason: string?,
 }
 
+export type TrainingUpdate = {
+	event: string, -- "ring" | "levelUp" | "stopped"
+	ringId: number?,
+	rings: number?,
+	stat: string?,
+	level: number?,
+	reason: string?,
+}
+
 local Net = {
 	FOLDER = "Remotes",
 	CAST_LINE = "CastLine",
 	CANCEL_FISHING = "CancelFishing",
 	SUBMIT_CATCH = "SubmitCatch",
 	FISHING_UPDATE = "FishingUpdate",
+	STOP_TRAINING = "StopTraining",
+	TRAINING_RING_RESULT = "TrainingRingResult",
+	TRAINING_UPDATE = "TrainingUpdate",
 }
 
 return Net

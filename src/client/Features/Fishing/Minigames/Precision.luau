@@ -13,6 +13,7 @@ local FishingConfig = require(
 		:WaitForChild("Config")
 		:WaitForChild("Fishing")
 )
+local Control = require(Fishing:WaitForChild("Control"))
 local PressInput = require(Fishing:WaitForChild("PressInput"))
 local Ui = require(Fishing:WaitForChild("Ui"))
 
@@ -24,7 +25,7 @@ local RED = Color3.fromRGB(255, 60, 70)
 function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean) -> ()): () -> ()
 	local cfg = FishingConfig.PRECISION
 	local speed = FishingConfig.tierValue(cfg.markerSpeed, tier)
-	local zoneWidth = FishingConfig.tierValue(cfg.zoneWidth, tier)
+	local zoneWidth = math.min(FishingConfig.tierValue(cfg.zoneWidth, tier) * Control.ease(), 0.4)
 
 	local bar = Ui.frame(
 		area,

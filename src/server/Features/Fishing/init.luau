@@ -11,6 +11,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
+local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
+
+local Training = require(script.Parent:WaitForChild("Training"))
 
 type Session = {
 	phase: string, -- "idle" | "waiting" | "fighting"
@@ -86,9 +89,20 @@ local function devOverride(player: Player, attribute: string): string?
 	return if typeof(value) == "string" and value ~= "" then value else nil
 end
 
+-- Instinct training tilts the odds toward rarer creatures (capped in Config/Training).
+local function luckyWeights(player: Player): { [string]: number }
+	local instinct = Training.level(player, "Instinct")
+	local weights: { [string]: number } = {}
+	for rank, rarity in FishingConfig.RARITY_ORDER do
+		weights[rarity] = (FishingConfig.RARITY_WEIGHTS[rarity] or 0)
+			* TrainingConfig.luckMultiplier(instinct, rank)
+	end
+	return weights
+end
+
 local function rollCreature(player: Player): Creatures.Creature
 	local rarity = devOverride(player, "DevForceRarity")
-		or weightedPick(FishingConfig.RARITY_WEIGHTS, FishingConfig.RARITY_ORDER)
+		or weightedPick(luckyWeights(player), FishingConfig.RARITY_ORDER)
 	local pool = Creatures.ofRarity(rarity)
 	if #pool == 0 then
 		pool = Creatures.LIST
