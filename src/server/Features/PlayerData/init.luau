@@ -3,17 +3,28 @@
 -- Features change it only through PlayerData.update, which pushes a fresh snapshot to the
 -- client (debounced) and mirrors hot values as Player attributes for the HUD.
 --
--- Storage: in memory for now (data resets on leave). The Store section is the only place
--- that changes when real persistence lands (ProfileStore pending João's OK).
+-- Storage: ProfileStore (session-locked, autosaves, saves on leave and on shutdown).
+-- Rules that keep saves safe:
+--   * migrate BEFORE reconciling (reconcile hides the "field is missing" a migration looks for)
+--   * a load that fails kicks the player; never start them on a blank profile that would
+--     overwrite their real save
+--   * new fields are additive: add them to the template with a default
+-- Studio uses its own store ("PlayerData_Studio") so tests never touch live saves. Without
+-- "Enable Studio Access to API Services" ProfileStore runs as a mock (nothing persists).
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local ServerScriptService = game:GetService("ServerScriptService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
+local Strings = require(Shared:WaitForChild("Strings"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 local Types = require(Shared:WaitForChild("Types"))
+
+local ProfileStore =
+	require(ServerScriptService:WaitForChild("ServerPackages"):WaitForChild("ProfileStore"))
 
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
@@ -28,13 +39,25 @@ export type Profile = {
 	funnel: { [string]: boolean }, -- analytics onboarding steps already logged
 }
 
+-- The Wally shim does not re-export ProfileStore's types; only the members used here.
+type Session = {
+	Data: any,
+	OnSessionEnd: { Connect: (self: any, listener: () -> ()) -> any },
+	IsActive: (self: any) -> boolean,
+	Reconcile: (self: any) -> (),
+	EndSession: (self: any) -> (),
+	AddUserId: (self: any, userId: number) -> (),
+}
+
 local SCHEMA_VERSION = 1
 local STARTER_ROD = "starter"
+local STORE_NAME = if RunService:IsStudio() then "PlayerData_Studio" else "PlayerData"
 
 local PlayerData = {}
 PlayerData.order = 10
 
 local profiles: { [Player]: Profile } = {}
+local sessions: { [Player]: Session } = {}
 local dirty: { [Player]: boolean } = {}
 local loadedEvent = Instance.new("BindableEvent")
 local snapshotRemote: RemoteEvent
@@ -58,8 +81,22 @@ local function template(): Profile
 	}
 end
 
--- Fills fields missing from older saves; never overwrites existing values.
-local function reconcile(data: { [string]: any }): Profile
+local store = ProfileStore.New(STORE_NAME, template())
+
+-- Version steps go here (v1 -> v2 ...). Each returns nil on success or an error string.
+-- Runs before reconcile. There are none yet: v1 is the first schema.
+local function migrate(data: { [string]: any }): string?
+	if typeof(data.version) ~= "number" then
+		data.version = SCHEMA_VERSION
+	end
+	if data.version > SCHEMA_VERSION then
+		return `save is from a newer version ({data.version})`
+	end
+	return nil
+end
+
+-- Fills fields missing from older saves (nested too), in place; never overwrites values.
+local function reconcile(data: { [string]: any })
 	local defaults = template() :: any
 	for key, value in defaults do
 		if data[key] == nil then
@@ -80,18 +117,7 @@ local function reconcile(data: { [string]: any }): Profile
 		table.insert(data.rodsOwned, STARTER_ROD)
 	end
 	data.version = SCHEMA_VERSION
-	return data :: Profile
 end
-
--- Store (in memory) ----------------------------------------------------------------------
-
-local Store = {}
-
-function Store.load(_userId: number): { [string]: any }?
-	return nil
-end
-
-function Store.save(_userId: number, _data: Profile) end
 
 -- Snapshot -----------------------------------------------------------------------------
 
@@ -149,6 +175,7 @@ function PlayerData.wait(player: Player): Profile?
 end
 
 -- The only way to change a profile. `mutate` runs synchronously and must not yield.
+-- It edits ProfileStore's own Data table in place, which is what gets saved.
 function PlayerData.update(player: Player, mutate: (Profile) -> ()): boolean
 	local profile = profiles[player]
 	if not profile then
@@ -182,12 +209,25 @@ PlayerData.Loaded = loadedEvent.Event
 
 -- Lifecycle ----------------------------------------------------------------------------
 
-local function onPlayerAdded(player: Player)
-	local stored = Store.load(player.UserId)
-	if not player.Parent then
-		return
-	end
-	local profile = reconcile(stored or (template() :: any))
+local function startSession(player: Player): Session?
+	-- Cancel keeps the load retrying until the player leaves instead of a fixed timeout
+	-- (the runtime supports it; the exported param type omits it).
+	local params: any = {
+		Cancel = function()
+			return player.Parent ~= Players
+		end,
+	}
+	return (store :: any):StartSessionAsync(`{player.UserId}`, params)
+end
+
+local function activate(player: Player, session: Session)
+	local profile = session.Data :: Profile
+	session.OnSessionEnd:Connect(function()
+		profiles[player] = nil
+		sessions[player] = nil
+		player:Kick(Strings.dataSessionEnded)
+	end)
+	sessions[player] = session
 	profiles[player] = profile
 	mirrorAttributes(player, profile)
 	player:SetAttribute("DataLoaded", true)
@@ -206,15 +246,48 @@ local function onPlayerAdded(player: Player)
 	end
 end
 
-local function onPlayerRemoving(player: Player)
-	local profile = profiles[player]
-	if profile then
-		Store.save(player.UserId, profile)
+local function onPlayerAdded(player: Player)
+	local session = startSession(player)
+	if not session then
+		-- nil also means the player left mid-load, which is not a failure.
+		if player.Parent == Players then
+			warn(`[PlayerData] profile load failed for {player.Name}`)
+			player:Kick(Strings.dataLoadFailed)
+		end
+		return
 	end
-	profiles[player] = nil
-	dirty[player] = nil
+
+	session:AddUserId(player.UserId) -- lets Roblox data deletion requests find this profile
+
+	-- Migrate BEFORE reconciling. Never fall back to a fresh profile on failure.
+	local ok, failure = pcall(migrate, session.Data)
+	if not ok or failure ~= nil then
+		warn(`[PlayerData] migration failed for {player.Name}: {failure}`)
+		session:EndSession()
+		player:Kick(Strings.dataLoadFailed)
+		return
+	end
+	session:Reconcile()
+	reconcile(session.Data)
+
+	if player.Parent ~= Players then
+		session:EndSession()
+		return
+	end
+	activate(player, session)
 end
 
+local function onPlayerRemoving(player: Player)
+	local session = sessions[player]
+	profiles[player] = nil
+	sessions[player] = nil
+	dirty[player] = nil
+	if session and session:IsActive() then
+		session:EndSession()
+	end
+end
+
+-- ProfileStore autosaves and saves every active session on shutdown by itself.
 function PlayerData.start()
 	snapshotRemote = Remotes.event(Net.PROFILE_SNAPSHOT)
 	Remotes.onServerEvent(Net.REQUEST_PROFILE, 1, 3, function(player)
@@ -225,11 +298,6 @@ function PlayerData.start()
 	for _, player in Players:GetPlayers() do
 		task.spawn(onPlayerAdded, player)
 	end
-	game:BindToClose(function()
-		for player, profile in profiles do
-			Store.save(player.UserId, profile)
-		end
-	end)
 end
 
 return PlayerData
