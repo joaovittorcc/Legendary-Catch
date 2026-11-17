@@ -1,8 +1,8 @@
 --!strict
 -- Ambient island life (client-only, lightweight for mobile):
---   * Swimming fish schools in the training lagoon and beside the fishing pier
+--   * Swimming fish schools in the training lagoon and beside the fishing pier (with periodic jumps)
 --   * Stylized seagulls circling lazily overhead
---   * Subtle water sparkles and rising bubbles (disabled when ReduceEffects is active)
+--   * Subtle water sparkles, bubbles, and lantern fireflies (disabled when ReduceEffects is active)
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -20,6 +20,10 @@ type Swimmer = {
 	phase: number,
 	bobAmp: number,
 	wagSpeed: number,
+	jumpPeriod: number?,
+	jumpDuration: number?,
+	jumpHeight: number?,
+	surfaceY: number?,
 }
 
 type Gull = {
@@ -175,10 +179,11 @@ function IslandLife.start()
 		Color3.fromRGB(110, 232, 180),
 	}
 
-	-- Lagoon fish (under the translucent cyan surface at y = 7.75).
+	-- Lagoon fish (under the translucent cyan surface at y = 7.75; 2 hop playfully out of water).
 	for i = 1, 5 do
 		local color = fishPalette[1 + (i % #fishPalette)]
 		local model = spawnFish(container, color, 0.85)
+		local canJump = i == 2 or i == 5
 		table.insert(swimmers, {
 			model = model,
 			center = Vector3.new(-44, 7.65, 2),
@@ -188,10 +193,14 @@ function IslandLife.start()
 			phase = i * 1.25,
 			bobAmp = 0.08,
 			wagSpeed = 6.5,
+			jumpPeriod = if canJump then (8.5 + i * 1.3) else nil,
+			jumpDuration = 0.9,
+			jumpHeight = 2.1,
+			surfaceY = 7.85,
 		})
 	end
 
-	-- Pier fish schools swimming visibly in the shallow turquoise water.
+	-- Pier fish schools swimming visibly in the shallow turquoise water (3 jump occasionally).
 	local pierCenters = {
 		Vector3.new(46, -1.2, 19),
 		Vector3.new(68, -1.4, -3),
@@ -200,6 +209,7 @@ function IslandLife.start()
 		for i = 1, 5 do
 			local color = fishPalette[1 + ((sIdx + i) % #fishPalette)]
 			local model = spawnFish(container, color, 1.05)
+			local canJump = (sIdx == 1 and (i == 1 or i == 4)) or (sIdx == 2 and i == 3)
 			table.insert(swimmers, {
 				model = model,
 				center = c + Vector3.new((i - 3) * 0.7, (i % 2) * 0.25, 0),
@@ -209,6 +219,10 @@ function IslandLife.start()
 				phase = i * 1.1 + sIdx * 2.0,
 				bobAmp = 0.14,
 				wagSpeed = 7.5,
+				jumpPeriod = if canJump then (9.0 + sIdx * 1.7 + i * 1.1) else nil,
+				jumpDuration = 1.05,
+				jumpHeight = 2.8,
+				surfaceY = 0.0,
 			})
 		end
 	end
@@ -305,11 +319,51 @@ function IslandLife.start()
 		baseRate = 3,
 	})
 
+	-- Soft fireflies around plaza and lagoon lanterns (2 lightweight emitters, 0 dynamic lights).
+	local fireflySize = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0),
+		NumberSequenceKeypoint.new(0.3, 0.35),
+		NumberSequenceKeypoint.new(0.7, 0.28),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	local plazaFireflies = makeEmitterPart(
+		container,
+		"PlazaFireflies",
+		Vector3.new(-8, 14.5, 4),
+		Vector3.new(36, 4.5, 36),
+		sparkleTex,
+		ColorSequence.new(Color3.fromRGB(255, 224, 130), Color3.fromRGB(165, 245, 255)),
+		fireflySize,
+		4,
+		NumberRange.new(0.35, 1.0),
+		NumberRange.new(1.8, 3.0)
+	)
+	plazaFireflies.SpreadAngle = Vector2.new(180, 180)
+	plazaFireflies.LightEmission = 1
+	table.insert(emitters, { emitter = plazaFireflies, baseRate = 4 })
+
+	local lagoonFireflies = makeEmitterPart(
+		container,
+		"LagoonFireflies",
+		Vector3.new(-38, 13.5, -2),
+		Vector3.new(24, 4.5, 24),
+		sparkleTex,
+		ColorSequence.new(Color3.fromRGB(255, 215, 135), Color3.fromRGB(220, 175, 255)),
+		fireflySize,
+		3,
+		NumberRange.new(0.3, 0.9),
+		NumberRange.new(1.8, 3.0)
+	)
+	lagoonFireflies.SpreadAngle = Vector2.new(180, 180)
+	lagoonFireflies.LightEmission = 1
+	table.insert(emitters, { emitter = lagoonFireflies, baseRate = 3 })
+
 	local player = Players.LocalPlayer
+	local reduceEffects = player:GetAttribute("ReduceEffects") == true
 	local function syncEffects()
-		local reduced = player:GetAttribute("ReduceEffects") == true
+		reduceEffects = player:GetAttribute("ReduceEffects") == true
 		for _, item in emitters do
-			item.emitter.Rate = if reduced then 0 else item.baseRate
+			item.emitter.Rate = if reduceEffects then 0 else item.baseRate
 		end
 	end
 	syncEffects()
@@ -322,12 +376,32 @@ function IslandLife.start()
 			local x = f.center.X + math.cos(angle) * f.rx
 			local z = f.center.Z + math.sin(angle) * f.rz
 			local y = f.center.Y + math.sin(t * 2 + f.phase) * f.bobAmp
+			local pitch = 0
+
+			local period = f.jumpPeriod
+			local dur = f.jumpDuration
+			local h = f.jumpHeight
+			local sy = f.surfaceY
+			if not reduceEffects and period and dur and h and sy then
+				local cycle = (t + f.phase * 1.9) % period
+				if cycle < dur then
+					local u = cycle / dur
+					local arc = 4 * u * (1 - u)
+					local jumpY = sy + h * arc - 0.35
+					if jumpY > y then
+						y = jumpY
+					end
+					-- Tilt nose up on ascent and down on dive.
+					local slope = 4 * h * (1 - 2 * u) / dur
+					pitch = math.clamp(math.atan2(slope, 6.5), -0.95, 0.95)
+				end
+			end
 
 			local vx = -math.sin(angle) * f.rx
 			local vz = math.cos(angle) * f.rz
 			local wag = math.sin(t * f.wagSpeed + f.phase) * 0.14
 			local cf = CFrame.lookAt(Vector3.new(x, y, z), Vector3.new(x + vx, y, z + vz))
-				* CFrame.Angles(0, wag, 0)
+				* CFrame.Angles(pitch, wag, 0)
 			f.model:PivotTo(cf)
 		end
 
