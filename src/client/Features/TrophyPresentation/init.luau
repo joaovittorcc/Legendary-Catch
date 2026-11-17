@@ -89,6 +89,26 @@ end
 
 function TrophyPresentation.start()
 	local active: { [BasePart]: DisplayState } = {}
+	local playerGui = player:WaitForChild("PlayerGui")
+	local function updateSignVisibility(sign: BillboardGui)
+		sign.Enabled = playerGui:FindFirstChild("IslandArrival") == nil
+			and playerGui:FindFirstChild("IslandTitle") == nil
+			and playerGui:FindFirstChild("CatchPhoto") == nil
+	end
+	local function whenOverlayChanges(child: Instance)
+		if child.Name ~= "IslandArrival" and child.Name ~= "IslandTitle" then
+			return
+		end
+		for pedestal in active do
+			local display = pedestal:FindFirstChild("TrophyDisplay")
+			local sign = display and display:FindFirstChild("TrophySign")
+			if sign and sign:IsA("BillboardGui") then
+				updateSignVisibility(sign)
+			end
+		end
+	end
+	playerGui.ChildAdded:Connect(whenOverlayChanges)
+	playerGui.ChildRemoved:Connect(whenOverlayChanges)
 	local function unwatch(instance: Instance)
 		if not instance:IsA("BasePart") then
 			return
@@ -133,6 +153,7 @@ function TrophyPresentation.start()
 					else Theme.gold
 				local sign = display and display:FindFirstChild("TrophySign")
 				if sign and sign:IsA("BillboardGui") then
+					updateSignVisibility(sign)
 					styleSign(
 						sign,
 						color,

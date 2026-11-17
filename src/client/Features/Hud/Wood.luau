@@ -47,13 +47,14 @@ local function stroke(parent: GuiObject, color: Color3, thickness: number): UISt
 	return edge
 end
 
-local function crystal(parent: GuiObject, position: UDim2, size: number)
+local function crystal(parent: GuiObject, position: UDim2, size: number): Frame
 	local gem = piece(parent, position, UDim2.fromOffset(size, size), Color3.new(1, 1, 1), 1, 45)
 	gem.AnchorPoint = Vector2.new(0.5, 0.5)
 	gradient(gem, Color3.fromRGB(182, 254, 255), Color3.fromRGB(2, 153, 205), 36)
 	stroke(gem, Color3.fromRGB(10, 84, 110), 1)
 	local facet = piece(gem, UDim2.fromScale(0.1, 0.1), UDim2.fromScale(0.75, 0.26), Theme.crystal)
 	facet.BackgroundTransparency = 0.25
+	return gem
 end
 
 -- The face is separate so the trim and grain never tint the text on TextLabels or TextButtons.
@@ -63,10 +64,11 @@ function Wood.mount(target: GuiObject, gems: boolean?, insetColor: Color3?): UIS
 	if target:IsA("GuiButton") then
 		target.AutoButtonColor = false
 	end
-	local backing = piece(target, UDim2.fromOffset(0, 2), UDim2.fromScale(1, 1), dark, 10)
+	local backing =
+		piece(target, UDim2.fromOffset(0, 4), UDim2.fromScale(1, 1), Color3.fromRGB(34, 17, 12), 13)
 	backing.Name = "WoodBacking"
 	local face =
-		piece(backing, UDim2.fromOffset(2, -2), UDim2.new(1, -4, 1, -1), Color3.new(1, 1, 1), 9)
+		piece(backing, UDim2.fromOffset(3, -4), UDim2.new(1, -6, 1, -1), Color3.new(1, 1, 1), 13)
 	face.Name = "WoodFace"
 	gradient(
 		face,
@@ -75,18 +77,25 @@ function Wood.mount(target: GuiObject, gems: boolean?, insetColor: Color3?): UIS
 		90
 	)
 	local trim = stroke(face, brass, 2)
-	for i = 1, 3 do
+	local inner =
+		piece(face, UDim2.fromScale(0.031, 0.065), UDim2.fromScale(0.938, 0.87), paper, 11)
+	inner.BackgroundTransparency = 1
+	stroke(inner, Color3.fromRGB(155, 91, 39), 1.5)
+	for i = 1, 7 do
+		local shift = i % 3
 		local grain = piece(
 			face,
-			UDim2.fromScale(0.07 + i * 0.04, i * 0.24),
-			UDim2.new(0.82 - i * 0.04, 0, 0, 1),
+			UDim2.fromScale(0.06 + shift * 0.055, 0.07 + i * 0.116),
+			UDim2.new(0.82 - shift * 0.11, 0, 0, 1),
 			paper,
 			1
 		)
-		grain.BackgroundTransparency = 0.86
+		grain.BackgroundTransparency = if i % 2 == 0 then 0.89 else 0.93
 	end
-	for _, x in { 6, -6 } do
-		for _, y in { 5, -5 } do
+
+	local rivets: { Frame } = {}
+	for _, x in { 8, -8 } do
+		for _, y in { 8, -8 } do
 			local pin = piece(
 				face,
 				UDim2.new(if x > 0 then 0 else 1, x, if y > 0 then 0 else 1, y),
@@ -96,12 +105,27 @@ function Wood.mount(target: GuiObject, gems: boolean?, insetColor: Color3?): UIS
 				45
 			)
 			pin.AnchorPoint = Vector2.new(0.5, 0.5)
+			stroke(pin, paper, 1)
+			table.insert(rivets, pin)
 		end
 	end
-	if gems then
-		crystal(face, UDim2.new(0, 3, 0.5, 0), 10)
-		crystal(face, UDim2.new(1, -3, 0.5, 0), 10)
+	local left = if gems then crystal(face, UDim2.new(0, 2, 0.5, 0), 10) else nil
+	local right = if gems then crystal(face, UDim2.new(1, -2, 0.5, 0), 10) else nil
+	local function resize()
+		local height = target.AbsoluteSize.Y
+		trim.Thickness = math.clamp(math.round(height * 0.047), 2, 7)
+		local pin = math.clamp(math.round(height * 0.07), 4, 9)
+		for _, rivet in rivets do
+			rivet.Size = UDim2.fromOffset(pin, pin)
+		end
+		if left and right then
+			local gem = math.clamp(math.round(height * 0.19), 8, 29)
+			left.Size = UDim2.fromOffset(gem, gem)
+			right.Size = left.Size
+		end
 	end
+	target:GetPropertyChangedSignal("AbsoluteSize"):Connect(resize)
+	resize()
 	return trim
 end
 

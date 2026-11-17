@@ -102,10 +102,10 @@ function NextGoal.start()
 	chip.Text = ""
 	chip.Visible = false
 	chip.AnchorPoint = Vector2.new(0.5, 0)
-	chip.Size = UDim2.new(0.76, 0, 0, 52)
+	chip.Size = UDim2.new(0.55, 0, 0, 52)
 	Wood.mount(chip, true, Color3.fromRGB(40, 76, 69))
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(440, 52)
+	bounds.MaxSize = Vector2.new(1000, 110)
 	bounds.Parent = chip
 
 	local icons = {
@@ -117,11 +117,11 @@ function NextGoal.start()
 		icon.Position = UDim2.fromOffset(13, 8)
 		icon.Visible = false
 	end
-	local heading = Wood.caption(chip, "Heading", Text.title, 13, Theme.gold)
+	local heading = Wood.caption(chip, "Heading", Text.title, 28, Theme.gold)
 	heading.Size = UDim2.new(1, -68, 0, 15)
 	heading.Position = UDim2.fromOffset(54, 4)
 	heading.TextXAlignment = Enum.TextXAlignment.Left
-	local message = Wood.caption(chip, "Objective", "", 14)
+	local message = Wood.caption(chip, "Objective", "", 25)
 	message.Size = UDim2.new(1, -68, 0, 17)
 	message.Position = UDim2.fromOffset(54, 19)
 	message.TextXAlignment = Enum.TextXAlignment.Left
@@ -145,6 +145,22 @@ function NextGoal.start()
 	fill.Parent = track
 
 	local function place()
+		local width = hud.AbsoluteSize.X
+		local height = math.clamp(math.round(hud.AbsoluteSize.Y * 0.102), 46, 110)
+		local wide = width > 1000
+		chip.Size = UDim2.new(if width < 520 then 0.81 else 0.55, 0, 0, height)
+		local iconSize = math.round(height * 0.83)
+		local left = iconSize + 18
+		for _, icon in icons do
+			icon.Size = UDim2.fromOffset(iconSize, iconSize)
+			icon.Position = UDim2.fromOffset(10, (height - iconSize) / 2)
+		end
+		heading.Position = UDim2.new(0, left, 0.08, 0)
+		heading.Size = UDim2.new(if wide then 0.47 else 1, -left - 10, 0.35, 0)
+		message.Position = UDim2.new(0, left, 0.42, 0)
+		message.Size = UDim2.new(if wide then 0.49 else 1, -left - 10, 0.33, 0)
+		track.Position = if wide then UDim2.fromScale(0.50, 0.49) else UDim2.new(0, left, 0.81, 0)
+		track.Size = if wide then UDim2.fromScale(0.46, 0.21) else UDim2.new(1, -left - 14, 0.12, 0)
 		chip.Position = UDim2.new(
 			0.5,
 			0,
@@ -152,7 +168,7 @@ function NextGoal.start()
 			navigation.Position.Y.Offset + navigation.AbsoluteSize.Y + 7
 		)
 	end
-	navigation:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+	Hud.layoutChanged:Connect(place)
 	place()
 	chip.Parent = hud
 

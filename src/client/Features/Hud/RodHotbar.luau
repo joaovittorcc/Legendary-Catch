@@ -26,7 +26,7 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 	slot.Visible = false
 	local trim = Wood.mount(slot, true, Color3.fromRGB(25, 76, 76))
 	local inactiveColor = trim.Color
-	local caption = Wood.caption(slot, "ItemName", Text.rodSlot, 13)
+	local caption = Wood.caption(slot, "ItemName", Text.rodSlot, 26)
 	caption.Size = UDim2.new(1, -8, 0, 17)
 	caption.Position = UDim2.new(0, 4, 1, -20)
 	local key = Wood.caption(slot, "Shortcut", "1", 11, Theme.gold)
@@ -41,6 +41,16 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 	local tool: Tool? = nil
 	local icon: Frame? = nil
 	local iconRod: string? = nil
+	local function layout()
+		local height = math.clamp(math.round(gui.AbsoluteSize.Y * 0.18), 58, 174)
+		slot.Size = UDim2.fromOffset(math.round(height * 0.96), height)
+		caption.Size = UDim2.new(1, -13, 0.24, 0)
+		caption.Position = UDim2.new(0, 6, 0.735, 0)
+		if icon then
+			local size = math.round(height * 0.69)
+			icon.Size = UDim2.fromOffset(size, size)
+		end
+	end
 	local nativeEnabled: boolean? = nil
 	local queued = false
 	local playerGui = player:WaitForChild("PlayerGui")
@@ -103,6 +113,7 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 				newIcon.AnchorPoint = Vector2.new(0.5, 0)
 				newIcon.Position = UDim2.new(0.5, 0, 0, 5)
 				icon, iconRod = newIcon, rodId
+				layout()
 			end
 		end
 	end
@@ -179,6 +190,7 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 		player:GetAttributeChangedSignal("CatchRevealActive"):Connect(schedule),
 		minigame:GetPropertyChangedSignal("Visible"):Connect(schedule),
 		gui:GetPropertyChangedSignal("Enabled"):Connect(schedule),
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout),
 		UserInputService.LastInputTypeChanged:Connect(schedule),
 		panelChanged:Connect(schedule),
 	}
@@ -196,6 +208,7 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 	backpack = player:FindFirstChildOfClass("Backpack")
 	watch(backpack, bagSignals)
 	setCharacter(player.Character)
+	layout()
 end
 
 return RodHotbar

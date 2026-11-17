@@ -13,7 +13,6 @@ local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
-local CARD_TOP = 66
 local CARD_HEIGHT = 52
 local layout = Instance.new("BindableEvent")
 local visibleBottom = 0
@@ -45,7 +44,7 @@ function Tutorial.start()
 
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0)
-	card.Position = UDim2.new(0.5, 0, 0, CARD_TOP)
+	card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
 	card.Size = UDim2.new(0.92, 0, 0, CARD_HEIGHT)
 	card.Visible = false
 	Theme.surface(card, Theme.crystal, 12)
@@ -74,12 +73,18 @@ function Tutorial.start()
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local function publishLayout()
-		local bottom = if gui.Enabled and card.Visible then CARD_TOP + CARD_HEIGHT else 0
+		local bottom = if gui.Enabled and card.Visible
+			then card.Position.Y.Offset + CARD_HEIGHT
+			else 0
 		if visibleBottom ~= bottom then
 			visibleBottom = bottom
 			layout:Fire()
 		end
 	end
+	Hud.layoutChanged:Connect(function()
+		card.Position = UDim2.fromOffset(0, Hud.navBottom() + 8) + UDim2.fromScale(0.5, 0)
+		publishLayout()
+	end)
 	gui:GetPropertyChangedSignal("Enabled"):Connect(publishLayout)
 	card:GetPropertyChangedSignal("Visible"):Connect(publishLayout)
 

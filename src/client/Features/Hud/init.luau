@@ -15,6 +15,14 @@ local player = Players.LocalPlayer
 local panelChanged = Instance.new("BindableEvent")
 Hud.panelChanged = panelChanged.Event
 local currentPanel = ""
+local navigation: Frame? = nil
+local resized = Instance.new("BindableEvent")
+Hud.layoutChanged = resized.Event
+
+function Hud.navBottom(): number
+	local bar = navigation
+	return if bar then bar.Position.Y.Offset + bar.Size.Y.Offset else 64
+end
 local activeToast: Tween? = nil
 local toastLabel: TextLabel? = nil
 
@@ -63,25 +71,24 @@ function Hud.start()
 	bar.Name = "Navigation"
 	bar.AnchorPoint = Vector2.new(0.5, 0)
 	bar.Position = UDim2.new(0.5, 0, 0, 6)
-	bar.Size = UDim2.new(0.96, 0, 0, 54)
+	bar.Size = UDim2.new(0.966, 0, 0, 54)
 	bar.BackgroundTransparency = 1
-	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(720, 54)
-	bounds.Parent = bar
 	bar.Parent = gui
+	navigation = bar
 
 	local coins = Instance.new("Frame")
 	coins.Name = "Coins"
-	coins.Size = UDim2.fromScale(0.195, 1)
+	coins.Size = UDim2.fromScale(0.176, 0.85)
+	coins.Position = UDim2.fromScale(0, 0.075)
 	Wood.mount(coins, true)
-	local moneyIcon = Wood.icon(coins, "Coin", 30)
+	local moneyIcon = Wood.icon(coins, "Coin", 56)
 	moneyIcon.AnchorPoint = Vector2.new(0, 0.5)
-	local balance = Wood.caption(coins, "Balance", "—", 26)
+	local balance = Wood.caption(coins, "Balance", "—", 49)
 	balance.TextXAlignment = Enum.TextXAlignment.Center
 	local function placeBalance()
-		local small = coins.AbsoluteSize.X < 86
-		local iconSize = if small then 19 else 30
-		local offset = if small then 6 else 12
+		local iconSize =
+			math.floor(math.min(coins.AbsoluteSize.Y * 0.74, coins.AbsoluteSize.X * 0.4))
+		local offset = math.max(8, math.floor(coins.AbsoluteSize.X * 0.095))
 		moneyIcon.Size = UDim2.fromOffset(iconSize, iconSize)
 		moneyIcon.Position = UDim2.new(0, offset, 0.5, 0)
 		balance.Size = UDim2.new(1, -(iconSize + offset + 8), 1, -6)
@@ -133,29 +140,50 @@ function Hud.start()
 	for i, entry in entries do
 		local button = Instance.new("TextButton")
 		button.Name = entry.id
-		button.Position = UDim2.fromScale(0.207 + (i - 1) * 0.2, 0)
-		button.Size = UDim2.fromScale(0.19, 1)
+		button.Position = UDim2.fromScale(0.243 + (i - 1) * 0.133, 0)
+		button.Size = UDim2.fromScale(0.124, 1)
 		button.Text = ""
-		local edge = Wood.mount(button)
+		local edge = Wood.mount(button, true)
 		local idle = edge.Color
 		local icon = Wood.icon(button, entry.id, 29)
 		icon.AnchorPoint = Vector2.new(0.5, 0)
-		icon.Position = UDim2.new(0.5, 0, 0, 3)
-		local label = Wood.caption(button, "Label", entry.title, 14)
-		label.Position = UDim2.fromOffset(5, 32)
-		label.Size = UDim2.new(1, -10, 0, 18)
+		icon.Position = UDim2.fromScale(0.5, 0.041)
+		local label = Wood.caption(button, "Label", entry.title, 31)
+		label.Position = UDim2.new(0, 6, 0.61, 0)
+		label.Size = UDim2.new(1, -12, 0.35, 0)
+		local function layoutIcon()
+			local size =
+				math.floor(math.min(button.AbsoluteSize.X * 0.61, button.AbsoluteSize.Y * 0.62))
+			icon.Size = UDim2.fromOffset(size, size)
+		end
+		button:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutIcon)
 		Hud.panelChanged:Connect(function(name)
 			local selected = name == entry.id
 				or (entry.id == "Collection" and name == "Milestones")
 				or (entry.id == "Shop" and name == "Robux")
 			edge.Color = if selected then Theme.crystal else idle
-			edge.Thickness = if selected then 3 else 2
 		end)
 		button.Activated:Connect(function()
 			Hud.showPanel(if currentPanel == entry.id then "" else entry.id)
 		end)
 		button.Parent = bar
+		layoutIcon()
 	end
+	local function layout()
+		local size = gui.AbsoluteSize
+		local narrow = size.X < 520
+		bar.Size = UDim2.new(0.966, 0, 0, math.clamp(math.round(size.Y * 0.132), 48, 132))
+		for i, entry in entries do
+			local button = bar:FindFirstChild(entry.id) :: TextButton
+			button.Size = UDim2.fromScale(if narrow then 0.197 else 0.124, 1)
+			button.Position = UDim2.fromScale(
+				if narrow then 0.209 + (i - 1) * 0.198 else 0.243 + (i - 1) * 0.133,
+				0
+			)
+		end
+		resized:Fire()
+	end
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 
 	local perks = Instance.new("TextLabel")
 	perks.Name = "Perks"
@@ -214,6 +242,7 @@ function Hud.start()
 	toastLabel = toast
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
+	layout()
 	notifications.Parent = playerGui
 	task.spawn(RodHotbar.mount, gui, Hud.panelChanged, Hud.panel)
 	task.spawn(function()

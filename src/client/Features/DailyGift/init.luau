@@ -7,7 +7,6 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Types = require(Shared:WaitForChild("Types"))
-local Missions = require(Shared:WaitForChild("Config"):WaitForChild("Missions"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Wood = require(script.Parent.Hud:WaitForChild("Wood"))
@@ -32,22 +31,37 @@ local function show(playerGui: PlayerGui, gift: Types.Daily)
 	chest.Position = UDim2.fromOffset(7, 8)
 	local adventure = playerGui:FindFirstChild("AdventureHud")
 	local navigation = adventure and adventure:FindFirstChild("Navigation")
+	local lastButton = navigation and navigation:FindFirstChild("Settings")
 	local function place()
-		local width = math.clamp(gui.AbsoluteSize.X * 0.36, 182, 248)
-		local hasSideRoom = navigation
-			and navigation:IsA("GuiObject")
-			and navigation.AbsolutePosition.X + navigation.AbsoluteSize.X + width + 23
+		local width = math.clamp(gui.AbsoluteSize.X * 0.193, 120, 344)
+		local hasSideRoom = lastButton
+			and lastButton:IsA("GuiObject")
+			and lastButton.AbsolutePosition.X + lastButton.AbsoluteSize.X + width + 16
 				<= gui.AbsoluteSize.X
-		-- On short landscape screens, keep the card inside the corner reserved for jump.
 		local right = if not hasSideRoom and gui.AbsoluteSize.Y < 305
 			then math.max(84, math.floor(gui.AbsoluteSize.X * 0.17))
 			else 12
-		card.Size = UDim2.fromOffset(width, 66)
-		card.Position = UDim2.new(1, -right, 0, if hasSideRoom then 6 else 135)
+		local height = math.clamp(math.round(gui.AbsoluteSize.Y * 0.148), 50, 132)
+		local iconSize = math.floor(math.min(height * 0.83, width * 0.34))
+		card.Size = UDim2.fromOffset(width, height)
+		card.Position = UDim2.new(1, -right, 0, if hasSideRoom then 6 else Hud.navBottom() + 68)
+		chest.Size = UDim2.fromOffset(iconSize, iconSize)
+		chest.Position = UDim2.new(0, 7, 0.5, -iconSize / 2)
+		for _, label in card:GetChildren() do
+			if label:IsA("TextLabel") then
+				label.Size = UDim2.new(1, -(iconSize + 18), 0.36, 0)
+				label.Position =
+					UDim2.new(0, iconSize + 11, if label.Name == "GiftTitle" then 0.12 else 0.52, 0)
+			end
+		end
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
+	local resize = Hud.layoutChanged:Connect(place)
+	gui.Destroying:Once(function()
+		resize:Disconnect()
+	end)
 
-	local heading = Wood.caption(card, "GiftTitle", string.format(Text.dailyGift, gift.days), 16)
+	local heading = Wood.caption(card, "GiftTitle", string.format(Text.dailyGift, gift.days), 26)
 	heading.Size = UDim2.new(1, -64, 0, 21)
 	heading.Position = UDim2.fromOffset(57, 8)
 	heading.TextXAlignment = Enum.TextXAlignment.Left
@@ -55,7 +69,7 @@ local function show(playerGui: PlayerGui, gift: Types.Daily)
 		card,
 		"GiftAmount",
 		string.format(Text.dailyCoins, gift.lastGift),
-		20,
+		30,
 		Theme.gold
 	)
 	amount.Size = UDim2.new(1, -64, 0, 25)
@@ -90,7 +104,7 @@ local function show(playerGui: PlayerGui, gift: Types.Daily)
 	if gui.Parent then
 		Juice.flyCoins(gift.lastGift, chest.AbsolutePosition + chest.AbsoluteSize / 2)
 	end
-	task.delay(5.5, function()
+	task.delay(9.5, function()
 		if gui.Parent then
 			gui:Destroy()
 		end
@@ -98,7 +112,7 @@ local function show(playerGui: PlayerGui, gift: Types.Daily)
 end
 
 local function waitForTodaysGift(): Types.Daily
-	local today = Missions.today()
+	local today = math.floor(workspace:GetServerTimeNow() / 86400)
 	local snapshot = Data.waitLoaded()
 	-- The profile can arrive before Progress grants today's gift and sends its update.
 	while not snapshot.daily or snapshot.daily.lastDay ~= today do
@@ -110,8 +124,8 @@ end
 
 function DailyGift.start()
 	local daily = waitForTodaysGift()
-	local age = os.time() - daily.grantedAt
-	if daily.days < 1 or daily.lastGift < 1 or age < 0 or age >= 120 then
+	local age = workspace:GetServerTimeNow() - daily.grantedAt
+	if daily.days < 1 or daily.lastGift < 1 or age < -2 or age >= 120 then
 		return
 	end
 

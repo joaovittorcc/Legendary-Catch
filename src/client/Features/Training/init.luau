@@ -21,6 +21,7 @@ local Effects = require(FishingFolder:WaitForChild("Effects"))
 local PressInput = require(FishingFolder:WaitForChild("PressInput"))
 local Rhythm = require(FishingFolder:WaitForChild("Minigames"):WaitForChild("Rhythm"))
 local Ui = require(FishingFolder:WaitForChild("Ui"))
+local Hud = require(script.Parent:WaitForChild("Hud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 
 local STAT_COLORS: { [string]: Color3 } = {
@@ -78,7 +79,8 @@ end
 local function positionHud()
 	local frame = hud
 	if frame then
-		frame.Position = UDim2.new(0.5, 0, 0, math.max(66, Tutorial.cardBottom() + 12))
+		frame.Position =
+			UDim2.new(0.5, 0, 0, math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12))
 	end
 end
 
@@ -346,6 +348,7 @@ function Training.start()
 	local updateRemote = remotes:WaitForChild(Net.TRAINING_UPDATE) :: RemoteEvent
 
 	Tutorial.layoutChanged:Connect(positionHud)
+	Hud.layoutChanged:Connect(positionHud)
 	updateRemote.OnClientEvent:Connect(onUpdate)
 	player:GetAttributeChangedSignal(TrainingConfig.ACTIVE_ATTRIBUTE):Connect(onActiveChanged)
 	for _, stat in TrainingConfig.STATS do
