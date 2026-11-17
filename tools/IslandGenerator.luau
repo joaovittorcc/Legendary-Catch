@@ -415,6 +415,27 @@ local function buildPlaza()
 			{ collide = false, shadow = false }
 		)
 	end
+	-- Thin gold inlays from the glyph to each destination, as in the reference paving.
+	for _, target in
+		{
+			Vector3.new(-6, PLAZA_Y + 0.04, -12), -- workshop steps
+			Vector3.new(16, PLAZA_Y + 0.04, 8), -- pier
+			Vector3.new(-26, PLAZA_Y + 0.04, 2), -- lagoon
+			Vector3.new(-6, PLAZA_Y + 0.04, 26), -- stairs
+		}
+	do
+		local from = glyph + (target - glyph).Unit * 6.2
+		beam(
+			"GoldInlay",
+			g,
+			Vector3.new(from.X, PLAZA_Y + 0.04, from.Z),
+			target,
+			0.16,
+			COLORS.gold,
+			Enum.Material.Neon,
+			{ collide = false, shadow = false }
+		)
+	end
 	deco(
 		"GlyphCore",
 		g,
@@ -514,6 +535,38 @@ end
 local function lantern(parent: Instance, base: Vector3, height: number)
 	local g = Instance.new("Model")
 	g.Name = "Lantern"
+	local lib = ServerStorage:FindFirstChild("MapMeshes")
+	if lib and lib:FindFirstChild("LanternPost") then
+		g.Parent = parent
+		part(
+			"PostCollider",
+			g,
+			Vector3.new(0.8, height, 0.8),
+			CFrame.new(base + Vector3.new(0, height / 2, 0)),
+			COLORS.woodDark,
+			Enum.Material.Wood,
+			{ transparency = 1, shadow = false }
+		)
+		placeMesh(
+			"LanternPost",
+			g,
+			CFrame.new(base) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
+			function() end,
+			height / 4.5
+		)
+		-- Light near the hanging lantern of the mesh (upper part of the post).
+		local glow = deco(
+			"LightSource",
+			g,
+			Vector3.new(0.2, 0.2, 0.2),
+			CFrame.new(base + Vector3.new(0, height * 0.72, 0)),
+			COLORS.amber,
+			Enum.Material.Neon,
+			{ transparency = 1, shadow = false }
+		)
+		pointLight(glow, COLORS.amber, 1.4, 16)
+		return g
+	end
 	part(
 		"Post",
 		g,
@@ -624,15 +677,15 @@ local function buildStairs()
 		COLORS.pavingDark,
 		Enum.Material.Cobblestone
 	)
+	-- Rocky flanks that step down with the stairs, like the cliff in the reference.
+	for _, x in { -16.5, 4.5 } do
+		for i = 0, 5 do
+			local z = 28 + i * 4
+			local y = PLAZA_Y - 4 - i * 1.6
+			Terrain:FillBall(Vector3.new(x, y, z), rng:NextNumber(3.6, 4.4), Enum.Material.Rock)
+		end
+	end
 	for _, x in { -14.5, 2.5 } do
-		part(
-			"StairWall",
-			g,
-			Vector3.new(3, 12, 26),
-			CFrame.new(x, 3, 38) * CFrame.Angles(math.rad(-18), 0, 0),
-			COLORS.rock,
-			Enum.Material.Slate
-		)
 		lantern(g, Vector3.new(x, PLAZA_Y, 25), 6)
 		lantern(g, Vector3.new(x, landingY, 50), 5)
 	end
@@ -695,20 +748,24 @@ local function buildBlossomTree(parent: Instance, base: Vector3)
 	end
 
 	-- Hanging wisteria strands and lanterns along the canopy rim.
+	-- Each strand is a chain of shrinking blossom beads, so it reads as a flower cluster.
 	for i = 1, 18 do
 		local a = i / 18 * math.pi * 2
 		local r = rng:NextNumber(7, 11)
 		local top = crown + Vector3.new(math.cos(a) * r, -3, math.sin(a) * r)
-		local len = rng:NextNumber(2.5, 4.5)
-		deco(
-			"Wisteria",
-			g,
-			Vector3.new(0.7, len, 0.7),
-			CFrame.new(top - Vector3.new(0, len / 2, 0)),
-			if i % 2 == 0 then COLORS.lilac else Color3.fromRGB(170, 120, 240),
-			Enum.Material.SmoothPlastic,
-			{ shadow = false }
-		)
+		local beads = rng:NextInteger(3, 5)
+		for b = 0, beads - 1 do
+			local s = 1.1 - b * 0.18
+			deco(
+				"Wisteria",
+				g,
+				Vector3.new(s, s * 1.2, s),
+				CFrame.new(top - Vector3.new(0, b * 0.9, 0)),
+				if (i + b) % 2 == 0 then COLORS.lilac else Color3.fromRGB(170, 120, 240),
+				Enum.Material.SmoothPlastic,
+				{ shape = Enum.PartType.Ball, shadow = false }
+			)
+		end
 	end
 	for i = 1, 4 do
 		local a = i / 4 * math.pi * 2 + 0.4
@@ -784,7 +841,7 @@ local function buildLagoon()
 	for i = 1, 9 do
 		local a = rng:NextNumber(0, math.pi * 2)
 		local r = rng:NextNumber(4, 12)
-		local p = c + Vector3.new(math.cos(a) * r, 8.05, math.sin(a) * r)
+		local p = c + Vector3.new(math.cos(a) * r, 8.16, math.sin(a) * r)
 		disc(
 			"LilyPad",
 			g,
@@ -811,13 +868,14 @@ local function buildLagoon()
 	-- Fish silhouettes swimming in the shallows.
 	for i = 1, 5 do
 		local a = i / 5 * math.pi * 2
-		local p = c + Vector3.new(math.cos(a) * 8, 6.4, math.sin(a) * 6)
+		-- Just under the glow sheet so the silhouettes stay visible through it.
+		local p = c + Vector3.new(math.cos(a) * 8, 7.85, math.sin(a) * 6)
 		deco(
 			"FishShadow",
 			g,
-			Vector3.new(0.8, 0.5, 2.6),
+			Vector3.new(0.8, 0.3, 2.6),
 			CFrame.lookAt(p, p + Vector3.new(-math.sin(a), 0, math.cos(a))),
-			Color3.fromRGB(20, 70, 110),
+			Color3.fromRGB(14, 60, 96),
 			Enum.Material.SmoothPlastic,
 			{ shape = Enum.PartType.Ball, shadow = false }
 		)
@@ -874,21 +932,39 @@ local function buildLagoon()
 	end
 
 	-- Waterfall falling from the cliff into the back of the lagoon.
-	local fallTop = Vector3.new(-48, 22, -13)
-	local fallBottom = Vector3.new(-48, 8, -10.5)
-	for i = -2, 2 do
-		local off = Vector3.new(i * 1.2, 0, 0)
+	-- Two segments follow the measured cliff face (rock at z -12.7 @ y22, -8.6 @ y14), so
+	-- the sheet stays in front of the terrain instead of disappearing into it.
+	local fallPath = {
+		Vector3.new(-48, 21.5, -11.4),
+		Vector3.new(-48, 15, -7.6),
+		Vector3.new(-48, 8, -6.6),
+	}
+	for seg = 1, #fallPath - 1 do
+		local a, b = fallPath[seg], fallPath[seg + 1]
+		for i = -2, 2 do
+			local off = Vector3.new(i * 1.2, 0, 0)
+			deco(
+				"Waterfall",
+				g,
+				Vector3.new(1.4, 0.4, (b - a).Magnitude + 0.6),
+				CFrame.lookAt((a + b) / 2 + off, b + off),
+				if i % 2 == 0 then COLORS.cyan else COLORS.white,
+				Enum.Material.Glass,
+				{ transparency = if i % 2 == 0 then 0.25 else 0.45, shadow = false }
+			)
+		end
+	end
+	do
 		local p = deco(
-			"Waterfall",
+			"WaterfallMistSource",
 			g,
-			Vector3.new(1.4, (fallTop - fallBottom).Magnitude, 0.4),
-			CFrame.lookAt((fallTop + fallBottom) / 2 + off, fallBottom + off)
-				* CFrame.Angles(math.rad(90), 0, 0),
-			if i % 2 == 0 then COLORS.cyan else COLORS.white,
-			Enum.Material.Glass,
-			{ transparency = if i % 2 == 0 then 0.25 else 0.45, shadow = false }
+			Vector3.new(3, 0.2, 1),
+			CFrame.new(fallPath[#fallPath]),
+			COLORS.white,
+			Enum.Material.SmoothPlastic,
+			{ transparency = 1, shadow = false }
 		)
-		if i == 0 then
+		do
 			local mist = Instance.new("ParticleEmitter")
 			mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
 			mist.Color = ColorSequence.new(COLORS.white)
@@ -910,7 +986,7 @@ local function buildLagoon()
 	disc(
 		"Foam",
 		g,
-		Vector3.new(-48, 8.05, -9.5),
+		Vector3.new(-48, 8.2, -6),
 		4,
 		0.15,
 		COLORS.white,
@@ -1010,28 +1086,40 @@ local function buildWorkshop()
 	)
 	neonRing(g, pedestal + Vector3.new(0, 2.05, 0), 2.4, 0.14, COLORS.gold, 18)
 	local gem = deco(
-		"UpgradeCrystal",
+		"UpgradeCrystalLight",
 		g,
-		Vector3.new(1.6, 3.4, 1.6),
-		CFrame.new(pedestal + Vector3.new(0, 4, 0)) * CFrame.Angles(0, math.rad(45), 0),
+		Vector3.new(0.2, 0.2, 0.2),
+		CFrame.new(pedestal + Vector3.new(0, 4, 0)),
 		COLORS.cyan,
 		Enum.Material.Neon,
-		{ shadow = false }
+		{ transparency = 1, shadow = false }
 	)
 	pointLight(gem, COLORS.cyan, 2.4, 20)
+	placeMesh("CrystalCluster", g, CFrame.new(pedestal + Vector3.new(0, 2, 0)), function()
+		deco(
+			"UpgradeCrystal",
+			g,
+			Vector3.new(1.6, 3.4, 1.6),
+			CFrame.new(pedestal + Vector3.new(0, 4, 0)) * CFrame.Angles(0, math.rad(45), 0),
+			COLORS.cyan,
+			Enum.Material.Neon,
+			{ shadow = false }
+		)
+	end, 0.4)
 
 	-- The mesh has an empty board under the roof; the sign goes right on its face.
 	local shop = g:FindFirstChild("Workshop")
+	local emblem = Vector3.new(-6, TERRACE_Y + 25, -40)
 	if shop and shop:IsA("Model") then
 		local cf, size = shop:GetBoundingBox()
 		local face = cf.Position + Vector3.new(0, size.Y * 0.12, size.Z / 2 + 0.1)
 		sign(g, "UPGRADE WORKSHOP", CFrame.new(face), size.X * 0.42, size.Y * 0.14)
+		emblem = cf.Position + Vector3.new(0, size.Y / 2 + 4, size.Z * 0.1)
 	else
 		sign(g, "UPGRADE WORKSHOP", CFrame.new(-6, TERRACE_Y + 12.5, front - 1.5), 12, 3.6)
 	end
 
 	-- Golden magic emblem floating above the roof, as in the reference.
-	local emblem = Vector3.new(-6, TERRACE_Y + 25, -40)
 	local e = Instance.new("Model")
 	e.Name = "RoofEmblem"
 	for i = 1, 24 do
@@ -1242,21 +1330,26 @@ local function buildPier()
 		end
 		ring.Parent = g
 	end
-	for i, p in
+	for _, spot in
 		{
-			Vector3.new(14, PLAZA_Y, 17),
-			Vector3.new(16.5, PLAZA_Y, 17.5),
-			Vector3.new(15, PLAZA_Y + 2.4, 17.2),
+			{ pos = Vector3.new(15, PLAZA_Y, 17.5), yaw = 20 },
+			{ pos = Vector3.new(15, PLAZA_Y, -2), yaw = 160 },
 		}
 	do
-		part(
-			"Crate",
-			g,
-			Vector3.new(2.4, 2.4, 2.4),
-			CFrame.new(p + Vector3.new(0, 1.2, 0)) * CFrame.Angles(0, math.rad(i * 17), 0),
-			COLORS.woodLight,
-			Enum.Material.WoodPlanks
-		)
+		local p, yaw = spot.pos, spot.yaw
+		placeMesh("CrateStack", g, CFrame.new(p) * CFrame.Angles(0, math.rad(yaw), 0), function()
+			for i = 0, 2 do
+				part(
+					"Crate",
+					g,
+					Vector3.new(2.4, 2.4, 2.4),
+					CFrame.new(p + Vector3.new(i % 2 * 2.5, 1.2 + math.floor(i / 2) * 2.4, 0))
+						* CFrame.Angles(0, math.rad(i * 17), 0),
+					COLORS.woodLight,
+					Enum.Material.WoodPlanks
+				)
+			end
+		end, 1.1)
 	end
 	neonRing(g, Vector3.new(x1 - 3, PIER_Y + 0.05, zc), 2.6, 0.12, COLORS.cyan, 16)
 
@@ -1415,6 +1508,8 @@ local function buildDecor()
 			{ -54, 4, 34, 9 },
 			{ -66, 6, -26, 7 },
 			{ 10, 3, 36, 8 },
+			{ -19, 4, 36, 7 },
+			{ 7, 3, 42, 6 },
 			{ 22, 4, 24, 7 },
 			{ 72, -2, 22, 7 },
 			{ 30, -2, -18, 6 },
