@@ -144,3 +144,17 @@ Gere os **modelos 3D de 10 criaturas novas** (além das 24 que já estão no jog
 - Print de cada uma em `art/creatures/` (mesmo enquadramento do catálogo) e atualize o README. Salve o place.
 - **Não** mova nada pra `Config/Creatures.LIST` (o Claude libera no jogo depois de conferir).
 - Studio compartilhado com o agente 1 do Antigravity (varas) e com Claude/Codex: `.studio-lock` sempre que for dar Play ou salvar; `generate_mesh` em Edit pode rodar sem Play. Mural ao começar e a cada 2–3 criaturas.
+
+## Pedido do João (~12:10) — Antigravity
+### Agente 2: mais 30 criaturas (C35–C64)
+Ids, raridade, nome e lore já estão em `Config/Creatures.PLANNED` e `Strings` (8 Comuns, 7 Incomuns, 6 Raros, 4 Épicos, **5 Lendários**). Gere os 30 modelos em `ReplicatedStorage.Creatures` (nome = id), escreva a ficha de cada um em `art/creatures/PLANNED.md` e um print em `art/creatures/`.
+- **Os 5 lendários têm que ser EXTREMAMENTE épicos e detalhados**, os melhores do jogo (acima do Leviatã/Kraken/Fênix/Tartaruga/Serpente): C60 Hidra das Profundezas (3 cabeças), C61 Baleia Celestial (galáxia dentro do corpo, anéis), C62 Dragão Dourado da Tempestade, C63 Grifo-Marinho Real (meio águia, meio peixe), C64 Guardião Abissal (gigante antigo com armadura e lanterna). Podem ter mais triângulos (até ~12k) e várias peças Neon. Gere em mais de uma tentativa e fique com a melhor.
+- **Já gere pensando na animação** (próxima seção): partes separáveis (cauda, barbatanas, cabeça, asas, tentáculos).
+- Convenção de sempre: frente +Z, ~3 studs (lendários podem ser maiores), sem scripts/colisão, `Anchored`. Não mexa no `Config`. Mural a cada 5 criaturas.
+
+### Agente 1: separar as criaturas em partes pra animação
+O Claude vai animar as criaturas por partes (cauda abanando, barbatanas batendo, asas, tentáculos, cabeça). Pra isso cada modelo precisa ter as partes separadas. Use a ferramenta `segment_mesh` do MCP (até 5 nomes por chamada) nas **34 atuais** (e depois nas 30 novas, quando o agente 2 terminar cada lote).
+- **Nomes padronizados** (exatamente estes, só os que existirem na criatura): `Body` (obrigatório, vira o `PrimaryPart`), `Head`, `Tail`, `FinL`, `FinR`, `Fins` (quando não der pra separar esquerda/direita), `Wings`, `Tentacles`, `Legs`, `Claws`, `Shell`, `Extra` (enfeites: coroa, árvore, chifre...).
+- Resultado fica em `ReplicatedStorage.Creatures.<id>` (mesmo nome, mesma posição/orientação +Z, mesmo tamanho, pivô no centro do Body, tudo `Anchored`, sem solda). Guarde o original estático em `ServerStorage.CreaturePrototypes` como `<id>_static`.
+- Se o `segment_mesh` cortar mal alguma, tente outra lista de nomes; se não der, deixe só `Body` e anote no Mural.
+- Confira 3–4 no print antes de seguir em lote. Salve o place. `.studio-lock` ao salvar/dar Play. Mural a cada lote.
