@@ -12,3 +12,6 @@ VAULT-roblox.md
 # Reference videos (large, not ours)
 *.mp4
 art/reference/video-frames.html
+
+# Studio play-test lock between agents
+.studio-lock
