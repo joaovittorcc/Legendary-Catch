@@ -1,5 +1,10 @@
 --!strict
 return {
+	arrival = {
+		title = "Legendary Catch",
+		loading = "Preparando a ilha…",
+		ready = "Bem-vindo à ilha!",
+	},
 	tutorial = {
 		skip = "Pular",
 		earn = "Pesque mais um pouco para comprar a Vara de Coral.",
