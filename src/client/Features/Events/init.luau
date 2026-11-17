@@ -9,6 +9,9 @@ local Config = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 
+local Training = require(script.Parent:WaitForChild("Training"))
+local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
+
 local Events = {}
 local player = Players.LocalPlayer
 local colors: { [string]: Color3 } = {
@@ -84,6 +87,10 @@ function Events.start()
 		end
 		emitter.Enabled = decorations
 		if active and typeof(id) == "string" then
+			local cardBottom = math.max(Tutorial.cardBottom(), Training.cardBottom())
+			banner.Position = if cardBottom > 0
+				then UDim2.new(0.97, 0, 0, cardBottom + 10)
+				else UDim2.fromScale(0.97, 0.23)
 			if rim then
 				rim.Color = tint
 			end

@@ -82,6 +82,11 @@ local function positionHud()
 	end
 end
 
+function Training.cardBottom(): number
+	local frame = hud
+	return if frame then frame.Position.Y.Offset + frame.AbsoluteSize.Y else 0
+end
+
 local function buildHud(color: Color3)
 	local frame = Ui.frame(
 		Ui.screen(),
