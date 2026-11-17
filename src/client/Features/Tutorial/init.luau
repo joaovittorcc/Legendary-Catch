@@ -27,6 +27,7 @@ function Tutorial.start()
 	local mockEnabled = RunService:IsStudio() and player:GetAttribute("DevMockTutorial") == true
 	local mock: TutorialState = { step = "goToPier", done = false }
 	local step = ""
+	local atPier = false
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "TutorialGuide"
 	gui.DisplayOrder = 3
@@ -35,8 +36,8 @@ function Tutorial.start()
 
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0)
-	card.Position = UDim2.fromScale(0.5, 0.12)
-	card.Size = UDim2.new(0.77, 0, 0, 52)
+	card.Position = UDim2.new(0.5, 0, 0, 66)
+	card.Size = UDim2.new(0.92, 0, 0, 52)
 	card.Visible = false
 	Theme.surface(card, Theme.crystal, 12)
 	local bounds = Instance.new("UISizeConstraint")
@@ -65,13 +66,13 @@ function Tutorial.start()
 
 	local function realState(): TutorialState?
 		local snapshot = Data.get()
-		return if snapshot then (snapshot :: any).tutorial else nil
+		return if snapshot then snapshot.tutorial else nil
 	end
 
 	local function refresh()
 		local state = realState() or (if mockEnabled then mock else nil)
 		step = if state and not state.done then state.step else ""
-		local hint = Text.steps[step]
+		local hint = Text.steps[if step == "goToPier" and atPier then "cast" else step]
 		local coral = Rods.get("coral")
 		local coins = player:GetAttribute("Coins")
 		local affordable = not coral or (typeof(coins) == "number" and coins >= coral.price)
@@ -159,6 +160,28 @@ function Tutorial.start()
 			refresh()
 		end)
 	end
+	task.spawn(function()
+		while gui.Parent do
+			if step == "goToPier" then
+				local character = player.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				local zone = CollectionService:GetTagged("FishingZone")[1]
+				local inside = false
+				if root and root:IsA("BasePart") and zone and zone:IsA("BasePart") then
+					local position = zone.CFrame:PointToObjectSpace(root.Position)
+					local half = zone.Size * 0.5
+					inside = math.abs(position.X) <= half.X
+						and math.abs(position.Y) <= half.Y
+						and math.abs(position.Z) <= half.Z
+				end
+				if inside ~= atPier then
+					atPier = inside
+					refresh()
+				end
+			end
+			task.wait(0.25)
+		end
+	end)
 	refresh()
 end
 

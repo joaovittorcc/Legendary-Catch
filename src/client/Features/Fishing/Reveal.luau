@@ -100,7 +100,7 @@ local function sparkles(model: Model, color: Color3, shiny: boolean)
 	e.Size =
 		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
 	e.Lifetime = NumberRange.new(0.6, 1.2)
-	e.Rate = 30
+	e.Rate = 10
 	e.Speed = NumberRange.new(1, 3)
 	e.SpreadAngle = Vector2.new(180, 180)
 	e.Parent = holder
@@ -117,7 +117,7 @@ local function nameCard(
 	local card = Ui.frame(
 		gui,
 		"RevealCard",
-		UDim2.fromScale(0.55, 0.2),
+		UDim2.fromScale(0.72, 0.23),
 		UDim2.fromScale(0.5, 0.12),
 		Color3.new(0, 0, 0),
 		0.15
@@ -290,7 +290,7 @@ function Reveal.play(
 	local restore: (() -> ())? = nil
 	if level >= 5 and not reduced then
 		restore = legendaryIntro(origin, accent, cancelled)
-	elseif level >= 4 then
+	elseif level >= 4 and not reduced then
 		Effects.pillar(origin, color, 35, 1)
 		Effects.ripple(origin, color, 10, 0.9)
 		task.wait(0.45)

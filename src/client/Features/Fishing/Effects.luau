@@ -14,6 +14,7 @@ local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
 local Effects = {}
+local activeBursts = 0
 
 local function fx(
 	name: string,
@@ -65,6 +66,14 @@ function Effects.ripple(center: Vector3, color: Color3, radius: number, duration
 end
 
 function Effects.splash(center: Vector3, color: Color3, count: number)
+	local limit = if reduced() then 1 else 3
+	if activeBursts >= limit then
+		return
+	end
+	activeBursts += 1
+	task.delay(1.5, function()
+		activeBursts -= 1
+	end)
 	local anchor = fx("Splash", Vector3.new(1, 1, 1), CFrame.new(center), color, Enum.Material.Air)
 	anchor.Transparency = 1
 	local emitter = Instance.new("ParticleEmitter")
@@ -80,7 +89,7 @@ function Effects.splash(center: Vector3, color: Color3, count: number)
 	emitter.EmissionDirection = Enum.NormalId.Top
 	emitter.Rate = 0
 	emitter.Parent = anchor
-	emitter:Emit(if reduced() then math.min(count, 4) else count)
+	emitter:Emit(if reduced() then math.min(count, 4) else math.min(count, 28))
 	Debris:AddItem(anchor, 1.5)
 end
 

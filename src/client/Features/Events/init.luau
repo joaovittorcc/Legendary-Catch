@@ -66,6 +66,9 @@ function Events.start()
 		local tint = if typeof(id) == "string" then colors[id] or Theme.crystal else Theme.crystal
 		local decorations = active and player:GetAttribute("ReduceEffects") ~= true
 		atmosphere.Enabled = decorations
+		if emitter.Enabled and not decorations then
+			emitter:Clear()
+		end
 		emitter.Enabled = decorations
 		if active and typeof(id) == "string" then
 			banner.TextColor3 = tint

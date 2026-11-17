@@ -43,8 +43,8 @@ function Panel.create(id: string, title: string, accent: Color3): (ScreenGui, Sc
 
 	local shell = Instance.new("Frame")
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
-	shell.Position = UDim2.fromScale(0.5, 0.53)
-	shell.Size = UDim2.fromScale(0.84, 0.73)
+	shell.Position = UDim2.fromScale(0.5, 0.55)
+	shell.Size = UDim2.fromScale(0.92, 0.68)
 	Theme.surface(shell, accent, 16)
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(680, 530)
@@ -52,7 +52,11 @@ function Panel.create(id: string, title: string, accent: Color3): (ScreenGui, Sc
 	shell.Parent = gui
 
 	local heading = Panel.label(shell, title, 22, accent)
-	heading.Size = UDim2.new(1, -120, 0, 48)
+	heading.Size = UDim2.new(1, -112, 0, 48)
+	heading.TextScaled = true
+	local headingSize = Instance.new("UITextSizeConstraint")
+	headingSize.MaxTextSize = 22
+	headingSize.Parent = heading
 	local close = Panel.button(shell, Text.close, accent)
 	close.Size = UDim2.fromOffset(86, 44)
 	close.AnchorPoint = Vector2.new(1, 0)
@@ -68,6 +72,7 @@ function Panel.create(id: string, title: string, accent: Color3): (ScreenGui, Sc
 	scroll.Size = UDim2.new(1, -20, 1, -66)
 	scroll.ScrollBarThickness = 5
 	scroll.ScrollBarImageColor3 = accent
+	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.CanvasSize = UDim2.new()
 	scroll.Parent = shell

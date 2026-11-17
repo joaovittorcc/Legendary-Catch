@@ -59,7 +59,7 @@ function Hud.start()
 	bar.Name = "Navigation"
 	bar.AnchorPoint = Vector2.new(0.5, 0)
 	bar.Position = UDim2.fromScale(0.5, 0.025)
-	bar.Size = UDim2.fromScale(0.8, 0.085)
+	bar.Size = UDim2.fromScale(0.94, 0.085)
 	bar.BackgroundTransparency = 1
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(272, 44)
@@ -127,12 +127,16 @@ function Hud.start()
 	local toast = Instance.new("TextLabel")
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 0)
-	toast.Position = UDim2.fromScale(0.5, 0.15)
-	toast.Size = UDim2.fromScale(0.55, 0.065)
+	toast.Position = UDim2.new(0.5, 0, 0, 63)
+	toast.Size = UDim2.new(0.75, 0, 0, 46)
 	toast.BackgroundColor3 = Theme.ink
 	toast.BackgroundTransparency = 1
 	toast.TextTransparency = 1
 	toast.TextScaled = true
+	toast.TextWrapped = true
+	local toastTextSize = Instance.new("UITextSizeConstraint")
+	toastTextSize.MaxTextSize = 18
+	toastTextSize.Parent = toast
 	toast.Font = Theme.font
 	Theme.corner(toast, 10)
 	toast.Parent = gui

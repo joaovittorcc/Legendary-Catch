@@ -1,4 +1,5 @@
 --!strict
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
@@ -15,6 +16,7 @@ local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local RunService = game:GetService("RunService")
 
 local Collection = {}
+type Thumbnail = { holder: Frame, id: string, hidden: boolean }
 
 local function preview(parent: Instance, creatureId: string, hidden: boolean): Model?
 	local library = ReplicatedStorage:FindFirstChild(Creatures.MODELS_FOLDER)
@@ -97,8 +99,34 @@ function Collection.start()
 	local showRewards = false
 	local pending: string? = nil
 	local revision = 0
+	local thumbnails: { Thumbnail } = {}
+	local lastSignature: string? = nil
+	local function refreshPreviews()
+		if not gui.Enabled then
+			return
+		end
+		local top = scroll.AbsolutePosition.Y - 44
+		local bottom = scroll.AbsolutePosition.Y + scroll.AbsoluteWindowSize.Y + 44
+		local remaining = 12
+		for _, thumbnail in thumbnails do
+			local holder = thumbnail.holder
+			local y, height = holder.AbsolutePosition.Y, holder.AbsoluteSize.Y
+			local show = remaining > 0 and height > 0 and y + height >= top and y <= bottom
+			local view = holder:FindFirstChildWhichIsA("ViewportFrame")
+			if show then
+				remaining -= 1
+				if not view then
+					preview(holder, thumbnail.id, thumbnail.hidden)
+				end
+			elseif view then
+				view:Destroy()
+			end
+		end
+	end
+
 	local function render()
 		spinning = nil
+		table.clear(thumbnails)
 		body:ClearAllChildren()
 		local snapshot = Data.get()
 		local creature = selected
@@ -116,7 +144,7 @@ function Collection.start()
 			stage.Parent = body
 			spinning = preview(stage, creature.id, record == nil)
 			if record then
-				local shiny = (record :: any).shiny
+				local shiny = record.shiny
 				if typeof(shiny) == "number" and shiny > 0 then
 					Panel.label(body, string.format(Text.shinyCount, shiny), 15, Theme.gold)
 				end
@@ -255,7 +283,7 @@ function Collection.start()
 			for _, entry in Creatures.ofRarity(rarity) do
 				local record = snapshot.collection[entry.id]
 				local found = record ~= nil
-				local shiny = record and (record :: any).shiny
+				local shiny = record and record.shiny
 				local label = if found then Strings.creatureName[entry.id] or entry.id else "???"
 				if typeof(shiny) == "number" and shiny > 0 then
 					label = "✦ " .. label
@@ -265,7 +293,7 @@ function Collection.start()
 				icon.BackgroundTransparency = 1
 				icon.Size = UDim2.fromScale(1, 0.66)
 				icon.Parent = card
-				preview(icon, entry.id, not found)
+				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
 				local name = Panel.label(card, label, 13)
 				name.Size = UDim2.fromScale(0.94, 0.3)
 				name.Position = UDim2.fromScale(0.03, 0.67)
@@ -277,8 +305,11 @@ function Collection.start()
 			end
 			group.Parent = body
 		end
+		task.defer(refreshPreviews)
 	end
 
+	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
+	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(refreshPreviews)
 	local result = remotes:FindFirstChild(Net.CLAIM_RESULT)
 	if result and result:IsA("RemoteEvent") then
 		result.OnClientEvent:Connect(function(payload: Net.ClaimResult)
@@ -298,19 +329,46 @@ function Collection.start()
 			rotation = RunService.RenderStepped:Connect(function()
 				local model = spinning
 				local pivot = model and model:GetAttribute("PreviewPivot")
-				if model and typeof(pivot) == "CFrame" then
+				if
+					model
+					and typeof(pivot) == "CFrame"
+					and Players.LocalPlayer:GetAttribute("ReduceEffects") ~= true
+				then
 					model:PivotTo(CFrame.Angles(0, os.clock() * 0.65, 0) * pivot)
 				end
 			end)
 		else
 			selected = nil
 			showRewards = false
+			lastSignature = nil
+			table.clear(thumbnails)
 			spinning = nil
 			body:ClearAllChildren()
 		end
 	end)
 	Data.changed:Connect(function()
-		if gui.Enabled then
+		local snapshot = Data.get()
+		if not gui.Enabled or not snapshot then
+			return
+		end
+		local values = {}
+		for _, entry in Creatures.LIST do
+			local record = snapshot.collection[entry.id]
+			if record then
+				table.insert(
+					values,
+					`{entry.id}:{record.count}:{record.bestWeight}:{record.shiny or 0}`
+				)
+			end
+		end
+		for _, milestone in Milestones.LIST do
+			if snapshot.milestones and snapshot.milestones[milestone.id] then
+				table.insert(values, milestone.id)
+			end
+		end
+		local signature = table.concat(values, "|")
+		if signature ~= lastSignature then
+			lastSignature = signature
 			render()
 		end
 	end)

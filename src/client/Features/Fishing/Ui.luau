@@ -79,7 +79,7 @@ function Ui.init()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "FishingUI"
 	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = 5
 	gui.Parent = playerGui
@@ -87,8 +87,8 @@ function Ui.init()
 	panel = Ui.frame(
 		gui,
 		"Panel",
-		UDim2.fromScale(0.46, 0.3),
-		UDim2.fromScale(0.5, 0.86),
+		UDim2.fromScale(0.77, 0.3),
+		UDim2.fromScale(0.5, 0.75),
 		Color3.fromRGB(14, 18, 40),
 		0.25
 	)
@@ -104,11 +104,11 @@ function Ui.init()
 	)
 	Theme.corner(band, 3)
 	local ratio = Instance.new("UIAspectRatioConstraint")
-	ratio.AspectRatio = 2.6
+	ratio.AspectRatio = 2.9
 	ratio.Parent = panel
 	local size = Instance.new("UISizeConstraint")
 	size.MaxSize = Vector2.new(620, 260)
-	size.MinSize = Vector2.new(320, 120)
+	size.MinSize = Vector2.new(228, 96)
 	size.Parent = panel
 
 	hint = Ui.label(
@@ -165,7 +165,7 @@ function Ui.showPanel(hintText: string, color: Color3, instructionText: string):
 	TweenService:Create(
 		panel,
 		TweenInfo.new(0.25, Enum.EasingStyle.Back),
-		{ Position = UDim2.fromScale(0.5, 0.86) }
+		{ Position = UDim2.fromScale(0.5, 0.75) }
 	):Play()
 	return area
 end
