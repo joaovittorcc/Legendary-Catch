@@ -109,3 +109,9 @@ Leia o Mural desde 02:27 antes: o Claude fez X17/X18 nos seus arquivos (`Feature
 ## Rodada 13 (2026-11-17 ~07:29) — Codex
 - **X28 — Galeria atualizada pro João**: refaça só as telas que mudaram desde o X23 e adicione as novas (presente do dia, chip de próxima meta, estrelas de raridade na revelação/coleção, troféu estilizado, estátuas e arco do Antigravity vistos do spawn, modo foto). Atualize `art/screens/README.md`. PT, celular paisagem + PC.
 - **X29 — Revisão final dos seus textos**: leia `StringsUi` PT e EN inteiros como um jogador de 10 anos: erros, termos inconsistentes (ex.: "Desafios" x "Missões", "Oficina" x "Loja"), frases longas demais pro celular. Corrija e liste no Mural o que mudou. Se achar algo no `Strings` (Claude), anote no Mural.
+
+## Rodada 12 — Antigravity (manhã, aprovado pelo João)
+- **A23/A24 — retomar**: terminar o catálogo `art/creatures/` (24 prints + README) e refazer as mais fracas (Raro → Incomum → Comum), guardando `*_v1`.
+- **A26 — Limpeza**: remover do `Workspace` o modelo solto "Stylized cartoon electric storm eel..." (sobra de geração); conferir que nada de rascunho ficou fora de `Island`/`ServerStorage`.
+- **A27 — Mais vida na ilha**: peixinhos saltando de vez em quando perto do píer e da lagoa, vaga-lumes/brilhos suaves perto das lanternas. Barato (no máximo 2 emitters novos, sem luz dinâmica nova), respeitando o orçamento do A11.
+- **A28 — Salvar o place** e Mural. O Codex só gera imagens agora (mockups de HUD), não deve usar o Studio.
