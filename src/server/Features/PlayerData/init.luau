@@ -41,6 +41,9 @@ export type Profile = {
 	missions: Types.Missions,
 	milestones: { [string]: boolean },
 	settings: Types.Settings,
+	purchases: { [string]: boolean }, -- Robux receipt ids already granted
+	purchaseOrder: { string }, -- same ids, oldest first (bounds the record)
+	boosts: { luckUntil: number }, -- os.time() when each paid boost ends
 }
 
 -- The Wally shim does not re-export ProfileStore's types; only the members used here.
@@ -50,6 +53,7 @@ type Session = {
 	IsActive: (self: any) -> boolean,
 	Reconcile: (self: any) -> (),
 	EndSession: (self: any) -> (),
+	Save: (self: any) -> (),
 	AddUserId: (self: any, userId: number) -> (),
 }
 
@@ -86,6 +90,9 @@ local function template(): Profile
 		missions = { day = 0, list = {} },
 		milestones = {},
 		settings = { music = 0.6, sfx = 0.8, reduceEffects = false },
+		purchases = {},
+		purchaseOrder = {},
+		boosts = { luckUntil = 0 },
 	}
 end
 
@@ -119,6 +126,11 @@ local function reconcile(data: { [string]: any })
 	for key, value in defaults.stats do
 		if data.stats[key] == nil then
 			data.stats[key] = value
+		end
+	end
+	for key, value in defaults.boosts do
+		if data.boosts[key] == nil then
+			data.boosts[key] = value
 		end
 	end
 	for key, value in defaults.settings do
@@ -220,6 +232,17 @@ function PlayerData.addCoins(player: Player, amount: number)
 	PlayerData.update(player, function(p)
 		p.coins += math.max(0, math.floor(amount))
 	end)
+end
+
+-- Requests an immediate save (used before granting Robux purchases). False when the
+-- session is gone, so the caller can tell Roblox to retry the receipt later.
+function PlayerData.saveNow(player: Player): boolean
+	local session = sessions[player]
+	if not session or not session:IsActive() then
+		return false
+	end
+	session:Save()
+	return true
 end
 
 PlayerData.Loaded = loadedEvent.Event

@@ -13,11 +13,13 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
+local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
 local Features = script.Parent
 local Analytics = require(Features:WaitForChild("Analytics"))
+local Monetization = require(Features:WaitForChild("Monetization"))
 local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
 local Progress = require(Features:WaitForChild("Progress"))
@@ -122,6 +124,7 @@ local function luckyWeights(player: Player): { [string]: number }
 	local instinct = Training.level(player, "Instinct")
 	local rod = equippedRod(player)
 	local event = OceanEvents.current()
+	local boosted = Monetization.luckBoostActive(player)
 	local weights: { [string]: number } = {}
 	for rank, rarity in FishingConfig.RARITY_ORDER do
 		local w = (FishingConfig.RARITY_WEIGHTS[rarity] or 0)
@@ -129,6 +132,10 @@ local function luckyWeights(player: Player): { [string]: number }
 			* Rods.luckMultiplier(rod, rank)
 		if event then
 			w *= event.rarityBoost[rarity] or 1
+		end
+		-- Paid luck boost only lifts Rare and above; it never guarantees anything.
+		if boosted and rank >= 3 then
+			w *= Products.LUCK_BOOST_MULTIPLIER
 		end
 		weights[rarity] = w
 	end
@@ -246,6 +253,7 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 		Creatures.valueFor(creature, weight)
 			* (if event then event.valueMultiplier else 1)
 			* (if shiny then FishingConfig.SHINY_VALUE_MULTIPLIER else 1)
+			* Monetization.coinMultiplier(player)
 	)
 	local isNew, count = false, 1
 	PlayerData.update(player, function(p)
