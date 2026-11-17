@@ -13,6 +13,15 @@ local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
+local CARD_TOP = 66
+local CARD_HEIGHT = 52
+local layout = Instance.new("BindableEvent")
+local visibleBottom = 0
+Tutorial.layoutChanged = layout.Event
+
+function Tutorial.cardBottom(): number
+	return visibleBottom
+end
 type TutorialState = { step: string, done: boolean }
 local player = Players.LocalPlayer
 local destinations: { [string]: string } = {
@@ -36,12 +45,12 @@ function Tutorial.start()
 
 	local card = Instance.new("Frame")
 	card.AnchorPoint = Vector2.new(0.5, 0)
-	card.Position = UDim2.new(0.5, 0, 0, 66)
-	card.Size = UDim2.new(0.92, 0, 0, 52)
+	card.Position = UDim2.new(0.5, 0, 0, CARD_TOP)
+	card.Size = UDim2.new(0.92, 0, 0, CARD_HEIGHT)
 	card.Visible = false
 	Theme.surface(card, Theme.crystal, 12)
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(630, 52)
+	bounds.MaxSize = Vector2.new(630, CARD_HEIGHT)
 	bounds.Parent = card
 	local message = Panel.label(card, "", 14)
 	message.Size = UDim2.new(1, -88, 1, 0)
@@ -63,6 +72,16 @@ function Tutorial.start()
 	arrow.TextStrokeTransparency = 0.22
 	guide.Parent = gui
 	gui.Parent = player:WaitForChild("PlayerGui")
+
+	local function publishLayout()
+		local bottom = if gui.Enabled and card.Visible then CARD_TOP + CARD_HEIGHT else 0
+		if visibleBottom ~= bottom then
+			visibleBottom = bottom
+			layout:Fire()
+		end
+	end
+	gui:GetPropertyChangedSignal("Enabled"):Connect(publishLayout)
+	card:GetPropertyChangedSignal("Visible"):Connect(publishLayout)
 
 	local function realState(): TutorialState?
 		local snapshot = Data.get()
