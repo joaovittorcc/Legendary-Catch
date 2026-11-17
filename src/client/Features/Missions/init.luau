@@ -21,7 +21,10 @@ local Missions = {}
 local function description(mission: Mission): string
 	local rarity = string.match(mission.kind, "^catchRarity:(.+)$")
 	if rarity then
-		return string.format(Text.missions.rarity, mission.target, Strings.rarity[rarity] or rarity)
+		local name = Strings.rarity[rarity] or rarity
+		return if mission.target == 1
+			then string.format(Text.missions.raritySingle, name)
+			else string.format(Text.missions.rarity, mission.target, name)
 	end
 	return string.format(Text.missions.kinds[mission.kind] or "%d", mission.target)
 end
