@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
+local Types = require(Shared:WaitForChild("Types"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
@@ -11,15 +12,8 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
-type Mission = {
-	id: string,
-	kind: string,
-	target: number,
-	progress: number,
-	reward: number,
-	claimed: boolean,
-}
-type Daily = { day: number, list: { Mission } }
+type Mission = Types.Mission
+type Daily = Types.Missions
 type ClaimResult = { ok: boolean, kind: string, id: string, reward: number?, reason: string? }
 local DAY_SECONDS = 86400
 local Missions = {}
@@ -79,37 +73,57 @@ function Missions.start()
 	local completed: { [string]: boolean } = {}
 	local pending: number? = nil
 
+	local rowUpdates: { (Mission) -> () } = {}
+	local rowIds: { string } = {}
+	local renderedDay: number? = nil
+	local displayed: Daily? = nil
+	local loading: TextLabel? = nil
+
 	local function render()
-		rows:ClearAllChildren()
-		Panel.stack(rows)
 		local snapshot = Data.get()
-		local real: Daily? = if snapshot then (snapshot :: any).missions else nil
-		local daily = real or mock
+		local live = snapshot and snapshot.missions
+		local daily = live or mock
+		displayed = daily
 		if not daily then
-			Panel.label(rows, Text.loading, 18)
+			if not loading then
+				loading = Panel.label(rows, Text.loading, 18)
+			end
 			return
 		end
 
+		local rebuild = renderedDay ~= daily.day or #rowIds ~= #daily.list
 		for index, mission in daily.list do
-			local done = mission.progress >= mission.target
+			if rowIds[index] ~= mission.id then
+				rebuild = true
+				break
+			end
+		end
+		if not rebuild then
+			for index, mission in daily.list do
+				rowUpdates[index](mission)
+			end
+			return
+		end
+
+		rows:ClearAllChildren()
+		loading = nil
+		table.clear(rowUpdates)
+		table.clear(rowIds)
+		renderedDay = daily.day
+		Panel.stack(rows)
+		scroll.CanvasPosition = Vector2.zero
+		for index, mission in daily.list do
+			rowIds[index] = mission.id
 			local row = Instance.new("Frame")
+			row.Name = "Challenge" .. index
 			row.Size = UDim2.new(1, 0, 0, 100)
 			row.LayoutOrder = index
-			Theme.surface(row, if done then Theme.gold else Theme.crystal, 11)
-			local title = Panel.label(row, description(mission), 15)
+			Theme.surface(row, Theme.crystal, 11)
+			local outline = row:FindFirstChildWhichIsA("UIStroke")
+			local title = Panel.label(row, "", 15)
 			title.Size = UDim2.fromScale(0.58, 0.52)
 			title.Position = UDim2.fromScale(0.025, 0)
-			local status = Panel.label(
-				row,
-				string.format(
-					"%d / %d    ·    +%d ◆",
-					math.min(mission.progress, mission.target),
-					mission.target,
-					mission.reward
-				),
-				14,
-				Theme.gold
-			)
+			local status = Panel.label(row, "", 14, Theme.gold)
 			status.Size = UDim2.fromScale(0.58, 0.23)
 			status.Position = UDim2.fromScale(0.025, 0.51)
 			local bar = Instance.new("Frame")
@@ -118,32 +132,59 @@ function Missions.start()
 			bar.BackgroundColor3 = Theme.ink
 			Theme.corner(bar, 4)
 			local fill = Instance.new("Frame")
-			fill.Size =
-				UDim2.fromScale(math.clamp(mission.progress / math.max(1, mission.target), 0, 1), 1)
 			fill.BackgroundColor3 = Theme.crystal
 			Theme.corner(fill, 4)
 			fill.Parent = bar
 			bar.Parent = row
 
-			local label = if mission.claimed
-				then Text.missions.claimed
-				elseif done then Text.missions.claim
-				else Text.missions.ongoing
-			local button = Panel.button(row, label, if done then Theme.gold else Theme.muted)
+			local button = Panel.button(row, "", Theme.muted)
+			button.Name = "Claim"
 			button.TextSize = 14
 			button.Size = UDim2.new(0.34, 0, 0, 44)
 			button.Position = UDim2.new(0.63, 0, 0.5, -22)
-			button.Interactable = done and not mission.claimed
+			local buttonOutline = button:FindFirstChildWhichIsA("UIStroke")
+			local function update(nextMission: Mission)
+				local done = nextMission.progress >= nextMission.target
+				title.Text = description(nextMission)
+				status.Text = string.format(
+					"%d / %d    ·    +%d ◆",
+					math.min(nextMission.progress, nextMission.target),
+					nextMission.target,
+					nextMission.reward
+				)
+				fill.Size = UDim2.fromScale(
+					math.clamp(nextMission.progress / math.max(1, nextMission.target), 0, 1),
+					1
+				)
+				if outline then
+					outline.Color = if done then Theme.gold else Theme.crystal
+				end
+				if buttonOutline then
+					buttonOutline.Color = if done then Theme.gold else Theme.muted
+				end
+				button.Text = if nextMission.claimed
+					then Text.missions.claimed
+					elseif done then Text.missions.claim
+					else Text.missions.ongoing
+				button.Interactable = done and not nextMission.claimed
+			end
+			rowUpdates[index] = update
+			update(mission)
 			button.Activated:Connect(function()
-				if pending then
+				if pending or not button.Interactable then
 					return
 				end
-				if not real then
-					mission.claimed = true
-					render()
+				local latest = displayed
+				local record = latest and latest.list[index]
+				if not record or record.id ~= mission.id then
 					return
 				end
-				local remote = remotes:FindFirstChild("ClaimMission")
+				if latest == mock then
+					record.claimed = true
+					update(record)
+					return
+				end
+				local remote = remotes:FindFirstChild(Net.CLAIM_MISSION)
 				if not remote or not remote:IsA("RemoteEvent") then
 					Hud.toast(Text.unavailable)
 					return
@@ -162,7 +203,7 @@ function Missions.start()
 
 	local function refresh()
 		local snapshot = Data.get()
-		local real: Daily? = if snapshot then (snapshot :: any).missions else nil
+		local real: Daily? = if snapshot then snapshot.missions else nil
 		if real then
 			local sameDay = day == real.day
 			if not sameDay then
@@ -192,7 +233,7 @@ function Missions.start()
 		)
 	end
 	local function watchResult(child: Instance)
-		if child.Name ~= "ClaimResult" or not child:IsA("RemoteEvent") then
+		if child.Name ~= Net.CLAIM_RESULT or not child:IsA("RemoteEvent") then
 			return
 		end
 		child.OnClientEvent:Connect(function(result: ClaimResult)
@@ -207,7 +248,7 @@ function Missions.start()
 			)
 		end)
 	end
-	local result = remotes:FindFirstChild("ClaimResult")
+	local result = remotes:FindFirstChild(Net.CLAIM_RESULT)
 	if result then
 		watchResult(result)
 	end

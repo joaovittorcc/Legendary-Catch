@@ -59,7 +59,10 @@ function Shop.start()
 	local function render()
 		body:ClearAllChildren()
 		Panel.stack(body)
-		Panel.button(body, Text.robux.title, Theme.gold).Activated:Connect(function()
+		local robuxButton = Panel.button(body, Text.robux.title, Theme.gold)
+		robuxButton.Name = "RobuxTab"
+		robuxButton.LayoutOrder = -1
+		robuxButton.Activated:Connect(function()
 			Hud.showPanel("Robux")
 		end)
 		local snapshot = Data.get()
@@ -69,6 +72,8 @@ function Shop.start()
 		end
 		for _, rod in Rods.LIST do
 			local row = Instance.new("Frame")
+			row.Name = rod.id
+			row.LayoutOrder = rod.order
 			row.Size = UDim2.new(1, 0, 0, 118)
 			Theme.surface(row, rod.tipColor, 12)
 			preview(row, rod)
@@ -99,6 +104,7 @@ function Shop.start()
 					else string.format("%s  ·  %d ◆", Text.buy, rod.price),
 				if equipped then Theme.crystal else Theme.gold
 			)
+			button.Name = "RodAction"
 			button.Position = UDim2.fromScale(0.39, 0.53)
 			button.Size = UDim2.new(0.52, 0, 0, 46)
 			button.Activated:Connect(function()

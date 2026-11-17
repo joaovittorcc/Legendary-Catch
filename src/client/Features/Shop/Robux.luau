@@ -23,13 +23,28 @@ function Robux.start()
 		pass: boolean,
 		reason: string?
 	)
-		Panel.label(body, title, 19, Theme.gold).Size = UDim2.new(1, 0, 0, 32)
-		Panel.label(body, description, 15, Theme.muted).Size = UDim2.new(1, 0, 0, 43)
+		local card = Instance.new("Frame")
+		card.Size = UDim2.new(1, 0, 0, 86)
+		Theme.surface(card, Theme.gold, 11, Theme.ink)
+		card.Parent = body
+		local name = Panel.label(card, title, 17, Theme.gold)
+		name.Size = UDim2.fromScale(0.64, 0.34)
+		name.Position = UDim2.fromScale(0.025, 0.05)
+		local info = Panel.label(card, description, 13, Theme.muted)
+		info.Size = UDim2.fromScale(0.64, 0.53)
+		info.Position = UDim2.fromScale(0.025, 0.41)
 		if id == 0 or reason then
-			Panel.label(body, reason or Text.unavailable, 14).Size = UDim2.new(1, 0, 0, 28)
+			local state = Panel.label(card, reason or Text.unavailable, 14)
+			state.Name = "OfferStatus"
+			state.Size = UDim2.fromScale(0.30, 0.75)
+			state.Position = UDim2.fromScale(0.68, 0.125)
 			return
 		end
-		local button = Panel.button(body, Text.price, Theme.gold)
+		local button = Panel.button(card, Text.price, Theme.gold)
+		button.Size = UDim2.new(0.3, 0, 0, 44)
+		button.Position = UDim2.new(0.68, 0, 0.5, -22)
+		button.TextWrapped = true
+		button.TextSize = 13
 		button.Activated:Connect(function()
 			local ok = pcall(function()
 				if pass then
@@ -46,7 +61,10 @@ function Robux.start()
 	local function render()
 		body:ClearAllChildren()
 		Panel.stack(body)
-		Panel.button(body, Text.workshop, Theme.crystal).Activated:Connect(function()
+		local back = Panel.button(body, Text.workshop, Theme.crystal)
+		back.Name = "BackToWorkshop"
+		back.LayoutOrder = -1
+		back.Activated:Connect(function()
 			Hud.showPanel("Shop")
 		end)
 		for _, product in Products.PRODUCTS do
