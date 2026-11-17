@@ -12,6 +12,15 @@ local Text = require(Shared:WaitForChild("StringsUi"))
 local Panel = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local player = Players.LocalPlayer
 local Title = {}
+local GAMEPLAY_SCREENS: { [string]: boolean } = {
+	AdventureHud = true,
+	AdventureNotifications = true,
+	CatchAnnouncements = true,
+	FishingUI = true,
+	OceanEventHud = true,
+	TouchGui = true,
+	TutorialGuide = true,
+}
 
 local function position(tag: string): Vector3?
 	local part = CollectionService:GetTagged(tag)[1]
@@ -180,6 +189,17 @@ function Title.open(playerGui: PlayerGui): boolean
 		Enum.PlayerActions.CharacterRight,
 		Enum.PlayerActions.CharacterJump
 	)
+	local previous: { [ScreenGui]: boolean } = {}
+	local function hide(screen: Instance)
+		if screen:IsA("ScreenGui") and GAMEPLAY_SCREENS[screen.Name] then
+			previous[screen] = screen.Enabled
+			screen.Enabled = false
+		end
+	end
+	local added = playerGui.ChildAdded:Connect(hide)
+	for _, screen in playerGui:GetChildren() do
+		hide(screen)
+	end
 	gui.Parent = playerGui
 
 	local root = player.Character and player.Character:FindFirstChild("HumanoidRootPart")
@@ -195,6 +215,12 @@ function Title.open(playerGui: PlayerGui): boolean
 	until choice or not gui.Parent
 	if restore then
 		restore()
+	end
+	added:Disconnect()
+	for screen, enabled in previous do
+		if screen.Parent then
+			screen.Enabled = enabled
+		end
 	end
 	ContextActionService:UnbindAction("LegendaryCatchTitle")
 	keys:Disconnect()
