@@ -107,9 +107,15 @@ function Robux.start()
 		end
 	end
 	Hud.panelChanged:Connect(function(name: string)
-		gui.Enabled = name == "Robux"
-		if gui.Enabled then
+		local visible = name == "Robux"
+		if gui.Enabled == visible then
+			return
+		end
+		gui.Enabled = visible
+		if visible then
 			render()
+		else
+			body:ClearAllChildren()
 		end
 	end)
 	for _, attribute in { vip, offerAvailable } do
