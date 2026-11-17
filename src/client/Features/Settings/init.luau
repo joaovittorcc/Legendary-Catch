@@ -1,6 +1,7 @@
 --!strict
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
@@ -15,7 +16,8 @@ local Settings = {}
 local player = Players.LocalPlayer
 
 function Settings.start()
-	local gui, body = Panel.create("Settings", Text.settings, Theme.rose, 0.75, 242)
+	local settingsAccent = Color3.fromRGB(174, 116, 239)
+	local gui, body = Panel.create("Settings", Text.settings, settingsAccent, 0.75, 330)
 	Panel.stack(body)
 	local music = Audio.group("Music")
 	local effects = Audio.group("Effects")
@@ -45,33 +47,123 @@ function Settings.start()
 
 	local function volume(name: string, group: SoundGroup)
 		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, 0, 0, 48)
-		row.BackgroundTransparency = 1
+		row.Size = UDim2.new(1, 0, 0, 76)
+		row.BackgroundColor3 = Theme.cream
+		row.BorderSizePixel = 0
+		Theme.corner(row, 12)
+		local rowStroke = Instance.new("UIStroke")
+		rowStroke.Color = settingsAccent
+		rowStroke.Thickness = 2
+		rowStroke.Parent = row
 		local label = Panel.label(row, "", 16)
-		label.Size = UDim2.new(1, -108, 1, 0)
+		label.Size = UDim2.new(1, -24, 0, 28)
+		label.Position = UDim2.fromOffset(12, 0)
 		local function refresh()
 			label.Text = string.format("%s  ·  %d%%", name, math.round(group.Volume * 100))
 		end
 		group:GetPropertyChangedSignal("Volume"):Connect(refresh)
 		refresh()
-		for i, delta in { -0.1, 0.1 } do
-			local button = Panel.button(row, if delta < 0 then "−" else "+", Theme.rose)
-			button.Position = UDim2.new(1, -100 + (i - 1) * 50, 0, 1)
-			button.Size = UDim2.fromOffset(46, 46)
-			button.Activated:Connect(function()
-				group.Volume = math.clamp(math.round((group.Volume + delta) * 10) / 10, 0, 1)
-				changed()
-			end)
+		local track = Instance.new("Frame")
+		track.Name = "VolumeTrack"
+		track.Position = UDim2.new(0, 12, 0, 43)
+		track.Size = UDim2.new(1, -24, 0, 16)
+		track.BackgroundColor3 = Color3.fromRGB(223, 207, 189)
+		track.BorderSizePixel = 0
+		track.Active = true
+		Theme.corner(track, 8)
+		local fill = Instance.new("Frame")
+		fill.Name = "Fill"
+		fill.Size = UDim2.fromScale(group.Volume, 1)
+		fill.BackgroundColor3 = settingsAccent
+		fill.BorderSizePixel = 0
+		Theme.corner(fill, 8)
+		fill.Parent = track
+		local knob = Instance.new("Frame")
+		knob.Name = "Knob"
+		knob.AnchorPoint = Vector2.new(0.5, 0.5)
+		knob.Position = UDim2.new(group.Volume, 0, 0.5, 0)
+		knob.Size = UDim2.fromOffset(30, 30)
+		knob.BackgroundColor3 = Color3.new(1, 1, 1)
+		knob.BorderSizePixel = 0
+		Theme.corner(knob, 15)
+		local knobStroke = Instance.new("UIStroke")
+		knobStroke.Color = Theme.outline
+		knobStroke.Thickness = 3
+		knobStroke.Parent = knob
+		knob.Parent = track
+		track.Parent = row
+		local dragging = false
+		local inputConnections: { RBXScriptConnection } = {}
+		local function setFromX(x: number)
+			local value =
+				math.clamp((x - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
+			group.Volume = math.round(value * 20) / 20
+			fill.Size = UDim2.fromScale(group.Volume, 1)
+			knob.Position = UDim2.new(group.Volume, 0, 0.5, 0)
+			changed()
 		end
+		table.insert(
+			inputConnections,
+			track.InputBegan:Connect(function(input)
+				if
+					input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch
+				then
+					dragging = true
+					setFromX(input.Position.X)
+				end
+			end)
+		)
+		table.insert(
+			inputConnections,
+			UserInputService.InputChanged:Connect(function(input)
+				if
+					dragging
+					and (
+						input.UserInputType == Enum.UserInputType.MouseMovement
+						or input.UserInputType == Enum.UserInputType.Touch
+					)
+				then
+					setFromX(input.Position.X)
+				end
+			end)
+		)
+		table.insert(
+			inputConnections,
+			UserInputService.InputEnded:Connect(function(input)
+				if
+					input.UserInputType == Enum.UserInputType.MouseButton1
+					or input.UserInputType == Enum.UserInputType.Touch
+				then
+					dragging = false
+				end
+			end)
+		)
+		row.Destroying:Once(function()
+			for _, connection in inputConnections do
+				connection:Disconnect()
+			end
+		end)
 		row.Parent = body
 	end
 	volume(Text.music, music)
 	volume(Text.effects, effects)
-	local reduced = Panel.button(body, "", Theme.crystal)
+	local reduced = Panel.button(body, "", settingsAccent)
+	reduced.Size = UDim2.new(1, 0, 0, 52)
+	local function setToggleColor()
+		local active = player:GetAttribute("ReduceEffects") == true
+		local tint = if active then Color3.fromRGB(88, 193, 112) else Color3.fromRGB(173, 163, 174)
+		Panel.tintButton(reduced, tint)
+	end
 	local function refresh()
 		reduced.Text = Text.reduced
 			.. "  ·  "
-			.. (if player:GetAttribute("ReduceEffects") == true then Text.on else Text.off)
+			.. (
+				if player:GetAttribute("ReduceEffects") == true
+					then "●  " .. Text.on
+					else "○  " .. Text.off
+			)
+		setToggleColor()
 	end
 	player:GetAttributeChangedSignal("ReduceEffects"):Connect(refresh)
 	reduced.Activated:Connect(function()

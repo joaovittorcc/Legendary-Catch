@@ -115,19 +115,37 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	)
 	Art.panel(card, if rarity == "Common" then Theme.crystal else color)
 	card.AnchorPoint = Vector2.new(0.5, 1)
+	local aspect = Instance.new("UIAspectRatioConstraint")
+	aspect.AspectRatio = 2.65
+	aspect.DominantAxis = Enum.DominantAxis.Width
+	aspect.Parent = card
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(0, 96)
 	bounds.MaxSize = Vector2.new(560, 132)
 	bounds.Parent = card
+	local ribbon = Ui.frame(
+		card,
+		"RevealRibbon",
+		UDim2.new(0.68, 0, 0, 38),
+		UDim2.new(0.16, 0, 0.12, 0),
+		if rarity == "Common" then Theme.crystal else color
+	)
+	Theme.corner(ribbon, 15)
+	local ribbonStroke = Instance.new("UIStroke")
+	ribbonStroke.Color = Theme.outline
+	ribbonStroke.Thickness = 3
+	ribbonStroke.Parent = ribbon
 	local title = Ui.label(
 		card,
 		"Name",
-		UDim2.fromScale(0.9, 0.25),
-		UDim2.fromScale(0.05, 0.27),
+		UDim2.new(0.64, 0, 0, 34),
+		UDim2.new(0.18, 0, 0.12, 0),
 		name,
-		Color3.new(1, 1, 1)
+		Theme.sand
 	)
 	title.TextStrokeTransparency = 0
+	title.TextScaled = true
+	title.ZIndex = 4
 	local badge, rarityLabel = Art.rarity(card)
 	badge.AnchorPoint = Vector2.new(0.5, 0)
 	badge.Position = UDim2.fromScale(0.5, 0.54)

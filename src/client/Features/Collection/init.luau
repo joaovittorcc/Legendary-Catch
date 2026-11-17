@@ -109,6 +109,18 @@ function Collection.start()
 	local pending: string? = nil
 	local revision = 0
 	local thumbnails: { Thumbnail } = {}
+	local grids: { UIGridLayout } = {}
+	local titleRibbon = gui:FindFirstChild("TitleRibbon", true)
+	local titleIconHolder = titleRibbon and titleRibbon:FindFirstChild("TitleIcon")
+	local titleIcon = titleIconHolder and titleIconHolder:FindFirstChildWhichIsA("TextLabel")
+	local function updateGrids()
+		local width = math.max(0, scroll.AbsoluteSize.X - 28)
+		local columns = math.clamp(math.floor((width + 10) / 138), 2, 4)
+		local cellWidth = math.floor((width - (columns - 1) * 10) / columns)
+		for _, grid in grids do
+			grid.CellSize = UDim2.fromOffset(cellWidth, math.max(116, math.floor(cellWidth * 0.98)))
+		end
+	end
 	local lastSignature: string? = nil
 	local function refreshPreviews()
 		if not gui.Enabled then
@@ -136,8 +148,12 @@ function Collection.start()
 
 	local function render()
 		heading.Text = if showRewards then Text.milestones.title else Text.collection
+		if titleIcon and titleIcon:IsA("TextLabel") then
+			titleIcon.Text = if showRewards then "🏆" else "🐠"
+		end
 		spinning = nil
 		table.clear(thumbnails)
+		table.clear(grids)
 		body:ClearAllChildren()
 		local snapshot = Data.get()
 		local creature = selected
@@ -220,9 +236,23 @@ function Collection.start()
 				local title = if rarity
 					then string.format(Text.milestones.rarity, Theme.rarityLabel(rarity))
 					else string.format(Text.milestones.species, target)
-				local row = Instance.new("Frame")
-				row.Size = UDim2.new(1, 0, 0, 94)
-				Theme.surface(row, color, 10)
+				local row = Panel.card(body, color, 94)
+				local emblem = Instance.new("Frame")
+				emblem.Name = "MilestoneIcon"
+				emblem.AnchorPoint = Vector2.new(0, 0.5)
+				emblem.Position = UDim2.new(0, 10, 0.5, 0)
+				emblem.Size = UDim2.fromOffset(42, 42)
+				emblem.BackgroundColor3 = Color3.fromRGB(255, 238, 195)
+				emblem.BorderSizePixel = 0
+				Theme.corner(emblem, 21)
+				local emblemStroke = Instance.new("UIStroke")
+				emblemStroke.Color = color
+				emblemStroke.Thickness = 2
+				emblemStroke.Parent = emblem
+				local icon = Panel.label(emblem, "🏆", 22, Theme.ink)
+				icon.Size = UDim2.fromScale(1, 1)
+				icon.TextStrokeTransparency = 1
+				emblem.Parent = row
 				local label = Panel.label(
 					row,
 					title
@@ -234,16 +264,22 @@ function Collection.start()
 						),
 					14
 				)
-				label.Size = UDim2.fromScale(0.57, 1)
-				label.Position = UDim2.fromScale(0.025, 0)
+				label.Size = UDim2.fromScale(0.49, 1)
+				label.Position = UDim2.fromScale(0.1, 0)
+				local actionTint = if ready and not redeemed
+					then Color3.fromRGB(68, 194, 104)
+					else Color3.fromRGB(226, 218, 206)
 				local button = Panel.button(
 					row,
 					if redeemed
 						then Text.missions.claimed
 						elseif ready then Text.missions.claim
 						else Text.missions.ongoing,
-					color
+					actionTint
 				)
+				Panel.tintButton(button, actionTint)
+				button.TextColor3 = if ready and not redeemed then Theme.sand else Theme.outline
+				button.TextStrokeTransparency = if ready and not redeemed then 0.06 else 1
 				button.TextSize = 14
 				button.Size = UDim2.new(0.34, 0, 0, 44)
 				button.Position = UDim2.new(0.63, 0, 0.5, -22)
@@ -267,7 +303,6 @@ function Collection.start()
 						end
 					end)
 				end)
-				row.Parent = body
 			end
 			return
 		end
@@ -290,9 +325,10 @@ function Collection.start()
 			group.Size = UDim2.fromScale(1, 0)
 			group.AutomaticSize = Enum.AutomaticSize.Y
 			local grid = Instance.new("UIGridLayout")
-			grid.CellSize = UDim2.new(0.31, 0, 0, 96)
-			grid.CellPadding = UDim2.new(0.025, 0, 0, 8)
+			grid.CellSize = UDim2.fromOffset(128, 128)
+			grid.CellPadding = UDim2.fromOffset(10, 10)
 			grid.Parent = group
+			table.insert(grids, grid)
 			for _, entry in Creatures.ofRarity(rarity) do
 				local record = snapshot.collection[entry.id]
 				local found = record ~= nil
@@ -302,19 +338,35 @@ function Collection.start()
 					label = "✦ " .. label
 				end
 				local card = Panel.button(group, "", color)
+				card.BackgroundColor3 = Theme.cream
+				local cardGradient = card:FindFirstChildWhichIsA("UIGradient")
+				if cardGradient then
+					cardGradient:Destroy()
+				end
+				card.Position = UDim2.new(0, 0, 0, 0)
+				for _, decorationName in { "CandyLip", "CandyShine" } do
+					local decoration = card:FindFirstChild(decorationName)
+					if decoration then
+						decoration:Destroy()
+					end
+				end
+				local outline = card:FindFirstChildWhichIsA("UIStroke")
+				if outline then
+					outline.Color = color
+				end
 				local icon = Instance.new("Frame")
 				icon.BackgroundTransparency = 1
-				icon.Size = UDim2.fromScale(1, 0.54)
+				icon.Size = UDim2.fromScale(1, 0.61)
 				icon.Parent = card
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
 				local name = Panel.label(card, label, 13)
 				name.Size = UDim2.fromScale(0.94, 0.27)
-				name.Position = UDim2.fromScale(0.03, 0.53)
+				name.Position = UDim2.fromScale(0.03, 0.61)
 				local rarityName =
 					Panel.label(card, Strings.rarity[entry.rarity] or entry.rarity, 12)
 				rarityName.Name = "Rarity"
 				rarityName.Size = UDim2.fromScale(1, 0.17)
-				rarityName.Position = UDim2.fromScale(0, 0.81)
+				rarityName.Position = UDim2.fromScale(0, 0.82)
 				card.Activated:Connect(function()
 					selected = entry
 					scroll.CanvasPosition = Vector2.zero
@@ -323,9 +375,11 @@ function Collection.start()
 			end
 			group.Parent = body
 		end
+		updateGrids()
 		task.defer(refreshPreviews)
 	end
 
+	scroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGrids)
 	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
 	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(refreshPreviews)
 	local result = remotes:FindFirstChild(Net.CLAIM_RESULT)

@@ -30,6 +30,7 @@ function Hud.navBottom(): number
 end
 local activeToast: Tween? = nil
 local toastLabel: TextLabel? = nil
+local toastStroke: UIStroke? = nil
 
 function Hud.panel(): string
 	return currentPanel
@@ -49,9 +50,12 @@ function Hud.toast(message: string, tint: Color3?)
 		activeToast:Cancel()
 	end
 	label.Text = message
-	label.TextColor3 = tint or Theme.sand
+	label.TextColor3 = tint or Theme.ink
 	label.TextTransparency = 0
-	label.BackgroundTransparency = 0.12
+	label.BackgroundTransparency = 0.04
+	if toastStroke then
+		toastStroke.Transparency = 0
+	end
 	local tween = TweenService:Create(
 		label,
 		TweenInfo.new(0.25, Enum.EasingStyle.Quad, Enum.EasingDirection.Out, 0, false, 1.8),
@@ -60,6 +64,13 @@ function Hud.toast(message: string, tint: Color3?)
 			BackgroundTransparency = 1,
 		}
 	)
+	if toastStroke then
+		tween.Completed:Once(function()
+			if toastStroke then
+				toastStroke.Transparency = 1
+			end
+		end)
+	end
 	activeToast = tween
 	tween:Play()
 end
@@ -90,6 +101,9 @@ function Hud.start()
 	bar.BackgroundTransparency = 1
 	bar.Parent = gui
 	navigation = bar
+	Hud.panelChanged:Connect(function(name)
+		bar.Visible = name == ""
+	end)
 
 	local coins = Instance.new("Frame")
 	coins.Name = "Coins"
@@ -269,8 +283,8 @@ function Hud.start()
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 1)
 	toast.Position = UDim2.fromScale(0.5, 0.94)
-	toast.Size = UDim2.new(0.58, 0, 0, 40)
-	toast.BackgroundColor3 = Theme.ink
+	toast.Size = UDim2.new(0.62, 0, 0, 46)
+	toast.BackgroundColor3 = Theme.cream
 	toast.BackgroundTransparency = 1
 	toast.TextTransparency = 1
 	toast.TextScaled = true
@@ -280,12 +294,25 @@ function Hud.start()
 	toastTextSize.Parent = toast
 	toast.Font = Theme.font
 	Theme.corner(toast, 10)
+	local outline = Instance.new("UIStroke")
+	outline.Color = Theme.outline
+	outline.Thickness = 3
+	outline.Transparency = 1
+	outline.Parent = toast
 	local notifications = Instance.new("ScreenGui")
 	notifications.Name = "AdventureNotifications"
 	notifications.ResetOnSpawn = false
 	notifications.DisplayOrder = 12
 	toast.Parent = notifications
 	toastLabel = toast
+	toastStroke = outline
+	Hud.panelChanged:Connect(function(name)
+		if name ~= "" then
+			toast.TextTransparency = 1
+			toast.BackgroundTransparency = 1
+			outline.Transparency = 1
+		end
+	end)
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
 	layout()

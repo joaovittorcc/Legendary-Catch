@@ -31,7 +31,7 @@ end
 
 function Missions.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
-	local gui, scroll = Panel.create("Missions", Text.missions.title, Theme.gold)
+	local gui, scroll = Panel.create("Missions", Text.missions.title, Theme.rose)
 	Panel.stack(scroll)
 	local clock = Panel.label(scroll, "", 15, Theme.gold)
 	local rows = Instance.new("Frame")
@@ -117,25 +117,39 @@ function Missions.start()
 		scroll.CanvasPosition = Vector2.zero
 		for index, mission in daily.list do
 			rowIds[index] = mission.id
-			local row = Instance.new("Frame")
+			local row = Panel.card(rows, Theme.rose, 100)
 			row.Name = "Challenge" .. index
-			row.Size = UDim2.new(1, 0, 0, 100)
 			row.LayoutOrder = index
-			Theme.surface(row, Theme.crystal, 11)
+			local emblem = Instance.new("Frame")
+			emblem.Name = "MissionIcon"
+			emblem.AnchorPoint = Vector2.new(0, 0.5)
+			emblem.Position = UDim2.new(0, 10, 0.5, 0)
+			emblem.Size = UDim2.fromOffset(42, 42)
+			emblem.BackgroundColor3 = Color3.fromRGB(255, 225, 240)
+			emblem.BorderSizePixel = 0
+			Theme.corner(emblem, 21)
+			local emblemStroke = Instance.new("UIStroke")
+			emblemStroke.Color = Theme.rose
+			emblemStroke.Thickness = 2
+			emblemStroke.Parent = emblem
+			local icon = Panel.label(emblem, "🐟", 22, Theme.ink)
+			icon.Size = UDim2.fromScale(1, 1)
+			icon.TextStrokeTransparency = 1
+			emblem.Parent = row
 			local outline = row:FindFirstChildWhichIsA("UIStroke")
 			local title = Panel.label(row, "", 15)
-			title.Size = UDim2.fromScale(0.58, 0.52)
-			title.Position = UDim2.fromScale(0.025, 0)
+			title.Size = UDim2.fromScale(0.49, 0.52)
+			title.Position = UDim2.fromScale(0.10, 0)
 			local status = Panel.label(row, "", 14, Theme.gold)
-			status.Size = UDim2.fromScale(0.58, 0.23)
-			status.Position = UDim2.fromScale(0.025, 0.51)
+			status.Size = UDim2.fromScale(0.49, 0.23)
+			status.Position = UDim2.fromScale(0.10, 0.51)
 			local bar = Instance.new("Frame")
-			bar.Size = UDim2.fromScale(0.54, 0.07)
-			bar.Position = UDim2.fromScale(0.045, 0.8)
-			bar.BackgroundColor3 = Theme.track
+			bar.Size = UDim2.fromScale(0.46, 0.07)
+			bar.Position = UDim2.fromScale(0.115, 0.8)
+			bar.BackgroundColor3 = Color3.fromRGB(232, 219, 200)
 			Theme.corner(bar, 4)
 			local fill = Instance.new("Frame")
-			fill.BackgroundColor3 = Theme.gold
+			fill.BackgroundColor3 = Theme.rose
 			Theme.corner(fill, 4)
 			fill.Parent = bar
 			bar.Parent = row
@@ -148,6 +162,12 @@ function Missions.start()
 			local buttonOutline = button:FindFirstChildWhichIsA("UIStroke")
 			local function update(nextMission: Mission)
 				local done = nextMission.progress >= nextMission.target
+				local readyToClaim = done and not nextMission.claimed
+				icon.Text = if nextMission.kind == "earn"
+					then "💰"
+					elseif nextMission.kind == "train" then "💪"
+					elseif nextMission.kind == "perfect" then "⭐"
+					else "🐟"
 				title.Text = description(nextMission)
 				status.Text = string.format(
 					"%d / %d    ·    +%d ◆",
@@ -160,11 +180,19 @@ function Missions.start()
 					1
 				)
 				if outline then
-					outline.Color = if done then Theme.gold else Theme.crystal
+					outline.Color = if done then Theme.gold else Theme.rose
 				end
 				if buttonOutline then
-					buttonOutline.Color = if done then Theme.gold else Theme.muted
+					buttonOutline.Color = if readyToClaim
+						then Color3.fromRGB(68, 194, 104)
+						else Theme.muted
 				end
+				local buttonTint = if readyToClaim
+					then Color3.fromRGB(68, 194, 104)
+					else Color3.fromRGB(226, 218, 206)
+				Panel.tintButton(button, buttonTint)
+				button.TextColor3 = if readyToClaim then Theme.sand else Theme.outline
+				button.TextStrokeTransparency = if readyToClaim then 0.06 else 1
 				button.Text = if nextMission.claimed
 					then Text.missions.claimed
 					elseif done then Text.missions.claim
@@ -200,7 +228,6 @@ function Missions.start()
 					end
 				end)
 			end)
-			row.Parent = rows
 		end
 	end
 

@@ -101,7 +101,8 @@ end
 
 function Shop.start()
 	Robux.start()
-	local gui, scroll = Panel.create("Shop", Text.shop, Theme.gold)
+	local shopAccent = Color3.fromRGB(255, 151, 64)
+	local gui, scroll = Panel.create("Shop", Text.shop, shopAccent)
 	local body = Instance.new("Frame")
 	body.AutomaticSize = Enum.AutomaticSize.Y
 	body.Size = UDim2.fromScale(1, 0)
@@ -124,11 +125,9 @@ function Shop.start()
 			return
 		end
 		for _, rod in Rods.LIST do
-			local row = Instance.new("Frame")
+			local row = Panel.card(body, rod.tipColor, 124)
 			row.Name = rod.id
 			row.LayoutOrder = rod.order
-			row.Size = UDim2.new(1, 0, 0, 118)
-			Theme.surface(row, rod.tipColor, 12)
 			preview(row, rod)
 			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 19, rod.tipColor)
 			title.Position = UDim2.fromScale(0.33, 0.035)
@@ -149,17 +148,22 @@ function Shop.start()
 
 			local owned = table.find(snapshot.rodsOwned, rod.id) ~= nil
 			local equipped = snapshot.equippedRod == rod.id
+			local stars = Panel.label(row, "", 12, Theme.gold)
+			stars.Name = "RodAccent"
+			stars.Text = string.rep("★", math.clamp(1 + rod.order, 1, 5))
+			stars.Position = UDim2.fromScale(0.33, 0.46)
+			stars.Size = UDim2.fromScale(0.38, 0.16)
 			local button = Panel.button(
 				row,
 				if equipped
 					then Text.equipped
 					elseif owned then Text.equip
 					else string.format("%s  ·  %d ◆", Text.buy, rod.price),
-				if equipped then Theme.crystal else Theme.gold
+				if equipped or owned then Theme.crystal else Color3.fromRGB(68, 194, 104)
 			)
 			button.Name = "RodAction"
-			button.Position = UDim2.fromScale(0.39, 0.53)
-			button.Size = UDim2.new(0.52, 0, 0, 46)
+			button.Position = UDim2.fromScale(0.36, 0.61)
+			button.Size = UDim2.new(0.57, 0, 0, 42)
 			button.Activated:Connect(function()
 				if equipped or pending ~= "" then
 					return
@@ -177,7 +181,6 @@ function Shop.start()
 					end
 				end)
 			end)
-			row.Parent = body
 		end
 	end
 

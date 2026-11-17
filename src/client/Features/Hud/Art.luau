@@ -32,15 +32,33 @@ function Art.slice(image: ImageLabel, center: Rect, scale: number)
 end
 
 function Art.panel(parent: GuiObject, accent: Color3)
-	parent.BackgroundTransparency = 1
-	local border = Art.image(parent, Assets.panel, "PanelArt")
-	Art.slice(border, Rect.new(95, 93, 929, 510), 0.18)
+	parent.BackgroundColor3 = accent
+	parent.BackgroundTransparency = 0
+	parent.BorderSizePixel = 0
+	Theme.corner(parent, 23)
+	local stroke = Instance.new("UIStroke")
+	stroke.Color = Theme.outline
+	stroke.Thickness = 5
+	stroke.Parent = parent
+	local shadow = Instance.new("Frame")
+	shadow.Name = "SoftShadow"
+	shadow.Position = UDim2.fromOffset(0, 7)
+	shadow.Size = UDim2.fromScale(1, 1)
+	shadow.BackgroundColor3 = Theme.outline
+	shadow.BackgroundTransparency = 0.58
+	shadow.BorderSizePixel = 0
+	shadow.ZIndex = 0
+	Theme.corner(shadow, 23)
+	shadow.Parent = parent
 	local fill = Instance.new("Frame")
-	fill.Name = "PanelFill"
-	fill.Position = UDim2.fromOffset(13, 12)
-	fill.Size = UDim2.new(1, -26, 1, -24)
-	Theme.surface(fill, accent, 20)
-	fill.Parent = border
+	fill.Name = "CreamFill"
+	fill.Position = UDim2.fromOffset(8, 8)
+	fill.Size = UDim2.new(1, -16, 1, -16)
+	fill.BackgroundColor3 = Theme.cream
+	fill.BorderSizePixel = 0
+	fill.ZIndex = 0
+	Theme.corner(fill, 17)
+	fill.Parent = parent
 end
 
 function Art.caption(
