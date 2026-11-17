@@ -38,6 +38,8 @@ local remotes: Folder
 local castRemote: RemoteEvent
 local cancelRemote: RemoteEvent
 local submitRemote: RemoteEvent
+local perfectRemote: RemoteEvent
+local pendingPerfect = false
 
 local state: string = "idle" -- "idle" | "casting" | "waiting" | "fighting" | "resolving" | "revealing"
 local castId = 0
@@ -165,17 +167,20 @@ local function startFight(update: Net.FishingUpdate)
 	PressInput.enable()
 	local area = Ui.showPanel(Strings.hint[rarity] or "", color, Strings.instructions[kind] or "")
 	local id = castId
-	stopMinigame = minigame.run(area, tier, color, function(success)
+	-- Minigames call done(success, perfect?); perfect = finished without a single mistake.
+	local done: any = function(success: boolean, perfect: boolean?)
 		-- Read through a function: the checker keeps the narrowed "waiting" type in closures.
 		if currentState() ~= "fighting" or castId ~= id then
 			return
 		end
 		state = "resolving"
 		stopMinigame = nil
+		pendingPerfect = success and perfect == true
 		PressInput.disable()
 		Ui.hidePanel()
 		submitRemote:FireServer(id, success)
-	end)
+	end
+	stopMinigame = minigame.run(area, tier, color, done)
 end
 
 local function onCaught(update: Net.FishingUpdate)
@@ -187,6 +192,10 @@ local function onCaught(update: Net.FishingUpdate)
 		return
 	end
 	state = "revealing"
+	if pendingPerfect then
+		pendingPerfect = false
+		perfectRemote:FireServer(update.castId)
+	end
 	-- The server's word wins: close any minigame still on screen before the reveal.
 	local stop = stopMinigame
 	stopMinigame = nil
@@ -263,6 +272,7 @@ function Fishing.start()
 	castRemote = remotes:WaitForChild(Net.CAST_LINE) :: RemoteEvent
 	cancelRemote = remotes:WaitForChild(Net.CANCEL_FISHING) :: RemoteEvent
 	submitRemote = remotes:WaitForChild(Net.SUBMIT_CATCH) :: RemoteEvent
+	perfectRemote = remotes:WaitForChild(Net.REPORT_PERFECT) :: RemoteEvent
 	local updateRemote = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
 
 	Ui.init()
