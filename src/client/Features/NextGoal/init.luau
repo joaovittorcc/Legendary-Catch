@@ -138,6 +138,10 @@ function NextGoal.start()
 	fill.BackgroundColor3 = Theme.gold
 	fill.BorderSizePixel = 0
 	Theme.corner(fill, 2)
+	local sheen = Instance.new("UIGradient")
+	sheen.Rotation = 90
+	sheen.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(203, 140, 43))
+	sheen.Parent = fill
 	fill.Parent = track
 
 	local function place()

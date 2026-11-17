@@ -38,8 +38,12 @@ local function show(playerGui: PlayerGui, gift: Types.Daily)
 			and navigation:IsA("GuiObject")
 			and navigation.AbsolutePosition.X + navigation.AbsoluteSize.X + width + 23
 				<= gui.AbsoluteSize.X
+		-- On short landscape screens, keep the card inside the corner reserved for jump.
+		local right = if not hasSideRoom and gui.AbsoluteSize.Y < 305
+			then math.max(84, math.floor(gui.AbsoluteSize.X * 0.17))
+			else 12
 		card.Size = UDim2.fromOffset(width, 66)
-		card.Position = UDim2.new(1, -12, 0, if hasSideRoom then 6 else 135)
+		card.Position = UDim2.new(1, -right, 0, if hasSideRoom then 6 else 135)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 
