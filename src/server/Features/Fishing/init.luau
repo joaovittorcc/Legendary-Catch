@@ -24,6 +24,7 @@ local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
 local Progress = require(Features:WaitForChild("Progress"))
 local Social = require(Features:WaitForChild("Social"))
+local Trophy = require(Features:WaitForChild("Trophy"))
 local Training = require(Features:WaitForChild("Training"))
 local Remotes = require(Features.Parent:WaitForChild("Remotes"))
 
@@ -294,6 +295,7 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 	})
 	Progress.onCatch(player, creature, value, castId)
 	Social.onCatch(player, creature, if shiny then "Shiny" else "")
+	Trophy.onCatch(player, creature, weight, shiny)
 end
 
 local function onSubmit(player: Player, castId: unknown, success: unknown)
