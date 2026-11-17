@@ -1,0 +1,10 @@
+Packages/
+ServerPackages/
+sourcemap.json
+*.rbxl
+*.rbxlx
+*.rbxl.lock
+*.rbxlx.lock
+backups/
+# Flattened copy of the old game's vault (reference only, not part of this repo)
+VAULT-roblox.md
