@@ -1,21 +1,16 @@
 --!strict
--- Reel bar (style of the reference video / Stardew): hold to push the zone right, release
--- and it drifts left. Keep the fish marker inside to fill progress; time outside fills the
--- red failure meter. Progress full = caught, failure full = escaped.
-
+-- Vertical, directly draggable control zone with responsive hold/release and keyboard input.
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
-local Minigames = script.Parent
-local Fishing = Minigames.Parent
-local FishingConfig = require(
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("Shared")
-		:WaitForChild("Config")
-		:WaitForChild("Fishing")
-)
-local Control = require(Fishing:WaitForChild("Control"))
-local PressInput = require(Fishing:WaitForChild("PressInput"))
-local Ui = require(Fishing:WaitForChild("Ui"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
+local Theme = require(Shared:WaitForChild("UiTheme"))
+local Text = require(Shared:WaitForChild("StringsUi")).minigames
+local Control = require(script.Parent.Parent:WaitForChild("Control"))
+local Ui = require(script.Parent.Parent:WaitForChild("Ui"))
+local Input = require(script.Parent:WaitForChild("Input"))
+local Lesson = require(script.Parent:WaitForChild("ReelLesson"))
 
 local Reel = {}
 
@@ -25,147 +20,171 @@ function Reel.run(
 	color: Color3,
 	done: (boolean, boolean?) -> ()
 ): () -> ()
-	local cfg = FishingConfig.REEL
+	local cfg = Config.REEL
 	local ease = Control.ease()
-	local zoneWidth = math.min(FishingConfig.tierValue(cfg.zoneWidth, tier) * ease, 0.5)
-	local fishSpeed = FishingConfig.tierValue(cfg.fishSpeed, tier)
-	local retarget = FishingConfig.tierValue(cfg.fishRetarget, tier)
-	local gain = FishingConfig.tierValue(cfg.gain, tier)
-	local failRise = FishingConfig.tierValue(cfg.failRise, tier) / ease
-
-	local failBack = Ui.frame(
+	local width = math.min(Config.tierValue(cfg.zoneWidth, tier) * ease, 0.5)
+	local fishSpeed = Config.tierValue(cfg.fishSpeed, tier)
+	local retarget = Config.tierValue(cfg.fishRetarget, tier)
+	local gain = Config.tierValue(cfg.gain, tier)
+	local failRise = Config.tierValue(cfg.failRise, tier) / ease
+	local rng = Random.new()
+	Ui.reelLayout()
+	local rail =
+		Ui.frame(area, "Bar", UDim2.fromScale(0.22, 0.87), UDim2.fromScale(0.26, 0.01), Theme.track)
+	Ui.gloss(rail, Color3.fromRGB(81, 141, 228))
+	local zone = Ui.frame(
+		rail,
+		"Zone",
+		UDim2.fromScale(1, width),
+		UDim2.fromScale(0, 0.5),
+		Color3.fromRGB(114, 255, 194),
+		0.12
+	)
+	zone.AnchorPoint = Vector2.new(0, 0.5)
+	Ui.corner(zone, 0.2)
+	Ui.stroke(zone, Theme.gold, 3)
+	local fish = Ui.frame(rail, "Fish", UDim2.fromOffset(25, 15), UDim2.fromScale(0.5, 0.5), color)
+	fish.AnchorPoint = Vector2.new(0.5, 0.5)
+	Ui.corner(fish, 0.5)
+	Ui.stroke(fish, Theme.sand, 2)
+	local tail = Ui.frame(fish, "Tail", UDim2.fromOffset(8, 8), UDim2.fromScale(0.9, 0.3), color)
+	tail.Rotation = 45
+	local eye =
+		Ui.frame(fish, "Eye", UDim2.fromOffset(3, 3), UDim2.fromScale(0.22, 0.27), Theme.ink)
+	Ui.corner(eye, 0.5)
+	local meter = Ui.frame(
+		area,
+		"ProgressBack",
+		UDim2.fromScale(0.09, 0.62),
+		UDim2.fromScale(0.72, 0.08),
+		Theme.track
+	)
+	Ui.corner(meter, 0.3)
+	local fill =
+		Ui.frame(meter, "ProgressFill", UDim2.fromScale(1, 0.3), UDim2.fromScale(0, 1), Theme.gold)
+	fill.AnchorPoint = Vector2.new(0, 1)
+	Ui.gloss(fill, Theme.gold)
+	local status = Ui.label(
+		area,
+		"CatchProgress",
+		UDim2.fromScale(0.45, 0.12),
+		UDim2.fromScale(0.54, 0.75),
+		string.format(Text.reelProgress, 30),
+		Theme.sand
+	)
+	local risk = Ui.frame(
 		area,
 		"FailBack",
-		UDim2.fromScale(1, 0.1),
-		UDim2.fromScale(0, 0),
-		Color3.fromRGB(60, 20, 30)
+		UDim2.fromScale(0.94, 0.055),
+		UDim2.fromScale(0.03, 0.94),
+		Theme.track
 	)
-	Ui.corner(failBack, 0.5)
-	local failFill = Ui.frame(
-		failBack,
+	Ui.corner(risk, 0.5)
+	local riskFill = Ui.frame(
+		risk,
 		"FailFill",
 		UDim2.fromScale(0, 1),
 		UDim2.fromScale(0, 0),
-		Color3.fromRGB(255, 60, 70)
+		Color3.fromRGB(255, 89, 120)
 	)
-	Ui.corner(failFill, 0.5)
+	Ui.corner(riskFill, 0.5)
 
-	local bar = Ui.frame(
-		area,
-		"Bar",
-		UDim2.fromScale(1, 0.42),
-		UDim2.fromScale(0, 0.2),
-		Color3.fromRGB(22, 24, 44)
-	)
-	Ui.corner(bar, 0.3)
-	Ui.stroke(bar, color, 2)
-	local zone = Ui.frame(
-		bar,
-		"Zone",
-		UDim2.fromScale(zoneWidth, 1),
-		UDim2.fromScale(0.5, 0),
-		Color3.fromRGB(190, 200, 230),
-		0.45
-	)
-	zone.AnchorPoint = Vector2.new(0.5, 0)
-	Ui.corner(zone, 0.3)
-	local fish = Ui.frame(bar, "Fish", UDim2.fromScale(0.6, 0.6), UDim2.fromScale(0.5, 0.5), color)
-	fish.AnchorPoint = Vector2.new(0.5, 0.5)
-	Ui.corner(fish, 0.45)
-	local eye = Ui.frame(
-		fish,
-		"Eye",
-		UDim2.fromScale(0.27, 0.27),
-		UDim2.fromScale(0.18, 0.3),
-		Color3.fromRGB(30, 18, 48)
-	)
-	Ui.corner(eye, 0.5)
-	local tail =
-		Ui.frame(fish, "Tail", UDim2.fromScale(0.48, 0.48), UDim2.fromScale(0.84, 0.26), color)
-	tail.Rotation = 45
-	local ratio = Instance.new("UIAspectRatioConstraint")
-	ratio.AspectRatio = 1
-	ratio.Parent = fish
-	Ui.stroke(fish, Color3.new(1, 1, 1), 2)
-
-	local progressBack = Ui.frame(
-		area,
-		"ProgressBack",
-		UDim2.fromScale(1, 0.14),
-		UDim2.fromScale(0, 0.74),
-		Color3.fromRGB(30, 34, 60)
-	)
-	Ui.corner(progressBack, 0.5)
-	local progressFill = Ui.frame(
-		progressBack,
-		"ProgressFill",
-		UDim2.fromScale(0.3, 1),
-		UDim2.fromScale(0, 0),
-		color
-	)
-	Ui.corner(progressFill, 0.5)
-
-	local zonePos, zoneVel = 0.5, 0
+	local lesson = Lesson.show()
+	local controls = Input.bind(function(point)
+		if lesson and lesson.active() then
+			lesson.press(point)
+		end
+	end)
+	local pos, velocity = 0.5, 0
 	local fishPos, fishTarget = 0.5, 0.5
 	local nextTarget = 0
 	local progress, fail = 0.3, 0
 	local elapsed = 0
 	local finished = false
 	local everOutside = false
+	local pending: thread? = nil
+	local step: RBXScriptConnection
 
-	local conn: RBXScriptConnection
-	conn = RunService.RenderStepped:Connect(function(dt)
+	local function stop()
+		controls.stop()
+		step:Disconnect()
+		if lesson then
+			lesson.stop()
+		end
+	end
+	local function finish(success: boolean)
+		finished = true
+		stop()
+		Ui.feedback(area, success, success and not everOutside)
+		pending = task.delay(0.34, done, success, success and not everOutside)
+	end
+	step = RunService.RenderStepped:Connect(function(dt)
 		if finished then
 			return
 		end
+		if lesson and lesson.active() then
+			lesson.update(dt)
+			return
+		end
 		elapsed += dt
-
-		local accel = if PressInput.isHeld() then cfg.zoneAccel else -cfg.zoneAccel
-		zoneVel = math.clamp(zoneVel + accel * dt, -cfg.zoneMaxSpeed, cfg.zoneMaxSpeed)
-		zonePos += zoneVel * dt
-		local half = zoneWidth / 2
-		if zonePos < half then
-			zonePos, zoneVel = half, 0
-		elseif zonePos > 1 - half then
-			zonePos, zoneVel = 1 - half, 0
+		local movementDt = math.min(dt, 0.1)
+		local drag = controls.drag()
+		local origin = controls.origin()
+		local localOrigin = if origin
+			then origin - rail.AbsolutePosition
+			else Vector2.new(-100, -100)
+		local startsOnRail = localOrigin.X >= -24
+			and localOrigin.X <= rail.AbsoluteSize.X + 24
+			and localOrigin.Y >= -24
+			and localOrigin.Y <= rail.AbsoluteSize.Y + 24
+		local half = width / 2
+		if drag and startsOnRail then
+			pos = math.clamp(
+				1 - (drag.Y - rail.AbsolutePosition.Y) / math.max(rail.AbsoluteSize.Y, 1),
+				half,
+				1 - half
+			)
+			velocity = 0
+		else
+			local axis = controls.axis()
+			local direction = if axis ~= 0 then axis elseif controls.held() then 1 else -1
+			local desired = direction * cfg.zoneMaxSpeed
+			velocity += (desired - velocity) * (1 - math.exp(-cfg.zoneAccel * 6 * movementDt))
+			pos = math.clamp(pos + velocity * movementDt, half, 1 - half)
 		end
-
 		if elapsed >= nextTarget then
-			fishTarget = math.random(5, 95) / 100
-			nextTarget = elapsed + retarget * (0.6 + math.random() * 0.8)
+			fishTarget = rng:NextNumber(0.08, 0.92)
+			nextTarget = elapsed + retarget
 		end
-		local step = fishSpeed * dt
-		fishPos += math.clamp(fishTarget - fishPos, -step, step)
-
-		local inside = math.abs(fishPos - zonePos) <= half
+		fishPos += math.clamp(fishTarget - fishPos, -fishSpeed * movementDt, fishSpeed * movementDt)
+		local inside = math.abs(fishPos - pos) <= half
 		if inside then
 			progress += gain * dt
-			fail = math.max(fail - cfg.failRecover * dt, 0)
+			fail = math.max(0, fail - cfg.failRecover * dt)
 		else
-			progress = math.max(progress - cfg.drain * dt, 0)
+			progress = math.max(0, progress - cfg.drain * dt)
 			fail += failRise * dt
 			everOutside = true
 		end
-
-		zone.Position = UDim2.fromScale(zonePos, 0)
-		zone.BackgroundTransparency = if inside then 0.25 else 0.55
-		fish.Position = UDim2.fromScale(fishPos, 0.5)
-		progressFill.Size = UDim2.fromScale(math.clamp(progress, 0, 1), 1)
-		failFill.Size = UDim2.fromScale(math.clamp(fail, 0, 1), 1)
-
+		zone.Position = UDim2.fromScale(0, 1 - pos)
+		zone.BackgroundTransparency = if inside then 0.08 else 0.35
+		fish.Position = UDim2.fromScale(0.5, 1 - fishPos)
+		fill.Size = UDim2.fromScale(1, math.clamp(progress, 0, 1))
+		riskFill.Size = UDim2.fromScale(math.clamp(fail, 0, 1), 1)
+		status.Text = string.format(Text.reelProgress, math.floor(math.clamp(progress, 0, 1) * 100))
 		if progress >= 1 or fail >= 1 then
-			finished = true
-			conn:Disconnect()
-			local success = progress >= 1
-			local perfect = success and not everOutside
-			Ui.feedback(area, success, perfect)
-			task.delay(0.34, done, success, perfect)
+			finish(progress >= 1)
 		end
 	end)
-
 	return function()
-		finished = true
-		conn:Disconnect()
+		if pending then
+			task.cancel(pending)
+			pending = nil
+		end
+		if not finished then
+			finished = true
+			stop()
+		end
 	end
 end
 
