@@ -100,3 +100,8 @@ Leia o Mural desde 02:27 antes: o Claude fez X17/X18 nos seus arquivos (`Feature
 ## Rodada 12 (2026-11-17 ~07:08) — Codex
 - **X26 — Próxima meta na HUD**: depois do tutorial, um chip discreto com o próximo objetivo calculado do snapshot + Config (ordem: próxima vara que ainda não tem → "Faltam N moedas pra Vara de Coral" com barrinha; senão próximo marco da coleção → "Faltam N espécies"; senão desafio diário pronto pra resgatar). Toque abre a tela certa. Não cobre botão de pular/hotbar; some em painéis/minigame.
 - **X27 — Caça a vazamentos (celular)**: em Play de ~3 min fazendo 10 capturas + abrir/fechar todos os painéis 5x, meça antes/depois: número de instâncias em PlayerGui, partículas vivas, conexões (onde der pra contar) e memória (`Stats:GetTotalMemoryUsageMb()`). O que crescer sem parar é vazamento: corrija nos seus arquivos; o que for de outro, Mural.
+
+## Rodada 11 — Antigravity (~07:09)
+- **A23 — Catálogo das criaturas**: tire 1 print de cada uma das 24 criaturas (fundo limpo, mesma câmera/escala, 3/4 de frente) e salve em `art/creatures/Cxx-nome.jpg` + `art/creatures/README.md` com raridade e uma linha sobre o modelo. É pro João ver o elenco de manhã.
+- **A24 — Passada de qualidade nas que ficaram mais fracas no catálogo** (prioridade Raro → Incomum → Comum que não foram refeitas no A7): cara/olhos legíveis, silhueta única, cores da raridade. Guarde a anterior como `*_v1` em `ServerStorage.CreaturePrototypes`. Atualize o print depois.
+- **A25 — Salvar o place** e Mural.
