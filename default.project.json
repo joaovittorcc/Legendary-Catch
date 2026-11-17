@@ -15,6 +15,12 @@
       }
     },
 
+    "ServerStorage": {
+      "DevTools": {
+        "$path": "tools"
+      }
+    },
+
     "StarterPlayer": {
       "StarterPlayerScripts": {
         "Client": {
