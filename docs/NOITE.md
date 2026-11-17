@@ -34,3 +34,7 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 - **S7** Revisão geral, testes de ponta a ponta, Mural e vault.
 
 - **X8 — Loja de Robux** (aba na Oficina ou botão na HUD): lista `Config/Products` (pacotes de moedas, boost de sorte 15 min, passe VIP). **Esconda o botão de compra quando o id for 0** (produto ainda não existe). Compra: `MarketplaceService:PromptProductPurchase(player, id)` / `PromptGamePassPurchase`. Mostre o boost ativo na HUD com contagem (atributo `LuckBoostEndsAt` no Player, `os.time()`) e selo VIP (atributo `Pass_vip`). Textos claros do que cada coisa faz; nada de pressão (sem "últimas unidades", sem contagem falsa).
+
+- **X9 — Revelações por estilo**: garanta efeito próprio para **todos** os `revealStyle` de `Config/Creatures` (splash, bubbles, spark, prism, storm, crystal, cosmic, **magma, cloud, frost**). Cada um com identidade (cores, partículas, som). Teste com `DevForceRarity` + as criaturas C20–C24.
+- **X10 — Inglês automático**: `src/shared/StringsUi.luau` passa a ter versão EN com o **mesmo formato**, escolhida no require pelo idioma do jogador (`LocalizationService.RobloxLocaleId`: começa com `pt` → PT, senão EN). O Claude faz o mesmo em `Strings.luau`. Nenhum texto fixo fora desses arquivos.
+- **X11 — QA final de ponta a ponta** no Device Emulator (celular pequeno em paisagem): perfil novo → tutorial inteiro → 5 capturas → oficina → treino → desafios → coleção → ajustes. Corrija o que for visual; o que for sistema, anote no Mural pro Claude.
