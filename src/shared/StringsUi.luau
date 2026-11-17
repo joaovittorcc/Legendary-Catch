@@ -4,6 +4,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local PT = {
+	dailyGift = "Presente do dia #%d",
+	dailyCoins = "+%d moedas",
 	photo = "Foto",
 	photoHint = "Arraste para girar · Toque, clique ou Esc para sair",
 	catchAnnouncement = "%s pescou %s!",
@@ -110,6 +112,8 @@ local PT = {
 type Labels = typeof(PT)
 
 local EN = {
+	dailyGift = "Daily gift #%d",
+	dailyCoins = "+%d coins",
 	photo = "Photo",
 	photoHint = "Drag to orbit · Tap, click or press Esc to exit",
 	catchAnnouncement = "%s caught %s!",

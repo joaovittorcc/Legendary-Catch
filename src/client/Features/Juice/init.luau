@@ -23,7 +23,12 @@ local lastCoins: number? = nil
 
 local function reduceEffects(): boolean
 	local snapshot = Data.get()
-	return snapshot ~= nil and snapshot.settings ~= nil and snapshot.settings.reduceEffects == true
+	return player:GetAttribute("ReduceEffects") == true
+		or (
+			snapshot ~= nil
+			and snapshot.settings ~= nil
+			and snapshot.settings.reduceEffects == true
+		)
 end
 
 local function coinLabel(): GuiObject?
@@ -45,13 +50,17 @@ local function pulse(target: GuiObject)
 	TweenService:Create(s, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end
 
-local function flyCoins(amount: number)
+function Juice.flyCoins(amount: number, origin: Vector2?)
+	if not gui or reduceEffects() then
+		return
+	end
 	local target = coinLabel()
 	if not target then
 		return
 	end
 	local goal = target.AbsolutePosition + target.AbsoluteSize / 2
 	local view = gui.AbsoluteSize
+	local source = origin or Vector2.new(view.X * 0.5, view.Y * 0.55)
 	local count = math.clamp(math.floor(math.log10(math.max(amount, 1)) * 3), 3, 10)
 	for i = 1, count do
 		local coin = Instance.new("TextLabel")
@@ -64,8 +73,7 @@ local function flyCoins(amount: number)
 		coin.Font = Theme.font
 		coin.TextColor3 = Theme.gold
 		coin.TextStrokeTransparency = 0.3
-		local start =
-			Vector2.new(view.X * 0.5 + math.random(-60, 60), view.Y * 0.55 + math.random(-30, 30))
+		local start = source + Vector2.new(math.random(-20, 20), math.random(-12, 12))
 		coin.Position = UDim2.fromOffset(start.X, start.Y)
 		coin.Parent = gui
 		local delay = (i - 1) * 0.05
@@ -117,9 +125,10 @@ function Juice.start()
 	gui = Instance.new("ScreenGui")
 	gui.Name = "Juice"
 	gui.ResetOnSpawn = false
-	gui.IgnoreGuiInset = true
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.DisplayOrder = 11
-	gui.Parent = player:WaitForChild("PlayerGui")
+	local playerGui = player:WaitForChild("PlayerGui")
+	gui.Parent = playerGui
 
 	player:GetAttributeChangedSignal("Coins"):Connect(function()
 		local coins = player:GetAttribute("Coins")
@@ -128,8 +137,8 @@ function Juice.start()
 		end
 		local previous = lastCoins
 		lastCoins = coins
-		if previous and coins > previous and not reduceEffects() then
-			flyCoins(coins - previous)
+		if previous and coins > previous and not playerGui:FindFirstChild("IslandArrival") then
+			Juice.flyCoins(coins - previous)
 		end
 	end)
 	local initial = player:GetAttribute("Coins")
