@@ -46,6 +46,16 @@ local Net = {
 	TUTORIAL_EVENT = "TutorialEvent",
 	SAVE_SETTINGS = "SaveSettings",
 	REPORT_PERFECT = "ReportPerfect",
+	CATCH_ANNOUNCE = "CatchAnnounce",
+}
+
+-- Sent to every player when someone catches a Legendary (or a Shiny Epic+).
+export type CatchAnnounce = {
+	userId: number,
+	displayName: string,
+	creatureId: string,
+	rarity: string,
+	variant: string,
 }
 
 export type ClaimResult = {

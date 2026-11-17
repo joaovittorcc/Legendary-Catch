@@ -7,6 +7,7 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local ServerStorage = game:GetService("ServerStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
@@ -81,6 +82,64 @@ local function build(rod: Rods.Rod): Tool
 	)
 	handle.CFrame = CFrame.new()
 	handle.Parent = tool
+
+	-- 3D model from ServerStorage.RodModels[rod.id] when it exists (Antigravity, A5).
+	-- Convention: model pivot = grip point, rod length along -Z, a BasePart named "Tip"
+	-- at the very end. The part-built rod below is the fallback.
+	local library = ServerStorage:FindFirstChild("RodModels")
+	local template = library and library:FindFirstChild(rod.id)
+	if template and template:IsA("Model") then
+		local model = template:Clone()
+		model:PivotTo(handle.CFrame)
+		handle.Transparency = 1
+		local tipPart: BasePart? = nil
+		for _, d in model:GetDescendants() do
+			if d:IsA("LuaSourceContainer") then
+				d:Destroy()
+			elseif d:IsA("BasePart") then
+				d.Anchored = false
+				d.CanCollide = false
+				d.CanQuery = false
+				d.CanTouch = false
+				d.Massless = true
+				local weld = Instance.new("WeldConstraint")
+				weld.Part0 = handle
+				weld.Part1 = d
+				weld.Parent = d
+				if d.Name == "Tip" then
+					tipPart = d
+				end
+			end
+		end
+		model.Parent = tool
+		if not tipPart then
+			-- No marked tip: put one at the far -Z end of the model.
+			local cf, size = model:GetBoundingBox()
+			local far = handle.CFrame:PointToObjectSpace(cf.Position).Z - size.Z / 2
+			local t = piece(
+				"Tip",
+				Vector3.new(0.15, 0.15, 0.15),
+				rod.tipColor,
+				Enum.Material.Neon,
+				Enum.PartType.Ball
+			)
+			attach(handle, t, CFrame.new(0, 0, far))
+			tipPart = t
+		end
+		local finalTip = tipPart :: BasePart
+		finalTip.Name = "Tip"
+		finalTip.Parent = tool
+		local lineAttachment = Instance.new("Attachment")
+		lineAttachment.Name = "LineAttachment"
+		lineAttachment.Parent = finalTip
+		local glow = Instance.new("PointLight")
+		glow.Name = "TipGlow"
+		glow.Color = rod.tipColor
+		glow.Brightness = 1.2
+		glow.Range = 6
+		glow.Parent = finalTip
+		return tool
+	end
 
 	attach(
 		handle,
