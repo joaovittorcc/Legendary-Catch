@@ -26,6 +26,20 @@ local function localizePrompt(prompt: Instance)
 	end
 end
 
+-- Map signs (Sign_<KEY> > Board > SurfaceGui > TextLabel), built by the island generator in EN.
+local function localizeSign(label: Instance)
+	if not label:IsA("TextLabel") then
+		return
+	end
+	local gui = label.Parent
+	local sign = gui and gui.Parent and gui.Parent.Parent
+	local key = sign and string.match(sign.Name, "^Sign_(%w+)$")
+	local text = key and Strings.signs[key]
+	if text then
+		label.Text = text
+	end
+end
+
 local function localizeTrophy(pedestal: Instance)
 	local creatureId = pedestal:GetAttribute("TrophyCreature")
 	local display = pedestal:FindFirstChild("TrophyDisplay")
@@ -59,8 +73,12 @@ end
 function WorldText.start()
 	for _, d in Workspace:GetDescendants() do
 		localizePrompt(d)
+		localizeSign(d)
 	end
-	Workspace.DescendantAdded:Connect(localizePrompt)
+	Workspace.DescendantAdded:Connect(function(d)
+		localizePrompt(d)
+		localizeSign(d)
+	end)
 	for _, p in CollectionService:GetTagged("TrophyPedestal") do
 		watchPedestal(p)
 	end

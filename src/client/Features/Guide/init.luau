@@ -15,6 +15,7 @@ local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
+local Hud = require(script.Parent:WaitForChild("Hud"))
 
 local Guide = { order = 140 }
 
@@ -44,6 +45,8 @@ local function buildBubble(anchor: Attachment): (BillboardGui, TextLabel)
 	gui.Size = UDim2.fromOffset(240, 92)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.2, 0)
 	gui.MaxDistance = TALK_DISTANCE + 6
+	-- Draw over map props (the pier flag post used to cut the bubble in half).
+	gui.AlwaysOnTop = true
 	gui.Enabled = false
 
 	local frame = Instance.new("Frame")
@@ -101,7 +104,9 @@ local function attach(npc: Instance)
 		while gui.Parent and npc.Parent do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
-			local near = root
+			-- Stay quiet while a HUD panel (collection, shop, settings...) is open.
+			local near = Hud.panel() == ""
+				and root
 				and root:IsA("BasePart")
 				and (root.Position - anchor.WorldPosition).Magnitude <= TALK_DISTANCE
 			if near then

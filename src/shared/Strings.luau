@@ -101,6 +101,12 @@ local PT = {
 	} :: { [string]: string },
 	workshop = "Oficina",
 	openWorkshop = "Abrir Oficina",
+	-- Map signs, keyed by the sign model name (Sign_<KEY>).
+	signs = {
+		FISHINGPIER = "PÍER DE PESCA",
+		UPGRADEWORKSHOP = "OFICINA DE VARAS",
+		TRAININGLAGOONPRACTICE = "LAGOA DE TREINO\n(PRÁTICA)",
+	} :: { [string]: string },
 	trainAction = "Treinar",
 	trainingSpot = "Lagoa de Treino",
 	training = "Treinando",
@@ -233,6 +239,11 @@ local EN: Strings = {
 	},
 	workshop = "Workshop",
 	openWorkshop = "Open Workshop",
+	signs = {
+		FISHINGPIER = "FISHING PIER",
+		UPGRADEWORKSHOP = "UPGRADE WORKSHOP",
+		TRAININGLAGOONPRACTICE = "TRAINING LAGOON\n(PRACTICE)",
+	} :: { [string]: string },
 	trainAction = "Train",
 	trainingSpot = "Training Lagoon",
 	training = "Training",
