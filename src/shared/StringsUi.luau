@@ -53,6 +53,12 @@ return {
 	control = "Controle",
 	luck = "Sorte",
 	skip = "Pular",
+	milestones = {
+		title = "Marcos da coleção",
+		species = "Descubra %d espécies",
+		rarity = "Complete a coleção %s",
+		missing = "Seu progresso ainda está carregando.",
+	},
 	shiny = "CINTILANTE",
 	shinyCount = "%d cintilante(s)",
 	discovery = "NOVA DESCOBERTA",

@@ -4,6 +4,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
 local Creatures = require(Config:WaitForChild("Creatures"))
 local Fishing = require(Config:WaitForChild("Fishing"))
+local Milestones = require(Config:WaitForChild("Milestones"))
+local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
@@ -65,8 +67,24 @@ local function preview(parent: Instance, creatureId: string, hidden: boolean): M
 	return model
 end
 
+local function progressBar(parent: Instance, count: number, target: number, color: Color3)
+	local bar = Instance.new("Frame")
+	bar.Size = UDim2.new(1, 0, 0, 8)
+	bar.BackgroundColor3 = Theme.ink
+	bar.BorderSizePixel = 0
+	Theme.corner(bar, 4)
+	local fill = Instance.new("Frame")
+	fill.Size = UDim2.fromScale(math.clamp(count / math.max(target, 1), 0, 1), 1)
+	fill.BackgroundColor3 = color
+	fill.BorderSizePixel = 0
+	Theme.corner(fill, 4)
+	fill.Parent = bar
+	bar.Parent = parent
+end
+
 function Collection.start()
 	local gui, scroll = Panel.create("Collection", Text.collection, Theme.crystal)
+	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local body = Instance.new("Frame")
 	body.BackgroundTransparency = 1
 	body.Size = UDim2.fromScale(1, 0)
@@ -76,6 +94,9 @@ function Collection.start()
 	local spinning: Model? = nil
 	local rotation: RBXScriptConnection? = nil
 	local selected: Creatures.Creature? = nil
+	local showRewards = false
+	local pending: string? = nil
+	local revision = 0
 	local function render()
 		spinning = nil
 		body:ClearAllChildren()
@@ -126,9 +147,103 @@ function Collection.start()
 			Panel.label(body, Text.loading, 18)
 			return
 		end
+		local totals: { [string]: number } = {}
+		local discovered: { [string]: number } = {}
+		local totalFound = 0
+		for _, entry in Creatures.LIST do
+			totals[entry.rarity] = (totals[entry.rarity] or 0) + 1
+			if snapshot.collection[entry.id] then
+				discovered[entry.rarity] = (discovered[entry.rarity] or 0) + 1
+				totalFound += 1
+			end
+		end
+		if showRewards then
+			Panel.button(body, Text.collection, Theme.crystal).Activated:Connect(function()
+				showRewards = false
+				scroll.CanvasPosition = Vector2.zero
+				render()
+			end)
+			local claimed = snapshot.milestones
+			if not claimed then
+				Panel.label(body, Text.milestones.missing, 16)
+				return
+			end
+			for _, milestone in Milestones.LIST do
+				local rarity = milestone.rarity
+				local target = if rarity then totals[rarity] or 0 else milestone.count
+				local count = if rarity then discovered[rarity] or 0 else totalFound
+				local ready = target > 0 and count >= target
+				local redeemed = claimed[milestone.id] == true
+				local color = if rarity then Theme.rarity[rarity] else Theme.gold
+				local title = if rarity
+					then string.format(Text.milestones.rarity, Strings.rarity[rarity] or rarity)
+					else string.format(Text.milestones.species, target)
+				local row = Instance.new("Frame")
+				row.Size = UDim2.new(1, 0, 0, 94)
+				Theme.surface(row, color, 10)
+				local label = Panel.label(
+					row,
+					title
+						.. string.format(
+							"\n%d / %d  ·  +%d ◆",
+							math.min(count, target),
+							target,
+							milestone.reward
+						),
+					14
+				)
+				label.Size = UDim2.fromScale(0.57, 1)
+				label.Position = UDim2.fromScale(0.025, 0)
+				local button = Panel.button(
+					row,
+					if redeemed
+						then Text.missions.claimed
+						elseif ready then Text.missions.claim
+						else Text.missions.ongoing,
+					color
+				)
+				button.TextSize = 14
+				button.Size = UDim2.new(0.34, 0, 0, 44)
+				button.Position = UDim2.new(0.63, 0, 0.5, -22)
+				button.Interactable = ready and not redeemed
+				button.Activated:Connect(function()
+					if pending then
+						return
+					end
+					local remote = remotes:FindFirstChild(Net.CLAIM_MILESTONE)
+					if not remote or not remote:IsA("RemoteEvent") then
+						Hud.toast(Text.unavailable)
+						return
+					end
+					pending = milestone.id
+					revision += 1
+					local token = revision
+					remote:FireServer(milestone.id)
+					task.delay(4, function()
+						if revision == token then
+							pending = nil
+						end
+					end)
+				end)
+				row.Parent = body
+			end
+			return
+		end
+		Panel.button(body, Text.milestones.title, Theme.gold).Activated:Connect(function()
+			showRewards = true
+			scroll.CanvasPosition = Vector2.zero
+			render()
+		end)
 		for _, rarity in Fishing.RARITY_ORDER do
 			local color = Theme.rarity[rarity]
-			Panel.label(body, Strings.rarity[rarity] or rarity, 17, color)
+			local count, total = discovered[rarity] or 0, totals[rarity] or 0
+			Panel.label(
+				body,
+				string.format("%s  ·  %d / %d", Strings.rarity[rarity] or rarity, count, total),
+				17,
+				color
+			)
+			progressBar(body, count, total, color)
 			local group = Instance.new("Frame")
 			group.BackgroundTransparency = 1
 			group.Size = UDim2.fromScale(1, 0)
@@ -164,6 +279,14 @@ function Collection.start()
 		end
 	end
 
+	local result = remotes:FindFirstChild(Net.CLAIM_RESULT)
+	if result and result:IsA("RemoteEvent") then
+		result.OnClientEvent:Connect(function(payload: Net.ClaimResult)
+			if payload.kind == "milestone" then
+				pending = nil
+			end
+		end)
+	end
 	Hud.panelChanged:Connect(function(name: string)
 		gui.Enabled = name == "Collection"
 		if rotation then
@@ -181,6 +304,7 @@ function Collection.start()
 			end)
 		else
 			selected = nil
+			showRewards = false
 			spinning = nil
 			body:ClearAllChildren()
 		end
