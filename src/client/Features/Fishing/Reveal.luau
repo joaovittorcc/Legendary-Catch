@@ -16,6 +16,12 @@ local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Strings = require(Shared:WaitForChild("Strings"))
 
+local Players = game:GetService("Players")
+local Text = require(Shared:WaitForChild("StringsUi"))
+local Theme = require(Shared:WaitForChild("UiTheme"))
+
+type CatchInfo = { weight: number?, value: number?, isNew: boolean? }
+local seen: { [string]: boolean } = {}
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
@@ -24,7 +30,7 @@ local Reveal = {}
 type Style = { size: number, apex: number, flight: number, hold: number }
 
 local STYLES: { [string]: Style } = {
-	Common = { size = 3.5, apex = 6, flight = 0.8, hold = 1.8 },
+	Common = { size = 3.5, apex = 6, flight = 0.65, hold = 1 },
 	Uncommon = { size = 4, apex = 7, flight = 0.9, hold = 2 },
 	Rare = { size = 5, apex = 9, flight = 1, hold = 2.4 },
 	Epic = { size = 6, apex = 11, flight = 1.1, hold = 2.8 },
@@ -92,22 +98,29 @@ local function sparkles(model: Model, color: Color3)
 	e.Parent = holder
 end
 
-local function nameCard(name: string, rarity: string, color: Color3, big: boolean): Frame
+local function nameCard(
+	name: string,
+	rarity: string,
+	color: Color3,
+	level: number,
+	info: CatchInfo?
+): Frame
 	local gui = Ui.screen()
 	local card = Ui.frame(
 		gui,
 		"RevealCard",
-		UDim2.fromScale(0.5, if big then 0.2 else 0.14),
+		UDim2.fromScale(0.55, 0.2),
 		UDim2.fromScale(0.5, 0.12),
 		Color3.new(0, 0, 0),
-		1
+		0.15
 	)
+	Theme.surface(card, color, 16)
 	card.AnchorPoint = Vector2.new(0.5, 0)
 	local title = Ui.label(
 		card,
 		"Name",
-		UDim2.fromScale(1, 0.6),
-		UDim2.fromScale(0, 0),
+		UDim2.fromScale(1, 0.32),
+		UDim2.fromScale(0, 0.23),
 		name,
 		Color3.new(1, 1, 1)
 	)
@@ -115,12 +128,32 @@ local function nameCard(name: string, rarity: string, color: Color3, big: boolea
 	local rarityLabel = Ui.label(
 		card,
 		"Rarity",
-		UDim2.fromScale(1, 0.38),
-		UDim2.fromScale(0, 0.62),
-		string.upper(Strings.rarity[rarity] or rarity),
+		UDim2.fromScale(1, 0.18),
+		UDim2.fromScale(0, 0.57),
+		string.rep("★", level) .. "  " .. string.upper(Strings.rarity[rarity] or rarity),
 		color
 	)
-	rarityLabel.TextStrokeTransparency = 0
+	rarityLabel.TextStrokeTransparency = 0.5
+	if info and info.isNew then
+		Ui.label(
+			card,
+			"Discovery",
+			UDim2.fromScale(1, 0.18),
+			UDim2.fromScale(0, 0.04),
+			Text.discovery,
+			Theme.gold
+		)
+	end
+	if info and info.weight and info.value then
+		Ui.label(
+			card,
+			"Reward",
+			UDim2.fromScale(1, 0.18),
+			UDim2.fromScale(0, 0.77),
+			string.format("%.2f kg   ·   +%d ◆", info.weight, info.value),
+			Theme.sand
+		)
+	end
 	card.Position = UDim2.fromScale(0.5, -0.25)
 	TweenService:Create(
 		card,
@@ -130,10 +163,53 @@ local function nameCard(name: string, rarity: string, color: Color3, big: boolea
 	return card
 end
 
-local function legendaryIntro(origin: Vector3, color: Color3): () -> ()
+local function tunnel(color: Color3)
+	local gui = Ui.screen()
+	for index = 1, 6 do
+		local square = Ui.frame(
+			gui,
+			"AstralGate",
+			UDim2.fromScale(0.04, 0.04),
+			UDim2.fromScale(0.5, 0.48),
+			color,
+			1
+		)
+		square.AnchorPoint = Vector2.new(0.5, 0.5)
+		square.SizeConstraint = Enum.SizeConstraint.RelativeYY
+		square.Rotation = 28 + index * 7
+		square.ZIndex = 12
+		local border = Instance.new("UIStroke")
+		border.Color = color
+		border.Transparency = 0.32
+		border.Thickness = 2
+		border.Parent = square
+		local tween = TweenInfo.new(
+			0.55,
+			Enum.EasingStyle.Quad,
+			Enum.EasingDirection.In,
+			0,
+			false,
+			index * 0.075
+		)
+		TweenService:Create(
+			square,
+			tween,
+			{ Size = UDim2.fromScale(1.36, 1.36), Rotation = square.Rotation + 36 }
+		):Play()
+		TweenService:Create(border, tween, { Transparency = 1 }):Play()
+		task.delay(0.56 + index * 0.075, function()
+			square:Destroy()
+		end)
+	end
+end
+
+local function legendaryIntro(origin: Vector3, color: Color3, cancelled: () -> boolean): () -> ()
 	local restore = Effects.darken(Color3.fromRGB(140, 120, 255), 0.4)
 	task.wait(0.4)
 	for _ = 1, 3 do
+		if cancelled() then
+			return restore
+		end
 		Effects.lightning(origin, Color3.fromRGB(200, 190, 255))
 		Effects.shake(0.25, 1.2)
 		task.wait(0.28)
@@ -141,37 +217,92 @@ local function legendaryIntro(origin: Vector3, color: Color3): () -> ()
 	Effects.pillar(origin, color, 60, 1.4)
 	Effects.ripple(origin, color, 18, 1.2)
 	task.wait(0.35)
-	Effects.flash(Ui.screen(), Color3.new(1, 1, 1), 0.7)
+	if not cancelled() then
+		Effects.flash(Ui.screen(), Color3.new(1, 1, 1), 0.7)
+		tunnel(color)
+	end
 	return restore
 end
 
 -- Yields until the reveal is over.
-function Reveal.play(creatureId: string, rarity: string, origin: Vector3, root: BasePart)
+function Reveal.play(
+	creatureId: string,
+	rarity: string,
+	origin: Vector3,
+	root: BasePart,
+	info: CatchInfo?
+)
 	local color = FishingConfig.RARITY_COLORS[rarity] or Color3.new(1, 1, 1)
 	local style = STYLES[rarity] or STYLES.Common
 	local level = rank(rarity)
 
+	local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+	local creature = Creatures.get(creatureId)
+	local motif = creature and creature.revealStyle
+	local accent = if motif == "storm"
+		then Theme.crystal
+		elseif motif == "cosmic" then Theme.rose
+		elseif motif == "prism" then Theme.rose
+		else color
+	local skipped = false
+	local skipButton: TextButton? = nil
+	if level == 5 and (seen[creatureId] or (info and info.isNew == false)) then
+		local button = Instance.new("TextButton")
+		button.Name = "SkipReveal"
+		button.AnchorPoint = Vector2.new(0.5, 1)
+		button.Position = UDim2.fromScale(0.5, 0.72)
+		button.Size = UDim2.fromOffset(116, 48)
+		button.Text = Text.skip
+		button.TextColor3 = Theme.sand
+		button.Font = Theme.font
+		button.TextSize = 19
+		Theme.surface(button, color, 12)
+		button.Activated:Connect(function()
+			skipped = true
+			button:Destroy()
+		end)
+		button.Parent = Ui.screen()
+		skipButton = button
+	end
+	local function cancelled(): boolean
+		return skipped or not root:IsDescendantOf(Workspace)
+	end
+	Effects.ripple(origin, accent, 4 + level * 2, 0.8)
+	if motif == "bubbles" or motif == "prism" then
+		Effects.ripple(origin, color, 6, 0.5)
+	elseif motif == "storm" and not reduced then
+		Effects.lightning(origin, accent)
+	end
 	local restore: (() -> ())? = nil
-	if level >= 5 then
-		restore = legendaryIntro(origin, color)
+	if level >= 5 and not reduced then
+		restore = legendaryIntro(origin, accent, cancelled)
 	elseif level >= 4 then
 		Effects.pillar(origin, color, 35, 1)
 		Effects.ripple(origin, color, 10, 0.9)
 		task.wait(0.45)
 	end
 
+	if cancelled() then
+		if restore then
+			restore()
+		end
+		if skipButton then
+			skipButton:Destroy()
+		end
+		return
+	end
 	local model = cloneCreature(creatureId)
 	local _, size = model:GetBoundingBox()
 	local biggest = math.max(size.X, size.Y, size.Z, 0.1)
 	model:ScaleTo(model:GetScale() * style.size / biggest)
-	if level >= 3 then
+	if level >= 3 and not reduced then
 		sparkles(model, color)
 	end
 	model.Parent = Workspace
 
 	Effects.splash(origin, color, 10 + level * 6)
 	Effects.ripple(origin, color, 4 + level * 2, 0.8)
-	if level >= 5 then
+	if level >= 5 and not reduced then
 		Effects.shake(0.5, 2)
 	end
 
@@ -184,7 +315,7 @@ function Reveal.play(creatureId: string, rarity: string, origin: Vector3, root: 
 		CFrame.lookAt(display, root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, display.Y, 0))
 
 	local start = os.clock()
-	while true do
+	while not cancelled() do
 		local a = math.min((os.clock() - start) / style.flight, 1)
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
 		local spin = CFrame.Angles(0, (1 - a) * math.pi * 4, (1 - a) * math.pi)
@@ -196,11 +327,11 @@ function Reveal.play(creatureId: string, rarity: string, origin: Vector3, root: 
 	end
 
 	local name = Strings.creatureName[creatureId] or creatureId
-	local card = nameCard(name, rarity, color, level >= 5)
+	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
 
 	-- Hover and turn slowly so the player can admire it.
 	local holdStart = os.clock()
-	while os.clock() - holdStart < style.hold do
+	while not cancelled() and os.clock() - holdStart < style.hold do
 		local t = os.clock() - holdStart
 		model:PivotTo(
 			CFrame.new(display + Vector3.new(0, math.sin(t * 2) * 0.4, 0))
@@ -213,15 +344,24 @@ function Reveal.play(creatureId: string, rarity: string, origin: Vector3, root: 
 	if restore then
 		restore()
 	end
-	TweenService:Create(card, TweenInfo.new(0.3), { Position = UDim2.fromScale(0.5, -0.25) }):Play()
-	task.delay(0.35, function()
-		card:Destroy()
-	end)
+	if card then
+		TweenService:Create(card, TweenInfo.new(0.3), { Position = UDim2.fromScale(0.5, -0.25) })
+			:Play()
+		task.delay(0.35, function()
+			card:Destroy()
+		end)
+	end
+	if skipButton then
+		skipButton:Destroy()
+	end
+	if not cancelled() then
+		seen[creatureId] = true
+	end
 
 	-- Shrink into the player.
 	local outStart = os.clock()
 	local baseScale = model:GetScale()
-	while true do
+	while not cancelled() do
 		local a = math.min((os.clock() - outStart) / 0.35, 1)
 		model:ScaleTo(math.max(baseScale * (1 - a), 0.01))
 		model:PivotTo(CFrame.new(display:Lerp(root.Position, a)) * facing.Rotation)

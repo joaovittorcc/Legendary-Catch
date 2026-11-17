@@ -74,6 +74,14 @@ function Rhythm.run(
 
 	local hits, misses = 0, 0
 	local finished = false
+	local pressConn: RBXScriptConnection
+	local stepConn: RBXScriptConnection
+	local function finish(success: boolean)
+		finished = true
+		pressConn:Disconnect()
+		stepConn:Disconnect()
+		task.delay(0.34, done, success)
+	end
 	local current: { target: Frame, ring: Frame, t: number }? = nil
 	local gap = 0.4
 
@@ -127,6 +135,7 @@ function Rhythm.run(
 	end
 
 	local function miss()
+		Ui.feedback(area, false)
 		misses += 1
 		local light = lives[misses]
 		light.BackgroundColor3 = RED
@@ -139,23 +148,22 @@ function Rhythm.run(
 		):Play()
 		clear(false)
 		if misses >= cfg.missesAllowed then
-			finished = true
-			done(false)
+			finish(false)
 		end
 	end
 
-	local pressConn = PressInput.Pressed:Connect(function()
+	pressConn = PressInput.Pressed:Connect(function()
 		local c = current
 		if finished or not c then
 			return
 		end
 		if math.abs(c.t - shrink) <= window then
+			Ui.feedback(area, true, math.abs(c.t - shrink) < window * 0.25)
 			hits += 1
 			counter.Text = `{hits}/{total}`
 			clear(true)
 			if hits >= total then
-				finished = true
-				done(true)
+				finish(true)
 			end
 		else
 			miss()
@@ -163,7 +171,7 @@ function Rhythm.run(
 		gap = cfg.gapSeconds
 	end)
 
-	local stepConn = RunService.RenderStepped:Connect(function(dt)
+	stepConn = RunService.RenderStepped:Connect(function(dt)
 		if finished then
 			return
 		end

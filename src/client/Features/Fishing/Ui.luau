@@ -5,6 +5,10 @@
 local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
+local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local Theme = require(Shared:WaitForChild("UiTheme"))
+local Text = require(Shared:WaitForChild("StringsUi"))
+local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = {}
 
 local gui: ScreenGui
@@ -63,7 +67,7 @@ function Ui.label(
 	l.Text = text
 	l.TextColor3 = color
 	l.TextScaled = true
-	l.Font = Enum.Font.FredokaOne
+	l.Font = Theme.font
 	l.TextStrokeTransparency = 0.4
 	l.Parent = parent
 	return l
@@ -89,7 +93,15 @@ function Ui.init()
 	)
 	panel.AnchorPoint = Vector2.new(0.5, 1)
 	panel.Visible = false
-	Ui.corner(panel, 0.12)
+	Theme.surface(panel, Theme.gold, 16)
+	local band = Ui.frame(
+		panel,
+		"CrystalTrim",
+		UDim2.fromScale(0.82, 0.025),
+		UDim2.fromScale(0.09, 0.205),
+		Theme.crystal
+	)
+	Theme.corner(band, 3)
 	local ratio = Instance.new("UIAspectRatioConstraint")
 	ratio.AspectRatio = 2.6
 	ratio.Parent = panel
@@ -161,6 +173,49 @@ function Ui.hidePanel()
 	panel.Visible = false
 	for _, child in area:GetChildren() do
 		child:Destroy()
+	end
+end
+
+function Ui.feedback(target: Frame, success: boolean, perfect: boolean?)
+	local color = if success then Theme.crystal else Color3.fromRGB(255, 123, 123)
+	local message = if perfect then Text.perfect elseif success then Text.hit else Text.miss
+	local badge = Ui.label(
+		target,
+		"TimingFeedback",
+		UDim2.fromScale(0.46, 0.25),
+		UDim2.fromScale(0.27, -0.04),
+		message,
+		color
+	)
+	badge.ZIndex = 5
+	TweenService:Create(badge, TweenInfo.new(0.38), {
+		TextTransparency = 1,
+		TextStrokeTransparency = 1,
+		Position = UDim2.fromScale(0.27, -0.2),
+	}):Play()
+	task.delay(0.4, function()
+		badge:Destroy()
+	end)
+	if not success then
+		Effects.shake(0.18, 0.45)
+	end
+	if success and Players.LocalPlayer:GetAttribute("ReduceEffects") ~= true then
+		for index = 1, 6 do
+			local angle = index * math.pi / 3
+			local spark =
+				Ui.frame(target, "Spark", UDim2.fromOffset(5, 5), UDim2.fromScale(0.5, 0.3), color)
+			spark.Rotation = 45
+			TweenService:Create(spark, TweenInfo.new(0.3), {
+				Position = UDim2.fromScale(
+					0.5 + math.cos(angle) * 0.23,
+					0.3 + math.sin(angle) * 0.35
+				),
+				BackgroundTransparency = 1,
+			}):Play()
+			task.delay(0.32, function()
+				spark:Destroy()
+			end)
+		end
 	end
 end
 

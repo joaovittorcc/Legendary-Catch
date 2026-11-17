@@ -13,6 +13,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
+local Theme = require(Shared:WaitForChild("UiTheme"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
 local FishingFolder = script.Parent:WaitForChild("Fishing")
@@ -39,6 +40,8 @@ local xpFill: Frame? = nil
 local orbitConn: RBXScriptConnection? = nil
 local moveConn: RBXScriptConnection? = nil
 local animThread: thread? = nil
+local animationTrack: AnimationTrack? = nil
+local previousCameraType: Enum.CameraType? = nil
 local aura: BasePart? = nil
 local stopRing: (() -> ())? = nil
 
@@ -76,15 +79,14 @@ local function buildHud(color: Color3)
 		Ui.screen(),
 		"TrainingHud",
 		UDim2.fromScale(0.36, 0.11),
-		UDim2.fromScale(0.5, 0.04),
+		UDim2.fromScale(0.5, 0.17),
 		Color3.fromRGB(14, 18, 40),
 		0.25
 	)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
-	Ui.corner(frame, 0.25)
-	Ui.stroke(frame, color, 2)
+	Theme.surface(frame, color, 13)
 	local size = Instance.new("UISizeConstraint")
-	size.MinSize = Vector2.new(260, 64)
+	size.MinSize = Vector2.new(280, 68)
 	size.MaxSize = Vector2.new(520, 110)
 	size.Parent = frame
 
@@ -110,7 +112,7 @@ local function buildHud(color: Color3)
 
 	local button = Instance.new("TextButton")
 	button.Name = "Stop"
-	button.Size = UDim2.fromScale(0.2, 0.7)
+	button.Size = UDim2.new(0.22, 0, 0, 44)
 	button.Position = UDim2.fromScale(0.77, 0.15)
 	button.BackgroundColor3 = Color3.fromRGB(220, 70, 80)
 	button.Text = Strings.stop
@@ -164,6 +166,8 @@ local function startAnimation()
 		return
 	end
 	local track = animator:LoadAnimation(anim)
+	track.Priority = Enum.AnimationPriority.Action
+	animationTrack = track
 	animThread = task.spawn(function()
 		while true do
 			track:Play(0.2)
@@ -177,6 +181,7 @@ local function startOrbit(root: BasePart)
 	if not camera then
 		return
 	end
+	previousCameraType = camera.CameraType
 	camera.CameraType = Enum.CameraType.Scriptable
 	local angle = math.atan2(
 		camera.CFrame.Position.Z - root.Position.Z,
@@ -185,7 +190,12 @@ local function startOrbit(root: BasePart)
 	orbitConn = RunService.RenderStepped:Connect(function(dt: number)
 		angle += dt * 0.18
 		local focus = root.Position + Vector3.new(0, 1.5, 0)
-		local eye = focus + Vector3.new(math.cos(angle) * 13, 5, math.sin(angle) * 13)
+		local eye = focus
+			+ Vector3.new(
+				math.cos(angle) * 13,
+				4.6 + math.sin(angle * 2) * 0.6,
+				math.sin(angle) * 13
+			)
 		camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(eye, focus), math.min(dt * 4, 1))
 	end)
 end
@@ -213,6 +223,14 @@ local function stopVisuals()
 	if thread then
 		task.cancel(thread)
 	end
+	local track = animationTrack
+	animationTrack = nil
+	if track then
+		track:Stop(0.2)
+		task.delay(0.25, function()
+			track:Destroy()
+		end)
+	end
 	local a = aura
 	aura = nil
 	if a then
@@ -224,9 +242,10 @@ local function stopVisuals()
 		h:Destroy()
 	end
 	local camera = Workspace.CurrentCamera
-	if camera then
-		camera.CameraType = Enum.CameraType.Custom
+	if camera and previousCameraType then
+		camera.CameraType = previousCameraType
 	end
+	previousCameraType = nil
 end
 
 local function startVisuals(stat: string)
@@ -238,7 +257,9 @@ local function startVisuals(stat: string)
 	end
 	local color = STAT_COLORS[stat] or Color3.new(1, 1, 1)
 	buildHud(color)
-	startAura(root, color)
+	if player:GetAttribute("ReduceEffects") ~= true then
+		startAura(root, color)
+	end
 	startAnimation()
 	startOrbit(root)
 	Effects.ripple(root.Position - Vector3.new(0, 2.9, 0), color, 6, 0.8)
@@ -296,6 +317,7 @@ local function onUpdate(update: Net.TrainingUpdate)
 		local root = rootPart()
 		if root then
 			Effects.ripple(root.Position - Vector3.new(0, 2.9, 0), color, 10, 1)
+			Effects.ripple(root.Position - Vector3.new(0, 2.85, 0), Theme.gold, 7, 0.55)
 			Effects.splash(root.Position, color, 24)
 		end
 	elseif update.event == "stopped" then

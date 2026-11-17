@@ -6,6 +6,7 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Pose = require(script.Parent.Parent:WaitForChild("AvatarVisuals"):WaitForChild("Pose"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 
 local SEA_Y = 0.25
@@ -18,6 +19,7 @@ export type Line = {
 	rest: Vector3,
 	mode: string, -- "flying" | "floating" | "fighting"
 	conn: RBXScriptConnection?,
+	stopPose: (() -> ())?,
 }
 
 local Line = {}
@@ -79,6 +81,7 @@ function Line.create(tip: Attachment): Line
 		rest = bobber.Position,
 		mode = "flying",
 		conn = nil,
+		stopPose = nil,
 	}
 
 	local t = 0
@@ -102,8 +105,28 @@ function Line.create(tip: Attachment): Line
 	return self
 end
 
+local function pose(self: Line, sample: (number) -> CFrame?)
+	if self.stopPose then
+		self.stopPose()
+	end
+	local tool = self.tip:FindFirstAncestorOfClass("Tool")
+	local character = tool and tool.Parent
+	self.stopPose = if character and character:IsA("Model")
+		then Pose.play(character, sample)
+		else nil
+end
+
 -- Arcs the bobber from the rod tip to the water point; yields until it lands.
 function Line.castTo(self: Line, target: Vector3)
+	pose(self, function(t)
+		if t >= 0.68 then
+			return nil
+		end
+		local angle = if t < 0.19
+			then -math.sin(t / 0.19 * math.pi / 2) * 0.95
+			else -0.95 * math.cos((t - 0.19) / 0.49 * math.pi * 1.5)
+		return CFrame.Angles(angle, 0.12, 0)
+	end)
 	local from = self.tip.WorldPosition
 	local to = Vector3.new(target.X, SEA_Y, target.Z)
 	local apex = (from + to) / 2 + Vector3.new(0, 7, 0)
@@ -139,6 +162,9 @@ function Line.setColor(self: Line, color: Color3)
 end
 
 function Line.bite(self: Line, color: Color3)
+	pose(self, function(t)
+		return CFrame.Angles(-0.28 + math.sin(t * 9) * 0.16, 0.1, 0)
+	end)
 	Line.setColor(self, color)
 	self.mode = "fighting"
 	Effects.ripple(self.rest, color, 6, 0.8)
@@ -146,6 +172,12 @@ function Line.bite(self: Line, color: Color3)
 end
 
 function Line.reelIn(self: Line, duration: number)
+	pose(self, function(t)
+		if t >= 0.95 then
+			return nil
+		end
+		return CFrame.Angles(-math.sin(t / 0.95 * math.pi) * 0.85, 0, math.sin(t * 5) * 0.16)
+	end)
 	self.mode = "flying"
 	local goal = self.tip.WorldPosition
 	local tween = TweenService:Create(
@@ -166,6 +198,10 @@ function Line.reelIn(self: Line, duration: number)
 end
 
 function Line.snap(self: Line)
+	if self.stopPose then
+		self.stopPose()
+		self.stopPose = nil
+	end
 	self.beam.Enabled = false
 	self.mode = "flying"
 	TweenService
@@ -174,6 +210,10 @@ function Line.snap(self: Line)
 end
 
 function Line.destroy(self: Line)
+	if self.stopPose then
+		self.stopPose()
+		self.stopPose = nil
+	end
 	local conn = self.conn
 	if conn then
 		conn:Disconnect()

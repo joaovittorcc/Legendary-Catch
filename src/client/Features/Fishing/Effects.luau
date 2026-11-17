@@ -2,6 +2,11 @@
 -- Reusable one-shot VFX for fishing: water ripples, splashes, light pillars, lightning,
 -- screen flash, darkening and camera shake. Everything cleans itself up.
 
+local Players = game:GetService("Players")
+local function reduced(): boolean
+	return Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+end
+
 local Debris = game:GetService("Debris")
 local Lighting = game:GetService("Lighting")
 local RunService = game:GetService("RunService")
@@ -75,7 +80,7 @@ function Effects.splash(center: Vector3, color: Color3, count: number)
 	emitter.EmissionDirection = Enum.NormalId.Top
 	emitter.Rate = 0
 	emitter.Parent = anchor
-	emitter:Emit(count)
+	emitter:Emit(if reduced() then math.min(count, 4) else count)
 	Debris:AddItem(anchor, 1.5)
 end
 
@@ -106,6 +111,9 @@ end
 
 -- Jagged bolt from the sky to a point, made of short neon segments.
 function Effects.lightning(target: Vector3, color: Color3)
+	if reduced() then
+		return
+	end
 	local top = target + Vector3.new(math.random(-6, 6), 45, math.random(-6, 6))
 	local segments = 9
 	local prev = top
@@ -145,12 +153,16 @@ function Effects.lightning(target: Vector3, color: Color3)
 end
 
 function Effects.flash(gui: ScreenGui, color: Color3, duration: number)
+	if reduced() then
+		return
+	end
 	local f = Instance.new("Frame")
 	f.Name = "Flash"
 	f.Size = UDim2.fromScale(1, 1)
 	f.BackgroundColor3 = color
 	f.BorderSizePixel = 0
 	f.ZIndex = 50
+	f.BackgroundTransparency = 0.65
 	f.Parent = gui
 	TweenService
 		:Create(f, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -184,6 +196,9 @@ function Effects.darken(tint: Color3, fadeIn: number): () -> ()
 end
 
 function Effects.shake(duration: number, magnitude: number)
+	if reduced() then
+		return
+	end
 	local camera = Workspace.CurrentCamera
 	if not camera then
 		return

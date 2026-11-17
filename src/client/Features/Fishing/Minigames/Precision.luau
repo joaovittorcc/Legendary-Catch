@@ -78,6 +78,8 @@ function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean)
 		table.insert(lives, light)
 	end
 
+	local pressConn: RBXScriptConnection
+	local stepConn: RBXScriptConnection
 	local pos, dir = 0, 1
 	local hits, misses = 0, 0
 	local cooldown = 0
@@ -97,16 +99,19 @@ function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean)
 
 	local function finish(success: boolean)
 		finished = true
-		done(success)
+		pressConn:Disconnect()
+		stepConn:Disconnect()
+		task.delay(0.34, done, success)
 	end
 
-	local pressConn = PressInput.Pressed:Connect(function()
+	pressConn = PressInput.Pressed:Connect(function()
 		if finished or cooldown > 0 then
 			return
 		end
 		cooldown = 0.18
 		local center = zone.Position.X.Scale
 		if math.abs(pos - center) <= zoneWidth / 2 then
+			Ui.feedback(area, true, math.abs(pos - center) < zoneWidth * 0.12)
 			hits += 1
 			pips[hits].BackgroundColor3 = color
 			zone.BackgroundTransparency = 0
@@ -117,6 +122,7 @@ function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean)
 				moveZone()
 			end
 		else
+			Ui.feedback(area, false)
 			misses += 1
 			local light = lives[misses]
 			light.BackgroundColor3 = RED
@@ -139,7 +145,7 @@ function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean)
 		end
 	end)
 
-	local stepConn = RunService.RenderStepped:Connect(function(dt)
+	stepConn = RunService.RenderStepped:Connect(function(dt)
 		if finished then
 			return
 		end

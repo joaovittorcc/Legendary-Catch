@@ -66,7 +66,18 @@ function Reel.run(area: Frame, tier: number, color: Color3, done: (boolean) -> (
 	Ui.corner(zone, 0.3)
 	local fish = Ui.frame(bar, "Fish", UDim2.fromScale(0.6, 0.6), UDim2.fromScale(0.5, 0.5), color)
 	fish.AnchorPoint = Vector2.new(0.5, 0.5)
-	fish.Rotation = 45
+	Ui.corner(fish, 0.45)
+	local eye = Ui.frame(
+		fish,
+		"Eye",
+		UDim2.fromScale(0.27, 0.27),
+		UDim2.fromScale(0.18, 0.3),
+		Color3.fromRGB(30, 18, 48)
+	)
+	Ui.corner(eye, 0.5)
+	local tail =
+		Ui.frame(fish, "Tail", UDim2.fromScale(0.48, 0.48), UDim2.fromScale(0.84, 0.26), color)
+	tail.Rotation = 45
 	local ratio = Instance.new("UIAspectRatioConstraint")
 	ratio.AspectRatio = 1
 	ratio.Parent = fish
@@ -138,7 +149,8 @@ function Reel.run(area: Frame, tier: number, color: Color3, done: (boolean) -> (
 		if progress >= 1 or fail >= 1 then
 			finished = true
 			conn:Disconnect()
-			done(progress >= 1)
+			Ui.feedback(area, progress >= 1)
+			task.delay(0.34, done, progress >= 1)
 		end
 	end)
 
