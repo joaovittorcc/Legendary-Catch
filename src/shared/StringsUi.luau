@@ -1,5 +1,9 @@
 --!strict
-return {
+local LocalizationService = game:GetService("LocalizationService")
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local PT = {
 	robux = {
 		title = "Loja de Robux",
 		workshop = "Voltar à oficina",
@@ -56,6 +60,8 @@ return {
 			perfect = "Vença %d minigames sem errar",
 		} :: { [string]: string },
 	},
+	captureReward = "%.2f kg   ·   +%d ◆",
+	collectionStats = "%s: %d   ·   %s: %.2f kg",
 	coins = "Moedas",
 	collection = "Coleção",
 	shop = "Oficina",
@@ -96,3 +102,124 @@ return {
 	} :: { [string]: string },
 	unavailable = "Indisponível por enquanto",
 }
+
+type Labels = typeof(PT)
+
+local EN = {
+	robux = {
+		title = "Robux Shop",
+		workshop = "Back to Workshop",
+		price = "See Robux price",
+		unavailable = "Not for sale",
+		promptFailed = "Couldn't open the purchase prompt.",
+		coins = "%d coins",
+		coinsDescription = "Coins to buy rods at the Workshop.",
+		luck = "Luck Boost",
+		luckDescription = "For %d min, multiplies Rare, Epic and Legendary catch weights by %g.",
+		luckTimer = "Luck %02d:%02d",
+		vip = "VIP Pass",
+		vipBadge = "VIP",
+		vipDescription = "+%d%% coins per catch and a VIP badge.",
+		owned = "Owned",
+	},
+	arrival = {
+		title = "Legendary Catch",
+		loading = "Getting the island ready…",
+		ready = "Welcome to the island!",
+	},
+	tutorial = {
+		skip = "Skip",
+		earn = "Keep fishing to afford the Coral Rod.",
+		steps = {
+			goToPier = "Follow the arrow to the fishing pier.",
+			cast = "Equip your rod, then tap or click to cast.",
+			fight = "Follow the minigame instructions to land your catch.",
+			collection = "Open Collection to see your first discovery.",
+			workshop = "Visit the Workshop to buy the Coral Rod.",
+			training = "Go to the lagoon and start training.",
+		} :: { [string]: string },
+		destinations = {
+			FishingZone = "Fishing Pier",
+			WorkshopSpot = "Workshop",
+			TrainingSpot = "Training Lagoon",
+		} :: { [string]: string },
+	},
+	missions = {
+		title = "Daily Challenges",
+		nav = "Dailies",
+		claim = "Claim",
+		claimed = "Claimed",
+		ongoing = "In progress",
+		complete = "Challenge complete! Open Dailies to claim it.",
+		reset = "Reset in %02d:%02d:%02d",
+		reward = "Claimed +%d ◆!",
+		failed = "Couldn't claim the reward.",
+		rarity = "Land %d %s catches",
+		kinds = {
+			catch = "Catch %d creatures",
+			earn = "Earn %d coins",
+			train = "Train for %d seconds",
+			perfect = "Win %d minigames without a miss",
+		} :: { [string]: string },
+	},
+	captureReward = "%.2f kg   ·   +%d ◆",
+	collectionStats = "%s: %d   ·   %s: %.2f kg",
+	coins = "Coins",
+	collection = "Collection",
+	shop = "Workshop",
+	settings = "Settings",
+	close = "Close",
+	perfect = "PERFECT!",
+	hit = "HIT!",
+	miss = "MISS!",
+	undiscovered = "Undiscovered",
+	bestWeight = "Best weight",
+	captures = "Catches",
+	loading = "Loading…",
+	buy = "Buy",
+	equip = "Equip",
+	equipped = "Equipped",
+	control = "Control",
+	luck = "Luck",
+	skip = "Skip",
+	milestones = {
+		title = "Collection Milestones",
+		species = "Discover %d species",
+		rarity = "Complete the %s collection",
+		missing = "Your progress is still loading.",
+	},
+	shiny = "SHINY",
+	shinyCount = "%d Shiny",
+	discovery = "NEW DISCOVERY",
+	reduced = "Reduce effects",
+	on = "On",
+	off = "Off",
+	music = "Music",
+	effects = "Effects",
+	shopErrors = {
+		noCoins = "Not enough coins",
+		owned = "You already own this rod",
+		notOwned = "Buy this rod first",
+		unknown = "Rod unavailable",
+	} :: { [string]: string },
+	unavailable = "Unavailable for now",
+}
+
+local function forLocale(locale: string): Labels
+	return if string.lower(string.sub(locale, 1, 2)) == "pt" then PT else EN
+end
+
+local selected = EN
+if RunService:IsClient() then
+	local ok, locale = pcall(function()
+		return LocalizationService.RobloxLocaleId
+	end)
+	local player = Players.LocalPlayer
+	selected = forLocale(
+		if ok and typeof(locale) == "string" then locale else (player and player.LocaleId or "en")
+	)
+end
+
+local StringsUi = table.clone(selected) :: any
+StringsUi.forLocale = forLocale
+return StringsUi :: Labels & { forLocale: (locale: string) -> Labels }

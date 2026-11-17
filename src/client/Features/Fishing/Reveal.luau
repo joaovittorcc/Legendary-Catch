@@ -161,7 +161,7 @@ local function nameCard(
 			"Reward",
 			UDim2.fromScale(1, 0.18),
 			UDim2.fromScale(0, 0.77),
-			string.format("%.2f kg   ·   +%d ◆", info.weight, info.value),
+			string.format(Text.captureReward, info.weight, info.value),
 			Theme.sand
 		)
 	end

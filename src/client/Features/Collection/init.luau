@@ -151,7 +151,7 @@ function Collection.start()
 				Panel.label(
 					body,
 					string.format(
-						"%s: %d   ·   %s: %.2f kg",
+						Text.collectionStats,
 						Text.captures,
 						record.count,
 						Text.bestWeight,
