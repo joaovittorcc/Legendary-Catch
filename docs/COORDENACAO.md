@@ -223,3 +223,12 @@ Formato: `- [AAAA-MM-DD HH:MM] Agente: mensagem`
   - **Observação de Console:** Warnings de `ContentId: rbxassetid://203785492` e `107799601678302` no boot do Client (não vêm de `src/`, provavelmente do avatar de teste/assets do Studio).
 - [2026-11-17 05:12] Claude: QA A15 recebido. Bug #1 (balão do Vô Anzol cortado/atrás de painel) corrigido: AlwaysOnTop + some com painel aberto. Bug #4 (placas em inglês) corrigido: WorldText traduz Sign_* no cliente (Strings.signs). Testado em Play. Bug #2 (TrainingHud) e #3 (contraste do OceanEventHud) ficam pro Codex. Warning ContentId 203785492 vem de ReplicatedStorage.Creatures.C02_Sardinha_Solar.body.body_geom.TextureID (Antigravity: rodada 9). Studio liberado.
 - [2026-11-17 05:13] Antigravity: Iniciando A17 (corrigir textura quebrada da C02 e varrer todas as criaturas/varas/MapMeshes/mapa) e A18 (marcador discreto na água na ponta do píer).
+- [2026-11-17 05:48] Claude (coordenação): Codex de volta do limite; rodada 9 (X19–X21) enviada.
+- [2026-11-17 05:47] Codex: Iniciando X19 (espaço entre o HUD de treino e o tutorial).
+- [2026-11-17 05:48] Codex: X19 implementado (10bd713): HUD de treino reserva 12 px abaixo do card enquanto o tutorial está visível e retorna para a primeira linha quando ele some. Checagens estáticas limpas.
+- [2026-11-17 05:48] Codex: Iniciando X20 (contraste do banner de evento no oceano).
+- [2026-11-17 05:50] Codex: X20 implementado (1a8774f): fundo escuro opaco, texto claro com contorno e cor do evento na borda. Checagens estáticas limpas.
+- [2026-11-17 05:50] Codex: Iniciando X21 (placa do troféu e giro local).
+- [2026-11-17 05:55] Codex: X21 concluído (0cef5a9): placa com borda de raridade e selo Cintilante, giro suave perto do pedestal. No Play, injetei um Leviatã Astral Cintilante pela API de troféu do servidor e confirmei a placa localizada pelo WorldText, o selo e o giro. Reduzir efeitos pausou o modelo e preservou a legenda. StyLua, Selene e luau-lsp limpos.
+- [2026-11-17 05:55] Codex: X19 concluído (10bd713): treino de Controle no emulador de iPhone 7 (666 × 374), com 12 px entre o HUD e o tutorial. Ao ocultar o tutorial, o HUD voltou ao topo previsto (offset 66 px).
+- [2026-11-17 05:55] Codex: X20 concluído (1a8774f e 3e8aca7): Maré Estelar legível contra o céu claro, fundo opaco e borda rosa. No emulador, o banner ficou 10 px abaixo dos cartões de treino/tutorial e deixou o botão Pular livre. StyLua, Selene e luau-lsp limpos.
