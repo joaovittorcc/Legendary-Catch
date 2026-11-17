@@ -2,7 +2,9 @@
 -- Rods sold at the upgrade workshop. Bonuses stack with training:
 --   controlBonus  extra fraction on minigame zones/windows (0.2 = +20%)
 --   luckBonus     extra weight per rarity rank above Common (0.3 = Legendary x1.3)
--- Prices are first guesses; tune with the economy model before launch.
+-- Prices from a rough pacing estimate (2026-11-17): ~13 s per catch, ~62 coins per catch at
+-- base luck = ~285 coins/min. Coral ~2 min, Crystal ~10 min, Storm ~50 min, Astral ~3.5 h of
+-- fishing. Re-tune with real Analytics data after launch.
 
 export type Rod = {
 	id: string,
@@ -27,7 +29,7 @@ local LIST: { Rod } = {
 	{
 		id = "coral",
 		order = 2,
-		price = 250,
+		price = 500,
 		controlBonus = 0.05,
 		luckBonus = 0.05,
 		color = Color3.fromRGB(230, 110, 120),
@@ -36,7 +38,7 @@ local LIST: { Rod } = {
 	{
 		id = "crystal",
 		order = 3,
-		price = 1200,
+		price = 3000,
 		controlBonus = 0.1,
 		luckBonus = 0.12,
 		color = Color3.fromRGB(80, 170, 230),
@@ -45,7 +47,7 @@ local LIST: { Rod } = {
 	{
 		id = "storm",
 		order = 4,
-		price = 5000,
+		price = 15000,
 		controlBonus = 0.15,
 		luckBonus = 0.2,
 		color = Color3.fromRGB(60, 60, 110),
@@ -54,7 +56,7 @@ local LIST: { Rod } = {
 	{
 		id = "astral",
 		order = 5,
-		price = 20000,
+		price = 60000,
 		controlBonus = 0.2,
 		luckBonus = 0.32,
 		color = Color3.fromRGB(80, 40, 140),
