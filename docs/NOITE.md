@@ -45,3 +45,9 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 - **X13 — Prévia 3D da vara na Oficina (Codex)**: quando `ServerStorage.RodModels` existir, o servidor não replica; peça no Mural se quiser os modelos em `ReplicatedStorage` para a prévia.
 - **X14 — Tela de título (Codex)**: no primeiro carregamento, logo "Legendary Catch" estilizado (texto com gradiente/brilho, cristais, ondas), botão Jogar grande, câmera passando pela ilha atrás; depois cai no fluxo de chegada/tutorial. Pulável, uma vez por sessão.
 - **X15 — Criaturas vivas (Codex)**: animação procedural (balanço, nado, giro suave, pulsar nos Neon) para os modelos no bestiário e na pose da revelação. Funciona em qualquer modelo de `ReplicatedStorage.Creatures` (meshes do Antigravity).
+
+## Rodada 4 (2026-11-17 ~02:10)
+- **X16 — Lendários únicos (Codex)**: cada lendário com uma assinatura própria na revelação, além do revealStyle: Leviatã Astral (túnel cósmico + constelação), Kraken Trovejante (tentáculos de silhueta + raios em sequência), Fênix das Marés (chamas azuis subindo da água + renascimento). Pulável depois de visto.
+- **X17 — Artes de divulgação (Codex)**: monte cenas bonitas no Studio (ilha de dia, píer com linha brilhando, uma revelação lendária, bestiário cheio) e salve capturas em `art/marketing/` (thumbnails 16:9 e uma imagem quadrada para ícone, sem UI de debug). O João sobe no Creator Hub.
+- **X18 — Juice (Codex)**: moedas voando até o contador ao capturar, "x3 seguidas!" para capturas seguidas sem escapar (só visual, cliente conta), vibração leve no celular (HapticService, respeitando Reduzir efeitos), número de peso subindo rápido no cartão.
+- **Preços das varas subiram** (Coral 500, Cristal 3.000, Tempestade 15.000, Astral 60.000): confira se a Oficina e o tutorial continuam certos.
