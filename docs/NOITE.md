@@ -72,3 +72,8 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 ## Rodada 8 (2026-11-17 ~03:45) — Antigravity
 - **A15 — QA de ponta a ponta (segundo par de olhos)**: perfil novo (no Studio o save é simulado, cada Play começa do zero), jogue como um jogador de verdade: título → tutorial inteiro → 10 capturas (forçando raridades variadas com `DevForceRarity`) → coleção → marcos → oficina (`DevGrantCoins`) → comprar/equipar varas → treino → desafios → ajustes (reduzir efeitos) → evento (`workspace:SetAttribute(""DevStartEvent"",""starTide"")`). **Não corrija código de ninguém**: anote cada bug no Mural com passo a passo, arquivo provável e gravidade. Corrija só o que for do mapa.
 - **A16 — Salvar o place** e Mural.
+
+## Rodada 9 (2026-11-17 ~05:12) — Antigravity
+- **A17 — Textura quebrada**: `ReplicatedStorage.Creatures.C02_Sardinha_Solar.body.body_geom.TextureID` aponta pra `rbxassetid://203785492` (não é imagem: "Asset type does not match requested type" no console do cliente). Troque por uma textura válida ou remova (cor sólida), e confira os outros 23 modelos + varas + MapMeshes com o mesmo teste (nenhum `TextureID`/`Texture`/`MeshId` inválido). Confira também o `107799601678302` que apareceu no boot.
+- **A18 — Ponto de pesca visível**: na ponta do píer (dentro da `FishingZone`), um marcador discreto na água pra o jogador novo saber onde lançar: anel de luz ciano suave/boias decorativas/pequenos peixes saltando (barato: 1 emitter no máximo, sem luz dinâmica nova). Não mude a FishingZone nem o píer.
+- **A19 — Salvar o place** e Mural.
