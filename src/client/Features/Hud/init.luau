@@ -4,6 +4,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Net = require(Shared:WaitForChild("Net"))
+local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
@@ -149,11 +151,11 @@ function Hud.start()
 		icon.AnchorPoint = Vector2.new(0.5, 0)
 		icon.Position = UDim2.fromScale(0.5, 0.041)
 		local label = Wood.caption(button, "Label", entry.title, 31)
-		label.Position = UDim2.new(0, 6, 0.61, 0)
-		label.Size = UDim2.new(1, -12, 0.35, 0)
+		label.Position = UDim2.new(0, 6, 0.65, 0)
+		label.Size = UDim2.new(1, -12, 0.31, 0)
 		local function layoutIcon()
 			local size =
-				math.floor(math.min(button.AbsoluteSize.X * 0.61, button.AbsoluteSize.Y * 0.62))
+				math.floor(math.min(button.AbsoluteSize.X * 0.64, button.AbsoluteSize.Y * 0.69))
 			icon.Size = UDim2.fromOffset(size, size)
 		end
 		button:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutIcon)
@@ -184,6 +186,48 @@ function Hud.start()
 		resized:Fire()
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+
+	local badge = Instance.new("Frame")
+	badge.Name = "RecentRarity"
+	badge.AnchorPoint = Vector2.new(0, 0)
+	badge.Position = UDim2.fromScale(0.027, 0.32)
+	badge.Size = UDim2.fromScale(0.137, 0.066)
+	badge.Visible = false
+	local badgeBounds = Instance.new("UISizeConstraint")
+	badgeBounds.MinSize = Vector2.new(79, 24)
+	badgeBounds.MaxSize = Vector2.new(222, 55)
+	badgeBounds.Parent = badge
+	local badgeTrim = Wood.mount(badge, true, Color3.fromRGB(36, 70, 66))
+	local rarityText = Wood.caption(badge, "Rarity", "", 29)
+	rarityText.Position = UDim2.fromOffset(9, 2)
+	rarityText.Size = UDim2.new(1, -18, 1, -4)
+	badge.Parent = gui
+	local recent = 0
+	Hud.panelChanged:Connect(function(name)
+		badge.Visible = name == "" and os.clock() < recent
+	end)
+	task.spawn(function()
+		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
+		local update = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
+		update.OnClientEvent:Connect(function(payload: Net.FishingUpdate)
+			local creature = if payload.creatureId then Creatures.get(payload.creatureId) else nil
+			if payload.event == "caught" and creature then
+				rarityText.Text = Theme.rarityLabel(creature.rarity)
+				badgeTrim.Color = Theme.rarity[creature.rarity] or Theme.gold
+				recent = os.clock() + 8
+				local deadline = recent
+				badge.Visible = currentPanel == ""
+				task.delay(8, function()
+					if recent == deadline then
+						badge.Visible = false
+					end
+				end)
+			elseif payload.event == "bite" then
+				recent = 0
+				badge.Visible = false
+			end
+		end)
+	end)
 
 	local perks = Instance.new("TextLabel")
 	perks.Name = "Perks"
