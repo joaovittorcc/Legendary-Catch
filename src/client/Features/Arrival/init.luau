@@ -144,6 +144,7 @@ function Arrival.start()
 	fill.Size = UDim2.fromScale(1, 1)
 	status.Text = Text.arrival.ready
 
+	cover.Visible = false
 	local skipPanorama = Title.open(playerGui)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -154,8 +155,6 @@ function Arrival.start()
 		and root
 		and root:IsA("BasePart")
 		and player:GetAttribute("ReduceEffects") ~= true
-	local finish = TweenService:Create(cover, TweenInfo.new(0.34), { GroupTransparency = 1 })
-	finish:Play()
 	if animate and camera and root and root:IsA("BasePart") then
 		local view = camera.CFrame
 		local focus = root.Position + Vector3.new(0, 2, 0)
@@ -188,8 +187,6 @@ function Arrival.start()
 			camera.CFrame = view
 			camera.CameraType = Enum.CameraType.Custom
 		end
-	else
-		finish.Completed:Wait()
 	end
 	gui:Destroy()
 end
