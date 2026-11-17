@@ -293,6 +293,42 @@ local PLANNED: { Creature } = {
 		weightMax = 9000,
 		revealStyle = "crystal",
 	},
+	{
+		id = "C31_Carpa_Celeste",
+		rarity = "Uncommon",
+		tier = 2,
+		baseValue = 46,
+		weightMin = 1,
+		weightMax = 4,
+		revealStyle = "cloud",
+	},
+	{
+		id = "C32_Espadarte_Relampago",
+		rarity = "Rare",
+		tier = 3,
+		baseValue = 150,
+		weightMin = 40,
+		weightMax = 160,
+		revealStyle = "storm",
+	},
+	{
+		id = "C33_Orca_Aurora",
+		rarity = "Epic",
+		tier = 4,
+		baseValue = 410,
+		weightMin = 1500,
+		weightMax = 5000,
+		revealStyle = "frost",
+	},
+	{
+		id = "C34_Serpente_Arco_Iris",
+		rarity = "Legendary",
+		tier = 5,
+		baseValue = 1750,
+		weightMin = 600,
+		weightMax = 2400,
+		revealStyle = "prism",
+	},
 }
 
 local byId: { [string]: Creature } = {}

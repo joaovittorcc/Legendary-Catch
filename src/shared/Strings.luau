@@ -53,6 +53,10 @@ local PT = {
 		C28_Nautilo_Aurora = "Náutilo Aurora",
 		C29_Dragao_Folha = "Dragão-Folha Esmeralda",
 		C30_Tartaruga_Ilha = "Tartaruga-Ilha Ancestral",
+		C31_Carpa_Celeste = "Carpa Celeste",
+		C32_Espadarte_Relampago = "Espadarte Relâmpago",
+		C33_Orca_Aurora = "Orca Aurora",
+		C34_Serpente_Arco_Iris = "Serpente Arco-Íris",
 	} :: { [string]: string },
 	creatureLore = {
 		C01_Bolhinha_Azul = "Solta bolhinhas quando está feliz. Ou seja, sempre.",
@@ -85,6 +89,10 @@ local PT = {
 		C28_Nautilo_Aurora = "A concha guarda as cores do céu do amanhecer. Gira devagar pra mostrar todas.",
 		C29_Dragao_Folha = "Se esconde entre as algas imitando uma folha. Só os mais atentos percebem.",
 		C30_Tartaruga_Ilha = "Tão antiga que nasceu uma ilha nas costas dela. Alguns dizem que a nossa ilha também.",
+		C31_Carpa_Celeste = "Nada entre as nuvens refletidas na água. Quem a vê pede um desejo.",
+		C32_Espadarte_Relampago = "Corta as ondas tão rápido que deixa um risco de luz no mar.",
+		C33_Orca_Aurora = "As manchas brilham com as cores da aurora. Canta pra chamar a família.",
+		C34_Serpente_Arco_Iris = "Aparece depois da chuva, quando o arco-íris toca o mar. Cada escama é de uma cor.",
 	} :: { [string]: string },
 	rodName = {
 		starter = "Vara de Iniciante",
@@ -204,6 +212,10 @@ local EN: Strings = {
 		C28_Nautilo_Aurora = "Aurora Nautilus",
 		C29_Dragao_Folha = "Emerald Leaf Dragon",
 		C30_Tartaruga_Ilha = "Ancient Island Turtle",
+		C31_Carpa_Celeste = "Sky Koi",
+		C32_Espadarte_Relampago = "Lightning Swordfish",
+		C33_Orca_Aurora = "Aurora Orca",
+		C34_Serpente_Arco_Iris = "Rainbow Serpent",
 	},
 	creatureLore = {
 		C01_Bolhinha_Azul = "Blows little bubbles when it's happy. So, always.",
@@ -236,6 +248,10 @@ local EN: Strings = {
 		C28_Nautilo_Aurora = "Its shell holds the colors of a sunrise sky. It spins slowly to show them all.",
 		C29_Dragao_Folha = "Hides among the seaweed pretending to be a leaf. Only the sharpest eyes notice.",
 		C30_Tartaruga_Ilha = "So old an island grew on its back. Some say ours did too.",
+		C31_Carpa_Celeste = "Swims among the clouds reflected on the water. Make a wish if you see one.",
+		C32_Espadarte_Relampago = "Cuts through the waves so fast it leaves a streak of light on the sea.",
+		C33_Orca_Aurora = "Its patches glow with the colors of the aurora. It sings to call its family.",
+		C34_Serpente_Arco_Iris = "Shows up after the rain, where the rainbow touches the sea. Every scale is a different color.",
 	},
 	rodName = {
 		starter = "Starter Rod",

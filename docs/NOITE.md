@@ -134,3 +134,13 @@ A HUD atual (madeira feita com Frames/UIStroke) ficou séria e quadrada demais. 
 - **Animação**: botões quicam ao tocar (escala 0.9→1.05→1), brilho passando de tempos em tempos, moedas pulsando quando ganham valor, ícones com leve balanço ocioso, presente do dia tremendo/brilhando até abrir. Tudo respeitando **Reduzir efeitos** (sem balanço/brilho contínuo).
 - Continua valendo: celular primeiro, botões ≥44 px, nada sobre o pulo/joystick, textos em `StringsUi`.
 - **Ciclo até ficar bom**: ajusta → sincroniza (rojo build + `game:GetObjects`, ver Mural 09:32) → Play → `screen_capture` → compara → repete. Prints finais em `art/screens/hud-v2/` (PC e celular). Mural ao começar e terminar.
+
+## Pedido do João (~10:25) — Antigravity, agente 2: 10 criaturas novas
+Gere os **modelos 3D de 10 criaturas novas** (além das 24 que já estão no jogo), em `ReplicatedStorage.Creatures` com nome = id:
+- C25 Ouriço Gelatina (Comum), C26 Peixe-Pipa (Comum), C27 Ermitão de Cristal (Incomum), C28 Náutilo Aurora (Raro), C29 Dragão-Folha Esmeralda (Épico), **C30 Tartaruga-Ilha Ancestral (Lendário)** — fichas e prompts prontos em `art/creatures/PLANNED.md`.
+- C31 Carpa Celeste (Incomum, koi translúcida azul-céu com nadadeiras de nuvem), C32 Espadarte Relâmpago (Raro, espadarte prateado com raios amarelos e rastro de luz), C33 Orca Aurora (Épico, orca com manchas que brilham em verde/rosa/roxo de aurora), **C34 Serpente Arco-Íris (Lendário, serpente marinha longa com cada escama de uma cor, crista dourada e chifrinhos)**. Escreva a ficha dessas 4 no mesmo `PLANNED.md`.
+- Ids, raridade e lore já estão em `Config/Creatures.PLANNED` e `Strings`. **Os 2 lendários têm que ser os mais impressionantes do jogo** (no nível ou acima do Leviatã/Kraken/Fênix).
+- **Convenção** igual às 24: frente em +Z, ~3 studs (lendários podem ser maiores), sem scripts/tags/colisão, Neon só onde brilha, orçamento de triângulos parecido com as atuais (máx ~8k nos lendários).
+- Print de cada uma em `art/creatures/` (mesmo enquadramento do catálogo) e atualize o README. Salve o place.
+- **Não** mova nada pra `Config/Creatures.LIST` (o Claude libera no jogo depois de conferir).
+- Studio compartilhado com o agente 1 do Antigravity (varas) e com Claude/Codex: `.studio-lock` sempre que for dar Play ou salvar; `generate_mesh` em Edit pode rodar sem Play. Mural ao começar e a cada 2–3 criaturas.
