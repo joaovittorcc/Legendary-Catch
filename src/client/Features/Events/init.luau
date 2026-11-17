@@ -24,16 +24,29 @@ function Events.start()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = 3
 
-	local banner = Panel.label(gui, "", 16)
+	local banner = Instance.new("Frame")
+	banner.Name = "EventBanner"
 	banner.AnchorPoint = Vector2.new(1, 0)
 	banner.Position = UDim2.fromScale(0.97, 0.23)
-	banner.Size = UDim2.fromScale(0.23, 0.065)
-	banner.TextScaled = true
-	Theme.surface(banner, Theme.crystal, 10)
+	banner.Size = UDim2.fromScale(0.25, 0.065)
+	banner.BackgroundTransparency = 0
+	Theme.surface(banner, Theme.crystal, 10, Theme.ink)
+	local rim = banner:FindFirstChildWhichIsA("UIStroke")
+	local caption = Panel.label(banner, "", 16, Theme.sand)
+	caption.Name = "EventNameAndTime"
+	caption.Size = UDim2.new(1, -16, 1, 0)
+	caption.Position = UDim2.fromOffset(8, 0)
+	caption.TextScaled = true
+	caption.TextStrokeColor3 = Color3.new(0, 0, 0)
+	caption.TextStrokeTransparency = 0.48
+	local typeSize = Instance.new("UITextSizeConstraint")
+	typeSize.MaxTextSize = 16
+	typeSize.Parent = caption
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MinSize = Vector2.new(106, 30)
+	bounds.MinSize = Vector2.new(124, 32)
 	bounds.MaxSize = Vector2.new(240, 44)
 	bounds.Parent = banner
+	banner.Parent = gui
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local atmosphere = Instance.new("ColorCorrectionEffect")
@@ -71,8 +84,10 @@ function Events.start()
 		end
 		emitter.Enabled = decorations
 		if active and typeof(id) == "string" then
-			banner.TextColor3 = tint
-			banner.Text = string.format(
+			if rim then
+				rim.Color = tint
+			end
+			caption.Text = string.format(
 				"%s  %d:%02d",
 				Strings.eventName[id] or id,
 				math.floor(remaining / 60),
