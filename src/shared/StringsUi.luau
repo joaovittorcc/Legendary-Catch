@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local PT = {
+	catchAnnouncement = "%s pescou %s!",
 	robux = {
 		title = "Loja de Robux",
 		workshop = "Voltar à oficina",
@@ -106,6 +107,7 @@ local PT = {
 type Labels = typeof(PT)
 
 local EN = {
+	catchAnnouncement = "%s caught %s!",
 	robux = {
 		title = "Robux Shop",
 		workshop = "Back to Workshop",
