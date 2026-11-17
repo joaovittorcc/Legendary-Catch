@@ -601,6 +601,95 @@ local function buildPlaza()
 	spawn.Neutral = true
 	spawn.Duration = 0
 	spawn.Parent = g
+
+	-- Trophy pedestal on the front-right of the plaza (opposite the campfire), ~4 studs tall.
+	local tp = Vector3.new(6.5, PLAZA_Y, 18.5)
+	local plinth = Instance.new("Model")
+	plinth.Name = "TrophyPlinth"
+	plinth.Parent = g
+	disc(
+		"PlinthStep1",
+		plinth,
+		tp + Vector3.new(0, 0.3, 0),
+		3.3,
+		0.6,
+		COLORS.pavingDark,
+		Enum.Material.Cobblestone
+	)
+	disc(
+		"PlinthStep2",
+		plinth,
+		tp + Vector3.new(0, 0.95, 0),
+		2.6,
+		0.7,
+		COLORS.paving,
+		Enum.Material.Cobblestone
+	)
+	disc(
+		"PlinthColumn",
+		plinth,
+		tp + Vector3.new(0, 2.3, 0),
+		1.55,
+		2.0,
+		COLORS.cream,
+		Enum.Material.Marble
+	)
+	for i = 0, 3 do
+		local a = i * math.pi / 2 + math.pi / 4
+		local ribPos = tp + Vector3.new(math.cos(a) * 1.55, 2.3, math.sin(a) * 1.55)
+		deco(
+			"PlinthCrystalRib",
+			plinth,
+			Vector3.new(0.42, 1.8, 0.42),
+			CFrame.new(ribPos) * CFrame.Angles(0, -a, 0),
+			COLORS.crystal,
+			Enum.Material.Glass,
+			{ transparency = 0.15, shadow = false }
+		)
+	end
+	disc(
+		"PlinthCap",
+		plinth,
+		tp + Vector3.new(0, 3.55, 0),
+		2.15,
+		0.5,
+		COLORS.paving,
+		Enum.Material.Cobblestone
+	)
+	flushRing(
+		plinth,
+		"PlinthGoldRim",
+		tp + Vector3.new(0, 3.8, 0),
+		2.25,
+		1.8,
+		COLORS.gold,
+		COLORS.pavingDark,
+		Enum.Material.Slate,
+		0.04
+	)
+	disc(
+		"PlinthCoreGlow",
+		plinth,
+		tp + Vector3.new(0, 3.86, 0),
+		1.35,
+		0.08,
+		COLORS.cyan,
+		Enum.Material.Neon,
+		{ collide = false, shadow = false }
+	)
+
+	local trophyPos = tp + Vector3.new(0, 4.2, 0)
+	local trophyTop = part(
+		"TrophyPedestal",
+		g,
+		Vector3.new(2.4, 0.4, 2.4),
+		CFrame.lookAt(trophyPos, Vector3.new(-6, trophyPos.Y, 14)) * CFrame.Angles(0, math.pi, 0),
+		COLORS.gold,
+		Enum.Material.ForceField,
+		{ collide = false, transparency = 1, shadow = false }
+	)
+	trophyTop.CanQuery = false
+	CollectionService:AddTag(trophyTop, "TrophyPedestal")
 end
 
 local function buildCampfire()
@@ -1119,11 +1208,11 @@ local function buildLagoon()
 		prev = base
 	end
 
-	-- Lush continuous curving waterfall (replaces the broken gap strips).
+	-- Lush continuous curving waterfall (shifted +0.6 Z clear of cliff rocks, softer foam).
 	local fallPath = {
-		Vector3.new(-48, 22.0, -12.0),
-		Vector3.new(-48, 16.0, -8.2),
-		Vector3.new(-48, 8.05, -6.5),
+		Vector3.new(-48, 22.0, -11.2),
+		Vector3.new(-48, 16.0, -7.4),
+		Vector3.new(-48, 8.05, -5.8),
 	}
 	for seg = 1, #fallPath - 1 do
 		local a, b = fallPath[seg], fallPath[seg + 1]
@@ -1134,19 +1223,19 @@ local function buildLagoon()
 			g,
 			Vector3.new(7.4, 0.55, len),
 			look,
-			Color3.fromRGB(92, 226, 255),
+			Color3.fromRGB(82, 222, 255),
 			Enum.Material.Glass,
-			{ transparency = 0.28, reflectance = 0.25, shadow = false }
+			{ transparency = 0.24, reflectance = 0.3, shadow = false }
 		)
-		for _, dx in { -2.2, 0, 2.2 } do
+		for _, dx in { -2.0, 0, 2.0 } do
 			deco(
 				"WaterfallFoamStreak",
 				g,
-				Vector3.new(0.9, 0.2, len),
+				Vector3.new(0.45, 0.16, len),
 				look * CFrame.new(dx, 0.28, 0),
-				Color3.fromRGB(220, 250, 255),
+				Color3.fromRGB(190, 245, 255),
 				Enum.Material.Neon,
-				{ transparency = 0.55, shadow = false }
+				{ transparency = 0.72, shadow = false }
 			)
 		end
 	end
@@ -1179,12 +1268,12 @@ local function buildLagoon()
 	disc(
 		"FoamOuter",
 		g,
-		Vector3.new(-48, 8.15, -6),
+		Vector3.new(-48, 8.15, -5.6),
 		4.4,
 		0.14,
-		Color3.fromRGB(200, 248, 255),
+		Color3.fromRGB(190, 246, 255),
 		Enum.Material.Neon,
-		{ collide = false, transparency = 0.48, shadow = false }
+		{ collide = false, transparency = 0.65, shadow = false }
 	)
 
 	-- Training spot (tagged TrainingSpot so server Training feature activates automatically).
@@ -1353,12 +1442,12 @@ local function buildWorkshop()
 		local cf, size = shop:GetBoundingBox()
 		local face = cf.Position + Vector3.new(0, size.Y * 0.12, size.Z / 2 + 0.1)
 		sign(g, "UPGRADE WORKSHOP", CFrame.new(face), size.X * 0.42, size.Y * 0.14, false)
-		emblem = cf.Position + Vector3.new(0, size.Y / 2 + 3.8, size.Z * 0.08)
+		emblem = cf.Position + Vector3.new(0, size.Y / 2 + 5.2, size.Z * 0.14)
 	else
 		sign(g, "UPGRADE WORKSHOP", CFrame.new(-6, TERRACE_Y + 12.5, front - 1.5), 12, 3.6, false)
 	end
 
-	-- 3D golden star + sleek halo ring nestled above the roof.
+	-- 3D golden 4-pointed diamond starburst + sleek halo ring nestled above the roof.
 	local e = Instance.new("Model")
 	e.Name = "RoofEmblem"
 	for i = 1, 24 do
@@ -1367,9 +1456,9 @@ local function buildWorkshop()
 		beam(
 			"EmblemRing",
 			e,
-			emblem + Vector3.new(math.cos(a0) * 4.8, math.sin(a0) * 1.4, 0),
-			emblem + Vector3.new(math.cos(a1) * 4.8, math.sin(a1) * 1.4, 0),
-			0.22,
+			emblem + Vector3.new(math.cos(a0) * 5.0, math.sin(a0) * 1.4, 0),
+			emblem + Vector3.new(math.cos(a1) * 5.0, math.sin(a1) * 1.4, 0),
+			0.24,
 			COLORS.gold,
 			Enum.Material.Neon,
 			{ collide = false, shadow = false }
@@ -1378,25 +1467,23 @@ local function buildWorkshop()
 	deco(
 		"EmblemCenter",
 		e,
-		Vector3.new(1.4, 1.4, 1.4),
+		Vector3.new(1.6, 1.6, 1.6),
 		CFrame.new(emblem),
 		COLORS.gold,
 		Enum.Material.Neon,
 		{ shape = Enum.PartType.Ball, shadow = false }
 	)
-	for i = 0, 3 do
-		local a = i * math.pi / 2
-		local rayLen = if i % 2 == 0 then 3.2 else 4.0
+	for i = 0, 1 do
+		local rotZ = if i == 0 then 0 else math.pi / 2
+		local stretch = if i == 0 then 6.2 else 7.6
 		deco(
-			"EmblemPoint",
+			"EmblemDiamondBlade",
 			e,
-			Vector3.new(0.85, rayLen, 0.85),
-			CFrame.new(
-				emblem + Vector3.new(math.cos(a) * rayLen * 0.5, math.sin(a) * rayLen * 0.5, 0)
-			) * CFrame.Angles(0, 0, a - math.pi / 2),
+			Vector3.new(0.95, stretch, 0.7),
+			CFrame.new(emblem) * CFrame.Angles(0, 0, rotZ),
 			COLORS.gold,
 			Enum.Material.Neon,
-			{ wedge = true, shadow = false }
+			{ shape = Enum.PartType.Ball, shadow = false }
 		)
 	end
 	e.Parent = g
@@ -1768,6 +1855,8 @@ local function buildDecor()
 			{ 24, 3, 24, 7, false, -8 },
 			{ 56, -2, 22, 8, true, -6 }, -- crystal rising from shallow water near pier
 			{ 30, -2, -18, 7, false, 8 },
+			{ -36, 1.5, 40, 6.5, false, 14 }, -- front-left shallow water crystal
+			{ 26, -1.5, 16, 6.0, false, -10 }, -- pier shallow water crystal
 		}
 	do
 		crystalCluster(g, Vector3.new(c[1], c[2], c[3]), c[4], c[5], c[6])
@@ -1779,7 +1868,7 @@ local function buildDecor()
 
 	for _, b in
 		{
-			{ -40, PLAZA_Y - 0.5, 22, 2.4 },
+			{ -49, PLAZA_Y - 0.5, 24, 2.0 }, -- left of lagoon sign so text stays unobstructed
 			{ -30, PLAZA_Y - 0.5, 28, 2.2 },
 			{ -20, PLAZA_Y - 0.5, 30, 2.6 },
 			{ 6, PLAZA_Y - 0.5, 28, 2.6 },
@@ -1792,6 +1881,8 @@ local function buildDecor()
 			{ -62, PLAZA_Y - 0.5, 4, 2.4 },
 			{ -60, PLAZA_Y - 0.5, 20, 2.2 },
 			{ -14, 20, -52, 2.6 },
+			{ -10, 24, -55, 2.2 }, -- greenery on upper peak behind workshop
+			{ 2, 23, -53, 2.0 },
 		}
 	do
 		flowerBush(g, Vector3.new(b[1], b[2], b[3]), b[4])
