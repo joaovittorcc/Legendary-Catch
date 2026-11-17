@@ -77,3 +77,9 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 - **A17 — Textura quebrada**: `ReplicatedStorage.Creatures.C02_Sardinha_Solar.body.body_geom.TextureID` aponta pra `rbxassetid://203785492` (não é imagem: "Asset type does not match requested type" no console do cliente). Troque por uma textura válida ou remova (cor sólida), e confira os outros 23 modelos + varas + MapMeshes com o mesmo teste (nenhum `TextureID`/`Texture`/`MeshId` inválido). Confira também o `107799601678302` que apareceu no boot.
 - **A18 — Ponto de pesca visível**: na ponta do píer (dentro da `FishingZone`), um marcador discreto na água pra o jogador novo saber onde lançar: anel de luz ciano suave/boias decorativas/pequenos peixes saltando (barato: 1 emitter no máximo, sem luz dinâmica nova). Não mude a FishingZone nem o píer.
 - **A19 — Salvar o place** e Mural.
+
+## Rodada 9 — Codex (ao voltar do limite, ~05:46)
+Leia o Mural desde 02:27 antes: o Claude fez X17/X18 nos seus arquivos (`Features/Juice`, `art/marketing`) e corrigiu o balão do guia e as placas.
+- **X19 — TrainingHud encavalado** (bug #2 do QA A15): com o card `TutorialGuide` visível, a barra `Treinando Controle – Nível N [Parar]` encosta embaixo dele (botões Parar e Pular colados). Arquivo: `src/client/Features/Training`. Reposicione/empilhe sem sobrepor, no celular compacto também.
+- **X20 — Contraste do OceanEventHud** (bug #3): banner `Maré Estelar 2:16` ilegível contra céu claro. Fundo mais sólido/escuro + stroke, mesma identidade por evento. Arquivo: `src/client/Features/Events`.
+- **X21 — Troféu bonito**: o `WorldText` (Claude) só traduz o texto da placa. Estilize no cliente: placa com a cor da raridade, selo ✦ Cintilante, giro suave do modelo da criatura em cima do pedestal (`TrophyPedestal` > `TrophyDisplay`; atributos `TrophyCreature/TrophyPlayer/TrophyWeight/TrophyVariant`). Respeite Reduzir efeitos. Não altere o texto (é do WorldText) nem o servidor.
