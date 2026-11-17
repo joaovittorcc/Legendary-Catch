@@ -1,5 +1,7 @@
 --!strict
 
+local CreatureAura = require(script.Parent:WaitForChild("CreatureAura"))
+
 -- A segmented creature part (named by the convention below) and how it moves.
 type Limb = {
 	part: BasePart,
@@ -106,6 +108,9 @@ function CreatureMotion.bind(model: Model, style: string?): Motion
 			})
 		end
 	end
+	-- Epic/Legendary aura (skips ViewportFrames by itself). Deferred so callers can parent
+	-- the model right after binding.
+	task.defer(CreatureAura.attach, model)
 	return {
 		model = model,
 		center = pivot:PointToObjectSpace(box.Position),
