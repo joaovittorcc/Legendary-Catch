@@ -240,7 +240,7 @@ end
 
 -- Hanging catenary rope between `a` and `b` in small non-overlapping segments.
 local function ropeSpan(parent: Instance, a: Vector3, b: Vector3, sag: number, thick: number)
-	local steps = 4
+	local steps = 2
 	local prev = a
 	for i = 1, steps do
 		local t = i / steps
@@ -262,6 +262,7 @@ end
 type MeshOpts = {
 	scale: number?,
 	collide: boolean?,
+	shadow: boolean?,
 	anchorMode: ("bottom" | "top" | "center")?,
 }
 
@@ -305,12 +306,15 @@ local function placeMesh(
 		clone.CFrame = cf * yawOffset * CFrame.new(0, shiftY, 0)
 	end
 
+	local shadow = if opts.shadow ~= nil then opts.shadow else collide
+
 	for _, d in clone:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = true
 			d.CanCollide = collide
 			d.CanQuery = collide
 			d.CanTouch = false
+			d.CastShadow = shadow
 		end
 	end
 	if clone:IsA("BasePart") then
@@ -318,6 +322,7 @@ local function placeMesh(
 		clone.CanCollide = collide
 		clone.CanQuery = collide
 		clone.CanTouch = false
+		clone.CastShadow = shadow
 	end
 	clone.Parent = parent
 	return clone
@@ -960,10 +965,23 @@ local function buildStairs()
 				Vector3.new(1.8, h, 4.6),
 				CFrame.new(x, top - h / 2, z),
 				COLORS.pavingDark,
-				Enum.Material.Cobblestone
+				Enum.Material.Cobblestone,
+				{ shadow = false }
 			)
 		end
 	end
+
+	-- Gentle 13-degree submerged stone ramp at the foot of the stairs so swimmers walk straight out.
+	local rampH = landingY + 1.5
+	part(
+		"WaterExitRamp",
+		g,
+		Vector3.new(16, rampH, 12),
+		CFrame.new(-6, landingY - rampH / 2, 60.1) * CFrame.Angles(0, math.rad(180), 0),
+		COLORS.pavingDark,
+		Enum.Material.Cobblestone,
+		{ wedge = true, shadow = false }
+	)
 
 	-- Rocky flanks and submerged reef rocks in the shallow turquoise water.
 	for _, x in { -17, 5 } do
@@ -992,10 +1010,10 @@ local function buildStairs()
 		)
 	end
 
-	-- Four warm stone pedestal lanterns flanking the top and bottom of the stairs.
+	-- Four warm stone pedestal lanterns flanking the top and bottom of the stairs (top 2 lit).
 	for _, x in { -14.2, 2.2 } do
 		stonePedestalLantern(g, Vector3.new(x, PLAZA_Y, 25.5), true)
-		stonePedestalLantern(g, Vector3.new(x, landingY, 49.5), x > 0)
+		stonePedestalLantern(g, Vector3.new(x, landingY, 49.5), false)
 	end
 
 	-- Cute orange starfish on the front-left shore rock, as in the reference.
@@ -1186,13 +1204,22 @@ local function buildLagoon()
 		)
 	end
 
-	-- Wooden fence with natural rope on the plaza side (stops before the sign so it never clips!).
-	local fenceAngles = { -58, -32, -6, 20, 46 }
+	-- Wooden fence with natural rope on the plaza-south rim (keeps TrainingSpot entrance wide open!).
+	local fenceAngles = { 4, 26, 48 }
 	local prev: Vector3? = nil
 	for _, deg in fenceAngles do
 		local a = math.rad(deg)
 		local base = c + Vector3.new(math.cos(a) * 18.2, PLAZA_Y - 0.3, math.sin(a) * 18.2)
-		cylinderPost("FencePost", g, base, 3.6, 0.42, COLORS.wood, Enum.Material.Wood)
+		cylinderPost(
+			"FencePost",
+			g,
+			base,
+			3.6,
+			0.42,
+			COLORS.wood,
+			Enum.Material.Wood,
+			{ shadow = false }
+		)
 		deco(
 			"FenceCap",
 			g,
@@ -1200,7 +1227,7 @@ local function buildLagoon()
 			CFrame.new(base + Vector3.new(0, 3.7, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 			COLORS.bronze,
 			Enum.Material.Metal,
-			{ shape = Enum.PartType.Cylinder }
+			{ shape = Enum.PartType.Cylinder, shadow = false }
 		)
 		if prev then
 			ropeSpan(g, prev + Vector3.new(0, 3.1, 0), base + Vector3.new(0, 3.1, 0), 0.55, 0.18)
@@ -1450,9 +1477,9 @@ local function buildWorkshop()
 	-- 3D golden 4-pointed diamond starburst + sleek halo ring nestled above the roof.
 	local e = Instance.new("Model")
 	e.Name = "RoofEmblem"
-	for i = 1, 24 do
-		local a0 = (i - 1) / 24 * math.pi * 2
-		local a1 = i / 24 * math.pi * 2
+	for i = 1, 14 do
+		local a0 = (i - 1) / 14 * math.pi * 2
+		local a1 = i / 14 * math.pi * 2
 		beam(
 			"EmblemRing",
 			e,
@@ -1510,14 +1537,27 @@ local function buildPier()
 	local g = group("FishingPier")
 	local x0, x1, zc, w = 18.2, 84, 8, 14
 
+	-- Single smooth invisible deck collider eliminates plank seams and cuts 28 shadow casters.
+	local deckCollider = part(
+		"PierDeckCollider",
+		g,
+		Vector3.new(x1 - x0 + 2.4, 0.5, w),
+		CFrame.new((x0 + x1) / 2, PIER_Y - 0.25, zc),
+		COLORS.wood,
+		Enum.Material.WoodPlanks,
+		{ transparency = 1, shadow = false }
+	)
+	deckCollider.CanQuery = true
+
 	for x = x0, x1, 2.4 do
-		part(
+		deco(
 			"Plank",
 			g,
 			Vector3.new(2.25, 0.5, w),
 			CFrame.new(x, PIER_Y - 0.25, zc),
 			if math.floor(x) % 3 == 0 then COLORS.woodLight else COLORS.wood,
-			Enum.Material.WoodPlanks
+			Enum.Material.WoodPlanks,
+			{ shadow = false }
 		)
 	end
 	for _, dz in { -w / 2 + 0.6, w / 2 - 0.6 } do
@@ -1548,7 +1588,16 @@ local function buildPier()
 				Enum.Material.Wood
 			)
 			local postBase = Vector3.new(x, PIER_Y, zc + dz)
-			cylinderPost("RailingPost", g, postBase, 3.3, 0.42, COLORS.wood, Enum.Material.Wood)
+			cylinderPost(
+				"RailingPost",
+				g,
+				postBase,
+				3.3,
+				0.42,
+				COLORS.wood,
+				Enum.Material.Wood,
+				{ shadow = false }
+			)
 			local top = postBase + Vector3.new(0, 3.3, 0)
 			deco(
 				"PostCap",
@@ -1557,7 +1606,7 @@ local function buildPier()
 				CFrame.new(top + Vector3.new(0, 0.14, 0)) * CFrame.Angles(0, 0, math.rad(90)),
 				COLORS.bronze,
 				Enum.Material.Metal,
-				{ shape = Enum.PartType.Cylinder }
+				{ shape = Enum.PartType.Cylinder, shadow = false }
 			)
 			local prev = railTop[side]
 			if prev then
@@ -1565,23 +1614,41 @@ local function buildPier()
 			end
 			railTop[side] = top
 			if postIndex % 3 == 2 and side == 1 then
-				lantern(g, Vector3.new(x, PIER_Y, zc + dz), 5.5, true)
+				lantern(g, Vector3.new(x, PIER_Y, zc + dz), 5.5, postIndex == 5)
 			end
 		end
 	end
 
-	-- Invisible side/end rails keep players on deck without blocking casts.
+	-- Climbable wooden swim ladders in open water beside the pier (x = 44), with gap in RailCollider.
+	local function swimLadder(name: string, pos: Vector3, height: number)
+		local truss = Instance.new("TrussPart")
+		truss.Name = name
+		truss.Anchored = true
+		truss.Size = Vector3.new(2, height, 2)
+		truss.Position = pos
+		truss.Color = COLORS.wood
+		truss.Material = Enum.Material.Wood
+		truss.CastShadow = false
+		truss.Parent = g
+	end
+	swimLadder("PierSwimLadderSouth", Vector3.new(44, 4.5, zc + w / 2 + 0.8), 13)
+	swimLadder("PierSwimLadderNorth", Vector3.new(44, 4.5, zc - w / 2 - 0.8), 13)
+
+	-- Invisible side/end rails keep players on deck (leaving a 4-stud gap at x=42..46 for swim ladders).
 	for _, dz in { -w / 2, w / 2 } do
-		local rail = part(
-			"RailCollider",
-			g,
-			Vector3.new(x1 - x0, 4, 0.4),
-			CFrame.new((x0 + x1) / 2 + 2, PIER_Y + 2, zc + dz),
-			COLORS.wood,
-			Enum.Material.Wood,
-			{ transparency = 1, shadow = false }
-		)
-		rail.CanQuery = false
+		for _, seg in { { x0, 42 }, { 46, x1 + 1.5 } } do
+			local len = seg[2] - seg[1]
+			local rail = part(
+				"RailCollider",
+				g,
+				Vector3.new(len, 4, 0.4),
+				CFrame.new((seg[1] + seg[2]) / 2, PIER_Y + 2, zc + dz),
+				COLORS.wood,
+				Enum.Material.Wood,
+				{ transparency = 1, shadow = false }
+			)
+			rail.CanQuery = false
+		end
 	end
 	part(
 		"EndCollider",
@@ -1847,13 +1914,13 @@ local function buildDecor()
 			{ -37, 9, -46, 9, false, 8 },
 			{ 22, 10, -40, 8, false, -6 },
 			{ -70, 4, 14, 8, false, 10 },
-			{ -55, 3, 34, 9, true, 12 },
+			{ -55, 3, 34, 9, false, 12 },
 			{ -66, 6, -26, 7, false, 8 },
 			{ 10, 3, 36, 9, true, -10 }, -- front-right shore crystal near stairs
 			{ -19, 4, 36, 8, false, 12 }, -- front-left shore crystal near stairs
 			{ 8, 2, 43, 6, false, -6 },
 			{ 24, 3, 24, 7, false, -8 },
-			{ 56, -2, 22, 8, true, -6 }, -- crystal rising from shallow water near pier
+			{ 56, -2, 22, 8, false, -6 }, -- crystal rising from shallow water near pier
 			{ 30, -2, -18, 7, false, 8 },
 			{ -36, 1.5, 40, 6.5, false, 14 }, -- front-left shallow water crystal
 			{ 26, -1.5, 16, 6.0, false, -10 }, -- pier shallow water crystal
@@ -1962,9 +2029,9 @@ local function buildHorizon()
 		Enum.Material.Slate,
 		{ shadow = false }
 	)
-	for i = 1, 32 do
-		local a0 = (i - 1) / 32 * math.pi * 2
-		local a1 = i / 32 * math.pi * 2
+	for i = 1, 16 do
+		local a0 = (i - 1) / 16 * math.pi * 2
+		local a1 = i / 16 * math.pi * 2
 		local h = c + Vector3.new(0, 102, 0)
 		beam(
 			"Halo",
@@ -1976,6 +2043,30 @@ local function buildHorizon()
 			Enum.Material.Neon,
 			{ collide = false, shadow = false }
 		)
+	end
+end
+
+-- Invisible 16-sided sea barrier at ~250 studs from island center so players stay inside the playable ocean.
+local function buildOceanBounds()
+	local g = group("OceanBounds")
+	local center = Vector3.new(-10, 0, 0)
+	local radius = 250
+	local sides = 16
+	local segLen = 2 * radius * math.tan(math.pi / sides) + 6
+	for i = 1, sides do
+		local a = (i - 1) / sides * math.pi * 2
+		local pos = center + Vector3.new(math.cos(a) * radius, 20, math.sin(a) * radius)
+		local wall = part(
+			"OceanBarrier",
+			g,
+			Vector3.new(segLen, 80, 4),
+			CFrame.lookAt(pos, Vector3.new(center.X, pos.Y, center.Z)),
+			COLORS.cyan,
+			Enum.Material.ForceField,
+			{ collide = true, transparency = 1, shadow = false }
+		)
+		wall.CanQuery = false
+		wall.CanTouch = false
 	end
 end
 
@@ -2027,6 +2118,12 @@ local function buildLighting()
 
 	local starterPlayer = game:GetService("StarterPlayer")
 	starterPlayer.CameraMaxZoomDistance = 90
+
+	-- Streaming tuned for a compact island on phones: keeps the hub loaded, streams distant horizon opportunistically.
+	Workspace.StreamingEnabled = true
+	Workspace.StreamingMinRadius = 128
+	Workspace.StreamingTargetRadius = 1024
+	Workspace.StreamOutBehavior = Enum.StreamOutBehavior.Opportunistic
 end
 
 -- Entry -------------------------------------------------------------------------------
@@ -2057,7 +2154,15 @@ buildPier()
 task.wait()
 buildDecor()
 buildHorizon()
+buildOceanBounds()
 buildLighting()
+
+for _, name in { "CentralPlaza", "TrainingLagoon", "UpgradeWorkshop", "FishingPier", "FrontStairs" } do
+	local m = groups[name]
+	if m then
+		m.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+	end
+end
 
 root:SetAttribute("GeneratorVersion", 3)
 print(`[IslandGenerator] built {#root:GetDescendants()} instances`)
