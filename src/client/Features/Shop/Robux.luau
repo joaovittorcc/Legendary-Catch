@@ -25,7 +25,7 @@ function Robux.start()
 	)
 		local card = Instance.new("Frame")
 		card.Size = UDim2.new(1, 0, 0, 86)
-		Theme.surface(card, Theme.gold, 11, Theme.ink)
+		Theme.surface(card, Theme.gold, 20)
 		card.Parent = body
 		local name = Panel.label(card, title, 17, Theme.gold)
 		name.Size = UDim2.fromScale(0.64, 0.34)

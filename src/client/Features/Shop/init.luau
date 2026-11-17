@@ -63,7 +63,7 @@ end
 local function preview(parent: Instance, rod: Rods.Rod)
 	local view = Instance.new("ViewportFrame")
 	view.Name = "RodPreview"
-	view.BackgroundColor3 = Theme.ink
+	view.BackgroundColor3 = Theme.viewport
 	view.Ambient = Color3.fromRGB(165, 174, 197)
 	view.LightColor = Color3.fromRGB(255, 239, 217)
 	view.Size = UDim2.fromScale(0.28, 0.86)

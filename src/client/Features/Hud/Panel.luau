@@ -6,7 +6,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Hud = require(script.Parent)
 local Art = require(script.Parent:WaitForChild("Art"))
-local Assets = require(script.Parent:WaitForChild("Assets"))
+local Motion = require(script.Parent:WaitForChild("Motion"))
 
 local Panel = {}
 
@@ -18,6 +18,8 @@ function Panel.label(parent: Instance, content: string, size: number, color: Col
 	label.TextWrapped = true
 	label.TextColor3 = color or Theme.sand
 	label.TextSize = size
+	label.TextStrokeColor3 = Color3.fromRGB(40, 21, 83)
+	label.TextStrokeTransparency = 0.15
 	label.Font = Theme.font
 	label.Parent = parent
 	return label
@@ -29,8 +31,11 @@ function Panel.button(parent: Instance, content: string, accent: Color3): TextBu
 	button.Text = content
 	button.TextColor3 = Theme.sand
 	button.TextSize = 17
+	button.TextStrokeColor3 = Color3.fromRGB(40, 21, 83)
+	button.TextStrokeTransparency = 0.05
 	button.Font = Theme.font
-	Theme.surface(button, accent, 10)
+	Theme.surface(button, accent, 20)
+	Motion.mount(button)
 	button.Parent = parent
 	return button
 end
@@ -53,9 +58,7 @@ function Panel.create(
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, if heightScale then 0.53 else 0.55)
 	shell.Size = UDim2.fromScale(0.85, heightScale or 0.72)
-	shell.BackgroundTransparency = 1
-	local background = Art.image(shell, Assets.panel, "PanelArt")
-	Art.slice(background, Rect.new(95, 93, 929, 510), 0.18)
+	Art.panel(shell, accent)
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(680, maxHeight or 530)
 	bounds.Parent = shell
@@ -70,8 +73,9 @@ function Panel.create(
 	trim.Size = UDim2.new(1, -28, 0, 1)
 	trim.Parent = shell
 
-	local heading = Panel.label(shell, title, 22, accent)
-	heading.Size = UDim2.new(1, -112, 0, 48)
+	local heading = Panel.label(shell, title, 24, Theme.sand)
+	heading.Size = UDim2.new(1, -136, 0, 48)
+	heading.Position = UDim2.fromOffset(20, 3)
 	heading.TextScaled = true
 	local headingSize = Instance.new("UITextSizeConstraint")
 	headingSize.MaxTextSize = 22
@@ -79,7 +83,7 @@ function Panel.create(
 	local close = Panel.button(shell, Text.close, accent)
 	close.Size = UDim2.fromOffset(86, 44)
 	close.AnchorPoint = Vector2.new(1, 0)
-	close.Position = UDim2.new(1, -16, 0, 9)
+	close.Position = UDim2.new(1, -23, 0, 9)
 	close.Activated:Connect(function()
 		Hud.showPanel("")
 	end)
@@ -87,8 +91,8 @@ function Panel.create(
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
-	scroll.Position = UDim2.fromOffset(16, 58)
-	scroll.Size = UDim2.new(1, -32, 1, -73)
+	scroll.Position = UDim2.fromOffset(21, 58)
+	scroll.Size = UDim2.new(1, -42, 1, -78)
 	scroll.ScrollBarThickness = 5
 	scroll.ScrollBarImageColor3 = accent
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y

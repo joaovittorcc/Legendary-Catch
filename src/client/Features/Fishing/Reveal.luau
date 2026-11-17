@@ -113,32 +113,32 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		Theme.ink,
 		0.08
 	)
-	Theme.surface(card, color, 16, Theme.ink)
+	Art.panel(card, if rarity == "Common" then Theme.crystal else color)
 	card.AnchorPoint = Vector2.new(0.5, 1)
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MinSize = Vector2.new(0, 76)
-	bounds.MaxSize = Vector2.new(540, 116)
+	bounds.MinSize = Vector2.new(0, 96)
+	bounds.MaxSize = Vector2.new(560, 132)
 	bounds.Parent = card
 	local title = Ui.label(
 		card,
 		"Name",
-		UDim2.fromScale(1, 0.32),
-		UDim2.fromScale(0, 0.23),
+		UDim2.fromScale(0.9, 0.25),
+		UDim2.fromScale(0.05, 0.27),
 		name,
 		Color3.new(1, 1, 1)
 	)
 	title.TextStrokeTransparency = 0
 	local badge, rarityLabel = Art.rarity(card)
 	badge.AnchorPoint = Vector2.new(0.5, 0)
-	badge.Position = UDim2.fromScale(0.5, 0.56)
-	badge.Size = UDim2.fromScale(0.44, 0.2)
+	badge.Position = UDim2.fromScale(0.5, 0.54)
+	badge.Size = UDim2.fromScale(0.44, 0.19)
 	Art.setRarity(badge, rarityLabel, rarity)
 	if info and (info.isNew or info.variant == "Shiny") then
 		Ui.label(
 			card,
 			"Discovery",
-			UDim2.fromScale(1, 0.18),
-			UDim2.fromScale(0, 0.04),
+			UDim2.fromScale(0.88, 0.15),
+			UDim2.fromScale(0.06, 0.1),
 			if info.variant == "Shiny"
 				then (if info.isNew then Text.shiny .. "  ·  " .. Text.discovery else Text.shiny)
 				else Text.discovery,
@@ -158,18 +158,22 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		Ui.label(
 			card,
 			"Reward",
-			UDim2.fromScale(1, 0.18),
-			UDim2.fromScale(0, 0.77),
+			UDim2.fromScale(0.88, 0.16),
+			UDim2.fromScale(0.06, 0.755),
 			reward,
 			if Theme.rarityRank(rarity) >= 5 then Theme.gold else Theme.sand
 		)
 	end
-	card.Position = UDim2.fromScale(0.5, 1.34)
-	TweenService:Create(
-		card,
-		TweenInfo.new(0.45, Enum.EasingStyle.Back),
-		{ Position = UDim2.new(0.5, 0, 1, -16) }
-	):Play()
+	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then
+		card.Position = UDim2.new(0.5, 0, 1, -16)
+	else
+		card.Position = UDim2.fromScale(0.5, 1.34)
+		TweenService:Create(
+			card,
+			TweenInfo.new(0.45, Enum.EasingStyle.Back),
+			{ Position = UDim2.new(0.5, 0, 1, -16) }
+		):Play()
+	end
 	return card
 end
 
@@ -390,7 +394,9 @@ function Reveal.play(
 		button.TextSize = 19
 		button.Text = Text.photo
 		button.TextColor3 = Theme.sand
-		Theme.surface(button, color, 11, Theme.ink)
+		Theme.surface(button, Theme.crystal, 20)
+		button.TextStrokeTransparency = 0.15
+		button.TextStrokeColor3 = Theme.ink
 		button.Activated:Connect(function()
 			takePhoto = true
 		end)

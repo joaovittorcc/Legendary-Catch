@@ -132,10 +132,10 @@ function Missions.start()
 			local bar = Instance.new("Frame")
 			bar.Size = UDim2.fromScale(0.54, 0.07)
 			bar.Position = UDim2.fromScale(0.045, 0.8)
-			bar.BackgroundColor3 = Theme.ink
+			bar.BackgroundColor3 = Theme.track
 			Theme.corner(bar, 4)
 			local fill = Instance.new("Frame")
-			fill.BackgroundColor3 = Theme.crystal
+			fill.BackgroundColor3 = Theme.gold
 			Theme.corner(fill, 4)
 			fill.Parent = bar
 			bar.Parent = row

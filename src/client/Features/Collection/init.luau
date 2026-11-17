@@ -80,7 +80,7 @@ end
 local function progressBar(parent: Instance, count: number, target: number, color: Color3)
 	local bar = Instance.new("Frame")
 	bar.Size = UDim2.new(1, 0, 0, 8)
-	bar.BackgroundColor3 = Theme.ink
+	bar.BackgroundColor3 = Theme.track
 	bar.BorderSizePixel = 0
 	Theme.corner(bar, 4)
 	local fill = Instance.new("Frame")
@@ -153,8 +153,7 @@ function Collection.start()
 			rarity.Size = UDim2.new(1, 0, 0, 22)
 			local stage = Instance.new("Frame")
 			stage.Size = UDim2.new(1, 0, 0, 145)
-			stage.BackgroundColor3 = Theme.ink
-			Theme.corner(stage, 12)
+			Theme.surface(stage, Theme.crystal, 22, Theme.viewport)
 			stage.Parent = body
 			spinning = preview(stage, creature.id, record == nil)
 			motionStart = os.clock()

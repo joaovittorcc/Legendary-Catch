@@ -10,10 +10,11 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi")).tutorial
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
+local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
-local CARD_HEIGHT = 52
+local CARD_HEIGHT = 60
 local layout = Instance.new("BindableEvent")
 local visibleBottom = 0
 Tutorial.layoutChanged = layout.Event
@@ -47,17 +48,21 @@ function Tutorial.start()
 	card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
 	card.Size = UDim2.new(0.92, 0, 0, CARD_HEIGHT)
 	card.Visible = false
-	Theme.surface(card, Theme.crystal, 12)
+	Art.panel(card, Theme.crystal)
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(630, CARD_HEIGHT)
 	bounds.Parent = card
 	local message = Panel.label(card, "", 14)
-	message.Size = UDim2.new(1, -88, 1, 0)
-	message.Position = UDim2.fromOffset(5, 0)
+	message.Size = UDim2.new(1, -124, 1, -12)
+	message.TextScaled = true
+	local textLimit = Instance.new("UITextSizeConstraint")
+	textLimit.MaxTextSize = 20
+	textLimit.Parent = message
+	message.Position = UDim2.fromOffset(18, 6)
 	local skip = Panel.button(card, Text.skip, Theme.gold)
-	skip.Size = UDim2.fromOffset(74, 44)
+	skip.Size = UDim2.fromOffset(88, 44)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
-	skip.Position = UDim2.new(1, -4, 0.5, 0)
+	skip.Position = UDim2.new(1, -17, 0.5, 0)
 	card.Parent = gui
 
 	local guide = Instance.new("BillboardGui")

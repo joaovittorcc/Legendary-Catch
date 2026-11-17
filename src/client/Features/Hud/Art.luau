@@ -31,6 +31,18 @@ function Art.slice(image: ImageLabel, center: Rect, scale: number)
 	image.SliceScale = scale
 end
 
+function Art.panel(parent: GuiObject, accent: Color3)
+	parent.BackgroundTransparency = 1
+	local border = Art.image(parent, Assets.panel, "PanelArt")
+	Art.slice(border, Rect.new(95, 93, 929, 510), 0.18)
+	local fill = Instance.new("Frame")
+	fill.Name = "PanelFill"
+	fill.Position = UDim2.fromOffset(13, 12)
+	fill.Size = UDim2.new(1, -26, 1, -24)
+	Theme.surface(fill, accent, 20)
+	fill.Parent = border
+end
+
 function Art.caption(
 	parent: GuiObject,
 	name: string,
