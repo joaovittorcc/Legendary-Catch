@@ -28,9 +28,10 @@ local function nextGoal(snapshot: Types.Snapshot): Goal?
 			local missing = rod.price - snapshot.coins
 			return {
 				panel = "Shop",
-				text = if missing > 0
-					then string.format(Text.rod, missing, name)
-					else string.format(Text.rodReady, name),
+				text = if missing <= 0
+					then string.format(Text.rodReady, name)
+					elseif missing == 1 then string.format(Text.rodSingle, name)
+					else string.format(Text.rod, missing, name),
 				progress = math.clamp(snapshot.coins / rod.price, 0, 1),
 			}
 		end
@@ -56,12 +57,16 @@ local function nextGoal(snapshot: Types.Snapshot): Goal?
 			end
 			if target > 0 then
 				local missing = target - found
+				local rarityName = if rarity then Strings.rarity[rarity] or rarity else nil
 				local message = if missing <= 0
 					then Text.milestoneReady
-					elseif rarity then string.format(
+					elseif missing == 1 then (if rarityName
+						then string.format(Text.speciesRaritySingle, rarityName)
+						else Text.speciesSingle)
+					elseif rarityName then string.format(
 						Text.speciesRarity,
 						missing,
-						Strings.rarity[rarity] or rarity
+						rarityName
 					)
 					else string.format(Text.species, missing)
 				return {
