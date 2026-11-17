@@ -22,6 +22,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 
 type CatchInfo = { weight: number?, value: number?, isNew: boolean?, variant: string? }
 local seen: { [string]: boolean } = {}
+local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
@@ -283,6 +284,9 @@ function Reveal.play(
 	elseif motif == "storm" and not reduced then
 		Effects.lightning(origin, accent)
 	end
+	if level >= 5 then
+		Audio.play("legendary", 0.24, 0.74)
+	end
 	local restore: (() -> ())? = nil
 	if level >= 5 and not reduced then
 		restore = legendaryIntro(origin, accent, cancelled)
@@ -357,6 +361,9 @@ function Reveal.play(
 		RunService.RenderStepped:Wait()
 	end
 
+	if not cancelled() then
+		Audio.capture(rarity, shiny)
+	end
 	local name = Strings.creatureName[creatureId] or creatureId
 	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
 

@@ -8,6 +8,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
+local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = {}
 
@@ -177,6 +178,7 @@ function Ui.hidePanel()
 end
 
 function Ui.feedback(target: Frame, success: boolean, perfect: boolean?)
+	Audio.play(if success then "hit" else "miss", 0.2, if perfect then 1.28 else 1)
 	local color = if success then Theme.crystal else Color3.fromRGB(255, 123, 123)
 	local message = if perfect then Text.perfect elseif success then Text.hit else Text.miss
 	local badge = Ui.label(
