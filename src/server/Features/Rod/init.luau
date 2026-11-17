@@ -13,6 +13,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local Strings = require(Shared:WaitForChild("Strings"))
 
+local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
@@ -212,6 +213,8 @@ local function onBuy(player: Player, rodId: unknown)
 		p.equippedRod = rod.id
 	end)
 	giveRod(player)
+	Analytics.coins(player, false, rod.price, "Rod", rod.id)
+	Analytics.step(player, "firstRodBought")
 	reply(player, { ok = true, action = "buy", rodId = rod.id })
 end
 

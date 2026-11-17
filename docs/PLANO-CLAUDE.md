@@ -16,16 +16,16 @@ Servidor, dados, economia, regras e contratos. Publicar tudo que a UI precisa (s
 
 | # | Entrega | Status |
 |---|---|---|
-| B1 | Loader de features no cliente (`order` + `start`), `shared/Types.luau`, `client/Data` (snapshot + changed), `server/Features/PlayerData` (perfil em memória com API estável) | |
-| B2 | Persistência real do perfil — **aguardando OK do João para ProfileStore (Wally)**; sem OK, fica em memória | |
-| B3 | Economia: `baseValue` e faixa de peso por criatura; peso sorteado no servidor; moedas creditadas; `caught` com `weight`, `value`, `isNew`, `count` | |
-| B4 | Coleção no perfil (count, bestWeight, firstAt) + `stats` | |
-| B5 | Varas: `Config/Rods`, `BuyRod`/`EquipRod`/`ShopResult`, bônus de Controle/Sorte da vara na pesca, `Rod` Tool reconstruído pela vara equipada, `ProximityPrompt` `OpenWorkshop` na oficina (tag `WorkshopSpot`) | |
-| B6 | Treino no perfil (níveis persistem com o perfil) | |
-| B7 | Eventos do oceano: `Config/Events`, agendador no servidor, `OceanEvent`/`OceanEventEndsAt`, bônus de raridade durante o evento | |
-| B8 | Estado de pesca replicado para outros jogadores (atributos no Character) | |
-| B9 | Anti-trapaça (rate limit em todo remote), analytics de funil (primeira pesca, primeira captura, primeira compra) | |
-| B10 | `revealStyle` por criatura + lore em `Strings` | |
+| B1 | Loader de features no cliente (`order` + `start`), `shared/Types.luau`, `client/Data` (snapshot + changed), `server/Features/PlayerData` (perfil em memória com API estável) | feito |
+| B2 | Persistência real do perfil — **aguardando OK do João para ProfileStore (Wally)**; sem OK, fica em memória | bloqueado (OK do ProfileStore) |
+| B3 | Economia: `baseValue` e faixa de peso por criatura; peso sorteado no servidor; moedas creditadas; `caught` com `weight`, `value`, `isNew`, `count` | feito |
+| B4 | Coleção no perfil (count, bestWeight, firstAt) + `stats` | feito |
+| B5 | Varas: `Config/Rods`, `BuyRod`/`EquipRod`/`ShopResult`, bônus de Controle/Sorte da vara na pesca, `Rod` Tool reconstruído pela vara equipada, `ProximityPrompt` `OpenWorkshop` na oficina (tag `WorkshopSpot`) | feito |
+| B6 | Treino no perfil (níveis persistem com o perfil) | feito |
+| B7 | Eventos do oceano: `Config/Events`, agendador no servidor, `OceanEvent`/`OceanEventEndsAt`, bônus de raridade durante o evento | feito |
+| B8 | Estado de pesca replicado para outros jogadores (atributos no Character) | feito |
+| B9 | Anti-trapaça (rate limit em todo remote), analytics de funil (primeira pesca, primeira captura, primeira compra) | feito |
+| B10 | `revealStyle` por criatura + lore em `Strings` | feito |
 
 ## Decisões em aberto (perguntar ao João)
 - ProfileStore (dependência Wally) para salvar o perfil.

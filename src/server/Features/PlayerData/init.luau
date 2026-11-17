@@ -25,6 +25,7 @@ export type Profile = {
 	collection: { [string]: Types.CollectionEntry },
 	training: { [string]: Types.TrainingStat },
 	stats: Types.Stats,
+	funnel: { [string]: boolean }, -- analytics onboarding steps already logged
 }
 
 local SCHEMA_VERSION = 1
@@ -53,6 +54,7 @@ local function template(): Profile
 		collection = {},
 		training = training,
 		stats = { catches = 0, legendaries = 0 },
+		funnel = {},
 	}
 end
 

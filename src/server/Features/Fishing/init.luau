@@ -17,6 +17,7 @@ local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
 local Features = script.Parent
+local Analytics = require(Features:WaitForChild("Analytics"))
 local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
 local Training = require(Features:WaitForChild("Training"))
@@ -193,6 +194,7 @@ local function onCast(player: Player)
 			* FishingConfig.CAST_DISTANCE
 	publish(player, "waiting", Vector3.new(target.X, 0, target.Z), nil)
 	send(player, { event = "cast", castId = castId })
+	Analytics.step(player, "firstCast")
 
 	task.delay(
 		rng:NextNumber(FishingConfig.BITE_DELAY_MIN, FishingConfig.BITE_DELAY_MAX),
@@ -212,6 +214,7 @@ local function onCast(player: Player)
 				character and character:GetAttribute("FishingTarget") :: Vector3?,
 				creature.rarity
 			)
+			Analytics.step(player, "firstBite")
 			-- Only the rarity goes to the client: the creature stays hidden until the catch.
 			send(player, {
 				event = "bite",
@@ -255,6 +258,11 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 			p.stats.legendaries += 1
 		end
 	end)
+	Analytics.coins(player, true, value, "Catch", creature.id)
+	Analytics.step(player, "firstCatch")
+	if (table.find(FishingConfig.RARITY_ORDER, creature.rarity) or 0) >= 3 then
+		Analytics.step(player, "firstRare")
+	end
 	send(player, {
 		event = "caught",
 		castId = castId,

@@ -14,6 +14,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
+local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
@@ -95,6 +96,7 @@ local function start(player: Player, stat: string, spot: BasePart)
 		ringExpires = 0,
 	}
 	player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, stat)
+	Analytics.step(player, "firstTraining")
 end
 
 local function addPrompts(spot: Instance)
