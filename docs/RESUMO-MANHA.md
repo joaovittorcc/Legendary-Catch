@@ -14,6 +14,9 @@
 8. **Desafios diários** (3 por dia), **eventos do oceano** (Maré Estelar, Tempestade, Hora Dourada), **anúncio de captura grande** pro servidor, **troféu do servidor** no pedestal da praça, placar na lista de jogadores.
 9. **Sons**, **ajustes** (volume, reduzir efeitos), **PT/EN automático**, layout de celular conferido no emulador, moedas voando e sequência de capturas.
 10. **Salvamento** com ProfileStore (no Studio fica simulado até você ligar o acesso às APIs).
+11. **Troféu do servidor** no pedestal da praça (melhor captura do servidor), **Vô Anzol** (NPC guia com falas do tutorial e dicas), textos do mundo traduzidos no aparelho de cada jogador.
+12. **Mapa otimizado pra celular** (sombras -56%, menos luzes, streaming), barreira no mar e saídas da água.
+13. **Preços das varas** rebalanceados pelo ritmo estimado (~285 moedas/min): Coral 500, Cristal 3.000, Tempestade 15.000, Astral 60.000.
 
 ## Testar em 5 minutos
 1. Abra o Studio (place Legendary Catch) e confirme o Rojo conectado na porta **34873**.
