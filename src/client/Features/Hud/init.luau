@@ -69,7 +69,7 @@ function Hud.start()
 
 	local coins = Instance.new("TextLabel")
 	coins.Name = "Coins"
-	coins.Size = UDim2.fromScale(0.23, 1)
+	coins.Size = UDim2.fromScale(0.195, 1)
 	coins.TextColor3 = Theme.gold
 	coins.TextScaled = true
 	coins.Font = Theme.font
@@ -105,15 +105,16 @@ function Hud.start()
 	local entries = {
 		{ id = "Collection", title = Text.collection, tint = Theme.crystal },
 		{ id = "Shop", title = Text.shop, tint = Theme.gold },
+		{ id = "Missions", title = Text.missions.nav, tint = Theme.gold },
 		{ id = "Settings", title = Text.settings, tint = Theme.rose },
 	}
 	for i, entry in entries do
 		local button = Instance.new("TextButton")
 		button.Name = entry.id
-		button.Position = UDim2.fromScale(0.25 + (i - 1) * 0.255, 0)
-		button.Size = UDim2.fromScale(0.24, 1)
+		button.Position = UDim2.fromScale(0.207 + (i - 1) * 0.2, 0)
+		button.Size = UDim2.fromScale(0.19, 1)
 		button.Text = entry.title
-		button.TextSize = 16
+		button.TextSize = 13
 		button.Font = Theme.font
 		button.TextColor3 = Theme.sand
 		Theme.surface(button, entry.tint, 12)
