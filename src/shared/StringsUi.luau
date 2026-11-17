@@ -1,5 +1,22 @@
 --!strict
 return {
+	tutorial = {
+		skip = "Pular",
+		earn = "Pesque mais um pouco para comprar a Vara de Coral.",
+		steps = {
+			goToPier = "Siga a seta até o píer de pesca.",
+			cast = "Equipe a vara e toque ou clique para lançar.",
+			fight = "Siga a instrução do minigame para fisgar a criatura.",
+			collection = "Abra a Coleção para ver sua primeira descoberta.",
+			workshop = "Visite a Oficina para comprar a Vara de Coral.",
+			training = "Vá à lagoa e comece a treinar.",
+		} :: { [string]: string },
+		destinations = {
+			FishingZone = "Píer de pesca",
+			WorkshopSpot = "Oficina",
+			TrainingSpot = "Lagoa de treino",
+		} :: { [string]: string },
+	},
 	coins = "Moedas",
 	collection = "Coleção",
 	shop = "Oficina",
