@@ -25,27 +25,27 @@ local UP = Vector3.yAxis
 local SHOTS: { [string]: Shot } = {
 	-- Behind the shoulder, the line stretching out to the bobber.
 	shoulder = function(root, bobber, forward, side, t)
-		return root - forward * 7 + side * 2.6 + UP * (4 + t * 0.05), bobber:Lerp(root, 0.25)
+		return root - forward * 9.5 + side * 3 + UP * (4.8 + t * 0.05), bobber:Lerp(root, 0.3)
 	end,
 	-- Wide profile of the whole scene: player, line and water.
 	profile = function(root, bobber, _forward, side, t)
 		local mid = root:Lerp(bobber, 0.5)
-		return mid + side * (15 - t * 0.6) + UP * 3.5, mid + UP * 1
+		return mid + side * (19 - t * 0.6) + UP * 4, mid + UP * 1
 	end,
 	-- Low on the water next to the bobber, looking back at the player.
 	water = function(root, bobber, forward, side, t)
-		return bobber - side * (4 + t * 0.2) + forward * 2.5 + UP * 1.8, root + UP * 2
+		return bobber - side * (6 + t * 0.2) + forward * 3.5 + UP * 2.2, root + UP * 2
 	end,
 	-- High drone shot circling slowly.
 	drone = function(root, bobber, forward, side, t)
 		local mid = root:Lerp(bobber, 0.5)
 		local angle = t * 0.12
 		local around = side * math.cos(angle) + forward * math.sin(angle)
-		return mid + around * 9 - forward * 5 + UP * 15, mid
+		return mid + around * 11 - forward * 6 + UP * 17, mid
 	end,
 	-- Close on the bobber, where the action is.
 	bobber = function(_root, bobber, forward, side, t)
-		return bobber - forward * 5.5 + side * (1.6 + t * 0.15) + UP * 1.8, bobber
+		return bobber - forward * 8.5 + side * (2.2 + t * 0.15) + UP * 2.4, bobber
 	end,
 }
 
@@ -64,6 +64,10 @@ local oldType: Enum.CameraType? = nil
 local phase = "waiting"
 local shotIndex = 1
 local shotStart = 0
+-- The catch shot: over the shoulder, on the fish that flies in from the water.
+local catchOrigin = Vector3.zero
+local catchStart = 0
+local CATCH_FLIGHT_SECONDS = 1.1
 
 local function reduceEffects(): boolean
 	return player:GetAttribute("ReduceEffects") == true
@@ -137,21 +141,33 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 			FishingCamera.stop()
 			return
 		end
-		local order = if phase == "fight" then FIGHT_ORDER else WAITING_ORDER
-		local length = if phase == "fight" then FIGHT_SECONDS else WAITING_SECONDS
-		local calm = reduceEffects()
-		if calm then
-			shotIndex = 1
-		elseif os.clock() - shotStart >= length then
-			shotIndex = shotIndex % #order + 1
-			shotStart = os.clock()
+		local position: Vector3
+		local look: Vector3
+		local speed: number
+		if phase == "catch" then
+			-- Behind the character's shoulder, on the spot where the fish is shown.
+			local display = root.Position + forward * 7 + UP * 3
+			local a = math.clamp((os.clock() - catchStart) / CATCH_FLIGHT_SECONDS, 0, 1)
+			look = (catchOrigin + UP):Lerp(display, a * a * (3 - 2 * a))
+			position = root.Position - forward * 3.2 + side * 2.3 + UP * 3.6
+			speed = 3.2
+		else
+			local order = if phase == "fight" then FIGHT_ORDER else WAITING_ORDER
+			local length = if phase == "fight" then FIGHT_SECONDS else WAITING_SECONDS
+			local calm = reduceEffects()
+			if calm then
+				shotIndex = 1
+			elseif os.clock() - shotStart >= length then
+				shotIndex = shotIndex % #order + 1
+				shotStart = os.clock()
+			end
+			local name = if calm then "shoulder" else order[shotIndex]
+			local t = if calm then 0 else os.clock() - shotStart
+			position, look = SHOTS[name](root.Position, bobber.Position, forward, side, t)
+			-- Smooth glide between angles; snappier while fighting.
+			speed = if phase == "fight" then 4 else 2.2
 		end
-		local name = if calm then "shoulder" else order[shotIndex]
-		local t = if calm then 0 else os.clock() - shotStart
-		local position, look = SHOTS[name](root.Position, bobber.Position, forward, side, t)
 		local goal = CFrame.lookAt(unblocked(position), look)
-		-- Smooth glide between angles; snappier while fighting.
-		local speed = if phase == "fight" then 4 else 2.2
 		smooth = smooth:Lerp(goal, 1 - math.exp(-dt * speed))
 		camera.CFrame = smooth * tremor(os.clock())
 		camera.Focus = CFrame.new(look)
@@ -164,6 +180,16 @@ function FishingCamera.fight()
 		phase = "fight"
 		shotIndex = 1
 		shotStart = os.clock()
+	end
+end
+
+-- The catch: glide behind the character's shoulder and follow the fish flying in from `origin`.
+-- Keeps the camera until `stop()` (the reveal ends with the cleanup that calls it).
+function FishingCamera.catch(origin: Vector3)
+	if conn then
+		phase = "catch"
+		catchOrigin = origin
+		catchStart = os.clock()
 	end
 end
 

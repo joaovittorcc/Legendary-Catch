@@ -172,7 +172,7 @@ local function startFight(update: Net.FishingUpdate)
 		Omen.start()
 	end
 	freeze(true)
-	zoomCamera(62)
+	zoomCamera(70) -- no zoom-in: the fight shots already sit closer to the action
 	PressInput.enable()
 	local area = Ui.showPanel(Strings.hint[rarity] or "", color, Strings.instructions[kind] or "")
 	local id = castId
@@ -213,12 +213,16 @@ local function onCaught(update: Net.FishingUpdate)
 	end
 	PressInput.disable()
 	Ui.hidePanel()
-	-- The reveal plays around the player with the normal camera and lighting.
-	FishingCamera.stop()
 	Omen.stop()
 	local creature = Creatures.get(creatureId)
 	local rarity = if creature then creature.rarity else "Common"
 	local origin = l.rest
+	-- Legendaries run their own cinematic; the rest watch the fish fly in over the shoulder.
+	if rarity == "Legendary" then
+		FishingCamera.stop()
+	else
+		FishingCamera.catch(origin)
+	end
 	Line.reelIn(l, 0.3)
 	-- 5th arg: the whole "caught" payload (weight, value, isNew, count) for the reveal card.
 	local play: any = Reveal.play
