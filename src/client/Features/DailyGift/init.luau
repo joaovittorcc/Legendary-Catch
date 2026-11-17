@@ -7,6 +7,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Types = require(Shared:WaitForChild("Types"))
+local Missions = require(Shared:WaitForChild("Config"):WaitForChild("Missions"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
@@ -100,50 +101,38 @@ local function show(playerGui: PlayerGui, gift: Types.Daily)
 	end)
 end
 
-function DailyGift.start()
-	local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
-	-- Arrival stays mounted through the title and the optional panorama.
-	local arrival = playerGui:FindFirstChild("IslandArrival")
-	while arrival and arrival.Parent do
-		arrival.AncestryChanged:Wait()
+local function waitForTodaysGift(): Types.Daily
+	local today = Missions.today()
+	local snapshot = Data.waitLoaded()
+	-- The profile can arrive before Progress grants today's gift and sends its update.
+	while not snapshot.daily or snapshot.daily.lastDay ~= today do
+		Data.changed:Wait()
+		snapshot = Data.get() or snapshot
 	end
-	local function tryShow(snapshot: Types.Snapshot): boolean
-		local daily = snapshot.daily
-		if not daily or daily.days < 1 or daily.lastGift < 1 then
-			return false
-		end
-		local age = os.time() - daily.grantedAt
-		if age < 0 or age >= 120 then
-			return false
-		end
-		task.spawn(function()
-			local function busy(): boolean
-				local fishing = playerGui:FindFirstChild("FishingUI")
-				local minigame = fishing and fishing:FindFirstChild("Panel")
-				return Hud.panel() ~= ""
-					or player:GetAttribute("CatchRevealActive") == true
-					or (minigame ~= nil and minigame:IsA("GuiObject") and minigame.Visible)
-			end
-			while busy() and os.time() - daily.grantedAt < 120 do
-				task.wait(0.2)
-			end
-			if os.time() - daily.grantedAt < 120 then
-				show(playerGui, daily)
-			end
-		end)
-		return true
-	end
+	return snapshot.daily
+end
 
-	local latest = Data.get()
-	if latest and tryShow(latest) then
+function DailyGift.start()
+	local daily = waitForTodaysGift()
+	local age = os.time() - daily.grantedAt
+	if daily.days < 1 or daily.lastGift < 1 or age < 0 or age >= 120 then
 		return
 	end
-	local connection: RBXScriptConnection
-	connection = Data.changed:Connect(function(snapshot)
-		if tryShow(snapshot) then
-			connection:Disconnect()
-		end
-	end)
+
+	local playerGui = player:WaitForChild("PlayerGui") :: PlayerGui
+	local function busy(): boolean
+		local fishing = playerGui:FindFirstChild("FishingUI")
+		local minigame = fishing and fishing:FindFirstChild("Panel")
+		-- Arrival stays mounted through the title and the optional panorama.
+		return playerGui:FindFirstChild("IslandArrival") ~= nil
+			or Hud.panel() ~= ""
+			or player:GetAttribute("CatchRevealActive") == true
+			or (minigame ~= nil and minigame:IsA("GuiObject") and minigame.Visible)
+	end
+	while busy() do
+		task.wait(0.2)
+	end
+	show(playerGui, daily)
 end
 
 return DailyGift
