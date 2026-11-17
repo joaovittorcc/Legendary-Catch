@@ -118,6 +118,23 @@ local PT = {
 	waiting = "Esperando a fisgada...",
 	caught = "Pegou!",
 	newRecord = "NOVA DESCOBERTA!",
+	guideName = "Vô Anzol",
+	guideStep = {
+		goToPier = "Ei, novato! O píer é logo ali. Vai lá e lança a linha!",
+		fight = "Sentiu o puxão? Não solta! Cada bicho briga de um jeito.",
+		collection = "Boa pescaria! Abre a Coleção pra ver o que você pegou.",
+		workshop = "Juntou umas moedas? Passa na Oficina. Vara boa faz milagre.",
+		training = "Na lagoa você treina Controle e Instinto. Vale cada minuto!",
+	} :: { [string]: string },
+	guideTips = {
+		"Na Maré Estelar aparecem coisas que eu nunca vi de dia...",
+		"Já pescou um Cintilante? Brilha que nem estrela!",
+		"Os desafios do dia renovam à meia-noite. Não deixa passar!",
+		"O troféu da praça é de quem pescou o mais raro no servidor.",
+		"Dizem que um Kraken mora depois da arrebentação. Eu acredito.",
+		"Peixe grande vale mais. Paciência é a melhor isca.",
+	},
+	guideEvent = "O mar mudou... é a hora de tentar os raros!",
 }
 
 export type Strings = typeof(PT)
@@ -233,6 +250,23 @@ local EN: Strings = {
 	waiting = "Waiting for a bite...",
 	caught = "Caught!",
 	newRecord = "NEW DISCOVERY!",
+	guideName = "Grandpa Hook",
+	guideStep = {
+		goToPier = "Hey, rookie! The pier is right there. Go cast your line!",
+		fight = "Feel that tug? Don't let go! Every creature fights its own way.",
+		collection = "Nice catch! Open your Collection to see what you got.",
+		workshop = "Got some coins? Visit the Workshop. A good rod works wonders.",
+		training = "At the lagoon you train Control and Instinct. Worth every minute!",
+	},
+	guideTips = {
+		"During the Star Tide, things show up I've never seen by daylight...",
+		"Ever caught a Shiny one? Sparkles like a star!",
+		"Daily challenges reset at midnight. Don't miss them!",
+		"The plaza trophy goes to whoever caught the rarest thing on this server.",
+		"They say a Kraken lives past the breakers. I believe it.",
+		"Big catches are worth more. Patience is the best bait.",
+	},
+	guideEvent = "The sea changed... now's the time to try for the rare ones!",
 }
 
 local function forLocale(locale: string): Strings
