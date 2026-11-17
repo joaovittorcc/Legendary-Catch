@@ -4,6 +4,23 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local PT = {
+	minigames = {
+		rings = "%d / %d",
+		perfect = "Perfeito!",
+		good = "Bom!",
+		miss = "Errou!",
+		seconds = "%.1f s",
+		timeUp = "Tempo!",
+		reelTitle = "Puxar o peixe",
+		reelLesson = "Segure para subir. Solte para descer.\nOu arraste a faixa até o peixe.\nMantenha o peixe dentro da faixa!",
+		reelReady = "Jogar",
+		reelStartIn = "Jogar (%d s)",
+		reelHide = "Não mostrar de novo",
+		reelControls = "Segure ↑ · Solte ↓ · Arraste",
+		reelKeyboard = "W / S · ↑ / ↓ · Espaço · Arrastar",
+		reelProgress = "Captura %d%%",
+		reelKeep = "Peixe dentro\nda faixa",
+	},
 	rodSlot = "Vara",
 	nextGoal = {
 		title = "Próxima meta",
@@ -127,6 +144,23 @@ local PT = {
 type Labels = typeof(PT)
 
 local EN = {
+	minigames = {
+		rings = "%d / %d",
+		perfect = "Perfect!",
+		good = "Good!",
+		miss = "Miss!",
+		seconds = "%.1f s",
+		timeUp = "Time up!",
+		reelTitle = "Reel the fish in",
+		reelLesson = "Hold to go up. Release to go down.\nOr drag the zone to the fish.\nKeep the fish inside the zone!",
+		reelReady = "Play",
+		reelStartIn = "Play (%d s)",
+		reelHide = "Do not show again",
+		reelControls = "Hold ↑ · Release ↓ · Drag",
+		reelKeyboard = "W / S · ↑ / ↓ · Space · Drag",
+		reelProgress = "Catch %d%%",
+		reelKeep = "Keep the fish\ninside the zone",
+	},
 	rodSlot = "Rod",
 	nextGoal = {
 		title = "Next goal",

@@ -3,6 +3,7 @@
 -- Everything is Scale-based so it fits phones in landscape and PC.
 
 local Players = game:GetService("Players")
+local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
@@ -26,6 +27,8 @@ local rarityName: TextLabel
 local instruction: TextLabel
 local area: Frame
 local toastLabel: TextLabel
+local activeToast: Tween? = nil
+local panelTween: Tween? = nil
 
 function Ui.corner(target: GuiObject, scale: number?)
 	local c = Instance.new("UICorner")
@@ -60,6 +63,10 @@ function Ui.frame(
 	return f
 end
 
+function Ui.gloss(target: Frame, color: Color3)
+	Theme.surface(target, color, 18)
+end
+
 function Ui.label(
 	parent: Instance,
 	name: string,
@@ -77,7 +84,8 @@ function Ui.label(
 	l.TextColor3 = color
 	l.TextScaled = true
 	l.Font = Theme.font
-	l.TextStrokeTransparency = 0.4
+	l.TextStrokeTransparency = 0.2
+	l.TextStrokeColor3 = Color3.fromRGB(40, 21, 83)
 	l.Parent = parent
 	return l
 end
@@ -95,14 +103,14 @@ function Ui.init()
 	panel = Ui.frame(
 		gui,
 		"Panel",
-		UDim2.fromScale(0.77, 0.3),
+		UDim2.fromScale(0.86, 0.42),
 		UDim2.fromScale(0.5, 0.75),
 		Color3.fromRGB(14, 18, 40),
 		0.25
 	)
 	panel.AnchorPoint = Vector2.new(0.5, 1)
 	panel.Visible = false
-	Theme.surface(panel, Theme.gold, 16)
+	Art.panel(panel, Theme.crystal)
 	local band = Ui.frame(
 		panel,
 		"CrystalTrim",
@@ -135,18 +143,18 @@ function Ui.init()
 	area = Ui.frame(
 		panel,
 		"Area",
-		UDim2.fromScale(0.9, 0.6),
-		UDim2.fromScale(0.05, 0.23),
+		UDim2.fromScale(0.86, 0.53),
+		UDim2.fromScale(0.07, 0.26),
 		Color3.new(0, 0, 0),
 		1
 	)
 	instruction = Ui.label(
 		panel,
 		"Instruction",
-		UDim2.fromScale(0.9, 0.12),
-		UDim2.fromScale(0.05, 0.85),
+		UDim2.fromScale(0.86, 0.105),
+		UDim2.fromScale(0.07, 0.81),
 		"",
-		Color3.fromRGB(200, 210, 240)
+		Theme.sand
 	)
 
 	toastLabel = Ui.label(
@@ -167,6 +175,28 @@ end
 
 -- Shows the panel and returns the empty play area for the minigame to fill.
 function Ui.showPanel(hintText: string, color: Color3, instructionText: string): Frame
+	if panelTween then
+		panelTween:Cancel()
+		panelTween = nil
+	end
+	local ratio = panel:FindFirstChildOfClass("UIAspectRatioConstraint")
+	local bounds = panel:FindFirstChildOfClass("UISizeConstraint")
+	if ratio then
+		ratio.AspectRatio = 2.9
+	end
+	if bounds then
+		bounds.MinSize = Vector2.new(228, 96)
+		bounds.MaxSize = Vector2.new(620, 260)
+	end
+	panel.Size = UDim2.fromScale(0.86, 0.42)
+	area.Size = UDim2.fromScale(0.86, 0.53)
+	area.Position = UDim2.fromScale(0.07, 0.26)
+	instruction.Size = UDim2.fromScale(0.86, 0.105)
+	instruction.Position = UDim2.fromScale(0.07, 0.81)
+	if activeToast then
+		activeToast:Cancel()
+		activeToast = nil
+	end
 	toastLabel.TextTransparency = 1
 	toastLabel.TextStrokeTransparency = 1
 	for _, child in area:GetChildren() do
@@ -182,20 +212,56 @@ function Ui.showPanel(hintText: string, color: Color3, instructionText: string):
 	end
 	instruction.Text = instructionText
 	panel.Visible = true
-	panel.Position = UDim2.fromScale(0.5, 1.2)
-	TweenService:Create(
-		panel,
-		TweenInfo.new(0.25, Enum.EasingStyle.Back),
-		{ Position = UDim2.fromScale(0.5, 0.75) }
-	):Play()
+	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then
+		panel.Position = UDim2.fromScale(0.5, 0.75)
+	else
+		panel.Position = UDim2.fromScale(0.5, 1.2)
+		local tween = TweenService:Create(
+			panel,
+			TweenInfo.new(0.25, Enum.EasingStyle.Back),
+			{ Position = UDim2.fromScale(0.5, 0.75) }
+		)
+		panelTween = tween
+		tween:Play()
+	end
 	return area
 end
 
 function Ui.hidePanel()
+	if panelTween then
+		panelTween:Cancel()
+		panelTween = nil
+	end
 	panel.Visible = false
 	for _, child in area:GetChildren() do
 		child:Destroy()
 	end
+end
+
+function Ui.reelLayout()
+	if panelTween then
+		panelTween:Cancel()
+		panelTween = nil
+	end
+	local ratio = panel:FindFirstChildOfClass("UIAspectRatioConstraint")
+	local bounds = panel:FindFirstChildOfClass("UISizeConstraint")
+	if ratio then
+		ratio.AspectRatio = 1.5
+	end
+	if bounds then
+		bounds.MinSize = Vector2.new(250, 167)
+		bounds.MaxSize = Vector2.new(420, 280)
+	end
+	panel.Size = UDim2.fromScale(0.54, 0.68)
+	panel.Position = UDim2.fromScale(0.5, 0.94)
+	area.Size = UDim2.fromScale(0.86, 0.61)
+	area.Position = UDim2.fromScale(0.07, 0.25)
+	instruction.Size = UDim2.fromScale(0.9, 0.065)
+	instruction.Position = UDim2.fromScale(0.05, 0.885)
+	local controls = Text.minigames
+	instruction.Text = if UserInputService.TouchEnabled
+		then controls.reelControls
+		else controls.reelKeyboard
 end
 
 function Ui.feedback(target: Frame, success: boolean, perfect: boolean?)
@@ -243,6 +309,9 @@ function Ui.feedback(target: Frame, success: boolean, perfect: boolean?)
 end
 
 function Ui.toast(text: string, color: Color3?)
+	if activeToast then
+		activeToast:Cancel()
+	end
 	toastLabel.Text = text
 	toastLabel.TextColor3 = color or Color3.new(1, 1, 1)
 	toastLabel.TextTransparency = 0
@@ -255,6 +324,7 @@ function Ui.toast(text: string, color: Color3?)
 			TextStrokeTransparency = 1,
 		}
 	)
+	activeToast = fade
 	fade:Play()
 end
 

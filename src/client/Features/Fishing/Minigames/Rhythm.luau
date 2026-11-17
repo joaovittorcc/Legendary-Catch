@@ -1,31 +1,23 @@
 --!strict
--- Rhythm rings: a circle appears with an outer ring closing in; press when the ring meets
--- the circle. Tapping anywhere counts (big, forgiving input for phones and kids).
--- Clear all rings to catch; 2 misses (bad timing or a ring that runs out) lose it.
-
+-- Full-screen timing targets. Pointer hits must land on the current circle.
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
-local Minigames = script.Parent
-local Fishing = Minigames.Parent
-local FishingConfig = require(
-	game:GetService("ReplicatedStorage")
-		:WaitForChild("Shared")
-		:WaitForChild("Config")
-		:WaitForChild("Fishing")
-)
-local Control = require(Fishing:WaitForChild("Control"))
-local PressInput = require(Fishing:WaitForChild("PressInput"))
-local Ui = require(Fishing:WaitForChild("Ui"))
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
+local Text = require(Shared:WaitForChild("StringsUi")).minigames
+local Theme = require(Shared:WaitForChild("UiTheme"))
+local Control = require(script.Parent.Parent:WaitForChild("Control"))
+local Ui = require(script.Parent.Parent:WaitForChild("Ui"))
+local Input = require(script.Parent:WaitForChild("Input"))
+local Hud = require(script.Parent.Parent.Parent:WaitForChild("Hud"))
+local Audio = require(script.Parent.Parent.Parent:WaitForChild("Audio"))
 
 local Rhythm = {}
+type Target = { disc: Frame, ring: Frame, center: Vector2, diameter: number, time: number }
 
-local GREY = Color3.fromRGB(70, 74, 100)
-local RED = Color3.fromRGB(255, 60, 70)
-local TARGET_SIZE = 0.62 -- of the area height
-local START_SCALE = 2.6
-
--- ringCount overrides the tier's ring count (training uses 1-2 rings).
 function Rhythm.run(
 	area: Frame,
 	tier: number,
@@ -33,175 +25,253 @@ function Rhythm.run(
 	done: (boolean, boolean?) -> (),
 	ringCount: number?
 ): () -> ()
-	local cfg = FishingConfig.RHYTHM
-	local total = ringCount or math.floor(FishingConfig.tierValue(cfg.rings, tier))
-	local shrink = FishingConfig.tierValue(cfg.shrinkSeconds, tier)
-	local window = shrink * cfg.window * Control.ease()
-
-	local field = Ui.frame(
-		area,
-		"Field",
-		UDim2.fromScale(0.78, 1),
-		UDim2.fromScale(0.11, 0),
-		Color3.new(0, 0, 0),
-		1
-	)
-	field.ClipsDescendants = false
-
-	local lives: { Frame } = {}
-	for i = 1, cfg.missesAllowed do
-		local light = Ui.frame(
-			area,
-			"Miss" .. i,
-			UDim2.fromScale(0.05, 0.16),
-			UDim2.fromScale(0.95, 0.05 + (i - 1) * 0.22),
-			GREY
-		)
-		Ui.corner(light, 0.5)
-		local ratio = Instance.new("UIAspectRatioConstraint")
-		ratio.AspectRatio = 1
-		ratio.Parent = light
-		table.insert(lives, light)
+	local cfg = Config.RHYTHM
+	local total = ringCount or math.floor(Config.tierValue(cfg.rings, tier))
+	local shrink = Config.tierValue(cfg.shrinkSeconds, tier)
+	local window = math.min(shrink * cfg.window * Control.ease(), shrink * 0.46)
+	local interval = Config.tierValue(cfg.gapByTier, tier)
+	local player = Players.LocalPlayer
+	local panel = area.Parent :: GuiObject
+	local hidden: { [GuiObject]: boolean } = {}
+	for _, child in panel:GetChildren() do
+		if child:IsA("GuiObject") then
+			hidden[child] = child.Visible
+			child.Visible = false
+		end
 	end
-	local counter = Ui.label(
-		area,
-		"Counter",
-		UDim2.fromScale(0.1, 0.3),
-		UDim2.fromScale(0, 0.35),
-		`0/{total}`,
-		color
-	)
+	local hiddenLayers: { [ScreenGui]: boolean } = {}
+	for _, name in { "TutorialGuide", "LegendaryOmen" } do
+		local layer = player.PlayerGui:FindFirstChild(name)
+		if layer and layer:IsA("ScreenGui") then
+			hiddenLayers[layer] = layer.Enabled
+			layer.Enabled = false
+		end
+	end
+	local gui = Instance.new("ScreenGui")
+	gui.Name = "RhythmGame"
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	gui.DisplayOrder = 7
+	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
+	gui.Parent = player.PlayerGui
 
+	local counter = Ui.label(
+		gui,
+		"Counter",
+		UDim2.fromOffset(160, 28),
+		UDim2.new(0.5, -80, 0, Hud.navBottom() + 5),
+		string.format(Text.rings, 0, total),
+		Theme.sand
+	)
+	local rng = Random.new()
 	local hits, misses = 0, 0
 	local finished = false
-	local pressConn: RBXScriptConnection
-	local stepConn: RBXScriptConnection
-	local function finish(success: boolean)
-		finished = true
-		pressConn:Disconnect()
-		stepConn:Disconnect()
-		task.delay(0.34, done, success, success and misses == 0)
-	end
-	local current: { target: Frame, ring: Frame, t: number }? = nil
+	local current: Target? = nil
 	local gap = 0.4
-
-	local function circle(
-		name: string,
-		scale: number,
-		fill: Color3,
-		transparency: number,
-		strokeColor: Color3,
-		thickness: number
-	): Frame
-		local f = Instance.new("Frame")
-		f.Name = name
-		f.AnchorPoint = Vector2.new(0.5, 0.5)
-		f.Size = UDim2.fromScale(TARGET_SIZE * scale, TARGET_SIZE * scale)
-		f.SizeConstraint = Enum.SizeConstraint.RelativeYY
-		f.BackgroundColor3 = fill
-		f.BackgroundTransparency = transparency
-		f.BorderSizePixel = 0
-		Ui.corner(f, 0.5)
-		Ui.stroke(f, strokeColor, thickness)
-		f.Parent = field
-		return f
+	local previous: Vector2? = nil
+	local pending: thread? = nil
+	local step: RBXScriptConnection? = nil
+	local controls: { stop: () -> () }? = nil
+	local function reduced(): boolean
+		return player:GetAttribute("ReduceEffects") == true
 	end
-
-	local function spawnRing()
-		local x = 0.15 + math.random() * 0.7
-		local target = circle("Target", 1, color, 0.55, Color3.new(1, 1, 1), 3)
-		target.Position = UDim2.fromScale(x, 0.5)
-		local ring = circle("Approach", START_SCALE, Color3.new(0, 0, 0), 1, color, 4)
-		ring.Position = target.Position
-		current = { target = target, ring = ring, t = 0 }
-	end
-
-	local function clear(success: boolean)
-		local c = current
-		current = nil
-		if not c then
-			return
+	local function cleanup()
+		if step then
+			step:Disconnect()
+			step = nil
 		end
-		c.ring:Destroy()
-		local burst = TweenService:Create(c.target, TweenInfo.new(0.25), {
-			Size = UDim2.fromScale(TARGET_SIZE * 1.5, TARGET_SIZE * 1.5),
-			BackgroundTransparency = 1,
-			BackgroundColor3 = if success then Color3.new(1, 1, 1) else RED,
-		})
-		burst:Play()
-		task.delay(0.26, function()
-			c.target:Destroy()
-		end)
-	end
-
-	local function miss()
-		Ui.feedback(area, false)
-		misses += 1
-		local light = lives[misses]
-		light.BackgroundColor3 = RED
-		TweenService:Create(
-			light,
-			TweenInfo.new(0.12, Enum.EasingStyle.Linear, Enum.EasingDirection.InOut, 3, true),
-			{
-				BackgroundTransparency = 0.7,
-			}
-		):Play()
-		clear(false)
-		if misses >= cfg.missesAllowed then
-			finish(false)
+		if controls then
+			controls.stop()
 		end
-	end
-
-	pressConn = PressInput.Pressed:Connect(function()
-		local c = current
-		if finished or not c then
-			return
-		end
-		if math.abs(c.t - shrink) <= window then
-			Ui.feedback(area, true, math.abs(c.t - shrink) < window * 0.25)
-			hits += 1
-			counter.Text = `{hits}/{total}`
-			clear(true)
-			if hits >= total then
-				finish(true)
+		gui:Destroy()
+		for child, visible in hidden do
+			if child.Parent then
+				child.Visible = visible
 			end
-		else
-			miss()
 		end
-		gap = cfg.gapSeconds
-	end)
-
-	stepConn = RunService.RenderStepped:Connect(function(dt)
+		for layer, enabled in hiddenLayers do
+			if layer.Parent then
+				layer.Enabled = enabled
+			end
+		end
+	end
+	local function finish(success: boolean)
 		if finished then
 			return
 		end
-		local c = current
-		if not c then
+		finished = true
+		if step then
+			step:Disconnect()
+			step = nil
+		end
+		if controls then
+			controls.stop()
+		end
+		pending = task.delay(0.34, function()
+			cleanup()
+			done(success, success and misses == 0)
+		end)
+	end
+	local function feedback(target: Target, success: boolean, perfect: boolean)
+		Audio.play(if success then "hit" else "miss", 0.2, if perfect then 1.28 else 1)
+		local width = math.min(160, target.diameter * 1.8)
+		local lifetime = math.min(0.35, interval * 0.85)
+		local label = Ui.label(
+			gui,
+			"TimingFeedback",
+			UDim2.fromOffset(width, 26),
+			UDim2.fromOffset(
+				target.center.X - width / 2,
+				target.center.Y - target.diameter / 2 - 30
+			),
+			if perfect then Text.perfect elseif success then Text.good else Text.miss,
+			if success then Theme.gold else Color3.fromRGB(255, 125, 148)
+		)
+		if not reduced() then
+			TweenService:Create(
+				label,
+				TweenInfo.new(lifetime),
+				{ TextTransparency = 1, TextStrokeTransparency = 1 }
+			):Play()
+		end
+		task.delay(lifetime, function()
+			label:Destroy()
+		end)
+	end
+	local function resolve(success: boolean, perfect: boolean)
+		local target = current
+		if not target or finished then
+			return
+		end
+		current = nil
+		feedback(target, success, perfect)
+		target.disc:Destroy()
+		target.ring:Destroy()
+		if success then
+			hits += 1
+		else
+			misses += 1
+		end
+		counter.Text = string.format(Text.rings, hits, total) .. string.rep("  ×", misses)
+		if misses >= cfg.missesAllowed or hits >= total then
+			finish(hits >= total)
+		else
+			gap = interval
+		end
+	end
+	controls = Input.bind(function(point)
+		local target = current
+		if not target or finished then
+			return
+		end
+		local inside = point == nil or (point - target.center).Magnitude <= target.diameter * 0.6
+		local error = math.abs(target.time - shrink)
+		resolve(inside and error <= window, inside and error <= window * 0.3)
+	end)
+	local function bounds(): (Vector2, Vector2, number)
+		local size = gui.AbsoluteSize
+		local diameter = math.clamp(math.min(size.X, size.Y) * 0.19, 60, 106)
+		local margin = diameter * 0.86
+		local top = Hud.navBottom() + 48
+		local bottom = size.Y - (if size.Y < 430 then 80 else 105)
+		local low = Vector2.new(math.max(size.X * 0.10, margin + 12), top + margin)
+		local high = Vector2.new(size.X - low.X, math.max(low.Y, bottom - margin))
+		return low, high, diameter
+	end
+	local function spawnTarget()
+		local low, high, diameter = bounds()
+		local center = low
+		for _ = 1, 8 do
+			center = Vector2.new(rng:NextNumber(low.X, high.X), rng:NextNumber(low.Y, high.Y))
+			if not previous or (center - previous).Magnitude >= diameter * 1.3 then
+				break
+			end
+		end
+		previous = center
+		local disc = Ui.frame(
+			gui,
+			"Target",
+			UDim2.fromOffset(diameter, diameter),
+			UDim2.fromOffset(center.X, center.Y),
+			color
+		)
+		disc.AnchorPoint = Vector2.new(0.5, 0.5)
+		Theme.surface(disc, color, diameter / 2)
+		local gleam = Ui.frame(
+			disc,
+			"Gleam",
+			UDim2.fromScale(0.55, 0.10),
+			UDim2.fromScale(0.225, 0.13),
+			Color3.new(1, 1, 1),
+			0.65
+		)
+		Ui.corner(gleam, 0.5)
+		local number = Ui.label(
+			disc,
+			"Order",
+			UDim2.fromScale(0.8, 0.8),
+			UDim2.fromScale(0.1, 0.1),
+			tostring(hits + 1),
+			Theme.sand
+		)
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 46
+		limit.Parent = number
+		local ring = Ui.frame(
+			gui,
+			"Approach",
+			UDim2.fromOffset(diameter * 1.65, diameter * 1.65),
+			disc.Position,
+			color,
+			1
+		)
+		ring.AnchorPoint = Vector2.new(0.5, 0.5)
+		Ui.corner(ring, 0.5)
+		Ui.stroke(ring, color, 4)
+		current = { disc = disc, ring = ring, center = center, diameter = diameter, time = 0 }
+	end
+	step = RunService.RenderStepped:Connect(function(dt)
+		if finished then
+			return
+		end
+		counter.Position = UDim2.new(0.5, -80, 0, Hud.navBottom() + 5)
+		local target = current
+		if not target then
 			gap -= dt
 			if gap <= 0 then
-				spawnRing()
+				spawnTarget()
 			end
 			return
 		end
-		c.t += dt
-		local a = math.clamp(c.t / shrink, 0, 1)
-		local scale = START_SCALE + (1 - START_SCALE) * a
-		c.ring.Size = UDim2.fromScale(TARGET_SIZE * scale, TARGET_SIZE * scale)
-		-- Ring flashes white inside the timing window.
-		local stroke = c.ring:FindFirstChildOfClass("UIStroke")
-		if stroke then
-			stroke.Color = if math.abs(c.t - shrink) <= window then Color3.new(1, 1, 1) else color
+		target.time += dt
+		local low, high, diameter = bounds()
+		if target.diameter ~= diameter then
+			target.diameter = diameter
+			target.disc.Size = UDim2.fromOffset(diameter, diameter)
 		end
-		if c.t > shrink + window then
-			gap = cfg.gapSeconds
-			miss()
+		target.center = Vector2.new(
+			math.clamp(target.center.X, low.X, high.X),
+			math.clamp(target.center.Y, low.Y, high.Y)
+		)
+		target.disc.Position = UDim2.fromOffset(target.center.X, target.center.Y)
+		target.ring.Position = target.disc.Position
+		local scale = 1.65 - 0.65 * math.clamp(target.time / shrink, 0, 1)
+		target.ring.Size = UDim2.fromOffset(target.diameter * scale, target.diameter * scale)
+		local stroke = target.ring:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			stroke.Color = if math.abs(target.time - shrink) <= window then Theme.gold else color
+		end
+		if target.time > shrink + window then
+			resolve(false, false)
 		end
 	end)
-
 	return function()
+		if pending then
+			task.cancel(pending)
+			pending = nil
+		end
 		finished = true
-		pressConn:Disconnect()
-		stepConn:Disconnect()
+		cleanup()
 	end
 end
 
