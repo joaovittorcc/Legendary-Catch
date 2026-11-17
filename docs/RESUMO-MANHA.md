@@ -19,7 +19,8 @@
 13. **Preços das varas** rebalanceados pelo ritmo estimado (~285 moedas/min): Coral 500, Cristal 3.000, Tempestade 15.000, Astral 60.000.
 
 14. **QA de ponta a ponta** (Antigravity, 04:56): título, tutorial, 3 minigames, 10+ capturas de todas as raridades, troféu, coleção/marcos, oficina, treino, desafios, ajustes e evento — **0 erros Lua**. Achou 4 bugs visuais: balão do guia e placas em inglês (corrigidos pelo Claude), barra do treino e contraste do banner de evento (com o Codex).
-15. **Madrugada final**: **modo foto** depois de Épico/Lendário (esconde a UI, câmera por arraste, moldura com nomes), troféu estilizado com giro, placas do mapa traduzidas, marcador de onde pescar na ponta do píer, polimento de menus no celular. Galeria de prints de todas as telas em `art/screens/` (Codex, em andamento).
+15. **Madrugada final**: **modo foto** depois de Épico/Lendário (esconde a UI, câmera por arraste, moldura com nomes), troféu estilizado com giro, placas do mapa traduzidas, marcador de onde pescar na ponta do píer, polimento de menus no celular. Galeria de prints de todas as telas em `art/screens/` (36 imagens, PC + celular, com README).
+16. **Presente do dia**: moedas no 1º login de cada dia (100 → até 400, conta dias visitados e **nunca zera**, sem punir quem falta) com cartão de boas-vindas. **Próxima meta** na HUD (quanto falta pra próxima vara/marco; toque abre a tela). **Raridade com nome e estrelas** além da cor (daltonismo). **Estátuas dos 3 lendários** na praça e **arco de boas-vindas** no spawn. Caça a vazamentos no celular: nada acumulando por ciclo.
 
 ## Testar em 5 minutos
 1. Abra o Studio (place Legendary Catch) e confirme o Rojo conectado na porta **34873**.
