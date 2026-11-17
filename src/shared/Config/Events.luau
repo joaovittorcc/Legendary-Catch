@@ -29,6 +29,13 @@ local LIST: { OceanEvent } = {
 		rarityBoost = { Uncommon = 1.5 },
 		valueMultiplier = 2,
 	},
+	{
+		-- Friendly event for new players: more Uncommon/Rare, nothing extreme.
+		id = "shimmerShoal",
+		durationSeconds = 150,
+		rarityBoost = { Uncommon = 1.8, Rare = 1.4 },
+		valueMultiplier = 1.3,
+	},
 }
 
 local byId: { [string]: OceanEvent } = {}

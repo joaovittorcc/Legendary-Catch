@@ -85,6 +85,7 @@ local PT = {
 		starTide = "Maré Estelar",
 		thunderStorm = "Tempestade de Trovões",
 		goldenHour = "Hora Dourada",
+		shimmerShoal = "Cardume Cintilante",
 	} :: { [string]: string },
 	instructions = {
 		reel = "Segure para manter o peixe na zona",
@@ -223,6 +224,7 @@ local EN: Strings = {
 		starTide = "Star Tide",
 		thunderStorm = "Thunder Storm",
 		goldenHour = "Golden Hour",
+		shimmerShoal = "Shimmer Shoal",
 	},
 	instructions = {
 		reel = "Hold to keep the fish in the zone",

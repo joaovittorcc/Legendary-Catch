@@ -35,10 +35,13 @@ type Session = {
 	fightStart: number,
 	kind: string,
 	creatureId: string,
+	castPos: Vector3, -- root position when the line was cast
 }
 
 local Fishing = {}
 Fishing.order = 50
+
+local MAX_FIGHT_DRIFT = 20 -- studs the player may move from the cast spot during a fight
 
 local sessions: { [Player]: Session } = {}
 local rng = Random.new()
@@ -47,7 +50,15 @@ local update: RemoteEvent
 local function session(player: Player): Session
 	local s = sessions[player]
 	if not s then
-		s = { phase = "idle", castId = 0, lastCast = 0, fightStart = 0, kind = "", creatureId = "" }
+		s = {
+			phase = "idle",
+			castId = 0,
+			lastCast = 0,
+			fightStart = 0,
+			kind = "",
+			creatureId = "",
+			castPos = Vector3.zero,
+		}
 		sessions[player] = s
 	end
 	return s
@@ -195,6 +206,7 @@ local function onCast(player: Player)
 		return
 	end
 	s.lastCast = now
+	s.castPos = root.Position
 	s.castId += 1
 	s.phase = "waiting"
 	local castId = s.castId
@@ -309,8 +321,12 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 	local elapsed = os.clock() - s.fightStart
 	local minimum = FishingConfig.MIN_FIGHT_SECONDS[s.kind] or 1
 	local creature = Creatures.get(s.creatureId)
+	-- The fight happens where the line was cast: walking (or teleporting) away loses the
+	-- catch. Lenient radius so a small step near the zone edge never costs a real player.
+	local root = rootOf(player)
+	local stayed = root ~= nil and (root.Position - s.castPos).Magnitude <= MAX_FIGHT_DRIFT
 	reset(player, s)
-	if success and elapsed >= minimum and creature then
+	if success and stayed and elapsed >= minimum and creature then
 		payCatch(player, creature, castId)
 	else
 		send(player, { event = "escaped", castId = castId })

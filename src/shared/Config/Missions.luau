@@ -28,6 +28,18 @@ Missions.POOL = {
 	{ id = "earnCoins", kind = "earn", targetMin = 500, targetMax = 1500, reward = 250 },
 	{ id = "trainLagoon", kind = "train", targetMin = 120, targetMax = 300, reward = 200 },
 	{ id = "perfectFights", kind = "perfect", targetMin = 3, targetMax = 5, reward = 250 },
+	-- Variety (same kinds, so the client already describes them).
+	{
+		id = "catchCommon",
+		kind = "catchRarity:Common",
+		targetMin = 8,
+		targetMax = 12,
+		reward = 150,
+	},
+	{ id = "catchEpic", kind = "catchRarity:Epic", targetMin = 1, targetMax = 1, reward = 450 },
+	{ id = "catchMany", kind = "catch", targetMin = 25, targetMax = 35, reward = 300 },
+	{ id = "earnBig", kind = "earn", targetMin = 2000, targetMax = 3500, reward = 400 },
+	{ id = "trainLong", kind = "train", targetMin = 360, targetMax = 600, reward = 300 },
 } :: { MissionDef }
 
 function Missions.today(): number
