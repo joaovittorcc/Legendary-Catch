@@ -128,7 +128,7 @@ local function nameCard(
 		0.15
 	)
 	Theme.surface(card, color, 16)
-	card.AnchorPoint = Vector2.new(0.5, 0)
+	card.AnchorPoint = Vector2.new(0.5, 1)
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(0, 76)
 	bounds.MaxSize = Vector2.new(540, 116)
@@ -173,11 +173,11 @@ local function nameCard(
 			Theme.sand
 		)
 	end
-	card.Position = UDim2.fromScale(0.5, -0.25)
+	card.Position = UDim2.fromScale(0.5, 1.34)
 	TweenService:Create(
 		card,
 		TweenInfo.new(0.45, Enum.EasingStyle.Back),
-		{ Position = UDim2.new(0.5, 0, 0.025, 58) }
+		{ Position = UDim2.new(0.5, 0, 1, -16) }
 	):Play()
 	return card
 end
@@ -378,6 +378,9 @@ function Reveal.play(
 	if not cancelled() then
 		Audio.capture(rarity, shiny)
 	end
+	if skipButton then
+		skipButton:Destroy()
+	end
 	local name = Strings.creatureName[creatureId] or creatureId
 	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
 	if card then
@@ -389,8 +392,8 @@ function Reveal.play(
 	if card and level >= 4 then
 		local button = Instance.new("TextButton")
 		button.Name = "TakePhoto"
-		button.AnchorPoint = Vector2.new(0.5, 0)
-		button.Position = UDim2.new(0.5, 0, 1, 8)
+		button.AnchorPoint = Vector2.new(0.5, 1)
+		button.Position = UDim2.new(0.5, 0, 0, -8)
 		button.Size = UDim2.fromOffset(106, 44)
 		button.Font = Theme.font
 		button.TextSize = 19
@@ -433,9 +436,6 @@ function Reveal.play(
 		task.delay(0.35, function()
 			card:Destroy()
 		end)
-	end
-	if skipButton then
-		skipButton:Destroy()
 	end
 	if not cancelled() then
 		seen[creatureId] = true

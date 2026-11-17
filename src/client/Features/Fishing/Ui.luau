@@ -154,6 +154,8 @@ end
 
 -- Shows the panel and returns the empty play area for the minigame to fill.
 function Ui.showPanel(hintText: string, color: Color3, instructionText: string): Frame
+	toastLabel.TextTransparency = 1
+	toastLabel.TextStrokeTransparency = 1
 	for _, child in area:GetChildren() do
 		child:Destroy()
 	end
