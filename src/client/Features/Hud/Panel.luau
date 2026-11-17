@@ -44,12 +44,21 @@ function Panel.create(id: string, title: string, accent: Color3): (ScreenGui, Sc
 	local shell = Instance.new("Frame")
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, 0.55)
-	shell.Size = UDim2.fromScale(0.92, 0.68)
-	Theme.surface(shell, accent, 16)
+	shell.Size = UDim2.fromScale(0.85, 0.64)
+	Theme.surface(shell, accent, 16, Color3.fromRGB(28, 40, 57))
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(680, 530)
 	bounds.Parent = shell
 	shell.Parent = gui
+
+	local trim = Instance.new("Frame")
+	trim.Name = "HeaderTrim"
+	trim.BackgroundColor3 = accent
+	trim.BackgroundTransparency = 0.42
+	trim.BorderSizePixel = 0
+	trim.Position = UDim2.fromOffset(14, 53)
+	trim.Size = UDim2.new(1, -28, 0, 1)
+	trim.Parent = shell
 
 	local heading = Panel.label(shell, title, 22, accent)
 	heading.Size = UDim2.new(1, -112, 0, 48)

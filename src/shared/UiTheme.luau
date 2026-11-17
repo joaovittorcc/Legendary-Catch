@@ -21,8 +21,8 @@ function Theme.corner(object: GuiObject, radius: number)
 	corner.Parent = object
 end
 
-function Theme.surface(object: GuiObject, accent: Color3, radius: number)
-	object.BackgroundColor3 = Theme.wood
+function Theme.surface(object: GuiObject, accent: Color3, radius: number, fill: Color3?)
+	object.BackgroundColor3 = fill or Theme.wood
 	object.BorderSizePixel = 0
 	Theme.corner(object, radius)
 	local gradient = Instance.new("UIGradient")

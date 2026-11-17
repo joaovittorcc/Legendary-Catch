@@ -51,11 +51,11 @@ function Arrival.start()
 
 	local cover = Instance.new("CanvasGroup")
 	cover.Size = UDim2.fromScale(1, 1)
-	cover.BackgroundColor3 = Color3.fromRGB(15, 23, 44)
+	cover.BackgroundColor3 = Color3.new(1, 1, 1)
 	cover.BorderSizePixel = 0
 	cover.Active = true
 	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new(Color3.fromRGB(75, 185, 209), Color3.fromRGB(178, 115, 184))
+	gradient.Color = ColorSequence.new(Color3.fromRGB(16, 45, 65), Color3.fromRGB(66, 36, 75))
 	gradient.Rotation = 32
 	gradient.Parent = cover
 	local card = Instance.new("Frame")
@@ -126,7 +126,12 @@ function Arrival.start()
 	end)
 
 	while os.clock() - opened < LOAD_TIMEOUT do
-		if ready and player.Character and os.clock() - opened >= MINIMUM_DISPLAY then
+		if
+			ready
+			and player.Character
+			and player:GetAttribute("DataLoaded") == true
+			and os.clock() - opened >= MINIMUM_DISPLAY
+		then
 			break
 		end
 		fill.Size = UDim2.fromScale(

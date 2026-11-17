@@ -126,9 +126,9 @@ function Hud.start()
 
 	local toast = Instance.new("TextLabel")
 	toast.Name = "Toast"
-	toast.AnchorPoint = Vector2.new(0.5, 0)
-	toast.Position = UDim2.new(0.5, 0, 0, 63)
-	toast.Size = UDim2.new(0.75, 0, 0, 46)
+	toast.AnchorPoint = Vector2.new(0.5, 1)
+	toast.Position = UDim2.fromScale(0.5, 0.94)
+	toast.Size = UDim2.new(0.58, 0, 0, 40)
 	toast.BackgroundColor3 = Theme.ink
 	toast.BackgroundTransparency = 1
 	toast.TextTransparency = 1
@@ -139,9 +139,15 @@ function Hud.start()
 	toastTextSize.Parent = toast
 	toast.Font = Theme.font
 	Theme.corner(toast, 10)
-	toast.Parent = gui
+	local notifications = Instance.new("ScreenGui")
+	notifications.Name = "AdventureNotifications"
+	notifications.ResetOnSpawn = false
+	notifications.DisplayOrder = 12
+	toast.Parent = notifications
 	toastLabel = toast
-	gui.Parent = player:WaitForChild("PlayerGui")
+	local playerGui = player:WaitForChild("PlayerGui")
+	gui.Parent = playerGui
+	notifications.Parent = playerGui
 end
 
 return Hud
