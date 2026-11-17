@@ -4,6 +4,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local PT = {
+	rodSlot = "Vara",
 	nextGoal = {
 		title = "Próxima meta",
 		rod = "Faltam %d moedas para %s",
@@ -125,6 +126,7 @@ local PT = {
 type Labels = typeof(PT)
 
 local EN = {
+	rodSlot = "Rod",
 	nextGoal = {
 		title = "Next goal",
 		rod = "%d more coins for %s",

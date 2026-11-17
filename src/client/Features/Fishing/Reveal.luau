@@ -30,6 +30,7 @@ local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local Wood = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Wood"))
 
 local Reveal = {}
 
@@ -127,11 +128,13 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		Color3.new(1, 1, 1)
 	)
 	title.TextStrokeTransparency = 0
+	local badge = Wood.rarityBadge(card, color)
+	badge.Position = UDim2.fromScale(0.5, 0.57)
 	local rarityLabel = Ui.label(
-		card,
+		badge,
 		"Rarity",
-		UDim2.fromScale(1, 0.18),
-		UDim2.fromScale(0, 0.57),
+		UDim2.fromScale(0.94, 0.93),
+		UDim2.fromScale(0.03, 0.02),
 		Theme.rarityLabel(rarity),
 		Theme.sand
 	)

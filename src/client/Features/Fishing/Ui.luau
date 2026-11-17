@@ -11,6 +11,7 @@ local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
+local Wood = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Wood"))
 local Ui = {}
 local rarityByHint: { [string]: string } = {}
 for rarity, text in Strings.hint do
@@ -20,6 +21,7 @@ end
 local gui: ScreenGui
 local panel: Frame
 local hint: TextLabel
+local rarityBadge: Frame
 local instruction: TextLabel
 local area: Frame
 local toastLabel: TextLabel
@@ -116,6 +118,9 @@ function Ui.init()
 	size.MinSize = Vector2.new(228, 96)
 	size.Parent = panel
 
+	rarityBadge = Wood.rarityBadge(panel, Theme.gold)
+	rarityBadge.Position = UDim2.fromScale(0.5, 0.026)
+	rarityBadge.Visible = false
 	hint = Ui.label(
 		panel,
 		"Hint",
@@ -167,6 +172,9 @@ function Ui.showPanel(hintText: string, color: Color3, instructionText: string):
 	local rarity = rarityByHint[hintText]
 	hint.Text = if rarity then Theme.rarityLabel(rarity) else hintText
 	hint.TextColor3 = if rarity then Theme.sand else color
+	rarityBadge.Visible = rarity ~= nil
+	hint.Size = UDim2.fromScale(if rarity then 0.42 else 0.9, 0.18)
+	hint.Position = UDim2.fromScale(if rarity then 0.29 else 0.05, 0.03)
 	instruction.Text = instructionText
 	panel.Visible = true
 	panel.Position = UDim2.fromScale(0.5, 1.2)

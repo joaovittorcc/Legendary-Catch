@@ -14,7 +14,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Types = require(Shared:WaitForChild("Types"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
-local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
+local Wood = require(script.Parent.Hud:WaitForChild("Wood"))
 
 local NextGoal = { order = 125 }
 local player = Players.LocalPlayer
@@ -102,42 +102,51 @@ function NextGoal.start()
 	chip.Text = ""
 	chip.Visible = false
 	chip.AnchorPoint = Vector2.new(0.5, 0)
-	chip.Size = UDim2.new(0.72, 0, 0, 46)
-	Theme.surface(chip, Theme.crystal, 10, Theme.ink)
+	chip.Size = UDim2.new(0.76, 0, 0, 52)
+	Wood.mount(chip, true, Color3.fromRGB(40, 76, 69))
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(278, 46)
+	bounds.MaxSize = Vector2.new(440, 52)
 	bounds.Parent = chip
 
-	local heading = Panel.label(chip, Text.title, 11, Theme.crystal)
-	heading.Name = "Heading"
-	heading.Size = UDim2.new(1, 0, 0, 13)
-	heading.Position = UDim2.fromOffset(0, 3)
-	local message = Panel.label(chip, "", 14)
-	message.Name = "Objective"
-	message.Size = UDim2.new(1, -12, 0, 18)
-	message.Position = UDim2.fromOffset(6, 16)
-	message.TextScaled = true
-	local limit = Instance.new("UITextSizeConstraint")
-	limit.MaxTextSize = 14
-	limit.Parent = message
+	local icons = {
+		Shop = Wood.icon(chip, "Rod", 34),
+		Milestones = Wood.icon(chip, "Collection", 34),
+		Missions = Wood.icon(chip, "Missions", 34),
+	} :: { [string]: Frame }
+	for _, icon in icons do
+		icon.Position = UDim2.fromOffset(13, 8)
+		icon.Visible = false
+	end
+	local heading = Wood.caption(chip, "Heading", Text.title, 13, Theme.gold)
+	heading.Size = UDim2.new(1, -68, 0, 15)
+	heading.Position = UDim2.fromOffset(54, 4)
+	heading.TextXAlignment = Enum.TextXAlignment.Left
+	local message = Wood.caption(chip, "Objective", "", 14)
+	message.Size = UDim2.new(1, -68, 0, 17)
+	message.Position = UDim2.fromOffset(54, 19)
+	message.TextXAlignment = Enum.TextXAlignment.Left
 
 	local track = Instance.new("Frame")
-	track.Size = UDim2.new(1, -24, 0, 4)
-	track.Position = UDim2.fromOffset(12, 37)
-	track.BackgroundColor3 = Color3.fromRGB(57, 61, 86)
+	track.Size = UDim2.new(1, -69, 0, 6)
+	track.Position = UDim2.fromOffset(54, 39)
+	track.BackgroundColor3 = Color3.fromRGB(41, 27, 17)
 	track.BorderSizePixel = 0
 	Theme.corner(track, 2)
 	track.Parent = chip
 	local fill = Instance.new("Frame")
 	fill.Name = "Progress"
-	fill.BackgroundColor3 = Theme.crystal
+	fill.BackgroundColor3 = Theme.gold
 	fill.BorderSizePixel = 0
 	Theme.corner(fill, 2)
 	fill.Parent = track
 
 	local function place()
-		chip.Position =
-			UDim2.new(0.5, 0, navigation.Position.Y.Scale, navigation.AbsoluteSize.Y + 8)
+		chip.Position = UDim2.new(
+			0.5,
+			0,
+			navigation.Position.Y.Scale,
+			navigation.Position.Y.Offset + navigation.AbsoluteSize.Y + 7
+		)
 	end
 	navigation:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 	place()
@@ -161,6 +170,9 @@ function NextGoal.start()
 			else nil
 		local current = goal
 		if current then
+			for panel, icon in icons do
+				icon.Visible = panel == current.panel
+			end
 			message.Text = current.text
 			fill.Size = UDim2.fromScale(current.progress, 1)
 		end
