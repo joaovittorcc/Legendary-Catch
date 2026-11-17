@@ -13,6 +13,7 @@ export type FishingUpdate = {
 	value: number?, -- coins earned, on "caught"
 	isNew: boolean?, -- first time this creature was caught
 	count: number?, -- total caught of this creature, including this one
+	variant: string?, -- "" or "Shiny", on "caught"
 }
 
 export type TrainingUpdate = {
@@ -38,6 +39,21 @@ local Net = {
 	BUY_ROD = "BuyRod",
 	EQUIP_ROD = "EquipRod",
 	SHOP_RESULT = "ShopResult",
+	CLAIM_MISSION = "ClaimMission",
+	CLAIM_MILESTONE = "ClaimMilestone",
+	CLAIM_RESULT = "ClaimResult",
+	SKIP_TUTORIAL = "SkipTutorial",
+	TUTORIAL_EVENT = "TutorialEvent",
+	SAVE_SETTINGS = "SaveSettings",
+	REPORT_PERFECT = "ReportPerfect",
+}
+
+export type ClaimResult = {
+	ok: boolean,
+	kind: string, -- "mission" | "milestone"
+	id: string,
+	reward: number?,
+	reason: string?, -- "notReady" | "claimed" | "unknown"
 }
 
 export type ShopResult = {

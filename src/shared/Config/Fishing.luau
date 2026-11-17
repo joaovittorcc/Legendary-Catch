@@ -20,6 +20,10 @@ Fishing.MIN_FIGHT_SECONDS = {
 
 Fishing.MINIGAMES = { "reel", "precision", "rhythm" }
 
+-- Shiny ("Cintilante") variant: rare sparkly version of any creature, worth more.
+Fishing.SHINY_CHANCE = 1 / 40
+Fishing.SHINY_VALUE_MULTIPLIER = 3
+
 Fishing.RARITY_ORDER = { "Common", "Uncommon", "Rare", "Epic", "Legendary" }
 
 -- Test weights only; real drop rates need the economy pass.

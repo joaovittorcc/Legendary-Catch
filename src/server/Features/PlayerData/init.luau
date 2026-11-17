@@ -37,6 +37,10 @@ export type Profile = {
 	training: { [string]: Types.TrainingStat },
 	stats: Types.Stats,
 	funnel: { [string]: boolean }, -- analytics onboarding steps already logged
+	tutorial: Types.Tutorial,
+	missions: Types.Missions,
+	milestones: { [string]: boolean },
+	settings: Types.Settings,
 }
 
 -- The Wally shim does not re-export ProfileStore's types; only the members used here.
@@ -78,6 +82,10 @@ local function template(): Profile
 		training = training,
 		stats = { catches = 0, legendaries = 0 },
 		funnel = {},
+		tutorial = { step = "goToPier", done = false },
+		missions = { day = 0, list = {} },
+		milestones = {},
+		settings = { music = 0.6, sfx = 0.8, reduceEffects = false },
 	}
 end
 
@@ -113,6 +121,11 @@ local function reconcile(data: { [string]: any })
 			data.stats[key] = value
 		end
 	end
+	for key, value in defaults.settings do
+		if data.settings[key] == nil then
+			data.settings[key] = value
+		end
+	end
 	if not table.find(data.rodsOwned, STARTER_ROD) then
 		table.insert(data.rodsOwned, STARTER_ROD)
 	end
@@ -129,6 +142,10 @@ local function snapshot(profile: Profile): Types.Snapshot
 		collection = table.clone(profile.collection),
 		training = table.clone(profile.training),
 		stats = table.clone(profile.stats),
+		tutorial = table.clone(profile.tutorial),
+		missions = { day = profile.missions.day, list = table.clone(profile.missions.list) },
+		milestones = table.clone(profile.milestones),
+		settings = table.clone(profile.settings),
 	}
 end
 

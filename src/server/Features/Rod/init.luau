@@ -15,6 +15,7 @@ local Strings = require(Shared:WaitForChild("Strings"))
 
 local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
+local Progress = require(script.Parent:WaitForChild("Progress"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
 local ROD_NAME = "Rod"
@@ -215,6 +216,7 @@ local function onBuy(player: Player, rodId: unknown)
 	giveRod(player)
 	Analytics.coins(player, false, rod.price, "Rod", rod.id)
 	Analytics.step(player, "firstRodBought")
+	Progress.onRodBought(player)
 	reply(player, { ok = true, action = "buy", rodId = rod.id })
 end
 

@@ -16,6 +16,7 @@ local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Train
 
 local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
+local Progress = require(script.Parent:WaitForChild("Progress"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
 type Session = {
@@ -97,6 +98,7 @@ local function start(player: Player, stat: string, spot: BasePart)
 	}
 	player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, stat)
 	Analytics.step(player, "firstTraining")
+	Progress.onTrainingStarted(player)
 end
 
 local function addPrompts(spot: Instance)
@@ -129,6 +131,7 @@ local function step()
 			continue
 		end
 		addXp(player, s.stat, TrainingConfig.XP_PER_SECOND)
+		Progress.onTrainSecond(player)
 
 		if s.ringExpires > 0 and now > s.ringExpires then
 			s.ringExpires = 0

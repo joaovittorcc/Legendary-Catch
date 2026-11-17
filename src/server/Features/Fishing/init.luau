@@ -20,6 +20,7 @@ local Features = script.Parent
 local Analytics = require(Features:WaitForChild("Analytics"))
 local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
+local Progress = require(Features:WaitForChild("Progress"))
 local Training = require(Features:WaitForChild("Training"))
 local Remotes = require(Features.Parent:WaitForChild("Remotes"))
 
@@ -195,6 +196,7 @@ local function onCast(player: Player)
 	publish(player, "waiting", Vector3.new(target.X, 0, target.Z), nil)
 	send(player, { event = "cast", castId = castId })
 	Analytics.step(player, "firstCast")
+	Progress.onCast(player)
 
 	task.delay(
 		rng:NextNumber(FishingConfig.BITE_DELAY_MIN, FishingConfig.BITE_DELAY_MAX),
@@ -237,8 +239,13 @@ end
 local function payCatch(player: Player, creature: Creatures.Creature, castId: number)
 	local weight = rollWeight(creature)
 	local event = OceanEvents.current()
+	local forced = devOverride(player, "DevForceVariant")
+	local shiny = forced == "Shiny"
+		or (forced == nil and rng:NextNumber() < FishingConfig.SHINY_CHANCE)
 	local value = math.floor(
-		Creatures.valueFor(creature, weight) * (if event then event.valueMultiplier else 1)
+		Creatures.valueFor(creature, weight)
+			* (if event then event.valueMultiplier else 1)
+			* (if shiny then FishingConfig.SHINY_VALUE_MULTIPLIER else 1)
 	)
 	local isNew, count = false, 1
 	PlayerData.update(player, function(p)
@@ -248,8 +255,11 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 			entry.bestWeight = math.max(entry.bestWeight, weight)
 		else
 			isNew = true
-			entry = { count = 1, bestWeight = weight, firstAt = os.time() }
+			entry = { count = 1, bestWeight = weight, firstAt = os.time(), shiny = 0 }
 			p.collection[creature.id] = entry
+		end
+		if shiny then
+			entry.shiny = (entry.shiny or 0) + 1
 		end
 		count = entry.count
 		p.coins += value
@@ -271,7 +281,9 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 		value = value,
 		isNew = isNew,
 		count = count,
+		variant = if shiny then "Shiny" else "",
 	})
+	Progress.onCatch(player, creature, value, castId)
 end
 
 local function onSubmit(player: Player, castId: unknown, success: unknown)
