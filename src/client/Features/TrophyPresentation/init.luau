@@ -21,7 +21,7 @@ type DisplayState = {
 	angle: number,
 }
 
-local function styleSign(sign: BillboardGui, color: Color3, shiny: boolean)
+local function styleSign(sign: BillboardGui, color: Color3, rarity: string?, shiny: boolean)
 	local caption = sign:FindFirstChildOfClass("TextLabel")
 	if not caption then
 		return
@@ -37,8 +37,8 @@ local function styleSign(sign: BillboardGui, color: Color3, shiny: boolean)
 		local badge = Instance.new("TextLabel")
 		badge.Name = "ShinyBadge"
 		badge.AnchorPoint = Vector2.new(0.5, 0)
-		badge.Position = UDim2.new(0.5, 0, 0, 7)
-		badge.Size = UDim2.fromOffset(130, 19)
+		badge.Position = UDim2.new(0.75, 0, 0, 7)
+		badge.Size = UDim2.fromOffset(112, 19)
 		badge.ZIndex = 3
 		badge.BackgroundColor3 = Theme.gold
 		badge.TextColor3 = Theme.ink
@@ -48,6 +48,16 @@ local function styleSign(sign: BillboardGui, color: Color3, shiny: boolean)
 		badge.BorderSizePixel = 0
 		Theme.corner(badge, 7)
 		badge.Parent = frame
+		local rank = Instance.new("TextLabel")
+		rank.Name = "Rarity"
+		rank.AnchorPoint = Vector2.new(0.5, 0)
+		rank.Size = UDim2.fromOffset(136, 19)
+		rank.BackgroundTransparency = 1
+		rank.TextColor3 = Theme.sand
+		rank.Font = Theme.font
+		rank.TextSize = 14
+		rank.ZIndex = 3
+		rank.Parent = frame
 		frame.Parent = sign
 		plate = frame
 	end
@@ -56,16 +66,22 @@ local function styleSign(sign: BillboardGui, color: Color3, shiny: boolean)
 	if rim then
 		rim.Color = color
 	end
-	local badge = styledPlate:FindFirstChildWhichIsA("TextLabel")
-	if badge then
+	local badge = styledPlate:FindFirstChild("ShinyBadge")
+	if badge and badge:IsA("GuiObject") then
 		badge.Visible = shiny
 	end
 
-	sign.Size = UDim2.fromOffset(268, if shiny then 94 else 70)
+	local rank = styledPlate:FindFirstChild("Rarity")
+	if rank and rank:IsA("TextLabel") then
+		rank.Text = if rarity then Theme.rarityLabel(rarity) else ""
+		rank.Position = UDim2.new(if shiny then 0.28 else 0.5, 0, 0, 7)
+	end
+	local hasHeader = shiny or rarity ~= nil
+	sign.Size = UDim2.fromOffset(268, if hasHeader then 94 else 70)
 	caption.ZIndex = 2
-	caption.Position = UDim2.fromOffset(10, if shiny then 30 else 7)
-	caption.Size = UDim2.new(1, -20, 1, if shiny then -36 else -14)
-	caption.TextColor3 = Color3.new(1, 1, 1):Lerp(color, 0.28)
+	caption.Position = UDim2.fromOffset(10, if hasHeader then 30 else 7)
+	caption.Size = UDim2.new(1, -20, 1, if hasHeader then -36 else -14)
+	caption.TextColor3 = Theme.sand
 	caption.TextStrokeColor3 = Color3.new(0, 0, 0)
 	caption.TextStrokeTransparency = 0.48
 	-- The server and WorldText keep ownership of the caption's content.
@@ -117,7 +133,12 @@ function TrophyPresentation.start()
 					else Theme.gold
 				local sign = display and display:FindFirstChild("TrophySign")
 				if sign and sign:IsA("BillboardGui") then
-					styleSign(sign, color, instance:GetAttribute("TrophyVariant") == "Shiny")
+					styleSign(
+						sign,
+						color,
+						if creature then creature.rarity else nil,
+						instance:GetAttribute("TrophyVariant") == "Shiny"
+					)
 				end
 				local model = display and display:FindFirstChildOfClass("Model")
 				if model and not model:FindFirstChildWhichIsA("BasePart", true) then

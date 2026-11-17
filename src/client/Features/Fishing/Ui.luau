@@ -7,10 +7,15 @@ local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = {}
+local rarityByHint: { [string]: string } = {}
+for rarity, text in Strings.hint do
+	rarityByHint[text] = rarity
+end
 
 local gui: ScreenGui
 local panel: Frame
@@ -159,8 +164,9 @@ function Ui.showPanel(hintText: string, color: Color3, instructionText: string):
 	for _, child in area:GetChildren() do
 		child:Destroy()
 	end
-	hint.Text = hintText
-	hint.TextColor3 = color
+	local rarity = rarityByHint[hintText]
+	hint.Text = if rarity then Theme.rarityLabel(rarity) else hintText
+	hint.TextColor3 = if rarity then Theme.sand else color
 	instruction.Text = instructionText
 	panel.Visible = true
 	panel.Position = UDim2.fromScale(0.5, 1.2)

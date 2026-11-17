@@ -147,7 +147,10 @@ function Collection.start()
 			local title = if record
 				then Strings.creatureName[creature.id] or creature.id
 				else Text.undiscovered
-			Panel.label(body, title, 23, Theme.rarity[creature.rarity])
+			Panel.label(body, title, 23)
+			local rarity = Panel.label(body, Theme.rarityLabel(creature.rarity), 15)
+			rarity.Name = "Rarity"
+			rarity.Size = UDim2.new(1, 0, 0, 22)
 			local stage = Instance.new("Frame")
 			stage.Size = UDim2.new(1, 0, 0, 145)
 			stage.BackgroundColor3 = Theme.ink
@@ -216,7 +219,7 @@ function Collection.start()
 				local redeemed = claimed[milestone.id] == true
 				local color = if rarity then Theme.rarity[rarity] else Theme.gold
 				local title = if rarity
-					then string.format(Text.milestones.rarity, Strings.rarity[rarity] or rarity)
+					then string.format(Text.milestones.rarity, Theme.rarityLabel(rarity))
 					else string.format(Text.milestones.species, target)
 				local row = Instance.new("Frame")
 				row.Size = UDim2.new(1, 0, 0, 94)
@@ -279,9 +282,8 @@ function Collection.start()
 			local count, total = discovered[rarity] or 0, totals[rarity] or 0
 			Panel.label(
 				body,
-				string.format("%s  ·  %d / %d", Strings.rarity[rarity] or rarity, count, total),
-				17,
-				color
+				string.format("%s  ·  %d / %d", Theme.rarityLabel(rarity), count, total),
+				17
 			)
 			progressBar(body, count, total, color)
 			local group = Instance.new("Frame")
@@ -303,12 +305,17 @@ function Collection.start()
 				local card = Panel.button(group, "", color)
 				local icon = Instance.new("Frame")
 				icon.BackgroundTransparency = 1
-				icon.Size = UDim2.fromScale(1, 0.66)
+				icon.Size = UDim2.fromScale(1, 0.54)
 				icon.Parent = card
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
 				local name = Panel.label(card, label, 13)
-				name.Size = UDim2.fromScale(0.94, 0.3)
-				name.Position = UDim2.fromScale(0.03, 0.67)
+				name.Size = UDim2.fromScale(0.94, 0.27)
+				name.Position = UDim2.fromScale(0.03, 0.53)
+				local rarityName =
+					Panel.label(card, Strings.rarity[entry.rarity] or entry.rarity, 12)
+				rarityName.Name = "Rarity"
+				rarityName.Size = UDim2.fromScale(1, 0.17)
+				rarityName.Position = UDim2.fromScale(0, 0.81)
 				card.Activated:Connect(function()
 					selected = entry
 					scroll.CanvasPosition = Vector2.zero

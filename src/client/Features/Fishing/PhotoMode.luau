@@ -17,7 +17,7 @@ local PhotoMode = {}
 local DURATION = 18
 local FIELD_OF_VIEW = 38
 
-local function framePhoto(gui: ScreenGui, name: string, color: Color3)
+local function framePhoto(gui: ScreenGui, name: string, rarity: string, color: Color3)
 	local frame =
 		Ui.frame(gui, "Frame", UDim2.new(1, -26, 1, -26), UDim2.fromOffset(13, 13), color, 1)
 	Theme.corner(frame, 14)
@@ -46,8 +46,8 @@ local function framePhoto(gui: ScreenGui, name: string, color: Color3)
 		"Game",
 		UDim2.new(1, -16, 0, 16),
 		UDim2.fromOffset(8, 5),
-		Text.arrival.title,
-		color
+		Text.arrival.title .. "  ·  " .. Theme.rarityLabel(rarity),
+		Theme.sand
 	)
 	Ui.label(
 		caption,
@@ -95,7 +95,7 @@ local function hideInterface(playerGui: PlayerGui): () -> ()
 	end
 end
 
-function PhotoMode.show(model: Model, root: BasePart, name: string, color: Color3)
+function PhotoMode.show(model: Model, root: BasePart, name: string, rarity: string, color: Color3)
 	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
 	local camera = Workspace.CurrentCamera
 	if not playerGui or not camera then
@@ -128,7 +128,7 @@ function PhotoMode.show(model: Model, root: BasePart, name: string, color: Color
 	gui.ResetOnSpawn = false
 	gui.ScreenInsets = Enum.ScreenInsets.DeviceSafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	framePhoto(gui, name, color)
+	framePhoto(gui, name, rarity, color)
 	local hint = Ui.label(
 		gui,
 		"Hint",

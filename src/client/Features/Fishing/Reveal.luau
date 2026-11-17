@@ -43,15 +43,6 @@ local STYLES: { [string]: Style } = {
 	Legendary = { size = 8, apex = 14, flight = 1.4, hold = 3.6 },
 }
 
-local function rank(rarity: string): number
-	for i, r in FishingConfig.RARITY_ORDER do
-		if r == rarity then
-			return i
-		end
-	end
-	return 1
-end
-
 local function cloneCreature(id: string): Model
 	local folder = ReplicatedStorage:FindFirstChild(Creatures.MODELS_FOLDER)
 	local template = folder and folder:FindFirstChild(id)
@@ -111,23 +102,17 @@ local function sparkles(model: Model, color: Color3, shiny: boolean)
 	e.Parent = holder
 end
 
-local function nameCard(
-	name: string,
-	rarity: string,
-	color: Color3,
-	level: number,
-	info: CatchInfo?
-): Frame
+local function nameCard(name: string, rarity: string, color: Color3, info: CatchInfo?): Frame
 	local gui = Ui.screen()
 	local card = Ui.frame(
 		gui,
 		"RevealCard",
 		UDim2.fromScale(0.76, 0.24),
 		UDim2.fromScale(0.5, 0.12),
-		Color3.new(0, 0, 0),
-		0.15
+		Theme.ink,
+		0.08
 	)
-	Theme.surface(card, color, 16)
+	Theme.surface(card, color, 16, Theme.ink)
 	card.AnchorPoint = Vector2.new(0.5, 1)
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(0, 76)
@@ -147,8 +132,8 @@ local function nameCard(
 		"Rarity",
 		UDim2.fromScale(1, 0.18),
 		UDim2.fromScale(0, 0.57),
-		string.rep("★", level) .. "  " .. string.upper(Strings.rarity[rarity] or rarity),
-		color
+		Theme.rarityLabel(rarity),
+		Theme.sand
 	)
 	rarityLabel.TextStrokeTransparency = 0.5
 	if info and (info.isNew or info.variant == "Shiny") then
@@ -262,7 +247,7 @@ function Reveal.play(
 )
 	local color = FishingConfig.RARITY_COLORS[rarity] or Color3.new(1, 1, 1)
 	local style = STYLES[rarity] or STYLES.Common
-	local level = rank(rarity)
+	local level = math.max(1, Theme.rarityRank(rarity))
 
 	local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 	local shiny = info ~= nil and info.variant == "Shiny"
@@ -382,7 +367,7 @@ function Reveal.play(
 		skipButton:Destroy()
 	end
 	local name = Strings.creatureName[creatureId] or creatureId
-	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
+	local card = if cancelled() then nil else nameCard(name, rarity, color, info)
 	if card then
 		Players.LocalPlayer:SetAttribute("CatchRevealActive", true)
 	end
@@ -442,7 +427,7 @@ function Reveal.play(
 	end
 
 	if takePhoto and not cancelled() then
-		PhotoMode.show(model, root, name, color)
+		PhotoMode.show(model, root, name, rarity, color)
 		Players.LocalPlayer:SetAttribute("CatchRevealActive", false)
 		model:Destroy()
 		return

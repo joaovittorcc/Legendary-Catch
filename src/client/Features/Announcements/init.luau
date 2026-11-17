@@ -38,12 +38,12 @@ function Announcements.start()
 		bounds.MaxSize = Vector2.new(510, 65)
 		bounds.Parent = card
 
-		local rarity = Strings.rarity[catch.rarity] or catch.rarity
+		local rarity = Theme.rarityLabel(catch.rarity)
 		local heading = Panel.label(
 			card,
 			if catch.variant == "Shiny" then rarity .. "  ·  " .. Text.shiny else rarity,
 			14,
-			color
+			Theme.sand
 		)
 		heading.Name = "Rarity"
 		heading.Size = UDim2.fromScale(1, 0.38)
