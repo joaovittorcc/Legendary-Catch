@@ -2126,6 +2126,419 @@ local function buildLighting()
 	Workspace.StreamOutBehavior = Enum.StreamOutBehavior.Opportunistic
 end
 
+local function buildGuideNPC()
+	local g = group("GuideNPC")
+	g.ModelStreamingMode = Enum.ModelStreamingMode.Persistent
+
+	local basePos = Vector3.new(13.8, PLAZA_Y, 1.8)
+	local lookTarget = Vector3.new(-4, PLAZA_Y, 10)
+	local npcCf = CFrame.lookAt(basePos, lookTarget)
+
+	local function npcPart(
+		name: string,
+		size: Vector3,
+		localCf: CFrame,
+		color: Color3,
+		material: Enum.Material,
+		opts: PartOpts?
+	): BasePart
+		local o: PartOpts = if opts then table.clone(opts) else {}
+		o.collide = false
+		if o.shadow == nil then
+			o.shadow = false
+		end
+		return part(name, g, size, npcCf * localCf, color, material, o)
+	end
+
+	local skin = Color3.fromRGB(238, 186, 148)
+	local shirt = COLORS.cream
+	local vest = Color3.fromRGB(46, 94, 108)
+	local vestTrim = COLORS.woodLight
+	local trousers = Color3.fromRGB(58, 78, 96)
+	local boots = Color3.fromRGB(58, 42, 34)
+	local eyeColor = Color3.fromRGB(30, 34, 46)
+
+	-- Legs & boots (slightly open natural fisherman stance, facing -Z)
+	for _, leg in
+		{
+			{ side = "L", x = -0.54, z = -0.10, yaw = 8 },
+			{ side = "R", x = 0.54, z = 0.08, yaw = -8 },
+		}
+	do
+		local lCf = CFrame.new(leg.x, 0, leg.z) * CFrame.Angles(0, math.rad(leg.yaw), 0)
+		npcPart(
+			"Boot" .. leg.side,
+			Vector3.new(0.86, 0.72, 1.12),
+			lCf * CFrame.new(0, 0.36, -0.10),
+			boots,
+			Enum.Material.Leather,
+			{ shadow = true }
+		)
+		npcPart(
+			"BootSole" .. leg.side,
+			Vector3.new(0.90, 0.14, 1.16),
+			lCf * CFrame.new(0, 0.07, -0.10),
+			Color3.fromRGB(38, 28, 22),
+			Enum.Material.Rubber
+		)
+		npcPart(
+			"BootCuff" .. leg.side,
+			Vector3.new(0.94, 0.24, 0.96),
+			lCf * CFrame.new(0, 0.78, 0),
+			vestTrim,
+			Enum.Material.Fabric
+		)
+		npcPart(
+			"Leg" .. leg.side,
+			Vector3.new(0.84, 1.28, 0.86),
+			lCf * CFrame.new(0, 1.44, 0),
+			trousers,
+			Enum.Material.Fabric,
+			{ shadow = true }
+		)
+	end
+
+	-- Core torso: the ONLY collidable part on the Guide NPC
+	local torso = part(
+		"Torso",
+		g,
+		Vector3.new(2.04, 2.08, 1.12),
+		npcCf * CFrame.new(0, 3.04, 0),
+		shirt,
+		Enum.Material.Fabric,
+		{ collide = true, shadow = true }
+	)
+	g.PrimaryPart = torso
+
+	-- Belt & brass buckle
+	npcPart(
+		"Belt",
+		Vector3.new(2.14, 0.28, 1.22),
+		CFrame.new(0, 2.16, 0),
+		boots,
+		Enum.Material.Leather
+	)
+	npcPart(
+		"BeltBuckle",
+		Vector3.new(0.42, 0.34, 0.18),
+		CFrame.new(0, 2.16, -0.58),
+		COLORS.gold,
+		Enum.Material.Metal
+	)
+
+	-- Open fisherman vest over shirt
+	npcPart(
+		"VestBack",
+		Vector3.new(2.16, 1.88, 0.46),
+		CFrame.new(0, 3.12, 0.40),
+		vest,
+		Enum.Material.Fabric
+	)
+	for _, sx in { -0.66, 0.66 } do
+		npcPart(
+			"VestFront" .. (if sx < 0 then "L" else "R"),
+			Vector3.new(0.78, 1.86, 0.78),
+			CFrame.new(sx, 3.12, -0.22),
+			vest,
+			Enum.Material.Fabric
+		)
+		npcPart(
+			"VestPocket" .. (if sx < 0 then "L" else "R"),
+			Vector3.new(0.46, 0.44, 0.16),
+			CFrame.new(sx, 2.66, -0.60),
+			vestTrim,
+			Enum.Material.Leather
+		)
+		npcPart(
+			"VestButton" .. (if sx < 0 then "L" else "R"),
+			Vector3.new(0.12, 0.12, 0.10),
+			CFrame.new(sx * 0.56, 3.24, -0.62),
+			COLORS.bronze,
+			Enum.Material.Metal,
+			{ shape = Enum.PartType.Ball }
+		)
+	end
+	-- Small cyan crystal lure charm clipped to left vest chest
+	npcPart(
+		"VestCrystalPin",
+		Vector3.new(0.16, 0.26, 0.14),
+		CFrame.new(-0.68, 3.50, -0.62) * CFrame.Angles(0, 0, math.rad(14)),
+		COLORS.cyan,
+		Enum.Material.Neon
+	)
+
+	-- Diagonal leather rod strap across front & back of vest
+	npcPart(
+		"RodStrapFront",
+		Vector3.new(0.24, 2.38, 0.12),
+		CFrame.new(0, 3.12, -0.62) * CFrame.Angles(0, 0, math.rad(-34)),
+		boots,
+		Enum.Material.Leather
+	)
+	npcPart(
+		"RodStrapBack",
+		Vector3.new(0.24, 2.38, 0.12),
+		CFrame.new(0, 3.12, 0.64) * CFrame.Angles(0, 0, math.rad(-34)),
+		boots,
+		Enum.Material.Leather
+	)
+
+	-- Friendly standing arms: +Z swings (-Y) out to +X, +X swings (-Y) forward to -Z.
+	local rShoulder = CFrame.new(1.36, 3.82, 0) * CFrame.Angles(math.rad(6), 0, math.rad(14))
+	npcPart(
+		"ShoulderR",
+		Vector3.new(0.68, 0.68, 0.68),
+		rShoulder * CFrame.new(0, -0.06, 0),
+		shirt,
+		Enum.Material.Fabric,
+		{ shape = Enum.PartType.Ball }
+	)
+	npcPart(
+		"ArmR",
+		Vector3.new(0.58, 0.88, 0.58),
+		rShoulder * CFrame.new(0, -0.48, 0),
+		shirt,
+		Enum.Material.Fabric
+	)
+	npcPart(
+		"CuffR",
+		Vector3.new(0.64, 0.18, 0.64),
+		rShoulder * CFrame.new(0, -0.88, 0),
+		shirt,
+		Enum.Material.Fabric
+	)
+	local rElbow = rShoulder
+		* CFrame.new(0, -0.98, 0)
+		* CFrame.Angles(math.rad(18), 0, math.rad(-10))
+	npcPart(
+		"ForearmR",
+		Vector3.new(0.48, 0.82, 0.48),
+		rElbow * CFrame.new(0, -0.40, 0),
+		skin,
+		Enum.Material.SmoothPlastic
+	)
+	npcPart(
+		"HandR",
+		Vector3.new(0.48, 0.48, 0.48),
+		rElbow * CFrame.new(0, -0.84, 0),
+		skin,
+		Enum.Material.SmoothPlastic,
+		{ shape = Enum.PartType.Ball }
+	)
+
+	local lShoulder = CFrame.new(-1.38, 3.82, 0) * CFrame.Angles(math.rad(14), 0, math.rad(-22))
+	npcPart(
+		"ShoulderL",
+		Vector3.new(0.68, 0.68, 0.68),
+		lShoulder * CFrame.new(0, -0.06, 0),
+		shirt,
+		Enum.Material.Fabric,
+		{ shape = Enum.PartType.Ball }
+	)
+	npcPart(
+		"ArmL",
+		Vector3.new(0.58, 0.86, 0.58),
+		lShoulder * CFrame.new(0, -0.48, 0),
+		shirt,
+		Enum.Material.Fabric
+	)
+	npcPart(
+		"CuffL",
+		Vector3.new(0.64, 0.18, 0.64),
+		lShoulder * CFrame.new(0, -0.86, 0),
+		shirt,
+		Enum.Material.Fabric
+	)
+	local lElbow = lShoulder
+		* CFrame.new(0, -0.96, 0)
+		* CFrame.Angles(math.rad(42), 0, math.rad(10))
+	npcPart(
+		"ForearmL",
+		Vector3.new(0.48, 0.82, 0.48),
+		lElbow * CFrame.new(0, -0.40, 0),
+		skin,
+		Enum.Material.SmoothPlastic
+	)
+	npcPart(
+		"HandL",
+		Vector3.new(0.48, 0.48, 0.48),
+		lElbow * CFrame.new(0, -0.84, 0),
+		skin,
+		Enum.Material.SmoothPlastic,
+		{ shape = Enum.PartType.Ball }
+	)
+
+	-- Neck & head + SpeechPoint attachment (~1 stud above head)
+	npcPart(
+		"Neck",
+		Vector3.new(0.64, 0.36, 0.64),
+		CFrame.new(0, 4.18, 0),
+		skin,
+		Enum.Material.SmoothPlastic,
+		{ shape = Enum.PartType.Cylinder }
+	)
+	local headSize = Vector3.new(1.36, 1.28, 1.28)
+	local head = npcPart(
+		"Head",
+		headSize,
+		CFrame.new(0, 4.86, 0),
+		skin,
+		Enum.Material.SmoothPlastic,
+		{ shadow = true }
+	)
+	local headCorner = Instance.new("SpecialMesh")
+	headCorner.MeshType = Enum.MeshType.Head
+	headCorner.Scale = Vector3.new(1.0, 1.0, 1.0)
+	headCorner.Parent = head
+
+	local speechPoint = Instance.new("Attachment")
+	speechPoint.Name = "SpeechPoint"
+	speechPoint.Position = Vector3.new(0, headSize.Y / 2 + 1.05, 0)
+	speechPoint.Parent = head
+
+	-- Expressive face features (-Z is front) & fluffy white veteran hair around back/sides
+	npcPart(
+		"Nose",
+		Vector3.new(0.28, 0.24, 0.32),
+		CFrame.new(0, 4.84, -0.68),
+		Color3.fromRGB(224, 152, 120),
+		Enum.Material.SmoothPlastic,
+		{ shape = Enum.PartType.Ball }
+	)
+	local backHair = npcPart(
+		"BackHair",
+		Vector3.new(1.38, 0.78, 0.68),
+		CFrame.new(0, 4.90, 0.34),
+		COLORS.white,
+		Enum.Material.SmoothPlastic
+	)
+	local backHairMesh = Instance.new("SpecialMesh")
+	backHairMesh.MeshType = Enum.MeshType.Sphere
+	backHairMesh.Parent = backHair
+	local backTuft = npcPart(
+		"BackHairTuft",
+		Vector3.new(0.86, 0.44, 0.48),
+		CFrame.new(0, 4.56, 0.44),
+		COLORS.white,
+		Enum.Material.SmoothPlastic
+	)
+	local backTuftMesh = Instance.new("SpecialMesh")
+	backTuftMesh.MeshType = Enum.MeshType.Sphere
+	backTuftMesh.Parent = backTuft
+	for _, side in { -1, 1 } do
+		local sideburn = npcPart(
+			"Sideburn" .. side,
+			Vector3.new(0.32, 0.60, 0.54),
+			CFrame.new(side * 0.54, 4.80, 0.16),
+			COLORS.white,
+			Enum.Material.SmoothPlastic
+		)
+		local sbMesh = Instance.new("SpecialMesh")
+		sbMesh.MeshType = Enum.MeshType.Sphere
+		sbMesh.Parent = sideburn
+		npcPart(
+			"Ear" .. side,
+			Vector3.new(0.20, 0.32, 0.26),
+			CFrame.new(side * 0.68, 4.84, 0.02),
+			skin,
+			Enum.Material.SmoothPlastic,
+			{ shape = Enum.PartType.Ball }
+		)
+		npcPart(
+			"Eye" .. side,
+			Vector3.new(0.16, 0.20, 0.12),
+			CFrame.new(side * 0.28, 4.96, -0.60),
+			eyeColor,
+			Enum.Material.SmoothPlastic,
+			{ shape = Enum.PartType.Ball }
+		)
+		npcPart(
+			"EyeShine" .. side,
+			Vector3.new(0.06, 0.06, 0.05),
+			CFrame.new(side * 0.26 - 0.03, 5.00, -0.64),
+			COLORS.white,
+			Enum.Material.Neon,
+			{ shape = Enum.PartType.Ball }
+		)
+		npcPart(
+			"Brow" .. side,
+			Vector3.new(0.32, 0.12, 0.14),
+			CFrame.new(side * 0.28, 5.14, -0.58) * CFrame.Angles(0, 0, math.rad(side * -10)),
+			COLORS.white,
+			Enum.Material.SmoothPlastic
+		)
+	end
+
+	-- Fisherman Hat (AI mesh with primitive fallback)
+	local hatCf = npcCf * CFrame.new(0, 5.24, 0.04) * CFrame.Angles(math.rad(6), 0, math.rad(-3))
+	placeMesh("FishermanHat", g, hatCf, function()
+		npcPart(
+			"HatBrim",
+			Vector3.new(2.2, 0.18, 2.2),
+			CFrame.new(0, 5.36, 0),
+			vestTrim,
+			Enum.Material.Fabric,
+			{ shape = Enum.PartType.Cylinder }
+		)
+		npcPart(
+			"HatCrown",
+			Vector3.new(1.45, 0.68, 1.45),
+			CFrame.new(0, 5.72, 0),
+			vestTrim,
+			Enum.Material.Fabric
+		)
+	end, { scale = 0.96, collide = false, shadow = true, anchorMode = "bottom" })
+
+	-- White veteran beard (AI mesh with primitive fallback)
+	local beardCf = npcCf * CFrame.new(0, 4.32, -0.52)
+	placeMesh("FishermanBeard", g, beardCf, function()
+		npcPart(
+			"BeardFallback",
+			Vector3.new(1.16, 0.92, 0.62),
+			CFrame.new(0, 4.46, -0.46),
+			COLORS.white,
+			Enum.Material.SmoothPlastic
+		)
+	end, { scale = 0.92, collide = false, shadow = false, anchorMode = "center" })
+
+	-- Fishing rod strapped diagonally across his back (+Z side)
+	local rodsFolder = ServerStorage:FindFirstChild("RodModels")
+	local rodTemplate = rodsFolder
+		and (rodsFolder:FindFirstChild("starter") or rodsFolder:FindFirstChildOfClass("Model"))
+	if rodTemplate then
+		local rodClone = rodTemplate:Clone()
+		rodClone.Name = "BackFishingRod"
+		for _, tag in CollectionService:GetTags(rodClone) do
+			CollectionService:RemoveTag(rodClone, tag)
+		end
+		for _, d in rodClone:GetDescendants() do
+			for _, tag in CollectionService:GetTags(d) do
+				CollectionService:RemoveTag(d, tag)
+			end
+			if d:IsA("BasePart") then
+				d.Anchored = true
+				d.CanCollide = false
+				d.CanTouch = false
+				d.CanQuery = false
+				d.CastShadow = false
+			elseif d:IsA("Script") or d:IsA("LocalScript") then
+				d:Destroy()
+			end
+		end
+		rodClone:ScaleTo(rodClone:GetScale() * 0.72)
+		local _, rSize = rodClone:GetBoundingBox()
+		-- Rod models extend toward -Z; rotate 90 deg pitch up so tip aims upward-left behind shoulder.
+		local backRodCf = npcCf
+			* CFrame.new(-0.36, 1.88, 0.68)
+			* CFrame.Angles(0, 0, math.rad(28))
+			* CFrame.Angles(math.rad(88), 0, 0)
+		rodClone:PivotTo(backRodCf * CFrame.new(0, 0, -rSize.Z * 0.10))
+		rodClone.Parent = g
+	end
+
+	CollectionService:AddTag(g, "GuideNPC")
+end
+
 -- Entry -------------------------------------------------------------------------------
 
 local old = Workspace:FindFirstChild("Island")
@@ -2156,6 +2569,7 @@ buildDecor()
 buildHorizon()
 buildOceanBounds()
 buildLighting()
+buildGuideNPC()
 
 for _, name in { "CentralPlaza", "TrainingLagoon", "UpgradeWorkshop", "FishingPier", "FrontStairs" } do
 	local m = groups[name]
