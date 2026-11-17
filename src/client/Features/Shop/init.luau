@@ -14,18 +14,65 @@ local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Robux = require(script:WaitForChild("Robux"))
 local Shop = {}
+local PREVIEWS = "RodPreviews"
+
+local function showMesh(view: ViewportFrame, id: string): boolean
+	local library = ReplicatedStorage:FindFirstChild(PREVIEWS)
+	local source = library and library:FindFirstChild(id)
+	if not source or not (source:IsA("Model") or source:IsA("BasePart")) then
+		return false
+	end
+
+	local model = Instance.new("Model")
+	model.Name = "RodMesh"
+	local clone = source:Clone()
+	clone.Parent = model
+	if not model:FindFirstChildWhichIsA("BasePart", true) then
+		model:Destroy()
+		return false
+	end
+	for _, instance in model:GetDescendants() do
+		if
+			instance:IsA("BaseScript")
+			or instance:IsA("ModuleScript")
+			or instance:IsA("ParticleEmitter")
+			or instance:IsA("Trail")
+		then
+			instance:Destroy()
+		elseif instance:IsA("BasePart") then
+			instance.Anchored = true
+			instance.CanCollide = false
+		end
+	end
+	local bounds, size = model:GetBoundingBox()
+	local centered = bounds:ToObjectSpace(model:GetPivot())
+	model:PivotTo(
+		CFrame.Angles(0.1, 0, math.rad(-38)) * CFrame.Angles(0, math.rad(81), 0) * centered
+	)
+	model:ScaleTo(4.3 / math.max(size.X, size.Y, size.Z, 0.1))
+	model.Parent = view
+	return true
+end
 
 local function preview(parent: Instance, rod: Rods.Rod)
 	local view = Instance.new("ViewportFrame")
+	view.Name = "RodPreview"
 	view.BackgroundColor3 = Theme.ink
+	view.Ambient = Color3.fromRGB(165, 174, 197)
+	view.LightColor = Color3.fromRGB(255, 239, 217)
 	view.Size = UDim2.fromScale(0.28, 0.86)
 	view.Position = UDim2.fromScale(0.025, 0.07)
 	Theme.corner(view, 10)
 	local camera = Instance.new("Camera")
+	camera.FieldOfView = 31
 	camera.CFrame = CFrame.lookAt(Vector3.new(0, 0, 11), Vector3.zero)
 	camera.Parent = view
 	view.CurrentCamera = camera
 
+	if showMesh(view, rod.id) then
+		view.Parent = parent
+		return
+	end
 	local pose = CFrame.Angles(0.2, 0, -0.6)
 	local function part(name: string, size: Vector3, position: Vector3, tint: Color3)
 		local piece = Instance.new("Part")
@@ -141,6 +188,24 @@ function Shop.start()
 			render()
 		end
 	end)
+	local function watchPreviews(library: Instance)
+		if library.Name ~= PREVIEWS then
+			return
+		end
+		local function refreshPreviews()
+			if gui.Enabled then
+				render()
+			end
+		end
+		library.ChildAdded:Connect(refreshPreviews)
+		library.ChildRemoved:Connect(refreshPreviews)
+		refreshPreviews()
+	end
+	local library = ReplicatedStorage:FindFirstChild(PREVIEWS)
+	if library then
+		watchPreviews(library)
+	end
+	ReplicatedStorage.ChildAdded:Connect(watchPreviews)
 	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
 		if player == Players.LocalPlayer and prompt.Name == "OpenWorkshop" then
 			Hud.showPanel("Shop")
