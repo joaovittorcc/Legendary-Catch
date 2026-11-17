@@ -28,7 +28,9 @@ Só o dono edita. Precisa de algo no arquivo do outro? Escreva no **Mural** (se�
 - `src/shared/StringsUi.luau`, `src/shared/UiTheme.luau`
 - `AGENTS.md` (pode atualizar a própria parte)
 
-**Ninguém** mexe no mapa (`Workspace.Island`) — outra IA está refazendo. Ninguém apaga/renomeia `ReplicatedStorage.Creatures`, `ServerStorage.MapMeshes`.
+**Antigravity** (terceiro agente, mapa e modelos): `tools/IslandGenerator.luau`, `Workspace.Island`, `ServerStorage.MapMeshes`, modelos em `ReplicatedStorage.Creatures`. Claude e Codex não mexem no mapa.
+
+**Backlog da noite de 2026-11-17: `docs/NOITE.md`** (Claude coordena). Ninguém apaga/renomeia `ReplicatedStorage.Creatures`, `ServerStorage.MapMeshes`.
 
 ## 3. Regras de convivência (mesma pasta, mesmo `main`)
 
@@ -92,6 +94,21 @@ Atributos rápidos no `Player` (para contadores animados): `Coins` (number), `Da
 ### 4.5 Estado global (Claude publica, Codex mostra)
 - `ReplicatedStorage` atributos: `OceanEvent` (string, "" sem evento), `OceanEventEndsAt` (number, `workspace:GetServerTimeNow()`).
 - Outros jogadores pescando: atributos no `Character`: `FishingState` ("", "waiting", "fighting"), `FishingTarget` (Vector3 da boia), `FishingRarity` (string durante a luta).
+
+### 4.6 Noite de 2026-11-17 — contrato novo (Claude implementa; Codex já pode usar com mock)
+Campos novos no `Snapshot` (todos opcionais até chegarem; trate `nil`):
+```lua
+tutorial: { step: string, done: boolean }
+-- step: "goToPier" -> "cast" -> "fight" -> "collection" -> "workshop" -> "training" -> "done"
+missions: { day: number, list: { { id: string, kind: string, target: number, progress: number, reward: number, claimed: boolean } } }
+-- kind: "catch" (qualquer), "catchRarity:<Rarity>", "earn" (moedas), "train" (segundos), "perfect" (minigame sem errar)
+milestones: { [milestoneId: string]: boolean } -- true = já resgatado; lista em Config/Milestones
+settings: { music: number, sfx: number, reduceEffects: boolean } -- 0..1
+collection[id].shiny: number -- quantas variantes Cintilantes
+```
+`FishingUpdate` "caught" ganha `variant: string` ("" ou "Shiny").
+Remotes novos (C→S): `ClaimMission(index)`, `ClaimMilestone(id)`, `SkipTutorial()`, `TutorialEvent(name)` (nomes aceitos: "openedCollection", "openedWorkshop"), `SaveSettings({music, sfx, reduceEffects})`, `ReportPerfect(castId)` (minigame terminado sem erro). Resposta de resgate: `ClaimResult {ok, kind: "mission"|"milestone", id, reward?, reason?}` (S→C).
+Configs novas: `Config/Milestones` (`LIST`: `id, kind ("species"|"rarity"), rarity?, count, reward`), `Config/Missions` (pool de desafios).
 
 ## 5. Ordem de entrega (para um não esperar o outro)
 - Claude entrega primeiro: loader de features + `Client/Data` (com dados em memória) + `Types` + configs `Rods`/`Events` + campos novos do `caught`. Até isso existir, o Codex usa **mock** do Snapshot no próprio módulo.
