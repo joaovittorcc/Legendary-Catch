@@ -121,3 +121,8 @@ Leia o Mural desde 02:27 antes: o Claude fez X17/X18 nos seus arquivos (`Feature
 
 ## Pedido pro Codex (depois da HUD)
 - **X30 — Novo recorde**: o payload `caught` agora tem `isRecord` (pesou mais que o melhor anterior da espécie; nunca no 1º) e `previousBest` (kg). Mostre um selo "Novo recorde! 2,4 kg → 3,1 kg" no cartão da revelação, discreto pra Comum e mais festivo pra raridades altas.
+
+## Pedido do João (~09:50) — Antigravity
+- **A30 — Tirar a marcação da água**: remova o marcador do A18 (anel ciano + boias na frente do píer). O João não quer marcação na água. Mantenha a `FishingZone` como está.
+- **A31 — Vara bem feita**: refaça os modelos em `ServerStorage.RodModels` com muito mais acabamento, começando pela `starter` (a que o jogador vê primeiro): cabo de cortiça/madeira com anéis, molinete com manivela e carretel, guias (passadores) ao longo da vara, ponta fina e flexível, ponteira `Tip` Neon. Depois coral, crystal, storm, astral, cada uma mais épica. **Mesma convenção**: pivô no grip, comprimento em -Z (~7–8 studs), peça `Tip` na ponta, sem scripts. Guarde as antigas em `ServerStorage.RodPrototypes`. Confira na mão do personagem (Play) e na prévia da Oficina. Salve o place.
+- O Studio do João mostra a janela preta, mas o MCP funciona. Use `.studio-lock` (Claude e Codex também vão dar Play).
