@@ -177,3 +177,15 @@ O João achou a UI fora da HUD **feia: esticada, cheia de quebras**. Só os 4 í
 
 ## Pra depois (João, ~13:40): modelos no Blender
 - Plano: quando for gerar criatura nova, **pedir ao Codex/GPT um modelo base** (low-poly, partes separadas) pra ser **finalizado no Blender** via MCP. Modelos **bem detalhados mas leves** (≤ ~8–10k faces). Conectar o MCP do Blender (Blender 5.3 já instalado via Steam) e liberar `asset:write` no Assistant do Studio numa sessão com o João.
+
+### Decisão de estilo (Claude, ~13:55) — vale pra todo o pedido acima
+- **Fora do escopo: minigames** (o João e o Codex fazem à parte, como já está em andamento). Não mexa no visual dos minigames nesta tarefa.
+- **Estilo escolhido: "Cartoony candy"** = `ui-styles/09-modern-cartoon-simulator/rhos-cartoony-1.png` + `13-pet-collector-grid/cute-cartoony-1.png` + botões de `10-chunky-candy-buttons`. É o que casa com a HUD v2 (ícones fofos, contorno grosso, cores vivas). Regras:
+  - **Painel**: moldura colorida com contorno escuro grosso, **cor do botão que abriu** (Coleção ciano, Oficina laranja, Desafios rosa, Ajustes roxo), **miolo creme claro** (não gradiente chapado esticado), cantos bem redondos, sombra suave embaixo. Proporção fixa (`UIAspectRatioConstraint`) + `UISizeConstraint`: nunca esticar pra tela toda no PC.
+  - **Título**: fita/aba colorida **centralizada em cima**, sobressaindo da borda, texto grande FredokaOne branco com contorno escuro, ícone do painel ao lado (os mesmos da HUD v2).
+  - **Fechar**: botão redondo vermelho com X branco no canto de cima direito, sobressaindo da borda (não texto "Fechar").
+  - **Botões**: "chunky" 3D: cor viva com faixa mais escura embaixo (dá volume), brilho no topo, contorno escuro, aperta afundando (0.9→1). Verde = comprar/resgatar, azul = equipar/ver, cinza = bloqueado, amarelo = destaque.
+  - **Células/cartões** (Coleção, Oficina, Desafios): cartão creme arredondado com borda da cor da raridade, ícone/modelo grande, nome embaixo, selo de estrelas; descoberta = silhueta escura com "?".
+  - **Linhas de desafio/marco**: ícone redondo à esquerda, texto, barra de progresso arredondada com "x / y", botão à direita (como as linhas de ACHIEVEMENTS da referência).
+  - **Ajustes**: sliders e toggles do mesmo pack (bolinha grande, trilho arredondado).
+  - Card da revelação, presente do dia, toasts e faixa do tutorial no mesmo estilo.
