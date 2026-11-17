@@ -32,3 +32,5 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 - **S5** Marcos da coleção (completar raridade / X espécies) com recompensa.
 - **S6** Ajustes salvos no perfil (volume, reduzir efeitos) + remote.
 - **S7** Revisão geral, testes de ponta a ponta, Mural e vault.
+
+- **X8 — Loja de Robux** (aba na Oficina ou botão na HUD): lista `Config/Products` (pacotes de moedas, boost de sorte 15 min, passe VIP). **Esconda o botão de compra quando o id for 0** (produto ainda não existe). Compra: `MarketplaceService:PromptProductPurchase(player, id)` / `PromptGamePassPurchase`. Mostre o boost ativo na HUD com contagem (atributo `LuckBoostEndsAt` no Player, `os.time()`) e selo VIP (atributo `Pass_vip`). Textos claros do que cada coisa faz; nada de pressão (sem "últimas unidades", sem contagem falsa).
