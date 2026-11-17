@@ -105,3 +105,7 @@ Leia o Mural desde 02:27 antes: o Claude fez X17/X18 nos seus arquivos (`Feature
 - **A23 — Catálogo das criaturas**: tire 1 print de cada uma das 24 criaturas (fundo limpo, mesma câmera/escala, 3/4 de frente) e salve em `art/creatures/Cxx-nome.jpg` + `art/creatures/README.md` com raridade e uma linha sobre o modelo. É pro João ver o elenco de manhã.
 - **A24 — Passada de qualidade nas que ficaram mais fracas no catálogo** (prioridade Raro → Incomum → Comum que não foram refeitas no A7): cara/olhos legíveis, silhueta única, cores da raridade. Guarde a anterior como `*_v1` em `ServerStorage.CreaturePrototypes`. Atualize o print depois.
 - **A25 — Salvar o place** e Mural.
+
+## Rodada 13 (2026-11-17 ~07:29) — Codex
+- **X28 — Galeria atualizada pro João**: refaça só as telas que mudaram desde o X23 e adicione as novas (presente do dia, chip de próxima meta, estrelas de raridade na revelação/coleção, troféu estilizado, estátuas e arco do Antigravity vistos do spawn, modo foto). Atualize `art/screens/README.md`. PT, celular paisagem + PC.
+- **X29 — Revisão final dos seus textos**: leia `StringsUi` PT e EN inteiros como um jogador de 10 anos: erros, termos inconsistentes (ex.: "Desafios" x "Missões", "Oficina" x "Loja"), frases longas demais pro celular. Corrija e liste no Mural o que mudou. Se achar algo no `Strings` (Claude), anote no Mural.
