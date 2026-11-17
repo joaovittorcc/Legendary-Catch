@@ -1793,11 +1793,89 @@ local function buildPier()
 	zone.CanQuery = false
 	CollectionService:AddTag(zone, "FishingZone")
 
+	-- Discreet water target marker just ahead of the pier tip where a 24-stud cast lands
+	-- (0 dynamic lights, 1 lightweight emitter; FishingZone/pier unchanged).
+	local waterTarget = Vector3.new(x1 + 28, 0.28, zc)
+	local targetAnchor = deco(
+		"FishingTargetMarker",
+		g,
+		Vector3.new(1.4, 0.2, 1.4),
+		CFrame.new(waterTarget),
+		COLORS.cyan,
+		Enum.Material.Neon,
+		{ transparency = 1 }
+	)
+	local function addNeonWaterRing(
+		prefix: string,
+		radius: number,
+		segments: number,
+		width: number,
+		alpha: number,
+		color: Color3
+	)
+		local segLen = 2 * radius * math.sin(math.pi / segments) + width * 0.25
+		for i = 1, segments do
+			local ang = (i - 0.5) * (2 * math.pi / segments)
+			local pos = waterTarget + Vector3.new(math.cos(ang) * radius, 0, math.sin(ang) * radius)
+			deco(
+				prefix .. i,
+				g,
+				Vector3.new(segLen, 0.14, width),
+				CFrame.lookAt(pos, waterTarget),
+				color,
+				Enum.Material.Neon,
+				{ transparency = alpha }
+			)
+		end
+	end
+	addNeonWaterRing("WaterTargetOuter", 6.0, 14, 0.42, 0.35, COLORS.cyan)
+	addNeonWaterRing("WaterTargetInner", 3.1, 10, 0.34, 0.22, Color3.fromRGB(210, 255, 255))
+
+	local splash = Instance.new("ParticleEmitter")
+	splash.Name = "TargetRipples"
+	splash.Color = ColorSequence.new(Color3.fromRGB(225, 255, 255), COLORS.cyan)
+	splash.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.45),
+		NumberSequenceKeypoint.new(0.45, 0.85),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	splash.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.15),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	splash.Lifetime = NumberRange.new(0.9, 1.4)
+	splash.Rate = 7
+	splash.Speed = NumberRange.new(2.6, 4.8)
+	splash.SpreadAngle = Vector2.new(38, 38)
+	splash.Acceleration = Vector3.new(0, -7, 0)
+	splash.EmissionDirection = Enum.NormalId.Top
+	splash.Parent = targetAnchor
+
+	for _, side in { -1, 1 } do
+		placeMesh(
+			"ConeBuoy",
+			g,
+			CFrame.new(x1 + 26, -0.5, zc + side * 9.5) * CFrame.Angles(0, math.rad(side * 22), 0),
+			function()
+				cylinderPost(
+					"TargetBuoyFallback",
+					g,
+					Vector3.new(x1 + 26, -0.5, zc + side * 9.5),
+					3.0,
+					1.0,
+					COLORS.cyan,
+					Enum.Material.SmoothPlastic
+				)
+			end,
+			{ scale = 0.95, collide = false, shadow = false }
+		)
+	end
+
 	-- Red & white cone buoys bobbing in the shallow turquoise sea near the pier.
 	for _, bp in
 		{
 			{ 46, -0.6, 25, 15 },
-			{ 90, -0.6, 18, -25 },
+			{ 60, -0.6, 20, -25 },
 			{ 74, -0.6, -12, 40 },
 		}
 	do
