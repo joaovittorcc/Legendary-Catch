@@ -1,5 +1,21 @@
 --!strict
 return {
+	robux = {
+		title = "Loja de Robux",
+		workshop = "Voltar à oficina",
+		price = "Ver preço em Robux",
+		unavailable = "Fora de venda",
+		promptFailed = "Não foi possível abrir a compra.",
+		coins = "%d moedas",
+		coinsDescription = "Moedas para comprar varas na oficina.",
+		luck = "Bônus de sorte",
+		luckDescription = "Por %d min, multiplica por %g o peso no sorteio de Raros, Épicos e Lendários.",
+		luckTimer = "Sorte %02d:%02d",
+		vip = "Passe VIP",
+		vipBadge = "VIP",
+		vipDescription = "+%d%% de moedas por captura e selo VIP.",
+		owned = "Adquirido",
+	},
 	arrival = {
 		title = "Legendary Catch",
 		loading = "Preparando a ilha…",

@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 
@@ -124,6 +125,40 @@ function Hud.start()
 		button.Parent = bar
 	end
 
+	local perks = Instance.new("TextLabel")
+	perks.Name = "Perks"
+	perks.AnchorPoint = Vector2.new(1, 0.5)
+	perks.Position = UDim2.fromScale(0.97, 0.5)
+	perks.Size = UDim2.fromOffset(134, 28)
+	perks.TextColor3 = Theme.gold
+	perks.Font = Theme.font
+	perks.TextSize = 13
+	Theme.surface(perks, Theme.gold, 8, Theme.ink)
+	perks.Parent = gui
+	local vip = Products.passAttribute("vip")
+	local function updatePerks()
+		local names = {}
+		if player:GetAttribute(vip) == true then
+			table.insert(names, Text.robux.vipBadge)
+		end
+		local ends = player:GetAttribute(Products.LUCK_BOOST_ATTRIBUTE)
+		local remaining = if typeof(ends) == "number"
+			then math.max(0, math.ceil(ends - os.time()))
+			else 0
+		if remaining > 0 then
+			table.insert(
+				names,
+				string.format(Text.robux.luckTimer, math.floor(remaining / 60), remaining % 60)
+			)
+		end
+		perks.Text = table.concat(names, "  ·  ")
+		perks.Visible = #names > 0 and currentPanel == ""
+	end
+	player:GetAttributeChangedSignal(vip):Connect(updatePerks)
+	player:GetAttributeChangedSignal(Products.LUCK_BOOST_ATTRIBUTE):Connect(updatePerks)
+	Hud.panelChanged:Connect(updatePerks)
+	updatePerks()
+
 	local toast = Instance.new("TextLabel")
 	toast.Name = "Toast"
 	toast.AnchorPoint = Vector2.new(0.5, 1)
@@ -148,6 +183,12 @@ function Hud.start()
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
 	notifications.Parent = playerGui
+	task.spawn(function()
+		while gui.Parent do
+			task.wait(1)
+			updatePerks()
+		end
+	end)
 end
 
 return Hud

@@ -12,6 +12,7 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
+local Robux = require(script:WaitForChild("Robux"))
 local Shop = {}
 
 local function preview(parent: Instance, rod: Rods.Rod)
@@ -46,6 +47,7 @@ local function preview(parent: Instance, rod: Rods.Rod)
 end
 
 function Shop.start()
+	Robux.start()
 	local gui, scroll = Panel.create("Shop", Text.shop, Theme.gold)
 	local body = Instance.new("Frame")
 	body.AutomaticSize = Enum.AutomaticSize.Y
@@ -57,6 +59,9 @@ function Shop.start()
 	local function render()
 		body:ClearAllChildren()
 		Panel.stack(body)
+		Panel.button(body, Text.robux.title, Theme.gold).Activated:Connect(function()
+			Hud.showPanel("Robux")
+		end)
 		local snapshot = Data.get()
 		if not snapshot then
 			Panel.label(body, Text.loading, 18)
