@@ -152,13 +152,22 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		)
 	end
 	if info and info.weight and info.value then
+		local reward = string.format(Text.captureReward, info.weight, info.value)
+		-- Epic and Legendary also show how rare this exact creature is ("1 in 300").
+		if Theme.rarityRank(rarity) >= 4 then
+			local odds = FishingConfig.baseOdds(rarity, #Creatures.ofRarity(rarity))
+			if odds > 0 then
+				local digits = tostring(odds):reverse():gsub("(%d%d%d)", "%1."):reverse()
+				reward ..= "   ·   " .. string.format(Strings.odds, (digits:gsub("^%.", "")))
+			end
+		end
 		Ui.label(
 			card,
 			"Reward",
 			UDim2.fromScale(1, 0.18),
 			UDim2.fromScale(0, 0.77),
-			string.format(Text.captureReward, info.weight, info.value),
-			Theme.sand
+			reward,
+			if Theme.rarityRank(rarity) >= 5 then Theme.gold else Theme.sand
 		)
 	end
 	card.Position = UDim2.fromScale(0.5, 1.34)

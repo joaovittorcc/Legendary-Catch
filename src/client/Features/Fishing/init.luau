@@ -15,6 +15,7 @@ local Strings = require(Shared:WaitForChild("Strings"))
 
 local FishingCamera = require(script:WaitForChild("Camera"))
 local Line = require(script:WaitForChild("Line"))
+local Omen = require(script:WaitForChild("Omen"))
 local PressInput = require(script:WaitForChild("PressInput"))
 local Reveal = require(script:WaitForChild("Reveal"))
 local Ui = require(script:WaitForChild("Ui"))
@@ -104,6 +105,7 @@ local function cleanup()
 	Ui.hidePanel()
 	freeze(false)
 	FishingCamera.stop()
+	Omen.stop()
 	zoomCamera(70)
 	local l = line
 	line = nil
@@ -166,6 +168,9 @@ local function startFight(update: Net.FishingUpdate)
 	state = "fighting"
 	Line.bite(l, color)
 	FishingCamera.fight()
+	if rarity == "Legendary" then
+		Omen.start()
+	end
 	freeze(true)
 	zoomCamera(62)
 	PressInput.enable()
@@ -208,8 +213,9 @@ local function onCaught(update: Net.FishingUpdate)
 	end
 	PressInput.disable()
 	Ui.hidePanel()
-	-- The reveal plays around the player with the normal camera.
+	-- The reveal plays around the player with the normal camera and lighting.
 	FishingCamera.stop()
+	Omen.stop()
 	local creature = Creatures.get(creatureId)
 	local rarity = if creature then creature.rarity else "Common"
 	local origin = l.rest

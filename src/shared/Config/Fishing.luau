@@ -73,6 +73,20 @@ Fishing.RHYTHM = {
 	gapSeconds = 0.35,
 }
 
+-- Base odds of one specific creature of `rarity` (pool of `poolSize` creatures), as N in
+-- "1 in N": no rod, training, event or boost luck. Shown on the reveal card.
+function Fishing.baseOdds(rarity: string, poolSize: number): number
+	local total = 0
+	for _, r in Fishing.RARITY_ORDER do
+		total += Fishing.RARITY_WEIGHTS[r] or 0
+	end
+	local weight = Fishing.RARITY_WEIGHTS[rarity] or 0
+	if weight <= 0 or poolSize <= 0 then
+		return 0
+	end
+	return math.floor(total / weight * poolSize + 0.5)
+end
+
 function Fishing.tierValue(list: { number }, tier: number): number
 	return list[math.clamp(tier, 1, #list)]
 end

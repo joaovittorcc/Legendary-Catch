@@ -162,6 +162,10 @@ local PT = {
 		"Peixe grande vale mais. Paciência é a melhor isca.",
 	},
 	guideEvent = "O mar mudou... é a hora de tentar os raros!",
+	-- Omen while fighting a Legendary (the creature is still hidden).
+	omenLegendary = "O MAR ESTÁ AGITADO...",
+	omenLegendarySub = "Algo lendário mordeu a isca!",
+	odds = "1 em %s",
 }
 
 export type Strings = typeof(PT)
@@ -320,6 +324,9 @@ local EN: Strings = {
 		"Big catches are worth more. Patience is the best bait.",
 	},
 	guideEvent = "The sea changed... now's the time to try for the rare ones!",
+	omenLegendary = "THE SEA IS STIRRING...",
+	omenLegendarySub = "Something legendary took the bait!",
+	odds = "1 in %s",
 }
 
 local function forLocale(locale: string): Strings
