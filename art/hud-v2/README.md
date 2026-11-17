@@ -2,7 +2,7 @@
 
 Peças geradas individualmente como PNGs transparentes, com até 1024 px no maior lado. Os espaços livres nas artes foram reservados para o texto localizado do jogo.
 
-O teste de upload pelo MCP do Studio falhou ao ler o PNG `moedas.png` servido por HTTP local. A integração está pausada.
+As 15 imagens foram publicadas no Roblox. Os identificadores estão em [ASSET_IDS.md](ASSET_IDS.md).
 
 - [moedas.png](moedas.png) — Placa azul com moeda dourada; área livre para o saldo.
 - [botao-colecao.png](botao-colecao.png) — Livro ciano com peixe sorridente.

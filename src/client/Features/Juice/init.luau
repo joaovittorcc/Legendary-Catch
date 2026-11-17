@@ -84,7 +84,13 @@ function Juice.flyCoins(amount: number, origin: Vector2?)
 		)
 		tween.Completed:Once(function()
 			coin:Destroy()
-			pulse(target)
+			if
+				target.Parent
+				and not reduceEffects()
+				and not target:FindFirstChild("MotionScale")
+			then
+				pulse(target)
+			end
 		end)
 		tween:Play()
 	end

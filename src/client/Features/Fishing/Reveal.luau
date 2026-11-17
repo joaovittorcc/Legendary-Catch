@@ -30,7 +30,7 @@ local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
-local Wood = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Wood"))
+local Art = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Art"))
 
 local Reveal = {}
 
@@ -128,17 +128,11 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		Color3.new(1, 1, 1)
 	)
 	title.TextStrokeTransparency = 0
-	local badge = Wood.rarityBadge(card, color)
-	badge.Position = UDim2.fromScale(0.5, 0.57)
-	local rarityLabel = Ui.label(
-		badge,
-		"Rarity",
-		UDim2.fromScale(0.94, 0.93),
-		UDim2.fromScale(0.03, 0.02),
-		Theme.rarityLabel(rarity),
-		Theme.sand
-	)
-	rarityLabel.TextStrokeTransparency = 0.5
+	local badge, rarityLabel = Art.rarity(card)
+	badge.AnchorPoint = Vector2.new(0.5, 0)
+	badge.Position = UDim2.fromScale(0.5, 0.56)
+	badge.Size = UDim2.fromScale(0.44, 0.2)
+	Art.setRarity(badge, rarityLabel, rarity)
 	if info and (info.isNew or info.variant == "Shiny") then
 		Ui.label(
 			card,

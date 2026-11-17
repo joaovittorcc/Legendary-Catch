@@ -1,4 +1,5 @@
 --!strict
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -9,7 +10,9 @@ local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"
 local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
-local Wood = require(script:WaitForChild("Wood"))
+local Art = require(script:WaitForChild("Art"))
+local Assets = require(script:WaitForChild("Assets"))
+local Motion = require(script:WaitForChild("Motion"))
 local RodHotbar = require(script:WaitForChild("RodHotbar"))
 
 local Hud = { order = 10 }
@@ -62,6 +65,16 @@ function Hud.toast(message: string, tint: Color3?)
 end
 
 function Hud.start()
+	task.spawn(function()
+		local images =
+			{ Assets.coins, Assets.gift, Assets.goal, Assets.progress, Assets.rod, Assets.panel }
+		for _, set in { Assets.navigation, Assets.rarity } do
+			for _, id in set do
+				table.insert(images, id)
+			end
+		end
+		ContentProvider:PreloadAsync(images)
+	end)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "AdventureHud"
 	gui.ResetOnSpawn = false
@@ -80,36 +93,30 @@ function Hud.start()
 
 	local coins = Instance.new("Frame")
 	coins.Name = "Coins"
-	coins.Size = UDim2.fromScale(0.176, 0.85)
-	coins.Position = UDim2.fromScale(0, 0.075)
-	Wood.mount(coins, true)
-	local moneyIcon = Wood.icon(coins, "Coin", 56)
-	moneyIcon.AnchorPoint = Vector2.new(0, 0.5)
-	local balance = Wood.caption(coins, "Balance", "—", 49)
-	balance.TextXAlignment = Enum.TextXAlignment.Center
-	local function placeBalance()
-		local iconSize =
-			math.floor(math.min(coins.AbsoluteSize.Y * 0.74, coins.AbsoluteSize.X * 0.4))
-		local offset = math.max(8, math.floor(coins.AbsoluteSize.X * 0.095))
-		moneyIcon.Size = UDim2.fromOffset(iconSize, iconSize)
-		moneyIcon.Position = UDim2.new(0, offset, 0.5, 0)
-		balance.Size = UDim2.new(1, -(iconSize + offset + 8), 1, -6)
-		balance.Position = UDim2.fromOffset(iconSize + offset + 2, 3)
-	end
-	coins:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeBalance)
+	coins.BackgroundTransparency = 1
+	Art.image(coins, Assets.coins)
+	local balance = Art.caption(coins, "Balance", "—", 48)
+	balance.Size = UDim2.fromScale(0.57, 0.64)
+	balance.Position = UDim2.fromScale(0.37, 0.17)
 	coins.Parent = bar
-	placeBalance()
+	local coinMotion = Motion.mount(coins, 0, 8)
 	local counted = Instance.new("NumberValue")
 	counted.Parent = coins
 	counted.Changed:Connect(function(value)
 		balance.Text = tostring(math.round(value))
 	end)
 	local coinTween: Tween? = nil
+	local previousAmount: number? = nil
 	local function updateCoins()
 		local amount = player:GetAttribute("Coins")
 		if typeof(amount) ~= "number" then
 			balance.Text = "—"
 			return
+		end
+		local before = previousAmount
+		previousAmount = amount
+		if before and amount > before then
+			coinMotion.pulse(0.96)
 		end
 		if coinTween then
 			coinTween:Cancel()
@@ -140,47 +147,45 @@ function Hud.start()
 		{ id = "Settings", title = Text.settings },
 	}
 	for i, entry in entries do
-		local button = Instance.new("TextButton")
+		local button = Art.button(Assets.navigation[entry.id])
 		button.Name = entry.id
-		button.Position = UDim2.fromScale(0.243 + (i - 1) * 0.133, 0)
-		button.Size = UDim2.fromScale(0.124, 1)
-		button.Text = ""
-		local edge = Wood.mount(button, true)
-		local idle = edge.Color
-		local icon = Wood.icon(button, entry.id, 29)
-		icon.AnchorPoint = Vector2.new(0.5, 0)
-		icon.Position = UDim2.fromScale(0.5, 0.041)
-		local label = Wood.caption(button, "Label", entry.title, 31)
-		label.Position = UDim2.new(0, 6, 0.65, 0)
-		label.Size = UDim2.new(1, -12, 0.31, 0)
-		local function layoutIcon()
-			local size =
-				math.floor(math.min(button.AbsoluteSize.X * 0.64, button.AbsoluteSize.Y * 0.69))
-			icon.Size = UDim2.fromOffset(size, size)
-		end
-		button:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutIcon)
+		button.AnchorPoint = Vector2.new(0.5, 0.5)
+		local label = Art.caption(button, "Label", entry.title, 29)
+		label.Position = UDim2.fromScale(0.1, 0.731)
+		label.Size = UDim2.fromScale(0.8, 0.19)
+		Motion.mount(button, 0.65, 6 + i * 0.42)
 		Hud.panelChanged:Connect(function(name)
 			local selected = name == entry.id
 				or (entry.id == "Collection" and name == "Milestones")
 				or (entry.id == "Shop" and name == "Robux")
-			edge.Color = if selected then Theme.crystal else idle
+			button.ImageColor3 = if selected
+				then Color3.fromRGB(235, 217, 255)
+				else Color3.new(1, 1, 1)
 		end)
 		button.Activated:Connect(function()
 			Hud.showPanel(if currentPanel == entry.id then "" else entry.id)
 		end)
 		button.Parent = bar
-		layoutIcon()
 	end
 	local function layout()
 		local size = gui.AbsoluteSize
-		local narrow = size.X < 520
-		bar.Size = UDim2.new(0.966, 0, 0, math.clamp(math.round(size.Y * 0.132), 48, 132))
+		local width = size.X * 0.966
+		local height = math.clamp(math.round(size.Y * 0.14), 50, 123)
+		bar.Size = UDim2.new(0.966, 0, 0, height)
+		local coinWidth = math.round(math.min(width * 0.205, height * 2.05))
+		coins.Size = UDim2.fromOffset(coinWidth, math.round(height * 0.84))
+		coins.Position = UDim2.fromOffset(0, math.round(height * 0.08))
+		local gap = math.clamp(width * 0.008, 4, 12)
+		local buttonWidth =
+			math.floor(math.min(height * 1.30, (width - coinWidth - gap * 4) / #entries))
+		local groupWidth = buttonWidth * #entries + gap * (#entries - 1)
+		local left = math.max(coinWidth + gap, (width - groupWidth) / 2)
 		for i, entry in entries do
-			local button = bar:FindFirstChild(entry.id) :: TextButton
-			button.Size = UDim2.fromScale(if narrow then 0.197 else 0.124, 1)
-			button.Position = UDim2.fromScale(
-				if narrow then 0.209 + (i - 1) * 0.198 else 0.243 + (i - 1) * 0.133,
-				0
+			local button = bar:FindFirstChild(entry.id) :: ImageButton
+			button.Size = UDim2.fromOffset(buttonWidth, height)
+			button.Position = UDim2.fromOffset(
+				math.round(left + buttonWidth / 2 + (i - 1) * (buttonWidth + gap)),
+				height / 2
 			)
 		end
 		resized:Fire()
@@ -191,16 +196,14 @@ function Hud.start()
 	badge.Name = "RecentRarity"
 	badge.AnchorPoint = Vector2.new(0, 0)
 	badge.Position = UDim2.fromScale(0.027, 0.32)
-	badge.Size = UDim2.fromScale(0.137, 0.066)
+	badge.Size = UDim2.fromScale(0.16, 0.053)
 	badge.Visible = false
 	local badgeBounds = Instance.new("UISizeConstraint")
-	badgeBounds.MinSize = Vector2.new(79, 24)
+	badgeBounds.MinSize = Vector2.new(106, 25)
 	badgeBounds.MaxSize = Vector2.new(222, 55)
 	badgeBounds.Parent = badge
-	local badgeTrim = Wood.mount(badge, true, Color3.fromRGB(36, 70, 66))
-	local rarityText = Wood.caption(badge, "Rarity", "", 29)
-	rarityText.Position = UDim2.fromOffset(9, 2)
-	rarityText.Size = UDim2.new(1, -18, 1, -4)
+	badge.BackgroundTransparency = 1
+	local badgeArt, rarityText = Art.rarity(badge)
 	badge.Parent = gui
 	local recent = 0
 	Hud.panelChanged:Connect(function(name)
@@ -212,8 +215,7 @@ function Hud.start()
 		update.OnClientEvent:Connect(function(payload: Net.FishingUpdate)
 			local creature = if payload.creatureId then Creatures.get(payload.creatureId) else nil
 			if payload.event == "caught" and creature then
-				rarityText.Text = Theme.rarityLabel(creature.rarity)
-				badgeTrim.Color = Theme.rarity[creature.rarity] or Theme.gold
+				Art.setRarity(badgeArt, rarityText, creature.rarity)
 				recent = os.clock() + 8
 				local deadline = recent
 				badge.Visible = currentPanel == ""

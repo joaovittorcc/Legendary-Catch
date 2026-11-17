@@ -5,6 +5,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Hud = require(script.Parent)
+local Art = require(script.Parent:WaitForChild("Art"))
+local Assets = require(script.Parent:WaitForChild("Assets"))
 
 local Panel = {}
 
@@ -51,7 +53,9 @@ function Panel.create(
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, if heightScale then 0.53 else 0.55)
 	shell.Size = UDim2.fromScale(0.85, heightScale or 0.72)
-	Theme.surface(shell, accent, 16, Color3.fromRGB(28, 40, 57))
+	shell.BackgroundTransparency = 1
+	local background = Art.image(shell, Assets.panel, "PanelArt")
+	Art.slice(background, Rect.new(95, 93, 929, 510), 0.18)
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(680, maxHeight or 530)
 	bounds.Parent = shell
@@ -75,7 +79,7 @@ function Panel.create(
 	local close = Panel.button(shell, Text.close, accent)
 	close.Size = UDim2.fromOffset(86, 44)
 	close.AnchorPoint = Vector2.new(1, 0)
-	close.Position = UDim2.new(1, -8, 0, 6)
+	close.Position = UDim2.new(1, -16, 0, 9)
 	close.Activated:Connect(function()
 		Hud.showPanel("")
 	end)
@@ -83,8 +87,8 @@ function Panel.create(
 	local scroll = Instance.new("ScrollingFrame")
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
-	scroll.Position = UDim2.fromOffset(10, 58)
-	scroll.Size = UDim2.new(1, -20, 1, -66)
+	scroll.Position = UDim2.fromOffset(16, 58)
+	scroll.Size = UDim2.new(1, -32, 1, -73)
 	scroll.ScrollBarThickness = 5
 	scroll.ScrollBarImageColor3 = accent
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y

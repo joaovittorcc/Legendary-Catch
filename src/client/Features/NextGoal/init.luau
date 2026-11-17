@@ -14,7 +14,9 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Types = require(Shared:WaitForChild("Types"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
-local Wood = require(script.Parent.Hud:WaitForChild("Wood"))
+local Art = require(script.Parent.Hud:WaitForChild("Art"))
+local Assets = require(script.Parent.Hud:WaitForChild("Assets"))
+local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 
 local NextGoal = { order = 125 }
 local player = Players.LocalPlayer
@@ -97,76 +99,45 @@ function NextGoal.start()
 	local minigame = fishing:WaitForChild("Panel") :: Frame
 	local announcements = playerGui:WaitForChild("CatchAnnouncements")
 
-	local chip = Instance.new("TextButton")
+	local chip = Art.button(Assets.goal)
 	chip.Name = "NextGoal"
-	chip.Text = ""
 	chip.Visible = false
 	chip.AnchorPoint = Vector2.new(0.5, 0)
 	chip.Size = UDim2.new(0.55, 0, 0, 52)
-	Wood.mount(chip, true, Color3.fromRGB(40, 76, 69))
-	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(1000, 110)
-	bounds.Parent = chip
-
-	local icons = {
-		Shop = Wood.icon(chip, "Rod", 34),
-		Milestones = Wood.icon(chip, "Collection", 34),
-		Missions = Wood.icon(chip, "Missions", 34),
-	} :: { [string]: Frame }
-	for _, icon in icons do
-		icon.Position = UDim2.fromOffset(13, 8)
-		icon.Visible = false
-	end
-	local heading = Wood.caption(chip, "Heading", Text.title, 28, Theme.gold)
-	heading.Size = UDim2.new(1, -68, 0, 15)
-	heading.Position = UDim2.fromOffset(54, 4)
+	Motion.mount(chip, 0, 8.6)
+	local heading = Art.caption(chip, "Heading", Text.title, 26, Theme.gold)
+	heading.Position = UDim2.fromScale(0.32, 0.105)
+	heading.Size = UDim2.fromScale(0.62, 0.29)
 	heading.TextXAlignment = Enum.TextXAlignment.Left
-	local message = Wood.caption(chip, "Objective", "", 25)
-	message.Size = UDim2.new(1, -68, 0, 17)
-	message.Position = UDim2.fromOffset(54, 19)
+	local message = Art.caption(chip, "Objective", "", 23)
+	message.Position = UDim2.fromScale(0.32, 0.4)
+	message.Size = UDim2.fromScale(0.62, 0.29)
 	message.TextXAlignment = Enum.TextXAlignment.Left
 
 	local track = Instance.new("Frame")
-	track.Size = UDim2.new(1, -69, 0, 6)
-	track.Position = UDim2.fromOffset(54, 39)
-	track.BackgroundColor3 = Color3.fromRGB(41, 27, 17)
+	track.Name = "Track"
+	track.Position = UDim2.fromScale(0.32, 0.74)
+	track.Size = UDim2.fromScale(0.61, 0.15)
+	track.BackgroundColor3 = Color3.fromRGB(66, 34, 121)
 	track.BorderSizePixel = 0
-	Theme.corner(track, 2)
+	Theme.corner(track, 5)
 	track.Parent = chip
 	local fill = Instance.new("Frame")
 	fill.Name = "Progress"
-	fill.BackgroundColor3 = Theme.gold
+	fill.BackgroundColor3 = Color3.fromRGB(246, 169, 43)
 	fill.BorderSizePixel = 0
-	Theme.corner(fill, 2)
-	local sheen = Instance.new("UIGradient")
-	sheen.Rotation = 90
-	sheen.Color = ColorSequence.new(Color3.new(1, 1, 1), Color3.fromRGB(203, 140, 43))
-	sheen.Parent = fill
+	fill.ZIndex = track.ZIndex + 1
+	Theme.corner(fill, 5)
 	fill.Parent = track
+	local golden = Art.image(fill, Assets.progress)
+	golden.ZIndex = fill.ZIndex + 1
 
 	local function place()
 		local width = hud.AbsoluteSize.X
-		local height = math.clamp(math.round(hud.AbsoluteSize.Y * 0.102), 46, 110)
-		local wide = width > 1000
-		chip.Size = UDim2.new(if width < 520 then 0.81 else 0.55, 0, 0, height)
-		local iconSize = math.round(height * 0.83)
-		local left = iconSize + 18
-		for _, icon in icons do
-			icon.Size = UDim2.fromOffset(iconSize, iconSize)
-			icon.Position = UDim2.fromOffset(10, (height - iconSize) / 2)
-		end
-		heading.Position = UDim2.new(0, left, 0.08, 0)
-		heading.Size = UDim2.new(if wide then 0.47 else 1, -left - 10, 0.35, 0)
-		message.Position = UDim2.new(0, left, 0.42, 0)
-		message.Size = UDim2.new(if wide then 0.49 else 1, -left - 10, 0.33, 0)
-		track.Position = if wide then UDim2.fromScale(0.50, 0.49) else UDim2.new(0, left, 0.81, 0)
-		track.Size = if wide then UDim2.fromScale(0.46, 0.21) else UDim2.new(1, -left - 14, 0.12, 0)
-		chip.Position = UDim2.new(
-			0.5,
-			0,
-			navigation.Position.Y.Scale,
-			navigation.Position.Y.Offset + navigation.AbsoluteSize.Y + 7
-		)
+		local height = math.clamp(math.round(hud.AbsoluteSize.Y * 0.108), 50, 88)
+		chip.Size = UDim2.fromOffset(math.round(math.min(width * 0.82, height * 4.5)), height)
+		chip.Position =
+			UDim2.new(0.5, 0, 0, navigation.Position.Y.Offset + navigation.Size.Y.Offset + 7)
 	end
 	Hud.layoutChanged:Connect(place)
 	place()
@@ -190,11 +161,9 @@ function NextGoal.start()
 			else nil
 		local current = goal
 		if current then
-			for panel, icon in icons do
-				icon.Visible = panel == current.panel
-			end
 			message.Text = current.text
 			fill.Size = UDim2.fromScale(current.progress, 1)
+			fill.Visible = current.progress > 0
 		end
 		refreshVisibility()
 	end

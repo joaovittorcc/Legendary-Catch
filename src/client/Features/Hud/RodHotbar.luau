@@ -6,10 +6,11 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
-local Wood = require(script.Parent:WaitForChild("Wood"))
+local Art = require(script.Parent:WaitForChild("Art"))
+local Assets = require(script.Parent:WaitForChild("Assets"))
+local Motion = require(script.Parent:WaitForChild("Motion"))
 
 local RodHotbar = {}
 local player = Players.LocalPlayer
@@ -17,21 +18,19 @@ local action = "AdventureRodSlot"
 local backpackGui = Enum.CoreGuiType.Backpack
 
 function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: () -> string)
-	local slot = Instance.new("TextButton")
+	local slot = Art.button(Assets.rod)
 	slot.Name = "RodHotbar"
-	slot.Text = ""
 	slot.AnchorPoint = Vector2.new(0.5, 1)
 	slot.Position = UDim2.new(0.5, 0, 1, -10)
 	slot.Size = UDim2.fromOffset(62, 64)
 	slot.Visible = false
-	local trim = Wood.mount(slot, true, Color3.fromRGB(25, 76, 76))
-	local inactiveColor = trim.Color
-	local caption = Wood.caption(slot, "ItemName", Text.rodSlot, 26)
-	caption.Size = UDim2.new(1, -8, 0, 17)
-	caption.Position = UDim2.new(0, 4, 1, -20)
-	local key = Wood.caption(slot, "Shortcut", "1", 11, Theme.gold)
-	key.Size = UDim2.fromOffset(12, 12)
-	key.Position = UDim2.fromOffset(6, 5)
+	local caption = Art.caption(slot, "ItemName", Text.rodSlot, 26)
+	caption.Size = UDim2.fromScale(0.78, 0.18)
+	caption.Position = UDim2.fromScale(0.11, 0.75)
+	local key = Art.caption(slot, "Shortcut", "1", 15, Theme.gold)
+	key.Size = UDim2.fromScale(0.2, 0.2)
+	key.Position = UDim2.fromScale(0.13, 0.1)
+	Motion.mount(slot, 0, 8)
 	slot.Parent = gui
 
 	local character: Model? = nil
@@ -39,17 +38,9 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 	local rigSignals: { RBXScriptConnection } = {}
 	local bagSignals: { RBXScriptConnection } = {}
 	local tool: Tool? = nil
-	local icon: Frame? = nil
-	local iconRod: string? = nil
 	local function layout()
-		local height = math.clamp(math.round(gui.AbsoluteSize.Y * 0.18), 58, 174)
-		slot.Size = UDim2.fromOffset(math.round(height * 0.96), height)
-		caption.Size = UDim2.new(1, -13, 0.24, 0)
-		caption.Position = UDim2.new(0, 6, 0.735, 0)
-		if icon then
-			local size = math.round(height * 0.69)
-			icon.Size = UDim2.fromOffset(size, size)
-		end
+		local height = math.clamp(math.round(gui.AbsoluteSize.Y * 0.175), 58, 160)
+		slot.Size = UDim2.fromOffset(height, height)
 	end
 	local nativeEnabled: boolean? = nil
 	local queued = false
@@ -96,26 +87,11 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 			and panel() == ""
 			and not minigame.Visible
 			and player:GetAttribute("CatchRevealActive") ~= true
-		trim.Color = if current and current.Parent == character
-			then Theme.crystal
-			else inactiveColor
+		slot.ImageColor3 = if current and current.Parent == character
+			then Color3.new(1, 1, 1)
+			else Color3.fromRGB(218, 219, 242)
 		key.Visible = UserInputService.KeyboardEnabled
 			and UserInputService:GetLastInputType() ~= Enum.UserInputType.Touch
-		if current then
-			local id = current:GetAttribute("RodId")
-			local rodId = if typeof(id) == "string" then id else Rods.STARTER
-			if iconRod ~= rodId then
-				if icon then
-					icon:Destroy()
-				end
-				local rod = Rods.get(rodId)
-				local newIcon = Wood.icon(slot, "Rod", 38, if rod then rod.tipColor else nil)
-				newIcon.AnchorPoint = Vector2.new(0.5, 0)
-				newIcon.Position = UDim2.new(0.5, 0, 0, 5)
-				icon, iconRod = newIcon, rodId
-				layout()
-			end
-		end
 	end
 
 	local function schedule()
