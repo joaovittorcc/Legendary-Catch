@@ -1,6 +1,8 @@
 --!strict
 -- Server authority for fishing: validates the cast spot, waits for the bite, rolls the
 -- creature (kept secret until the catch), picks one minigame and judges the result.
+-- On a catch it rolls the weight, pays coins and records the collection entry.
+-- Other players see the line through Character attributes (FishingState/Target/Rarity).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -11,9 +13,14 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
+local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
-local Training = require(script.Parent:WaitForChild("Training"))
+local Features = script.Parent
+local OceanEvents = require(Features:WaitForChild("OceanEvents"))
+local PlayerData = require(Features:WaitForChild("PlayerData"))
+local Training = require(Features:WaitForChild("Training"))
+local Remotes = require(Features.Parent:WaitForChild("Remotes"))
 
 type Session = {
 	phase: string, -- "idle" | "waiting" | "fighting"
@@ -25,6 +32,7 @@ type Session = {
 }
 
 local Fishing = {}
+Fishing.order = 50
 
 local sessions: { [Player]: Session } = {}
 local rng = Random.new()
@@ -43,12 +51,24 @@ local function send(player: Player, payload: Net.FishingUpdate)
 	update:FireClient(player, payload)
 end
 
-local function inFishingZone(player: Player): boolean
+local function rootOf(player: Player): BasePart?
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
-	if not (root and root:IsA("BasePart")) then
-		return false
+	return if root and root:IsA("BasePart") then root else nil
+end
+
+-- Mirrors the session on the character so other clients can draw this player's line.
+local function publish(player: Player, state: string, target: Vector3?, rarity: string?)
+	local character = player.Character
+	if not character then
+		return
 	end
+	character:SetAttribute("FishingState", state)
+	character:SetAttribute("FishingTarget", target)
+	character:SetAttribute("FishingRarity", rarity or "")
+end
+
+local function inFishingZone(root: BasePart): boolean
 	for _, zone in CollectionService:GetTagged(FishingConfig.ZONE_TAG) do
 		if zone:IsA("BasePart") then
 			local localPos = zone.CFrame:PointToObjectSpace(root.Position)
@@ -89,13 +109,26 @@ local function devOverride(player: Player, attribute: string): string?
 	return if typeof(value) == "string" and value ~= "" then value else nil
 end
 
--- Instinct training tilts the odds toward rarer creatures (capped in Config/Training).
+local function equippedRod(player: Player): Rods.Rod?
+	local profile = PlayerData.get(player)
+	return if profile then Rods.get(profile.equippedRod) else nil
+end
+
+-- Instinct training, the equipped rod and the active ocean event all tilt the odds
+-- toward rarer creatures (each capped in its own config).
 local function luckyWeights(player: Player): { [string]: number }
 	local instinct = Training.level(player, "Instinct")
+	local rod = equippedRod(player)
+	local event = OceanEvents.current()
 	local weights: { [string]: number } = {}
 	for rank, rarity in FishingConfig.RARITY_ORDER do
-		weights[rarity] = (FishingConfig.RARITY_WEIGHTS[rarity] or 0)
+		local w = (FishingConfig.RARITY_WEIGHTS[rarity] or 0)
 			* TrainingConfig.luckMultiplier(instinct, rank)
+			* Rods.luckMultiplier(rod, rank)
+		if event then
+			w *= event.rarityBoost[rarity] or 1
+		end
+		weights[rarity] = w
 	end
 	return weights
 end
@@ -118,10 +151,18 @@ local function rollMinigame(player: Player): string
 	return FishingConfig.MINIGAMES[rng:NextInteger(1, #FishingConfig.MINIGAMES)]
 end
 
-local function reset(s: Session)
+-- Most catches are near the light end; trophy weights are rare.
+local function rollWeight(creature: Creatures.Creature): number
+	local t = rng:NextNumber() ^ 1.8
+	local kg = creature.weightMin + (creature.weightMax - creature.weightMin) * t
+	return math.floor(kg * 100 + 0.5) / 100
+end
+
+local function reset(player: Player, s: Session)
 	s.phase = "idle"
 	s.kind = ""
 	s.creatureId = ""
+	publish(player, "", nil, nil)
 end
 
 local function onCast(player: Player)
@@ -130,7 +171,15 @@ local function onCast(player: Player)
 	if s.phase ~= "idle" or now - s.lastCast < FishingConfig.CAST_COOLDOWN then
 		return
 	end
-	if not inFishingZone(player) then
+	local root = rootOf(player)
+	if not root then
+		return
+	end
+	if not PlayerData.get(player) then
+		send(player, { event = "rejected", reason = "loading" })
+		return
+	end
+	if not inFishingZone(root) then
 		send(player, { event = "rejected", reason = "notInZone" })
 		return
 	end
@@ -138,6 +187,11 @@ local function onCast(player: Player)
 	s.castId += 1
 	s.phase = "waiting"
 	local castId = s.castId
+	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	local target = root.Position
+		+ (if flat.Magnitude > 0 then flat.Unit else Vector3.zAxis)
+			* FishingConfig.CAST_DISTANCE
+	publish(player, "waiting", Vector3.new(target.X, 0, target.Z), nil)
 	send(player, { event = "cast", castId = castId })
 
 	task.delay(
@@ -151,6 +205,13 @@ local function onCast(player: Player)
 			s.kind = rollMinigame(player)
 			s.creatureId = creature.id
 			s.fightStart = os.clock()
+			local character = player.Character
+			publish(
+				player,
+				"fighting",
+				character and character:GetAttribute("FishingTarget") :: Vector3?,
+				creature.rarity
+			)
 			-- Only the rarity goes to the client: the creature stays hidden until the catch.
 			send(player, {
 				event = "bite",
@@ -162,12 +223,47 @@ local function onCast(player: Player)
 
 			task.delay(FishingConfig.FIGHT_TIMEOUT, function()
 				if sessions[player] == s and s.castId == castId and s.phase == "fighting" then
-					reset(s)
+					reset(player, s)
 					send(player, { event = "escaped", castId = castId })
 				end
 			end)
 		end
 	)
+end
+
+local function payCatch(player: Player, creature: Creatures.Creature, castId: number)
+	local weight = rollWeight(creature)
+	local event = OceanEvents.current()
+	local value = math.floor(
+		Creatures.valueFor(creature, weight) * (if event then event.valueMultiplier else 1)
+	)
+	local isNew, count = false, 1
+	PlayerData.update(player, function(p)
+		local entry = p.collection[creature.id]
+		if entry then
+			entry.count += 1
+			entry.bestWeight = math.max(entry.bestWeight, weight)
+		else
+			isNew = true
+			entry = { count = 1, bestWeight = weight, firstAt = os.time() }
+			p.collection[creature.id] = entry
+		end
+		count = entry.count
+		p.coins += value
+		p.stats.catches += 1
+		if creature.rarity == "Legendary" then
+			p.stats.legendaries += 1
+		end
+	end)
+	send(player, {
+		event = "caught",
+		castId = castId,
+		creatureId = creature.id,
+		weight = weight,
+		value = value,
+		isNew = isNew,
+		count = count,
+	})
 end
 
 local function onSubmit(player: Player, castId: unknown, success: unknown)
@@ -180,11 +276,10 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 	end
 	local elapsed = os.clock() - s.fightStart
 	local minimum = FishingConfig.MIN_FIGHT_SECONDS[s.kind] or 1
-	local caught = success and elapsed >= minimum
-	local creatureId = s.creatureId
-	reset(s)
-	if caught then
-		send(player, { event = "caught", castId = castId, creatureId = creatureId })
+	local creature = Creatures.get(s.creatureId)
+	reset(player, s)
+	if success and elapsed >= minimum and creature then
+		payCatch(player, creature, castId)
 	else
 		send(player, { event = "escaped", castId = castId })
 	end
@@ -193,31 +288,31 @@ end
 local function onCancel(player: Player)
 	local s = sessions[player]
 	if s and s.phase ~= "idle" then
-		reset(s)
+		reset(player, s)
 		send(player, { event = "cancelled", castId = s.castId })
 	end
 end
 
 function Fishing.start()
-	local folder = ReplicatedStorage:FindFirstChild(Net.FOLDER) or Instance.new("Folder")
-	folder.Name = Net.FOLDER
-	folder.Parent = ReplicatedStorage
-
-	local function remote(name: string): RemoteEvent
-		local r = Instance.new("RemoteEvent")
-		r.Name = name
-		r.Parent = folder
-		return r
+	update = Remotes.event(Net.FISHING_UPDATE)
+	Remotes.onServerEvent(Net.CAST_LINE, 2, 3, onCast)
+	Remotes.onServerEvent(Net.CANCEL_FISHING, 2, 3, onCancel)
+	Remotes.onServerEvent(Net.SUBMIT_CATCH, 2, 3, onSubmit)
+	local function watch(player: Player)
+		player.CharacterRemoving:Connect(function()
+			local s = sessions[player]
+			if s and s.phase ~= "idle" then
+				s.phase = "idle"
+				s.kind = ""
+				s.creatureId = ""
+				send(player, { event = "cancelled", castId = s.castId })
+			end
+		end)
 	end
-
-	local cast = remote(Net.CAST_LINE)
-	local cancel = remote(Net.CANCEL_FISHING)
-	local submit = remote(Net.SUBMIT_CATCH)
-	update = remote(Net.FISHING_UPDATE)
-
-	cast.OnServerEvent:Connect(onCast)
-	cancel.OnServerEvent:Connect(onCancel)
-	submit.OnServerEvent:Connect(onSubmit)
+	Players.PlayerAdded:Connect(watch)
+	for _, player in Players:GetPlayers() do
+		watch(player)
+	end
 	Players.PlayerRemoving:Connect(function(player)
 		sessions[player] = nil
 	end)

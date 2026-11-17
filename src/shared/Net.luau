@@ -9,6 +9,10 @@ export type FishingUpdate = {
 	rarity: string?,
 	creatureId: string?,
 	reason: string?,
+	weight: number?, -- kg, on "caught"
+	value: number?, -- coins earned, on "caught"
+	isNew: boolean?, -- first time this creature was caught
+	count: number?, -- total caught of this creature, including this one
 }
 
 export type TrainingUpdate = {
@@ -29,6 +33,18 @@ local Net = {
 	STOP_TRAINING = "StopTraining",
 	TRAINING_RING_RESULT = "TrainingRingResult",
 	TRAINING_UPDATE = "TrainingUpdate",
+	PROFILE_SNAPSHOT = "ProfileSnapshot",
+	REQUEST_PROFILE = "RequestProfile",
+	BUY_ROD = "BuyRod",
+	EQUIP_ROD = "EquipRod",
+	SHOP_RESULT = "ShopResult",
+}
+
+export type ShopResult = {
+	ok: boolean,
+	action: string, -- "buy" | "equip"
+	rodId: string,
+	reason: string?, -- "noCoins" | "owned" | "notOwned" | "unknown"
 }
 
 return Net

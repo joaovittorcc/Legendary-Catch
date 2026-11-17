@@ -30,6 +30,8 @@ local MINIGAMES: { [string]: Minigame } = {
 local ROD_NAME = "Rod"
 
 local Fishing = {}
+-- Starts before Training: it creates the shared HUD (Ui.init).
+Fishing.order = 20
 
 local player = Players.LocalPlayer
 local remotes: Folder
@@ -197,7 +199,9 @@ local function onCaught(update: Net.FishingUpdate)
 	local rarity = if creature then creature.rarity else "Common"
 	local origin = l.rest
 	Line.reelIn(l, 0.3)
-	Reveal.play(creatureId, rarity, origin, root)
+	-- 5th arg: the whole "caught" payload (weight, value, isNew, count) for the reveal card.
+	local play: any = Reveal.play
+	play(creatureId, rarity, origin, root, update)
 	cleanup()
 end
 
@@ -214,7 +218,8 @@ end
 local function onUpdate(update: Net.FishingUpdate)
 	if update.event == "rejected" then
 		state = "idle"
-		Ui.toast(Strings.notInZone, Color3.fromRGB(255, 220, 120))
+		local message = if update.reason == "loading" then Strings.loading else Strings.notInZone
+		Ui.toast(message, Color3.fromRGB(255, 220, 120))
 	elseif update.event == "cast" and state == "casting" then
 		startCast(update.castId or 0)
 	elseif update.castId ~= castId then

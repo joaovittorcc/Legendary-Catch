@@ -3,8 +3,7 @@
 -- (Control / Instinct). While training, XP ticks in every second; now and then a rhythm
 -- ring event is offered for bonus XP. Walking away from the spot stops it.
 --
--- Levels live in player attributes for this test build: they reset when the player
--- leaves (no DataStore yet; persistence comes with the profile system).
+-- Levels live in the player profile (PlayerData); the profile mirrors them as attributes.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -15,6 +14,9 @@ local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
+local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
+local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
+
 type Session = {
 	stat: string,
 	spot: BasePart,
@@ -24,19 +26,16 @@ type Session = {
 }
 
 local Training = {}
+Training.order = 40
 
 local sessions: { [Player]: Session } = {}
 local rng = Random.new()
 local update: RemoteEvent
 
 local function level(player: Player, stat: string): number
-	local v = player:GetAttribute(TrainingConfig.levelAttribute(stat))
-	return if typeof(v) == "number" then v else 0
-end
-
-local function xp(player: Player, stat: string): number
-	local v = player:GetAttribute(TrainingConfig.xpAttribute(stat))
-	return if typeof(v) == "number" then v else 0
+	local profile = PlayerData.get(player)
+	local t = profile and profile.training[stat]
+	return if t then t.level else 0
 end
 
 local function rootOf(player: Player): BasePart?
@@ -60,11 +59,13 @@ local function stop(player: Player, reason: string)
 end
 
 local function addXp(player: Player, stat: string, amount: number)
-	local lvl = level(player, stat)
-	if lvl >= TrainingConfig.MAX_LEVEL then
+	local profile = PlayerData.get(player)
+	local t = profile and profile.training[stat]
+	if not t or t.level >= TrainingConfig.MAX_LEVEL then
 		return
 	end
-	local total = xp(player, stat) + amount
+	local lvl = t.level
+	local total = t.xp + amount
 	while lvl < TrainingConfig.MAX_LEVEL and total >= TrainingConfig.xpToNext(lvl) do
 		total -= TrainingConfig.xpToNext(lvl)
 		lvl += 1
@@ -76,12 +77,13 @@ local function addXp(player: Player, stat: string, amount: number)
 	if lvl >= TrainingConfig.MAX_LEVEL then
 		total = 0
 	end
-	player:SetAttribute(TrainingConfig.levelAttribute(stat), lvl)
-	player:SetAttribute(TrainingConfig.xpAttribute(stat), total)
+	PlayerData.update(player, function(p)
+		p.training[stat] = { level = lvl, xp = total }
+	end)
 end
 
 local function start(player: Player, stat: string, spot: BasePart)
-	if not near(player, spot) then
+	if not near(player, spot) or not PlayerData.get(player) then
 		return
 	end
 	sessions[player] = {
@@ -163,28 +165,14 @@ function Training.level(player: Player, stat: string): number
 end
 
 function Training.start()
-	local folder = ReplicatedStorage:WaitForChild(Net.FOLDER)
-	local function remote(name: string): RemoteEvent
-		local r = Instance.new("RemoteEvent")
-		r.Name = name
-		r.Parent = folder
-		return r
-	end
-	local stopRemote = remote(Net.STOP_TRAINING)
-	local ringRemote = remote(Net.TRAINING_RING_RESULT)
-	update = remote(Net.TRAINING_UPDATE)
-
-	stopRemote.OnServerEvent:Connect(function(player)
+	update = Remotes.event(Net.TRAINING_UPDATE)
+	Remotes.onServerEvent(Net.STOP_TRAINING, 2, 3, function(player)
 		stop(player, "manual")
 	end)
-	ringRemote.OnServerEvent:Connect(onRingResult)
+	Remotes.onServerEvent(Net.TRAINING_RING_RESULT, 2, 3, onRingResult)
 
 	local function initPlayer(player: Player)
 		player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, "")
-		for _, stat in TrainingConfig.STATS do
-			player:SetAttribute(TrainingConfig.levelAttribute(stat), level(player, stat))
-			player:SetAttribute(TrainingConfig.xpAttribute(stat), xp(player, stat))
-		end
 		player.CharacterRemoving:Connect(function()
 			stop(player, "respawn")
 		end)

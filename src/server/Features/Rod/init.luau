@@ -1,14 +1,28 @@
 --!strict
--- Builds the starter fishing rod Tool from parts (style of the reference video: slim dark
--- blank, gold guides, small reel, glowing tip). The client finds "Tip.LineAttachment" to
--- hang the line from.
+-- Rods: builds the fishing rod Tool from the equipped rod's config (slim blank, gold
+-- guides, small reel, glowing tip in the style of the reference video) and runs the
+-- workshop shop (buy / equip). The client finds "Tip.LineAttachment" to hang the line.
+-- Any part tagged WorkshopSpot gets the "OpenWorkshop" prompt; the shop UI listens to it.
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
-local StarterPack = game:GetService("StarterPack")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Net = require(Shared:WaitForChild("Net"))
+local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
+local Strings = require(Shared:WaitForChild("Strings"))
+
+local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
+local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
 local ROD_NAME = "Rod"
+local WORKSHOP_TAG = "WorkshopSpot"
 
 local Rod = {}
+Rod.order = 30
+
+local shopResult: RemoteEvent
 
 local function piece(
 	name: string,
@@ -45,16 +59,16 @@ local function attach(handle: BasePart, p: BasePart, offset: CFrame)
 	p.Parent = handle.Parent
 end
 
-local function build(): Tool
+local function build(rod: Rods.Rod): Tool
 	local tool = Instance.new("Tool")
 	tool.Name = ROD_NAME
 	tool.CanBeDropped = false
 	tool.RequiresHandle = true
-	tool.ToolTip = "Vara de pesca"
+	tool.ToolTip = Strings.rodName[rod.id] or rod.id
+	tool:SetAttribute("RodId", rod.id)
 	-- Rod points forward and up out of the right hand.
 	tool.Grip = CFrame.new(0, 0, 0.6) * CFrame.Angles(math.rad(-35), 0, 0)
 
-	local black = Color3.fromRGB(28, 26, 40)
 	local gold = Color3.fromRGB(255, 196, 92)
 
 	local handle = piece(
@@ -68,7 +82,7 @@ local function build(): Tool
 
 	attach(
 		handle,
-		piece("ButtCap", Vector3.new(0.38, 0.38, 0.25), black, Enum.Material.Metal),
+		piece("ButtCap", Vector3.new(0.38, 0.38, 0.25), rod.color, Enum.Material.Metal),
 		CFrame.new(0, 0, 0.95)
 	)
 	attach(
@@ -77,7 +91,6 @@ local function build(): Tool
 		CFrame.new(0, 0, -0.9)
 	)
 
-	-- Reel under the grip.
 	local reel = piece(
 		"Reel",
 		Vector3.new(0.5, 0.55, 0.55),
@@ -99,7 +112,12 @@ local function build(): Tool
 		local thick, len = s[1], s[2]
 		attach(
 			handle,
-			piece("Blank" .. i, Vector3.new(thick, thick, len), black, Enum.Material.SmoothPlastic),
+			piece(
+				"Blank" .. i,
+				Vector3.new(thick, thick, len),
+				rod.color,
+				Enum.Material.SmoothPlastic
+			),
 			CFrame.new(0, 0, z - len / 2)
 		)
 		z -= len
@@ -113,7 +131,7 @@ local function build(): Tool
 	local tip = piece(
 		"Tip",
 		Vector3.new(0.2, 0.2, 0.2),
-		Color3.fromRGB(150, 230, 255),
+		rod.tipColor,
 		Enum.Material.Neon,
 		Enum.PartType.Ball
 	)
@@ -123,7 +141,7 @@ local function build(): Tool
 	lineAttachment.Parent = tip
 	local glow = Instance.new("PointLight")
 	glow.Name = "TipGlow"
-	glow.Color = tip.Color
+	glow.Color = rod.tipColor
 	glow.Brightness = 1.2
 	glow.Range = 6
 	glow.Parent = tip
@@ -131,27 +149,133 @@ local function build(): Tool
 	return tool
 end
 
-local function give(player: Player, template: Tool)
+local function currentRod(player: Player): Rods.Rod
+	local profile = PlayerData.get(player)
+	return (profile and Rods.get(profile.equippedRod)) or (Rods.get(Rods.STARTER) :: Rods.Rod)
+end
+
+-- Replaces whatever rod the player carries with the equipped one (keeps it in hand if
+-- it was equipped). StarterPack only holds the starter for the very first spawn frame.
+local function giveRod(player: Player)
 	local backpack = player:FindFirstChildOfClass("Backpack")
-	if backpack and not backpack:FindFirstChild(ROD_NAME) then
-		local character = player.Character
-		if not (character and character:FindFirstChild(ROD_NAME)) then
-			template:Clone().Parent = backpack
+	if not backpack then
+		return
+	end
+	local character = player.Character
+	local wasHeld = false
+	local containers: { Instance } = { backpack }
+	if character then
+		table.insert(containers, character)
+	end
+	for _, container in containers do
+		if container then
+			for _, child in container:GetChildren() do
+				if child:IsA("Tool") and child.Name == ROD_NAME then
+					wasHeld = wasHeld or child.Parent == character
+					child:Destroy()
+				end
+			end
 		end
+	end
+	local tool = build(currentRod(player))
+	tool.Parent = backpack
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if wasHeld and humanoid then
+		humanoid:EquipTool(tool)
 	end
 end
 
+local function reply(player: Player, result: Net.ShopResult)
+	shopResult:FireClient(player, result)
+end
+
+local function onBuy(player: Player, rodId: unknown)
+	if typeof(rodId) ~= "string" then
+		return
+	end
+	local rod = Rods.get(rodId)
+	local profile = PlayerData.get(player)
+	if not rod or not profile then
+		reply(player, { ok = false, action = "buy", rodId = rodId, reason = "unknown" })
+		return
+	end
+	if table.find(profile.rodsOwned, rod.id) then
+		reply(player, { ok = false, action = "buy", rodId = rod.id, reason = "owned" })
+		return
+	end
+	if not PlayerData.trySpend(player, rod.price) then
+		reply(player, { ok = false, action = "buy", rodId = rod.id, reason = "noCoins" })
+		return
+	end
+	PlayerData.update(player, function(p)
+		table.insert(p.rodsOwned, rod.id)
+		p.equippedRod = rod.id
+	end)
+	giveRod(player)
+	reply(player, { ok = true, action = "buy", rodId = rod.id })
+end
+
+local function onEquip(player: Player, rodId: unknown)
+	if typeof(rodId) ~= "string" then
+		return
+	end
+	local profile = PlayerData.get(player)
+	if not profile or not Rods.get(rodId) then
+		reply(player, { ok = false, action = "equip", rodId = tostring(rodId), reason = "unknown" })
+		return
+	end
+	if not table.find(profile.rodsOwned, rodId) then
+		reply(player, { ok = false, action = "equip", rodId = rodId, reason = "notOwned" })
+		return
+	end
+	PlayerData.update(player, function(p)
+		p.equippedRod = rodId
+	end)
+	giveRod(player)
+	reply(player, { ok = true, action = "equip", rodId = rodId })
+end
+
+local function addWorkshopPrompt(spot: Instance)
+	if not spot:IsA("BasePart") or spot:FindFirstChild("OpenWorkshop") then
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenWorkshop"
+	prompt.ActionText = Strings.openWorkshop
+	prompt.ObjectText = Strings.workshop
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 12
+	prompt.RequiresLineOfSight = false
+	prompt.Parent = spot
+end
+
 function Rod.start()
-	local template = build()
-	local old = StarterPack:FindFirstChild(ROD_NAME)
-	if old then
-		old:Destroy()
+	shopResult = Remotes.event(Net.SHOP_RESULT)
+	Remotes.onServerEvent(Net.BUY_ROD, 2, 4, onBuy)
+	Remotes.onServerEvent(Net.EQUIP_ROD, 2, 4, onEquip)
+
+	-- Every spawn gets the equipped rod (StarterPack stays empty so there's never a duplicate).
+	local function watch(player: Player)
+		player.CharacterAdded:Connect(function()
+			PlayerData.wait(player)
+			giveRod(player)
+		end)
+		if player.Character then
+			task.spawn(function()
+				PlayerData.wait(player)
+				giveRod(player)
+			end)
+		end
 	end
-	template.Parent = StarterPack
-	-- Players already in game when the server starts (Studio) don't get StarterPack again.
+	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do
-		give(player, template)
+		watch(player)
 	end
+
+	for _, spot in CollectionService:GetTagged(WORKSHOP_TAG) do
+		addWorkshopPrompt(spot)
+	end
+	CollectionService:GetInstanceAddedSignal(WORKSHOP_TAG):Connect(addWorkshopPrompt)
 end
 
 return Rod
