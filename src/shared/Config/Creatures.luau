@@ -234,11 +234,7 @@ local LIST: { Creature } = {
 		weightMax = 300,
 		revealStyle = "magma",
 	},
-}
-
--- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
--- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
-local PLANNED: { Creature } = {
+	-- Batch 2 (C25–C34): models by Antigravity, released 2026-11-17 after review.
 	{
 		id = "C25_Ourico_Gelatina",
 		rarity = "Common",
@@ -330,6 +326,10 @@ local PLANNED: { Creature } = {
 		revealStyle = "prism",
 	},
 }
+
+-- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
+-- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
+local PLANNED: { Creature } = {}
 
 local byId: { [string]: Creature } = {}
 for _, c in LIST do
