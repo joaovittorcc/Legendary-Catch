@@ -57,20 +57,30 @@ Fishing.REEL = {
 }
 
 -- Precision bar: tap when the marker crosses the zone; 3 hits wins, 2 misses loses.
+-- The marker is erratic: it fakes direction changes ("goes, doesn't, comes back"), more
+-- often and more randomly at higher tiers. Each hit must happen within decisionSeconds
+-- of the previous one (or of the start); waiting too long counts as a miss.
 Fishing.PRECISION = {
 	hitsNeeded = 3,
 	missesAllowed = 2,
-	markerSpeed = { 0.55, 0.68, 0.8, 0.92, 1.05 },
-	zoneWidth = { 0.24, 0.21, 0.18, 0.16, 0.14 },
+	decisionSeconds = 5,
+	markerSpeed = { 0.7, 0.85, 1.0, 1.15, 1.3 },
+	zoneWidth = { 0.22, 0.19, 0.17, 0.15, 0.13 },
+	-- Chance per second that the marker reverses or fakes a reversal.
+	reverseRate = { 0.5, 0.8, 1.1, 1.4, 1.8 },
+	-- Random speed swing (fraction of markerSpeed) at each change.
+	speedJitter = { 0.1, 0.2, 0.3, 0.4, 0.5 },
 }
 
--- Rhythm rings: tap when the shrinking ring meets the circle.
+-- Rhythm ("osu"): full-screen circles, no background; tap each one as its ring closes.
+-- More circles and faster rings the rarer the creature (Legendary: 15, quick but fair).
 Fishing.RHYTHM = {
 	missesAllowed = 2,
-	rings = { 3, 4, 4, 5, 6 },
-	shrinkSeconds = { 1.5, 1.35, 1.2, 1.05, 0.95 },
-	window = 0.3,
-	gapSeconds = 0.35,
+	rings = { 3, 5, 8, 12, 15 },
+	shrinkSeconds = { 1.4, 1.2, 1.05, 0.9, 0.78 },
+	window = 0.28,
+	gapSeconds = 0.35, -- old single value, kept until the minigame reads gapByTier
+	gapByTier = { 0.45, 0.4, 0.35, 0.3, 0.26 },
 }
 
 -- Base odds of one specific creature of `rarity` (pool of `poolSize` creatures), as N in
