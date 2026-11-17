@@ -87,15 +87,31 @@ function Line.create(tip: Attachment): Line
 	local t = 0
 	self.conn = RunService.RenderStepped:Connect(function(dt)
 		t += dt
+		-- Sideways axis across the line (from the rod tip out to the bobber), so the bobber
+		-- and the line sweep from one side to the other.
+		local out = (self.rest - tip.WorldPosition) * Vector3.new(1, 0, 1)
+		local side = if out.Magnitude > 0.01 then out.Unit:Cross(Vector3.yAxis) else Vector3.xAxis
+		local forward = if out.Magnitude > 0.01 then out.Unit else Vector3.zAxis
 		if self.mode == "floating" then
-			bobber.Position = self.rest + Vector3.new(0, math.sin(t * 2.4) * 0.12, 0)
-		elseif self.mode == "fighting" then
+			-- Gentle drift with the current while waiting.
 			bobber.Position = self.rest
+				+ side * (math.sin(t * 0.7) * 0.9)
+				+ Vector3.new(0, math.sin(t * 2.4) * 0.12, 0)
+			beam.CurveSize0 = 1.5 + math.sin(t * 0.7) * 0.4
+		elseif self.mode == "fighting" then
+			-- The fish pulls the line wide from side to side, with a quick tremble on top.
+			local sweep = math.sin(t * 1.6) * 3.2 + math.sin(t * 4.1) * 0.6
+			bobber.Position = self.rest
+				+ side * sweep
+				+ forward * (math.sin(t * 0.9) * 0.8)
 				+ Vector3.new(
-					math.sin(t * 13) * 0.35,
+					math.sin(t * 13) * 0.2,
 					-0.35 + math.sin(t * 9) * 0.15,
-					math.cos(t * 11) * 0.35
+					math.cos(t * 11) * 0.2
 				)
+			-- Bend the line toward the pull.
+			beam.CurveSize0 = 1.2 + math.sin(t * 1.6) * 1.6
+			beam.CurveSize1 = -1 + math.cos(t * 1.6) * 0.8
 		end
 		local band = bobber:FindFirstChild("Band")
 		if band and band:IsA("BasePart") then

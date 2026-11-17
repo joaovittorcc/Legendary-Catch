@@ -13,6 +13,7 @@ local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishin
 local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
 
+local FishingCamera = require(script:WaitForChild("Camera"))
 local Line = require(script:WaitForChild("Line"))
 local PressInput = require(script:WaitForChild("PressInput"))
 local Reveal = require(script:WaitForChild("Reveal"))
@@ -102,6 +103,7 @@ local function cleanup()
 	PressInput.disable()
 	Ui.hidePanel()
 	freeze(false)
+	FishingCamera.stop()
 	zoomCamera(70)
 	local l = line
 	line = nil
@@ -144,6 +146,7 @@ local function startCast(id: number)
 	state = "waiting"
 	local l = Line.create(attachment)
 	line = l
+	FishingCamera.start(root, l.bobber)
 	local flat = (root.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
 	Line.castTo(l, root.Position + flat * FishingConfig.CAST_DISTANCE)
 	Ui.toast(Strings.waiting)
@@ -162,6 +165,7 @@ local function startFight(update: Net.FishingUpdate)
 
 	state = "fighting"
 	Line.bite(l, color)
+	FishingCamera.fight()
 	freeze(true)
 	zoomCamera(62)
 	PressInput.enable()
@@ -204,6 +208,8 @@ local function onCaught(update: Net.FishingUpdate)
 	end
 	PressInput.disable()
 	Ui.hidePanel()
+	-- The reveal plays around the player with the normal camera.
+	FishingCamera.stop()
 	local creature = Creatures.get(creatureId)
 	local rarity = if creature then creature.rarity else "Common"
 	local origin = l.rest
