@@ -336,6 +336,30 @@ function Rod.start()
 		watch(player)
 	end
 
+	-- The workshop preview (client) reads rod models from ReplicatedStorage.RodPreviews.
+	local library = ServerStorage:FindFirstChild("RodModels")
+	if library then
+		local previews = ReplicatedStorage:FindFirstChild("RodPreviews") or Instance.new("Folder")
+		previews.Name = "RodPreviews"
+		for _, model in library:GetChildren() do
+			if model:IsA("Model") and not previews:FindFirstChild(model.Name) then
+				local copy = model:Clone()
+				for _, d in copy:GetDescendants() do
+					if d:IsA("LuaSourceContainer") then
+						d:Destroy()
+					elseif d:IsA("BasePart") then
+						d.Anchored = true
+						d.CanCollide = false
+						d.CanQuery = false
+						d.CanTouch = false
+					end
+				end
+				copy.Parent = previews
+			end
+		end
+		previews.Parent = ReplicatedStorage
+	end
+
 	for _, spot in CollectionService:GetTagged(WORKSHOP_TAG) do
 		addWorkshopPrompt(spot)
 	end
