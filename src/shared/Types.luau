@@ -46,6 +46,15 @@ export type Settings = {
 	reduceEffects: boolean,
 }
 
+-- Daily gift (Config/Missions.dailyGift). `grantedAt` is the os.time() of the last grant:
+-- the client shows the welcome card only if it is recent (granted on this join).
+export type Daily = {
+	lastDay: number, -- Missions.today() of the last grant
+	days: number, -- days visited (cumulative)
+	lastGift: number, -- coins granted on lastDay
+	grantedAt: number,
+}
+
 export type Snapshot = {
 	coins: number,
 	equippedRod: string,
@@ -57,6 +66,7 @@ export type Snapshot = {
 	missions: Missions,
 	milestones: { [string]: boolean },
 	settings: Settings,
+	daily: Daily,
 }
 
 return {}

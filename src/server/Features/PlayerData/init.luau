@@ -44,6 +44,7 @@ export type Profile = {
 	purchases: { [string]: boolean }, -- Robux receipt ids already granted
 	purchaseOrder: { string }, -- same ids, oldest first (bounds the record)
 	boosts: { luckUntil: number }, -- os.time() when each paid boost ends
+	daily: Types.Daily,
 }
 
 -- The Wally shim does not re-export ProfileStore's types; only the members used here.
@@ -93,6 +94,7 @@ local function template(): Profile
 		purchases = {},
 		purchaseOrder = {},
 		boosts = { luckUntil = 0 },
+		daily = { lastDay = 0, days = 0, lastGift = 0, grantedAt = 0 },
 	}
 end
 
@@ -138,6 +140,11 @@ local function reconcile(data: { [string]: any })
 			data.settings[key] = value
 		end
 	end
+	for key, value in defaults.daily do
+		if data.daily[key] == nil then
+			data.daily[key] = value
+		end
+	end
 	if not table.find(data.rodsOwned, STARTER_ROD) then
 		table.insert(data.rodsOwned, STARTER_ROD)
 	end
@@ -158,6 +165,7 @@ local function snapshot(profile: Profile): Types.Snapshot
 		missions = { day = profile.missions.day, list = table.clone(profile.missions.list) },
 		milestones = table.clone(profile.milestones),
 		settings = table.clone(profile.settings),
+		daily = table.clone(profile.daily),
 	}
 end
 

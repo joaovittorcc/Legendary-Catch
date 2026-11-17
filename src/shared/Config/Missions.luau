@@ -34,4 +34,15 @@ function Missions.today(): number
 	return math.floor(os.time() / 86400)
 end
 
+-- Daily gift: coins on the first join of each UTC day. Grows with the number of days the
+-- player has visited (cumulative, never resets, so missing a day costs nothing), capped.
+Missions.DAILY_GIFT_BASE = 100
+Missions.DAILY_GIFT_STEP = 50
+Missions.DAILY_GIFT_MAX_STEPS = 6 -- day 7 and later: 100 + 6 * 50 = 400
+
+function Missions.dailyGift(daysVisited: number): number
+	local steps = math.clamp(daysVisited - 1, 0, Missions.DAILY_GIFT_MAX_STEPS)
+	return Missions.DAILY_GIFT_BASE + steps * Missions.DAILY_GIFT_STEP
+end
+
 return Missions

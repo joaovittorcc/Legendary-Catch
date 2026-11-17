@@ -106,6 +106,24 @@ local function addMissionProgress(player: Player, matches: (string) -> boolean, 
 	end)
 end
 
+-- Daily gift -----------------------------------------------------------------------------
+
+-- First join of the UTC day: coins, growing with the days visited (Config/Missions).
+local function grantDailyGift(player: Player)
+	local profile = PlayerData.get(player)
+	local today = Missions.today()
+	if not profile or profile.daily.lastDay == today then
+		return
+	end
+	local days = profile.daily.days + 1
+	local gift = Missions.dailyGift(days)
+	PlayerData.update(player, function(p)
+		p.daily = { lastDay = today, days = days, lastGift = gift, grantedAt = os.time() }
+		p.coins += gift
+	end)
+	Analytics.coins(player, true, gift, "DailyGift", tostring(days))
+end
+
 -- Milestones -----------------------------------------------------------------------------
 
 local function milestoneReady(profile: PlayerData.Profile, m: Milestones.Milestone): boolean
@@ -289,10 +307,12 @@ function Progress.start()
 
 	PlayerData.Loaded:Connect(function(player: Player)
 		refreshMissions(player)
+		grantDailyGift(player)
 	end)
 	for _, player in Players:GetPlayers() do
 		if PlayerData.get(player) then
 			refreshMissions(player)
+			grantDailyGift(player)
 		end
 	end
 	Players.PlayerRemoving:Connect(function(player)
