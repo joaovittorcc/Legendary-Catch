@@ -91,3 +91,61 @@ Especificação visual e prompts prontos para `generate_mesh` das 6 criaturas de
   ```text
   Stylized cartoon monumental ancient giant island sea turtle, majestic deep-ocean blue and weathered gold armored body with wide sweeping flippers, wise friendly ancient turtle head with glowing golden eyes and ornate gold crest facing forward +Z; carrying an entire miniature fantasy island on its shell featuring stepped gray cliffs, lush green grass, a tiny pink cherry blossom tree, glowing cyan-gold crystal spires and a small turquoise waterfall, Roblox fantasy adventure masterpiece, single piece
   ```
+
+---
+
+# Ficha de Produção — Expansão do Lote (C31–C34)
+
+## 7. C31 — Carpa Celeste (`C31_Carpa_Celeste`)
+- **Raridade:** Incomum (`tier = 2`) · **Peso:** `1–4 kg` · **Valor base:** `46 ◆` · **Reveal:** `cloud`
+- **Lore:** *"Nada entre as nuvens refletidas na água. Quem a vê pede um desejo."*
+- **Silhueta:** Koi elegante em leve curva em "S" de nado gracioso, porém com **nadadeiras peitorais, dorsal e cauda bipartida bem volumosas e recortadas como nuvens fofas e véus de céu** — silhueta aérea e macia, distinta da sardinha (`C02`) e do baiacu (`C04`).
+- **Paleta (Incomum — Azul Celeste):** Corpo koi translúcido azul-céu luminoso (`#50C8FF` → `#BEEFFF`), manchas arredondadas branco-nuvem perolado e bordas suaves em ouro-pálido nas pontas dos véus e barbilhões.
+- **Detalhes de personalidade:** Olhos gentis grandes e brilhantes voltados para `+Z` com reflexo nítido, dois longos bigodinhos de carpa curvados para os lados, escamas nacaradas suaves e cauda em véu de nuvem erguida atrás.
+- **Tamanho relativo (box `generate_mesh`):** `2.4 × 1.6 × 2.9` studs · `maxTriangles = 4800`.
+- **Prompt `generate_mesh`:**
+  ```text
+  Stylized cartoon serene sky koi fish with glossy translucent sky-blue and pearlescent cloud-white spotted body in a graceful S-swim pose, billowing fluffy cloud-shaped pectoral fins, ribbon dorsal fin and flowing double cloud-veil tail with subtle pale gold tips, elegant curved koi whiskers, big gentle glossy eyes with crisp highlights facing forward +Z, Roblox fantasy adventure style, single piece
+  ```
+
+---
+
+## 8. C32 — Espadarte Relâmpago (`C32_Espadarte_Relampago`)
+- **Raridade:** Raro (`tier = 3`) · **Peso:** `40–160 kg` · **Valor base:** `150 ◆` · **Reveal:** `storm`
+- **Lore:** *"Corta as ondas tão rápido que deixa um risco de luz no mar."*
+- **Silhueta:** Peixe-espada veloz e angular voltado para `+Z`, com **rostro/espada longo e afiado**, grande **barbatana dorsal em vela recortada em formato de relâmpago**, nadadeiras peitorais em asa delta e cauda em crescente elétrico com feixes de energia nas pontas.
+- **Paleta (Raro — Roxo Tempestade + Prata & Raio Amarelo):** Corpo prateado-azulado metálico estilizado com dorso roxo-índigo (`#BE78FF` → `#44329C`), sulcos e arcos de **relâmpago amarelo-elétrico brilhante (`#FFE84A`)** nos flancos, espada e ponta da dorsal.
+- **Detalhes de personalidade:** Olhos determinados brilhantes em amarelo-ouro bem visíveis em `3/4` de frente (`+Z`), espada com filete luminoso de energia e rastro de faíscas esculpidas junto à cauda.
+- **Tamanho relativo (box `generate_mesh`):** `2.1 × 1.8 × 3.0` studs (frente da espada em `+Z`) · `maxTriangles = 5500`.
+- **Prompt `generate_mesh`:**
+  ```text
+  Stylized cartoon sleek lightning swordfish creature pointing forward +Z, sculpted silver-chrome and storm-purple body with sharp glowing electric-yellow sword bill, jagged lightning-bolt sail dorsal fin, swept delta pectoral fins and crescent tail trailing crisp yellow energy arcs, fierce friendly glowing golden eyes with sharp highlights facing forward +Z, Roblox adventure game style, single piece
+  ```
+
+---
+
+## 9. C33 — Orca Aurora (`C33_Orca_Aurora`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `1500–5000 kg` · **Valor base:** `410 ◆` · **Reveal:** `frost`
+- **Lore:** *"As manchas brilham com as cores da aurora. Canta pra chamar a família."*
+- **Silhueta:** Orca majestosa em arco dinâmico de salto sobre as ondas, com cabeça arredondada simpática voltada para `+Z`, **barbatana dorsal alta e nobre**, grandes peitorais abertas e cauda poderosa erguida — imediatamente distinta da Baleia Nebulosa (`C21`, que tem nuvens rosas nas costas).
+- **Paleta (Épico — Rosa-Aurora + Polar):** Corpo principal em azul-noite polar profundo e barriga branco-gelo, com as grandes manchas laterais, sela dorsal e bordas das nadadeiras pintadas em **gradiente bioluminescente de aurora boreal (verde-esmeralda `#3BFFB5`, rosa-magenta épico `#FF64DC` e violeta `#A66CFF`)**.
+- **Detalhes de personalidade:** Olhos luminosos ciano-rosa amigáveis, brilho em degradê fluido nas manchas da aurora (complementado por detalhe `Neon` sutil se necessário) e expressão alegre/majestosa.
+- **Tamanho relativo (box `generate_mesh`):** `2.4 × 2.2 × 3.0` studs · `maxTriangles = 6500`.
+- **Prompt `generate_mesh`:**
+  ```text
+  Stylized cartoon majestic aurora orca whale in a graceful leaping arch facing forward +Z, sleek deep midnight-navy upper body and crisp ice-white belly, signature eye patches, dorsal saddle and fin edges glowing in vivid northern-lights gradients of emerald green, epic magenta-pink and violet, tall curved dorsal fin and sweeping flukes, bright expressive glossy eyes and joyful expression, Roblox fantasy adventure style, single piece
+  ```
+
+---
+
+## 10. C34 — Serpente Arco-Íris (`C34_Serpente_Arco_Iris`)
+- **Raridade:** Lendário (`tier = 5`) · **Peso:** `600–2400 kg` · **Valor base:** `1750 ◆` · **Reveal:** `prism`
+- **Lore:** *"Aparece depois da chuva, quando o arco-íris toca o mar. Cada escama é de uma cor."*
+- **Silhueta:** Criatura mítica monumental e escultural (no nível máximo do jogo ao lado da `C30` e `C10`/`C23`/`C24`): serpente marinha longa enrolada em **duplo arco ascendente em espiral 3D**, com a cabeça dracônica majestosa erguida no topo olhando firme para `+Z`, **par de chifrinhos dourados curvos**, **crista solar dourada em leque**, barbatana dorsal em fita ondulada contínua e barbatanas laterais em leque prismático.
+- **Paleta (Lendário — Dourado + Espectro Completo Arco-Íris):** Escamas individuais bem definidas ao longo de todo o corpo em transição viva por todo o arco-íris (vermelho-coral, laranja-âmbar, dourado `#FFCD46`, verde-esmeralda, azul-turquesa, índigo e violeta-magenta), combinadas com **crista, chifres e placas ventrais em ouro real (`#FFCD46`)** e brilho prismático.
+- **Detalhes de personalidade:** Olhos prismáticos dourados brilhantes com pupila nítida e brilho branco, grandes bigodes celestiais dourados curvados, mandíbula amigável de dragão sábio e ponta da cauda em leque multicolorido.
+- **Tamanho relativo (box `generate_mesh`):** `2.8 × 2.9 × 3.2` studs (espiral alta e imponente; ajustada conforme convenção de ~3–3.5 studs para lendários) · `maxTriangles = 7800`.
+- **Prompt `generate_mesh`:**
+  ```text
+  Stylized cartoon legendary rainbow sea serpent coiled in a towering majestic S-spiral pose, noble friendly sea-dragon head raised at the top facing forward +Z with twin curved golden horns, ornate golden fan crest, flowing golden whiskers and bright luminous prismatic eyes; long sculpted serpentine body covered in crisp overlapping individual scales shifting vibrantly across the full rainbow spectrum (coral red, sun orange, gold, emerald, cyan, indigo, violet) with pearlescent gold belly plates and shimmering prism fin ribbons, Roblox fantasy adventure masterpiece, single piece
+  ```

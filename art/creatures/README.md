@@ -1,4 +1,4 @@
-# Catálogo das Criaturas (24/24)
+# Catálogo das Criaturas (34/34)
 
 Capturas em `3/4` de frente sobre fundo neutro (`art/creatures/Cxx-nome.jpg`).
 
@@ -28,3 +28,13 @@ Capturas em `3/4` de frente sobre fundo neutro (`art/creatures/Cxx-nome.jpg`).
 | `C22` | [Serpente Glacial](C22-serpente-glacial.jpg) | Épico | Serpente marinha azul-gelo erguida com espinhos cristalinos ao longo do dorso. |
 | `C23` | [Kraken Trovejante](C23-kraken-trovejante.jpg) | Lendário | Senhor dos mares roxo blindado com múltiplos tentáculos e runas douradas. |
 | `C24` | [Fênix das Marés](C24-fenix-das-mares.jpg) | Lendário | Ave oceânica azul-turquesa com asas abertas, chifres de coral e cauda fluida. |
+| `C25` | [Ouriço Gelatina](C25-ourico-gelatina.jpg) | Comum | Cúpula fofa de gelatina azul-menta com espinhos arredondados, bochechas rosadas e sorriso em "w". |
+| `C26` | [Peixe-Pipa](C26-peixe-pipa.jpg) | Comum | Peixe-pipa turquesa e coral com asas triangulares listradas, sorriso largo e rabiola dupla. |
+| `C27` | [Ermitão de Cristal](C27-ermitao-cristal.jpg) | Incomum | Caranguejo-eremita coral de garras desiguais espiando sob uma concha-drusa de cristal ciano-violeta. |
+| `C28` | [Náutilo Aurora](C28-nautilo-aurora.jpg) | Raro | Náutilo roxo-aurora com olhos estrelados dourados, capuz nacarado e tentáculos em degradê rosa. |
+| `C29` | [Dragão-Folha Esmeralda](C29-dragao-folha.jpg) | Épico | Dragão marinho esmeralda-turquesa de cauda espiralada e grandes asas em rosa-magenta épico. |
+| `C30` | [Tartaruga-Ilha Ancestral](C30-tartaruga-ilha.jpg) | Lendário | Tartaruga marinha ancestral com runas douradas carregando mini-ilha completa (rochas, árvore sakura, cachoeira e cristais Neon). |
+| `C31` | [Carpa Celeste](C31-carpa-celeste.jpg) | Incomum | Koi azul-céu com nuvens macias no dorso, barbilhões curvos e nadadeiras em véu de nuvem. |
+| `C32` | [Espadarte Relâmpago](C32-espadarte-relampago.jpg) | Raro | Espadarte prateado-índigo veloz com espada dourada longa e grande vela dorsal recortada em raio amarelo. |
+| `C33` | [Orca Aurora](C33-orca-aurora.jpg) | Épico | Orca azul-noite e branca de porte arredondado com manchas bioluminescentes de aurora verde-menta, rosa e violeta. |
+| `C34` | [Serpente Arco-Íris](C34-serpente-arco-iris.jpg) | Lendário | Serpente marinha sem patas em espiral erguida com chifres e crista em leque dourado e escamas em espectro completo de arco-íris. |
