@@ -1,4 +1,6 @@
-# CONTEXTO MESTRE — NOVO JOGO DE PESCA E CRIATURAS NO ROBLOX
+# CONTEXTO MESTRE — LEGENDARY CATCH (JOGO DE PESCA E CRIATURAS NO ROBLOX)
+
+> **[DECIDIDO 2026-11-17]** Nome do jogo: **Legendary Catch**. Repositório: `github.com/joaovittorcc/Legendary-Catch`. Onde este documento diz "nome definitivo ainda não existe", vale este nome.
 
 > **Documento novo e independente, para repassar ao Claude.**
 >

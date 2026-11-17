@@ -1,9 +1,9 @@
 --!nocheck
--- FISH CLICKER / NOVO JOGO DE CRIATURAS - LOTE 01
+-- LEGENDARY CATCH - CRIATURAS LOTE 01 (prototipo)
 -- Gerador EDITAVEL de 10 modelos 3D estilizados no Roblox Studio
 -- Execucao unica: colar TODO o codigo na Command Bar (modo Edicao, nao Play)
--- Os modelos ficam em ReplicatedStorage > FishClicker_Criaturas_V1
--- Um showroom separado aparece em Workspace > FishClicker_Criaturas_Showroom_V1
+-- Os modelos ficam em ReplicatedStorage > Creatures
+-- Um showroom separado aparece em Workspace > Creatures_Showroom
 -- Feito com Part, WedgePart e materiais nativos (sem assets externos).
 -- IMPORTANTE: modelos sao prototipos visuais ancorados; nao sao rigs animados.
 
@@ -13,7 +13,7 @@ local Workspace = game:GetService("Workspace")
 local SHOW_SHOWROOM = false
 local SHOWROOM_ORIGIN = Vector3.new(0, 85, -450)
 local PREFABS_FOLDER_NAME = "Creatures"
-local SHOWROOM_FOLDER_NAME = "FishClicker_Criaturas_Showroom_V1"
+local SHOWROOM_FOLDER_NAME = "Creatures_Showroom"
 
 -- Protecao: nunca apaga trabalho anterior sem o usuario decidir.
 if ReplicatedStorage:FindFirstChild(PREFABS_FOLDER_NAME) then
@@ -911,7 +911,7 @@ if SHOW_SHOWROOM then
 	end
 end
 
-print("[FishClicker] 10 criaturas criadas com sucesso!")
+print("[LegendaryCatch] 10 criaturas criadas com sucesso!")
 print("Prefabs: ReplicatedStorage > " .. PREFABS_FOLDER_NAME)
 if SHOW_SHOWROOM then
 	print(
