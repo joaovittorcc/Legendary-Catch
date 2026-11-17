@@ -4,6 +4,8 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local PT = {
+	photo = "Foto",
+	photoHint = "Arraste para girar · Toque, clique ou Esc para sair",
 	catchAnnouncement = "%s pescou %s!",
 	robux = {
 		title = "Loja de Robux",
@@ -108,6 +110,8 @@ local PT = {
 type Labels = typeof(PT)
 
 local EN = {
+	photo = "Photo",
+	photoHint = "Drag to orbit · Tap, click or press Esc to exit",
 	catchAnnouncement = "%s caught %s!",
 	robux = {
 		title = "Robux Shop",

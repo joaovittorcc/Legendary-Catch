@@ -28,6 +28,7 @@ local RevealStyles = require(stylesModule)
 local Legendary = require(stylesModule:WaitForChild("Legendary"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
+local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 
 local Reveal = {}
@@ -376,15 +377,40 @@ function Reveal.play(
 	local name = Strings.creatureName[creatureId] or creatureId
 	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
 
+	local takePhoto = false
+	local photoButton: TextButton? = nil
+	if card and level >= 4 then
+		local button = Instance.new("TextButton")
+		button.Name = "TakePhoto"
+		button.AnchorPoint = Vector2.new(0.5, 0)
+		button.Position = UDim2.new(0.5, 0, 1, 8)
+		button.Size = UDim2.fromOffset(106, 44)
+		button.Font = Theme.font
+		button.TextSize = 19
+		button.Text = Text.photo
+		button.TextColor3 = Theme.sand
+		Theme.surface(button, color, 11, Theme.ink)
+		button.Activated:Connect(function()
+			takePhoto = true
+		end)
+		button.Parent = card
+		photoButton = button
+	end
+
 	local holdStart = os.clock()
 	local base = CFrame.new(display) * facing.Rotation
-	while not cancelled() and os.clock() - holdStart < style.hold do
+	while not cancelled() and not takePhoto and os.clock() - holdStart < style.hold do
 		if not reduced then
 			CreatureMotion.pose(motion, base, os.clock() - holdStart, true)
 		end
 		RunService.RenderStepped:Wait()
 	end
-	CreatureMotion.reset(motion, base)
+	if photoButton then
+		photoButton:Destroy()
+	end
+	if not takePhoto then
+		CreatureMotion.reset(motion, base)
+	end
 	if signature then
 		signature:Destroy()
 	end
@@ -392,7 +418,9 @@ function Reveal.play(
 	if restore then
 		restore()
 	end
-	if card then
+	if card and takePhoto then
+		card:Destroy()
+	elseif card then
 		TweenService:Create(card, TweenInfo.new(0.3), { Position = UDim2.fromScale(0.5, -0.25) })
 			:Play()
 		task.delay(0.35, function()
@@ -404,6 +432,12 @@ function Reveal.play(
 	end
 	if not cancelled() then
 		seen[creatureId] = true
+	end
+
+	if takePhoto and not cancelled() then
+		PhotoMode.show(model, root, name, color)
+		model:Destroy()
+		return
 	end
 
 	-- Shrink into the player.
