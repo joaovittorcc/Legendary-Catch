@@ -2617,6 +2617,440 @@ local function buildGuideNPC()
 	CollectionService:AddTag(g, "GuideNPC")
 end
 
+-- A20: Three compact light-stone + gold statues honoring the Legendary trio along the NE plaza rim.
+local function buildLegendStatues()
+	local g = group("CentralPlaza")
+	local stone = Color3.fromRGB(224, 220, 212)
+	local stoneShade = Color3.fromRGB(196, 192, 184)
+	local gold = COLORS.gold
+	local lookFocus = Vector3.new(-2, PLAZA_Y, 2)
+
+	local function createPedestal(name: string, basePos: Vector3): (Model, CFrame)
+		local m = Instance.new("Model")
+		m.Name = name
+		m.Parent = g
+		local cf = CFrame.lookAt(basePos, lookFocus)
+		-- Only pedestal steps collide & cast shadow; sculptures stay non-collidable & cheap.
+		part(
+			"PlinthStep",
+			m,
+			Vector3.new(2.5, 0.42, 2.5),
+			cf * CFrame.new(0, 0.21, 0),
+			stoneShade,
+			Enum.Material.Marble,
+			{ collide = true, shadow = true }
+		)
+		part(
+			"PlinthBody",
+			m,
+			Vector3.new(1.95, 1.05, 1.95),
+			cf * CFrame.new(0, 0.94, 0),
+			stone,
+			Enum.Material.Marble,
+			{ collide = true, shadow = true }
+		)
+		deco(
+			"PlinthGoldRim",
+			m,
+			Vector3.new(2.12, 0.14, 2.12),
+			cf * CFrame.new(0, 1.50, 0),
+			gold,
+			Enum.Material.Metal,
+			{ shadow = false }
+		)
+		-- Front plaque with 4-point star icon (no text) facing the plaza (-Z local).
+		deco(
+			"Plaque",
+			m,
+			Vector3.new(0.92, 0.56, 0.10),
+			cf * CFrame.new(0, 0.94, -1.01),
+			stoneShade,
+			Enum.Material.Marble,
+			{ shadow = false }
+		)
+		deco(
+			"StarV",
+			m,
+			Vector3.new(0.14, 0.40, 0.06),
+			cf * CFrame.new(0, 0.94, -1.07),
+			gold,
+			Enum.Material.Metal,
+			{ shadow = false }
+		)
+		deco(
+			"StarH",
+			m,
+			Vector3.new(0.40, 0.14, 0.06),
+			cf * CFrame.new(0, 0.94, -1.07),
+			gold,
+			Enum.Material.Metal,
+			{ shadow = false }
+		)
+		return m, cf * CFrame.new(0, 1.57, 0)
+	end
+
+	local function sp(
+		parent: Instance,
+		name: string,
+		size: Vector3,
+		cf: CFrame,
+		color: Color3,
+		mat: Enum.Material,
+		opts: PartOpts?
+	)
+		local o: PartOpts = if opts then table.clone(opts) else {}
+		o.shadow = false
+		return deco(name, parent, size, cf, color, mat, o)
+	end
+
+	-- 1. C10 Astral Leviathan: S-curved dragon silhouette + golden horns & fin trim
+	do
+		local m, top = createPedestal("Statue_C10_Leviathan", Vector3.new(4.2, PLAZA_Y, -9.2))
+		sp(
+			m,
+			"CoilLower",
+			Vector3.new(0.82, 0.92, 0.92),
+			top * CFrame.new(0, 0.42, 0.20) * CFrame.Angles(math.rad(18), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"CoilMid",
+			Vector3.new(0.72, 1.05, 0.78),
+			top * CFrame.new(0, 1.25, 0.05) * CFrame.Angles(math.rad(-22), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"Neck",
+			Vector3.new(0.58, 0.95, 0.64),
+			top * CFrame.new(0, 2.02, -0.22) * CFrame.Angles(math.rad(28), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"Head",
+			Vector3.new(0.66, 0.56, 1.08),
+			top * CFrame.new(0, 2.48, -0.58) * CFrame.Angles(math.rad(8), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"TailSweep",
+			Vector3.new(0.48, 0.95, 0.42),
+			top * CFrame.new(0, 0.72, 0.72) * CFrame.Angles(math.rad(-48), 0, 0),
+			stoneShade,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"TailFan",
+			Vector3.new(0.88, 0.44, 0.16),
+			top * CFrame.new(0, 1.18, 1.02) * CFrame.Angles(math.rad(-25), 0, 0),
+			gold,
+			Enum.Material.Metal
+		)
+		for _, sx in { -1, 1 } do
+			sp(
+				m,
+				"Horn" .. sx,
+				Vector3.new(0.14, 0.85, 0.14),
+				top
+					* CFrame.new(sx * 0.24, 2.86, -0.25)
+					* CFrame.Angles(math.rad(-38), 0, math.rad(sx * -18)),
+				gold,
+				Enum.Material.Metal
+			)
+			sp(
+				m,
+				"Fin" .. sx,
+				Vector3.new(0.12, 0.65, 1.15),
+				top
+					* CFrame.new(sx * 0.48, 1.85, 0.06)
+					* CFrame.Angles(math.rad(14), math.rad(sx * 24), math.rad(sx * -28)),
+				stone,
+				Enum.Material.Marble
+			)
+			sp(
+				m,
+				"FinTrim" .. sx,
+				Vector3.new(0.08, 0.14, 1.12),
+				top
+					* CFrame.new(sx * 0.58, 2.12, 0.08)
+					* CFrame.Angles(math.rad(14), math.rad(sx * 24), math.rad(sx * -28)),
+				gold,
+				Enum.Material.Metal
+			)
+		end
+	end
+
+	-- 2. C23 Storm Kraken: domed mantle + golden lightning crest + 5 arched tentacles with gold rings
+	do
+		local m, top = createPedestal("Statue_C23_Kraken", Vector3.new(8.2, PLAZA_Y, -6.4))
+		sp(
+			m,
+			"MantleCore",
+			Vector3.new(1.06, 1.38, 1.06),
+			top * CFrame.new(0, 1.72, 0.08) * CFrame.Angles(math.rad(10), 0, 0),
+			stone,
+			Enum.Material.Marble,
+			{ shape = Enum.PartType.Ball }
+		)
+		sp(
+			m,
+			"MantlePeak",
+			Vector3.new(0.68, 0.92, 0.68),
+			top * CFrame.new(0, 2.32, 0.18) * CFrame.Angles(math.rad(16), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"LightningCrest",
+			Vector3.new(0.16, 0.72, 0.36),
+			top * CFrame.new(0, 2.84, 0.14) * CFrame.Angles(math.rad(-14), 0, 0),
+			gold,
+			Enum.Material.Metal
+		)
+		sp(
+			m,
+			"HeadBase",
+			Vector3.new(0.84, 0.68, 0.84),
+			top * CFrame.new(0, 1.05, -0.05),
+			stoneShade,
+			Enum.Material.Marble
+		)
+		for _, sx in { -1, 1 } do
+			sp(
+				m,
+				"Eye" .. sx,
+				Vector3.new(0.16, 0.22, 0.12),
+				top * CFrame.new(sx * 0.26, 1.24, -0.44),
+				gold,
+				Enum.Material.Metal,
+				{ shape = Enum.PartType.Ball }
+			)
+		end
+		for i = 1, 5 do
+			local ang = math.rad(-115 + (i - 1) * 57.5)
+			local dir = Vector3.new(math.sin(ang), 0, -math.cos(ang))
+			local armBase = top
+				* CFrame.new(dir * 0.56 + Vector3.new(0, 0.38, 0))
+				* CFrame.lookAt(Vector3.zero, dir)
+			sp(
+				m,
+				"TentacleLow" .. i,
+				Vector3.new(0.28, 0.78, 0.28),
+				armBase * CFrame.Angles(math.rad(-26), 0, 0),
+				stone,
+				Enum.Material.Marble
+			)
+			sp(
+				m,
+				"TentacleTip" .. i,
+				Vector3.new(0.20, 0.72, 0.20),
+				armBase * CFrame.new(0, 0.68, -0.22) * CFrame.Angles(math.rad(16), 0, 0),
+				stone,
+				Enum.Material.Marble
+			)
+			sp(
+				m,
+				"TentacleBand" .. i,
+				Vector3.new(0.32, 0.12, 0.32),
+				armBase * CFrame.new(0, 0.42, -0.10),
+				gold,
+				Enum.Material.Metal
+			)
+		end
+	end
+
+	-- 3. C24 Tide Phoenix: perched sea-bird with wide V-wings, golden feather tips & tail plume
+	do
+		local m, top = createPedestal("Statue_C24_Phoenix", Vector3.new(11.4, PLAZA_Y, -2.8))
+		sp(
+			m,
+			"PerchRock",
+			Vector3.new(0.95, 0.68, 0.95),
+			top * CFrame.new(0, 0.34, 0),
+			stoneShade,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"Body",
+			Vector3.new(0.68, 1.05, 0.86),
+			top * CFrame.new(0, 1.12, 0) * CFrame.Angles(math.rad(24), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"Neck",
+			Vector3.new(0.36, 0.78, 0.36),
+			top * CFrame.new(0, 1.82, -0.32) * CFrame.Angles(math.rad(14), 0, 0),
+			stone,
+			Enum.Material.Marble
+		)
+		sp(
+			m,
+			"Head",
+			Vector3.new(0.46, 0.42, 0.56),
+			top * CFrame.new(0, 2.26, -0.44),
+			stone,
+			Enum.Material.Marble,
+			{ shape = Enum.PartType.Ball }
+		)
+		sp(
+			m,
+			"Beak",
+			Vector3.new(0.18, 0.16, 0.34),
+			top * CFrame.new(0, 2.22, -0.76) * CFrame.Angles(math.rad(-14), 0, 0),
+			gold,
+			Enum.Material.Metal
+		)
+		sp(
+			m,
+			"CrownPlume",
+			Vector3.new(0.12, 0.56, 0.52),
+			top * CFrame.new(0, 2.54, -0.26) * CFrame.Angles(math.rad(-32), 0, 0),
+			gold,
+			Enum.Material.Metal
+		)
+		sp(
+			m,
+			"TailPlume",
+			Vector3.new(0.54, 1.15, 0.18),
+			top * CFrame.new(0, 0.85, 0.66) * CFrame.Angles(math.rad(-44), 0, 0),
+			gold,
+			Enum.Material.Metal
+		)
+		for _, sx in { -1, 1 } do
+			local wingCf = top
+				* CFrame.new(sx * 0.84, 1.62, 0.10)
+				* CFrame.Angles(math.rad(12), math.rad(sx * -22), math.rad(sx * -34))
+			sp(
+				m,
+				"WingMain" .. sx,
+				Vector3.new(1.32, 0.72, 0.16),
+				wingCf,
+				stone,
+				Enum.Material.Marble
+			)
+			sp(
+				m,
+				"WingGoldTip" .. sx,
+				Vector3.new(0.54, 0.56, 0.18),
+				wingCf * CFrame.new(sx * 0.62, 0.16, 0),
+				gold,
+				Enum.Material.Metal
+			)
+		end
+	end
+end
+
+-- A21: Welcome arch framing the top of FrontStairs behind spawn's default camera (clear of Arrival path).
+local function buildWelcomeArch()
+	local g = group("FrontStairs")
+	local z = 31.2
+	local leftX, rightX = -13.9, 1.9
+	local midX = (leftX + rightX) / 2
+	local span = rightX - leftX
+	local baseY = PLAZA_Y - 1.2
+	local postH = 9.8
+	local beamY = baseY + postH
+
+	for i, x in { leftX, rightX } do
+		local postBase = Vector3.new(x, baseY, z)
+		part(
+			"WelcomeStoneBase" .. i,
+			g,
+			Vector3.new(2.1, 1.4, 2.1),
+			CFrame.new(postBase + Vector3.new(0, 0.7, 0)),
+			COLORS.pavingDark,
+			Enum.Material.Cobblestone
+		)
+		cylinderPost(
+			"WelcomePost" .. i,
+			g,
+			postBase,
+			postH,
+			0.68,
+			COLORS.woodDark,
+			Enum.Material.Wood
+		)
+		crystalCluster(g, Vector3.new(x, beamY + 0.55, z), 2.1, false, if i == 1 then 12 else -12)
+		-- Amber neon lanterns (no new dynamic PointLights).
+		local lx = x + (if i == 1 then 1.55 else -1.55)
+		deco(
+			"WelcomeLanternArm" .. i,
+			g,
+			Vector3.new(1.6, 0.24, 0.24),
+			CFrame.new((x + lx) / 2, beamY - 0.6, z),
+			COLORS.woodDark,
+			Enum.Material.Wood,
+			{ shadow = false }
+		)
+		deco(
+			"WelcomeLanternCap" .. i,
+			g,
+			Vector3.new(0.9, 0.28, 0.9),
+			CFrame.new(lx, beamY - 1.0, z),
+			COLORS.bronze,
+			Enum.Material.Metal,
+			{ shadow = false }
+		)
+		deco(
+			"WelcomeLanternGlow" .. i,
+			g,
+			Vector3.new(0.68, 0.86, 0.68),
+			CFrame.new(lx, beamY - 1.55, z),
+			COLORS.amber,
+			Enum.Material.Neon,
+			{ shadow = false }
+		)
+	end
+
+	-- Timber crossbeam & decorative cyan crest cap
+	part(
+		"WelcomeBeam",
+		g,
+		Vector3.new(span + 2.6, 1.15, 1.25),
+		CFrame.new(midX, beamY, z),
+		COLORS.woodDark,
+		Enum.Material.Wood
+	)
+	deco(
+		"WelcomeCenterCrystal",
+		g,
+		Vector3.new(1.05, 1.05, 0.45),
+		CFrame.new(midX, beamY + 1.15, z) * CFrame.Angles(0, 0, math.rad(45)),
+		COLORS.cyan,
+		Enum.Material.Neon,
+		{ shadow = false }
+	)
+
+	-- Double-sided "Legendary Catch" sign using the island's sign() style (renamed so WorldText leaves it as-is)
+	local welcomeSign =
+		sign(g, "Legendary Catch", CFrame.new(midX, beamY - 1.55, z), 10.8, 2.35, false)
+	welcomeSign.Name = "WelcomeSign"
+	local framePart = welcomeSign:FindFirstChild("Frame")
+	if framePart and framePart:IsA("BasePart") then
+		framePart.Color = COLORS.gold
+		framePart.Material = Enum.Material.Metal
+		framePart.CanCollide = false
+		framePart.CastShadow = false
+	end
+	local boardPart = welcomeSign:FindFirstChild("Board")
+	if boardPart and boardPart:IsA("BasePart") then
+		boardPart.CanCollide = false
+		boardPart.CastShadow = false
+	end
+end
+
 -- Entry -------------------------------------------------------------------------------
 
 local old = Workspace:FindFirstChild("Island")
@@ -2648,6 +3082,8 @@ buildHorizon()
 buildOceanBounds()
 buildLighting()
 buildGuideNPC()
+buildLegendStatues()
+buildWelcomeArch()
 
 for _, name in { "CentralPlaza", "TrainingLagoon", "UpgradeWorkshop", "FishingPier", "FrontStairs" } do
 	local m = groups[name]
