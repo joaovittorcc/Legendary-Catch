@@ -15,10 +15,12 @@ local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local RunService = game:GetService("RunService")
 
+local CreatureMotion = require(script.Parent:WaitForChild("CreatureMotion"))
 local Collection = {}
-type Thumbnail = { holder: Frame, id: string, hidden: boolean }
+type PreviewPose = { motion: CreatureMotion.Motion, base: CFrame }
+type Thumbnail = { holder: Frame, id: string, hidden: boolean, pose: PreviewPose? }
 
-local function preview(parent: Instance, creatureId: string, hidden: boolean): Model?
+local function preview(parent: Instance, creatureId: string, hidden: boolean): PreviewPose?
 	local library = ReplicatedStorage:FindFirstChild(Creatures.MODELS_FOLDER)
 	local template = library and library:FindFirstChild(creatureId)
 	local view = Instance.new("ViewportFrame")
@@ -60,13 +62,18 @@ local function preview(parent: Instance, creatureId: string, hidden: boolean): M
 	local pivot = cf:ToObjectSpace(model:GetPivot())
 	model:PivotTo(pivot)
 	model.Parent = view
-	model:SetAttribute("PreviewPivot", pivot)
 	local camera = Instance.new("Camera")
 	local radius = math.max(size.Magnitude, 1)
 	camera.CFrame = CFrame.lookAt(Vector3.new(0, radius * 0.14, radius * 1.4), Vector3.zero)
 	camera.Parent = view
 	view.CurrentCamera = camera
-	return model
+	local creature = Creatures.get(creatureId)
+	return if hidden
+		then nil
+		else {
+			motion = CreatureMotion.bind(model, creature and creature.revealStyle),
+			base = pivot,
+		}
 end
 
 local function progressBar(parent: Instance, count: number, target: number, color: Color3)
@@ -93,7 +100,8 @@ function Collection.start()
 	body.AutomaticSize = Enum.AutomaticSize.Y
 	body.Parent = scroll
 
-	local spinning: Model? = nil
+	local spinning: PreviewPose? = nil
+	local motionStart = os.clock()
 	local rotation: RBXScriptConnection? = nil
 	local selected: Creatures.Creature? = nil
 	local showRewards = false
@@ -116,9 +124,10 @@ function Collection.start()
 			if show then
 				remaining -= 1
 				if not view then
-					preview(holder, thumbnail.id, thumbnail.hidden)
+					thumbnail.pose = preview(holder, thumbnail.id, thumbnail.hidden)
 				end
 			elseif view then
+				thumbnail.pose = nil
 				view:Destroy()
 			end
 		end
@@ -143,6 +152,7 @@ function Collection.start()
 			Theme.corner(stage, 12)
 			stage.Parent = body
 			spinning = preview(stage, creature.id, record == nil)
+			motionStart = os.clock()
 			if record then
 				local shiny = record.shiny
 				if typeof(shiny) == "number" and shiny > 0 then
@@ -326,15 +336,37 @@ function Collection.start()
 		end
 		if gui.Enabled then
 			render()
-			rotation = RunService.RenderStepped:Connect(function()
-				local model = spinning
-				local pivot = model and model:GetAttribute("PreviewPivot")
-				if
-					model
-					and typeof(pivot) == "CFrame"
-					and Players.LocalPlayer:GetAttribute("ReduceEffects") ~= true
-				then
-					model:PivotTo(CFrame.Angles(0, os.clock() * 0.65, 0) * pivot)
+			local elapsed = 0
+			local wasReduced = false
+			rotation = RunService.RenderStepped:Connect(function(dt)
+				elapsed += dt
+				if elapsed < 1 / 30 then
+					return
+				end
+				elapsed = 0
+				local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+				if reduced and wasReduced then
+					return
+				end
+				wasReduced = reduced
+				local time = os.clock() - motionStart
+				local detail = spinning
+				if detail then
+					if reduced then
+						CreatureMotion.reset(detail.motion, detail.base)
+					else
+						CreatureMotion.pose(detail.motion, detail.base, time, true)
+					end
+				end
+				for index, thumbnail in thumbnails do
+					local pose = thumbnail.pose
+					if pose then
+						if reduced then
+							CreatureMotion.reset(pose.motion, pose.base)
+						else
+							CreatureMotion.pose(pose.motion, pose.base, time + index * 0.18, false)
+						end
+					end
 				end
 			end)
 		else

@@ -22,6 +22,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 
 type CatchInfo = { weight: number?, value: number?, isNew: boolean?, variant: string? }
 local seen: { [string]: boolean } = {}
+local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local RevealStyles = require(script.Parent.Parent:WaitForChild("RevealStyles"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
@@ -300,6 +301,7 @@ function Reveal.play(
 	local _, size = model:GetBoundingBox()
 	local biggest = math.max(size.X, size.Y, size.Z, 0.1)
 	model:ScaleTo(model:GetScale() * style.size / biggest)
+	local motion = CreatureMotion.bind(model, motif)
 	if (level >= 3 or shiny) and not reduced then
 		sparkles(model, color, shiny)
 	end
@@ -359,17 +361,15 @@ function Reveal.play(
 	local name = Strings.creatureName[creatureId] or creatureId
 	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
 
-	-- Hover and turn slowly so the player can admire it.
 	local holdStart = os.clock()
+	local base = CFrame.new(display) * facing.Rotation
 	while not cancelled() and os.clock() - holdStart < style.hold do
-		local t = os.clock() - holdStart
-		model:PivotTo(
-			CFrame.new(display + Vector3.new(0, math.sin(t * 2) * 0.4, 0))
-				* facing.Rotation
-				* CFrame.Angles(0, t * 0.9, 0)
-		)
+		if not reduced then
+			CreatureMotion.pose(motion, base, os.clock() - holdStart, true)
+		end
 		RunService.RenderStepped:Wait()
 	end
+	CreatureMotion.reset(motion, base)
 
 	if restore then
 		restore()
