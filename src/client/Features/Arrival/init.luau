@@ -11,6 +11,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local Hud = script.Parent:WaitForChild("Hud")
 local Panel = require(Hud:WaitForChild("Panel"))
+local Title = require(script:WaitForChild("Title"))
 local Arrival = { order = 0 }
 local player = Players.LocalPlayer
 local LOAD_TIMEOUT = 6
@@ -143,10 +144,12 @@ function Arrival.start()
 	fill.Size = UDim2.fromScale(1, 1)
 	status.Text = Text.arrival.ready
 
+	local skipPanorama = Title.open(playerGui)
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local camera = workspace.CurrentCamera
-	local animate = camera
+	local animate = not skipPanorama
+		and camera
 		and camera.CameraType == Enum.CameraType.Custom
 		and root
 		and root:IsA("BasePart")

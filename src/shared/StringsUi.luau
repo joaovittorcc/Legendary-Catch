@@ -23,6 +23,7 @@ local PT = {
 	},
 	arrival = {
 		title = "Legendary Catch",
+		play = "Jogar",
 		loading = "Preparando a ilha…",
 		ready = "Bem-vindo à ilha!",
 	},
@@ -126,6 +127,7 @@ local EN = {
 	},
 	arrival = {
 		title = "Legendary Catch",
+		play = "Play",
 		loading = "Getting the island ready…",
 		ready = "Welcome to the island!",
 	},
