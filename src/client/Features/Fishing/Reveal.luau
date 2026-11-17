@@ -122,13 +122,17 @@ local function nameCard(
 	local card = Ui.frame(
 		gui,
 		"RevealCard",
-		UDim2.fromScale(0.72, 0.23),
+		UDim2.fromScale(0.76, 0.24),
 		UDim2.fromScale(0.5, 0.12),
 		Color3.new(0, 0, 0),
 		0.15
 	)
 	Theme.surface(card, color, 16)
 	card.AnchorPoint = Vector2.new(0.5, 0)
+	local bounds = Instance.new("UISizeConstraint")
+	bounds.MinSize = Vector2.new(0, 76)
+	bounds.MaxSize = Vector2.new(540, 116)
+	bounds.Parent = card
 	local title = Ui.label(
 		card,
 		"Name",
@@ -173,7 +177,7 @@ local function nameCard(
 	TweenService:Create(
 		card,
 		TweenInfo.new(0.45, Enum.EasingStyle.Back),
-		{ Position = UDim2.fromScale(0.5, 0.1) }
+		{ Position = UDim2.new(0.5, 0, 0.025, 58) }
 	):Play()
 	return card
 end
@@ -376,6 +380,9 @@ function Reveal.play(
 	end
 	local name = Strings.creatureName[creatureId] or creatureId
 	local card = if cancelled() then nil else nameCard(name, rarity, color, level, info)
+	if card then
+		Players.LocalPlayer:SetAttribute("CatchRevealActive", true)
+	end
 
 	local takePhoto = false
 	local photoButton: TextButton? = nil
@@ -436,6 +443,7 @@ function Reveal.play(
 
 	if takePhoto and not cancelled() then
 		PhotoMode.show(model, root, name, color)
+		Players.LocalPlayer:SetAttribute("CatchRevealActive", false)
 		model:Destroy()
 		return
 	end
@@ -453,6 +461,9 @@ function Reveal.play(
 		RunService.RenderStepped:Wait()
 	end
 	model:Destroy()
+	if card then
+		Players.LocalPlayer:SetAttribute("CatchRevealActive", false)
+	end
 end
 
 return Reveal

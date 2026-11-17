@@ -98,7 +98,9 @@ function Tutorial.start()
 		if step == "workshop" and not affordable then
 			hint = Text.earn
 		end
-		card.Visible = hint ~= nil and Hud.panel() == ""
+		card.Visible = hint ~= nil
+			and Hud.panel() == ""
+			and player:GetAttribute("CatchRevealActive") ~= true
 		message.Text = hint or ""
 		local tag = if step == "workshop" and not affordable
 			then "FishingZone"
@@ -146,6 +148,7 @@ function Tutorial.start()
 		refresh()
 	end)
 	Data.changed:Connect(refresh)
+	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh)
 	player:GetAttributeChangedSignal("Coins"):Connect(refresh)
 	player:GetAttributeChangedSignal("TrainingStat"):Connect(function()
 		if

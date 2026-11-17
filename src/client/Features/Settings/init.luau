@@ -15,7 +15,7 @@ local Settings = {}
 local player = Players.LocalPlayer
 
 function Settings.start()
-	local gui, body = Panel.create("Settings", Text.settings, Theme.rose, 0.75)
+	local gui, body = Panel.create("Settings", Text.settings, Theme.rose, 0.75, 242)
 	Panel.stack(body)
 	local music = Audio.group("Music")
 	local effects = Audio.group("Effects")

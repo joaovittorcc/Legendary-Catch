@@ -37,8 +37,9 @@ function Panel.create(
 	id: string,
 	title: string,
 	accent: Color3,
-	heightScale: number?
-): (ScreenGui, ScrollingFrame)
+	heightScale: number?,
+	maxHeight: number?
+): (ScreenGui, ScrollingFrame, TextLabel)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = id .. "Screen"
 	gui.Enabled = false
@@ -49,10 +50,10 @@ function Panel.create(
 	local shell = Instance.new("Frame")
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, if heightScale then 0.53 else 0.55)
-	shell.Size = UDim2.fromScale(0.85, heightScale or 0.64)
+	shell.Size = UDim2.fromScale(0.85, heightScale or 0.72)
 	Theme.surface(shell, accent, 16, Color3.fromRGB(28, 40, 57))
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(680, 530)
+	bounds.MaxSize = Vector2.new(680, maxHeight or 530)
 	bounds.Parent = shell
 	shell.Parent = gui
 
@@ -98,7 +99,7 @@ function Panel.create(
 	padding.PaddingRight = UDim.new(0, 8)
 	padding.Parent = scroll
 	gui.Parent = Players.LocalPlayer:WaitForChild("PlayerGui")
-	return gui, scroll
+	return gui, scroll, heading
 end
 
 function Panel.stack(parent: Instance)

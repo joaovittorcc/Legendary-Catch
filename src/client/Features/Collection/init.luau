@@ -92,7 +92,7 @@ local function progressBar(parent: Instance, count: number, target: number, colo
 end
 
 function Collection.start()
-	local gui, scroll = Panel.create("Collection", Text.collection, Theme.crystal)
+	local gui, scroll, heading = Panel.create("Collection", Text.collection, Theme.crystal)
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local body = Instance.new("Frame")
 	body.BackgroundTransparency = 1
@@ -134,6 +134,7 @@ function Collection.start()
 	end
 
 	local function render()
+		heading.Text = if showRewards then Text.milestones.title else Text.collection
 		spinning = nil
 		table.clear(thumbnails)
 		body:ClearAllChildren()

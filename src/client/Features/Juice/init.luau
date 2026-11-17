@@ -86,7 +86,7 @@ local function showStreak(n: number)
 	local badge = Instance.new("TextLabel")
 	badge.Name = "Streak"
 	badge.AnchorPoint = Vector2.new(0.5, 0.5)
-	badge.Position = UDim2.fromScale(0.5, 0.32)
+	badge.Position = UDim2.fromScale(0.84, 0.68)
 	badge.Size = UDim2.fromScale(0.2, 0.08)
 	badge.BackgroundTransparency = 1
 	badge.Text = `x{n}!`
@@ -105,7 +105,7 @@ local function showStreak(n: number)
 		{
 			TextTransparency = 1,
 			TextStrokeTransparency = 1,
-			Position = UDim2.fromScale(0.5, 0.26),
+			Position = UDim2.fromScale(0.84, 0.62),
 		}
 	):Play()
 	task.delay(1.6, function()
