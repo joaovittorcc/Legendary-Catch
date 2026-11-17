@@ -23,10 +23,14 @@ local function showMesh(view: ViewportFrame, id: string): boolean
 		return false
 	end
 
-	local model = Instance.new("Model")
+	local model: Model
+	if source:IsA("Model") then
+		model = source:Clone()
+	else
+		model = Instance.new("Model")
+		source:Clone().Parent = model
+	end
 	model.Name = "RodMesh"
-	local clone = source:Clone()
-	clone.Parent = model
 	if not model:FindFirstChildWhichIsA("BasePart", true) then
 		model:Destroy()
 		return false
@@ -37,6 +41,7 @@ local function showMesh(view: ViewportFrame, id: string): boolean
 			or instance:IsA("ModuleScript")
 			or instance:IsA("ParticleEmitter")
 			or instance:IsA("Trail")
+			or (instance:IsA("BasePart") and instance.Name == "Tip")
 		then
 			instance:Destroy()
 		elseif instance:IsA("BasePart") then
@@ -44,12 +49,13 @@ local function showMesh(view: ViewportFrame, id: string): boolean
 			instance.CanCollide = false
 		end
 	end
-	local bounds, size = model:GetBoundingBox()
-	local centered = bounds:ToObjectSpace(model:GetPivot())
+	local _, size = model:GetBoundingBox()
+	model:ScaleTo(model:GetScale() * 4.3 / math.max(size.X, size.Y, size.Z, 0.1))
+	local bounds = select(1, model:GetBoundingBox())
+	local centered = CFrame.new(-bounds.Position) * model:GetPivot()
 	model:PivotTo(
 		CFrame.Angles(0.1, 0, math.rad(-38)) * CFrame.Angles(0, math.rad(81), 0) * centered
 	)
-	model:ScaleTo(4.3 / math.max(size.X, size.Y, size.Z, 0.1))
 	model.Parent = view
 	return true
 end

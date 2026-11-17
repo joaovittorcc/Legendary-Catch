@@ -63,6 +63,7 @@ local function preview(parent: Instance, creatureId: string, hidden: boolean): P
 	model:PivotTo(pivot)
 	model.Parent = view
 	local camera = Instance.new("Camera")
+	camera.FieldOfView = 44
 	local radius = math.max(size.Magnitude, 1)
 	camera.CFrame = CFrame.lookAt(Vector3.new(0, radius * 0.14, radius * 1.4), Vector3.zero)
 	camera.Parent = view
