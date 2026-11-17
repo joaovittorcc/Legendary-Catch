@@ -1,7 +1,8 @@
 --!strict
 -- Cinematic camera while fishing (waiting for a bite and during the fight): glides between
 -- several angles around the player and the bobber, faster and closer during the fight.
--- "Reduce effects" keeps one steady over-the-shoulder angle (no cuts, no drift).
+-- During the minigame the view trembles slightly with small yanks from the fish.
+-- "Reduce effects" keeps one steady over-the-shoulder angle (no cuts, no drift, no tremor).
 
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
@@ -52,6 +53,10 @@ local WAITING_ORDER = { "shoulder", "profile", "water", "drone" }
 local FIGHT_ORDER = { "bobber", "shoulder", "water", "profile", "bobber", "drone" }
 local WAITING_SECONDS = 3.6
 local FIGHT_SECONDS = 2.6
+-- Fight tremor, in degrees: kept small on purpose (kids, phones, motion sickness).
+local SHAKE_TREMBLE = 0.35
+local SHAKE_BUMP = 1.1
+local SHAKE_BUMP_SECONDS = 0.3
 
 local player = Players.LocalPlayer
 local conn: RBXScriptConnection? = nil
@@ -101,6 +106,32 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 		return position
 	end
 
+	-- The glide works on `smooth`; the fight tremor is added on top so it never accumulates.
+	local smooth = camera.CFrame
+	local rng = Random.new()
+	local nextBump = os.clock() + 0.8
+	local bumpAt = -math.huge
+	local bumpDir = Vector2.zero
+
+	local function tremor(now: number): CFrame
+		if phase ~= "fight" or reduceEffects() then
+			return CFrame.identity
+		end
+		-- Constant faint tremble, like the line pulling.
+		-- math.noise stays roughly within -0.5..0.5, so x2 gives about ±SHAKE_TREMBLE.
+		local x = math.noise(now * 9, 0.5) * 2 * SHAKE_TREMBLE
+		local y = math.noise(0.5, now * 9) * 2 * SHAKE_TREMBLE
+		-- Every so often the fish yanks: a quick bump that fades out.
+		if now >= nextBump then
+			bumpAt = now
+			bumpDir = Vector2.new(rng:NextNumber(-1, 1), rng:NextNumber(-1, 1)).Unit
+			nextBump = now + rng:NextNumber(0.7, 1.5)
+		end
+		local fade = math.clamp(1 - (now - bumpAt) / SHAKE_BUMP_SECONDS, 0, 1)
+		local bump = fade * fade * SHAKE_BUMP * math.sin((now - bumpAt) * 40)
+		return CFrame.Angles(math.rad(x + bumpDir.Y * bump), math.rad(y + bumpDir.X * bump), 0)
+	end
+
 	conn = RunService.RenderStepped:Connect(function(dt)
 		if not root.Parent or not bobber.Parent then
 			FishingCamera.stop()
@@ -121,7 +152,8 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 		local goal = CFrame.lookAt(unblocked(position), look)
 		-- Smooth glide between angles; snappier while fighting.
 		local speed = if phase == "fight" then 4 else 2.2
-		camera.CFrame = camera.CFrame:Lerp(goal, 1 - math.exp(-dt * speed))
+		smooth = smooth:Lerp(goal, 1 - math.exp(-dt * speed))
+		camera.CFrame = smooth * tremor(os.clock())
 		camera.Focus = CFrame.new(look)
 	end)
 end

@@ -11,7 +11,6 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local Hud = script.Parent:WaitForChild("Hud")
 local Panel = require(Hud:WaitForChild("Panel"))
-local Title = require(script:WaitForChild("Title"))
 local Arrival = { order = 0 }
 local player = Players.LocalPlayer
 local LOAD_TIMEOUT = 6
@@ -145,12 +144,11 @@ function Arrival.start()
 	status.Text = Text.arrival.ready
 
 	cover.Visible = false
-	local skipPanorama = Title.open(playerGui)
+	-- No title screen (João, 2026-11-17): straight from loading into the short arrival glide.
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local camera = workspace.CurrentCamera
-	local animate = not skipPanorama
-		and camera
+	local animate = camera
 		and camera.CameraType == Enum.CameraType.Custom
 		and root
 		and root:IsA("BasePart")
