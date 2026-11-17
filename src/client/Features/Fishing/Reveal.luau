@@ -22,6 +22,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 
 type CatchInfo = { weight: number?, value: number?, isNew: boolean?, variant: string? }
 local seen: { [string]: boolean } = {}
+local RevealStyles = require(script.Parent.Parent:WaitForChild("RevealStyles"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
@@ -216,11 +217,11 @@ end
 local function legendaryIntro(origin: Vector3, color: Color3, cancelled: () -> boolean): () -> ()
 	local restore = Effects.darken(Color3.fromRGB(140, 120, 255), 0.4)
 	task.wait(0.4)
-	for _ = 1, 3 do
+	for pulse = 1, 3 do
 		if cancelled() then
 			return restore
 		end
-		Effects.lightning(origin, Color3.fromRGB(200, 190, 255))
+		Effects.ripple(origin, color, 7 + pulse * 3, 0.68)
 		Effects.shake(0.25, 1.2)
 		task.wait(0.28)
 	end
@@ -249,12 +250,8 @@ function Reveal.play(
 	local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 	local shiny = info ~= nil and info.variant == "Shiny"
 	local creature = Creatures.get(creatureId)
-	local motif = creature and creature.revealStyle
-	local accent = if motif == "storm"
-		then Theme.crystal
-		elseif motif == "cosmic" then Theme.rose
-		elseif motif == "prism" then Theme.rose
-		else color
+	local motif = if creature then creature.revealStyle else "splash"
+	local accent = RevealStyles.tint(motif)
 	local skipped = false
 	local skipButton: TextButton? = nil
 	if level == 5 and (seen[creatureId] or (info and info.isNew == false)) then
@@ -277,12 +274,6 @@ function Reveal.play(
 	end
 	local function cancelled(): boolean
 		return skipped or not root:IsDescendantOf(Workspace)
-	end
-	Effects.ripple(origin, accent, 4 + level * 2, 0.8)
-	if motif == "bubbles" or motif == "prism" then
-		Effects.ripple(origin, color, 6, 0.5)
-	elseif motif == "storm" and not reduced then
-		Effects.lightning(origin, accent)
 	end
 	if level >= 5 then
 		Audio.play("legendary", 0.24, 0.74)
@@ -335,7 +326,8 @@ function Reveal.play(
 	end
 	model.Parent = Workspace
 
-	Effects.splash(origin, color, 10 + level * 6)
+	RevealStyles.play(motif, origin, level, reduced)
+	Effects.splash(origin, accent, 10 + level * 6)
 	Effects.ripple(origin, color, 4 + level * 2, 0.8)
 	if level >= 5 and not reduced then
 		Effects.shake(0.5, 2)
