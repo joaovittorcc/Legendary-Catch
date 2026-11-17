@@ -95,6 +95,10 @@ function Collection.start()
 			stage.Parent = body
 			spinning = preview(stage, creature.id, record == nil)
 			if record then
+				local shiny = (record :: any).shiny
+				if typeof(shiny) == "number" and shiny > 0 then
+					Panel.label(body, string.format(Text.shinyCount, shiny), 15, Theme.gold)
+				end
 				Panel.label(
 					body,
 					string.format(
@@ -134,18 +138,20 @@ function Collection.start()
 			grid.CellPadding = UDim2.new(0.025, 0, 0, 8)
 			grid.Parent = group
 			for _, entry in Creatures.ofRarity(rarity) do
-				local found = snapshot.collection[entry.id] ~= nil
+				local record = snapshot.collection[entry.id]
+				local found = record ~= nil
+				local shiny = record and (record :: any).shiny
+				local label = if found then Strings.creatureName[entry.id] or entry.id else "???"
+				if typeof(shiny) == "number" and shiny > 0 then
+					label = "✦ " .. label
+				end
 				local card = Panel.button(group, "", color)
 				local icon = Instance.new("Frame")
 				icon.BackgroundTransparency = 1
 				icon.Size = UDim2.fromScale(1, 0.66)
 				icon.Parent = card
 				preview(icon, entry.id, not found)
-				local name = Panel.label(
-					card,
-					if found then Strings.creatureName[entry.id] or entry.id else "???",
-					13
-				)
+				local name = Panel.label(card, label, 13)
 				name.Size = UDim2.fromScale(0.94, 0.3)
 				name.Position = UDim2.fromScale(0.03, 0.67)
 				card.Activated:Connect(function()

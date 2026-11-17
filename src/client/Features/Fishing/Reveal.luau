@@ -20,7 +20,7 @@ local Players = game:GetService("Players")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 
-type CatchInfo = { weight: number?, value: number?, isNew: boolean? }
+type CatchInfo = { weight: number?, value: number?, isNew: boolean?, variant: string? }
 local seen: { [string]: boolean } = {}
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
@@ -74,7 +74,7 @@ local function cloneCreature(id: string): Model
 	return m
 end
 
-local function sparkles(model: Model, color: Color3)
+local function sparkles(model: Model, color: Color3, shiny: boolean)
 	local _, size = model:GetBoundingBox()
 	local holder = Instance.new("Part")
 	holder.Name = "SparkleHolder"
@@ -87,7 +87,14 @@ local function sparkles(model: Model, color: Color3)
 	holder.Parent = model
 	local e = Instance.new("ParticleEmitter")
 	e.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	e.Color = ColorSequence.new(color)
+	e.Color = if shiny
+		then ColorSequence.new({
+			ColorSequenceKeypoint.new(0, Theme.rose),
+			ColorSequenceKeypoint.new(0.33, Theme.gold),
+			ColorSequenceKeypoint.new(0.66, Theme.crystal),
+			ColorSequenceKeypoint.new(1, Color3.fromRGB(180, 139, 255)),
+		})
+		else ColorSequence.new(color)
 	e.LightEmission = 1
 	e.Size =
 		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.5), NumberSequenceKeypoint.new(1, 0) })
@@ -134,13 +141,15 @@ local function nameCard(
 		color
 	)
 	rarityLabel.TextStrokeTransparency = 0.5
-	if info and info.isNew then
+	if info and (info.isNew or info.variant == "Shiny") then
 		Ui.label(
 			card,
 			"Discovery",
 			UDim2.fromScale(1, 0.18),
 			UDim2.fromScale(0, 0.04),
-			Text.discovery,
+			if info.variant == "Shiny"
+				then (if info.isNew then Text.shiny .. "  ·  " .. Text.discovery else Text.shiny)
+				else Text.discovery,
 			Theme.gold
 		)
 	end
@@ -237,6 +246,7 @@ function Reveal.play(
 	local level = rank(rarity)
 
 	local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+	local shiny = info ~= nil and info.variant == "Shiny"
 	local creature = Creatures.get(creatureId)
 	local motif = creature and creature.revealStyle
 	local accent = if motif == "storm"
@@ -295,8 +305,29 @@ function Reveal.play(
 	local _, size = model:GetBoundingBox()
 	local biggest = math.max(size.X, size.Y, size.Z, 0.1)
 	model:ScaleTo(model:GetScale() * style.size / biggest)
-	if level >= 3 and not reduced then
-		sparkles(model, color)
+	if (level >= 3 or shiny) and not reduced then
+		sparkles(model, color, shiny)
+	end
+	if shiny then
+		local gleam = Instance.new("Highlight")
+		gleam.FillTransparency = 0.85
+		gleam.OutlineTransparency = 0.28
+		gleam.FillColor = Theme.rose
+		gleam.OutlineColor = Theme.crystal
+		gleam.DepthMode = Enum.HighlightDepthMode.Occluded
+		gleam.Parent = model
+		if not reduced then
+			TweenService:Create(
+				gleam,
+				TweenInfo.new(0.85, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 4, true),
+				{
+					OutlineColor = Theme.gold,
+					FillColor = Theme.crystal,
+				}
+			):Play()
+			Effects.ripple(origin, Theme.rose, 9, 0.65)
+			Effects.ripple(origin, Theme.gold, 12, 0.9)
+		end
 	end
 	model.Parent = Workspace
 

@@ -53,6 +53,8 @@ return {
 	control = "Controle",
 	luck = "Sorte",
 	skip = "Pular",
+	shiny = "CINTILANTE",
+	shinyCount = "%d cintilante(s)",
 	discovery = "NOVA DESCOBERTA",
 	reduced = "Reduzir efeitos",
 	on = "Sim",
