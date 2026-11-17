@@ -33,7 +33,12 @@ function Panel.button(parent: Instance, content: string, accent: Color3): TextBu
 	return button
 end
 
-function Panel.create(id: string, title: string, accent: Color3): (ScreenGui, ScrollingFrame)
+function Panel.create(
+	id: string,
+	title: string,
+	accent: Color3,
+	heightScale: number?
+): (ScreenGui, ScrollingFrame)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = id .. "Screen"
 	gui.Enabled = false
@@ -43,8 +48,8 @@ function Panel.create(id: string, title: string, accent: Color3): (ScreenGui, Sc
 
 	local shell = Instance.new("Frame")
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
-	shell.Position = UDim2.fromScale(0.5, 0.55)
-	shell.Size = UDim2.fromScale(0.85, 0.64)
+	shell.Position = UDim2.fromScale(0.5, if heightScale then 0.53 else 0.55)
+	shell.Size = UDim2.fromScale(0.85, heightScale or 0.64)
 	Theme.surface(shell, accent, 16, Color3.fromRGB(28, 40, 57))
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(680, 530)

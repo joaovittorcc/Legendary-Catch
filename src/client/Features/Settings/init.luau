@@ -15,7 +15,7 @@ local Settings = {}
 local player = Players.LocalPlayer
 
 function Settings.start()
-	local gui, body = Panel.create("Settings", Text.settings, Theme.rose)
+	local gui, body = Panel.create("Settings", Text.settings, Theme.rose, 0.75)
 	Panel.stack(body)
 	local music = Audio.group("Music")
 	local effects = Audio.group("Effects")
@@ -45,7 +45,7 @@ function Settings.start()
 
 	local function volume(name: string, group: SoundGroup)
 		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, 0, 0, 52)
+		row.Size = UDim2.new(1, 0, 0, 48)
 		row.BackgroundTransparency = 1
 		local label = Panel.label(row, "", 16)
 		label.Size = UDim2.new(1, -108, 1, 0)
@@ -56,7 +56,7 @@ function Settings.start()
 		refresh()
 		for i, delta in { -0.1, 0.1 } do
 			local button = Panel.button(row, if delta < 0 then "−" else "+", Theme.rose)
-			button.Position = UDim2.new(1, -100 + (i - 1) * 50, 0, 2)
+			button.Position = UDim2.new(1, -100 + (i - 1) * 50, 0, 1)
 			button.Size = UDim2.fromOffset(46, 46)
 			button.Activated:Connect(function()
 				group.Volume = math.clamp(math.round((group.Volume + delta) * 10) / 10, 0, 1)
