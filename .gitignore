@@ -8,3 +8,7 @@ sourcemap.json
 backups/
 # Flattened copy of the old game's vault (reference only, not part of this repo)
 VAULT-roblox.md
+
+# Reference videos (large, not ours)
+*.mp4
+art/reference/video-frames.html

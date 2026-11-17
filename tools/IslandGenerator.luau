@@ -14,6 +14,7 @@
 	fallbacks (see `placeMesh`).
 ]]
 
+local CollectionService = game:GetService("CollectionService")
 local Lighting = game:GetService("Lighting")
 local ServerStorage = game:GetService("ServerStorage")
 local Workspace = game:GetService("Workspace")
@@ -1352,6 +1353,19 @@ local function buildPier()
 		end, 1.1)
 	end
 	neonRing(g, Vector3.new(x1 - 3, PIER_Y + 0.05, zc), 2.6, 0.12, COLORS.cyan, 16)
+
+	-- Server checks the player stands inside this box before accepting a cast.
+	local zone = part(
+		"FishingZone",
+		g,
+		Vector3.new(x1 - 40 + 2, 10, w),
+		CFrame.new((40 + x1) / 2 + 1, PIER_Y + 4, zc),
+		COLORS.cyan,
+		Enum.Material.ForceField,
+		{ collide = false, transparency = 1, shadow = false }
+	)
+	zone.CanQuery = false
+	CollectionService:AddTag(zone, "FishingZone")
 
 	for _, p in { Vector3.new(58, 0, 26), Vector3.new(96, 0, 18), Vector3.new(76, 0, -12) } do
 		local b = Instance.new("Model")
