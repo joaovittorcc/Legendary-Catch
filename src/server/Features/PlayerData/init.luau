@@ -265,7 +265,7 @@ local function activate(player: Player, session: Session)
 	session.OnSessionEnd:Connect(function()
 		profiles[player] = nil
 		sessions[player] = nil
-		player:Kick(Strings.dataSessionEnded)
+		player:Kick(Strings.forLocale(player.LocaleId).dataSessionEnded)
 	end)
 	sessions[player] = session
 	profiles[player] = profile
@@ -292,7 +292,7 @@ local function onPlayerAdded(player: Player)
 		-- nil also means the player left mid-load, which is not a failure.
 		if player.Parent == Players then
 			warn(`[PlayerData] profile load failed for {player.Name}`)
-			player:Kick(Strings.dataLoadFailed)
+			player:Kick(Strings.forLocale(player.LocaleId).dataLoadFailed)
 		end
 		return
 	end
@@ -304,7 +304,7 @@ local function onPlayerAdded(player: Player)
 	if not ok or failure ~= nil then
 		warn(`[PlayerData] migration failed for {player.Name}: {failure}`)
 		session:EndSession()
-		player:Kick(Strings.dataLoadFailed)
+		player:Kick(Strings.forLocale(player.LocaleId).dataLoadFailed)
 		return
 	end
 	session:Reconcile()

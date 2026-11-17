@@ -1,7 +1,13 @@
 --!strict
--- UI text (PT-BR for the test build; EN goes in a sibling table later).
+-- Game text in PT-BR and EN, same shape. Requiring this module gives the table for the
+-- local player's language on the client (Roblox locale starting with "pt" -> PT, else EN)
+-- and EN on the server (shared texts like ProximityPrompts). For per-player server text
+-- (kick messages) use Strings.forLocale(player.LocaleId).
 
-local Strings = {
+local Players = game:GetService("Players")
+local RunService = game:GetService("RunService")
+
+local PT = {
 	rarity = {
 		Common = "Comum",
 		Uncommon = "Incomum",
@@ -114,4 +120,137 @@ local Strings = {
 	newRecord = "NOVA DESCOBERTA!",
 }
 
-return Strings
+export type Strings = typeof(PT)
+
+local EN: Strings = {
+	rarity = {
+		Common = "Common",
+		Uncommon = "Uncommon",
+		Rare = "Rare",
+		Epic = "Epic",
+		Legendary = "Legendary",
+	},
+	hint = {
+		Common = "Something bit...",
+		Uncommon = "Something different...",
+		Rare = "Something rare!",
+		Epic = "SOMETHING EPIC!",
+		Legendary = "LEGENDARY...",
+	},
+	creatureName = {
+		C01_Bolhinha_Azul = "Bubbly Blue",
+		C02_Sardinha_Solar = "Solar Sardine",
+		C03_Siri_Pipoca = "Popcorn Crab",
+		C04_Baiacu_Nuvem = "Cloud Puffer",
+		C05_Medusinha_Estelar = "Starry Jelly",
+		C06_Cavalo_Marinho_Coral = "Coral Seahorse",
+		C07_Arraia_Prisma = "Prism Ray",
+		C08_Enguia_Trovao = "Thunder Eel",
+		C09_Guardiao_Cristal = "Crystal Guardian",
+		C10_Leviata_Astral = "Astral Leviathan",
+		C11_Pingo_Lanterna = "Lantern Drop",
+		C12_Camarao_Confete = "Confetti Shrimp",
+		C13_Linguado_Sonolento = "Sleepy Flounder",
+		C14_Polvinho_Aquarela = "Watercolor Octopus",
+		C15_Tartaruga_Musgo = "Moss Turtle",
+		C16_Voador_Brisa = "Breeze Flyer",
+		C17_Martelo_Coral = "Coral Hammerhead",
+		C18_Lula_Neon = "Neon Squid",
+		C19_Peixe_Lua_Dourado = "Golden Moonfish",
+		C20_Raia_Vulcanica = "Volcanic Ray",
+		C21_Baleia_Nebulosa = "Nebula Whale",
+		C22_Serpente_Glacial = "Glacial Serpent",
+		C23_Kraken_Trovejante = "Thunder Kraken",
+		C24_Fenix_das_Mares = "Tide Phoenix",
+	},
+	creatureLore = {
+		C01_Bolhinha_Azul = "Blows little bubbles when it's happy. So, always.",
+		C02_Sardinha_Solar = "Swims in schools that glow like a sunset.",
+		C03_Siri_Pipoca = "Pops with joy whenever it finds something shiny in the sand.",
+		C04_Baiacu_Nuvem = "Puffs up so softly that fishers swear it's a cloud.",
+		C05_Medusinha_Estelar = "They say each tentacle holds a tiny star.",
+		C06_Cavalo_Marinho_Coral = "Grows with the reefs and wears its crest like a crown.",
+		C07_Arraia_Prisma = "When it spreads its wings, the whole sea turns into a rainbow.",
+		C08_Enguia_Trovao = "Shows up in storms. Nobody knows if it brings the lightning or follows it.",
+		C09_Guardiao_Cristal = "Has guarded the deep crystal caves for over a thousand years.",
+		C10_Leviata_Astral = "Fell from the sky on a moonless night. The ocean still isn't used to it.",
+		C11_Pingo_Lanterna = "Carries a tiny light on its forehead so it never gets lost in the dark.",
+		C12_Camarao_Confete = "Changes color every time someone celebrates nearby.",
+		C13_Linguado_Sonolento = "Naps on the sand all day. Hooking it feels almost rude.",
+		C14_Polvinho_Aquarela = "Paints the reef with colorful ink instead of black.",
+		C15_Tartaruga_Musgo = "So old and so calm it grows a little garden on its shell.",
+		C16_Voador_Brisa = "Leaps out of the water and glides on its fins like wings.",
+		C17_Martelo_Coral = "Its hammer head is covered in living, growing coral.",
+		C18_Lula_Neon = "Lights up colorful stripes to chat with friends in the deep.",
+		C19_Peixe_Lua_Dourado = "Huge, round and shiny. The ancients thought it was the moon falling into the sea.",
+		C20_Raia_Vulcanica = "Swims near hot vents. The water boils where it passes.",
+		C21_Baleia_Nebulosa = "Breathes clouds. On foggy days, it's close by.",
+		C22_Serpente_Glacial = "Leaves a thin trail of ice on the surface, even in summer.",
+		C23_Kraken_Trovejante = "Each tentacle calls down lightning. No one who heard it forgets the sound.",
+		C24_Fenix_das_Mares = "Reborn from the waves in blue flames. They say it only appears to those who never give up.",
+	},
+	rodName = {
+		starter = "Starter Rod",
+		coral = "Coral Rod",
+		crystal = "Crystal Rod",
+		storm = "Storm Rod",
+		astral = "Astral Rod",
+	},
+	eventName = {
+		starTide = "Star Tide",
+		thunderStorm = "Thunder Storm",
+		goldenHour = "Golden Hour",
+	},
+	instructions = {
+		reel = "Hold to keep the fish in the zone",
+		precision = "Tap when the marker is in the zone",
+		rhythm = "Tap when the ring meets the circle",
+	},
+	stat = {
+		Control = "Control",
+		Instinct = "Instinct",
+	},
+	statHelp = {
+		Control = "Easier minigames",
+		Instinct = "Better luck with rare catches",
+	},
+	workshop = "Workshop",
+	openWorkshop = "Open Workshop",
+	trainAction = "Train",
+	trainingSpot = "Training Lagoon",
+	training = "Training",
+	level = "Level",
+	stop = "Stop",
+	levelUp = "reached level",
+	ringHint = "Training bonus!",
+	ringBonus = "Bonus!",
+	maxLevel = "Max level",
+	escaped = "It got away!",
+	loading = "Loading your data...",
+	dataLoadFailed = "We couldn't load your progress. Please rejoin in a moment.",
+	dataSessionEnded = "Your progress was opened on another server. Please rejoin.",
+	notInZone = "Go to the end of the pier to fish",
+	waiting = "Waiting for a bite...",
+	caught = "Caught!",
+	newRecord = "NEW DISCOVERY!",
+}
+
+local function forLocale(locale: string): Strings
+	return if string.lower(string.sub(locale, 1, 2)) == "pt" then PT else EN
+end
+
+local selected: Strings = EN
+if RunService:IsClient() then
+	local ok, locale = pcall(function()
+		return game:GetService("LocalizationService").RobloxLocaleId
+	end)
+	selected = forLocale(
+		if ok and typeof(locale) == "string" then locale else Players.LocalPlayer.LocaleId
+	)
+end
+
+-- Same table for everyone who requires it; forLocale picks per player on the server.
+local Strings = table.clone(selected) :: any
+Strings.forLocale = forLocale
+
+return Strings :: Strings & { forLocale: (locale: string) -> Strings }
