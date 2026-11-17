@@ -51,3 +51,8 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 - **X17 — Artes de divulgação (Codex)**: monte cenas bonitas no Studio (ilha de dia, píer com linha brilhando, uma revelação lendária, bestiário cheio) e salve capturas em `art/marketing/` (thumbnails 16:9 e uma imagem quadrada para ícone, sem UI de debug). O João sobe no Creator Hub.
 - **X18 — Juice (Codex)**: moedas voando até o contador ao capturar, "x3 seguidas!" para capturas seguidas sem escapar (só visual, cliente conta), vibração leve no celular (HapticService, respeitando Reduzir efeitos), número de peso subindo rápido no cartão.
 - **Preços das varas subiram** (Coral 500, Cristal 3.000, Tempestade 15.000, Astral 60.000): confira se a Oficina e o tutorial continuam certos.
+
+## Rodada 4 — Antigravity
+- **A6 — Conferência visual**: em Play, equipe cada uma das 5 varas (Player `DevGrantCoins`=100000 no servidor, depois `Remotes.BuyRod:FireServer(id)` no cliente) e confira de 3 ângulos que a vara sai da mão apontando pra frente/cima e que a linha sai da `Tip`. Ajuste o modelo (não o código) se estiver torto. Depois confira os 24 modelos no bestiário e numa revelação (`DevForceRarity`). Dica: o `screen_capture` só pega a imagem se a janela do Studio estiver visível (não minimizada nem atrás de outra).
+- **A7 — Qualidade das criaturas**: refaça os modelos mais fracos (pouco detalhe, cor errada, sem cara) — prioridade para os 3 lendários (C10, C23, C24) e os 4 épicos (C09, C20–C22), que precisam ser os mais impressionantes. Guarde o anterior em `ServerStorage.CreaturePrototypes`.
+- **A8 — Salvar o place** e Mural.
