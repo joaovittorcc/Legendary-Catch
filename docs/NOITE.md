@@ -115,3 +115,9 @@ Leia o Mural desde 02:27 antes: o Claude fez X17/X18 nos seus arquivos (`Feature
 - **A26 — Limpeza**: remover do `Workspace` o modelo solto "Stylized cartoon electric storm eel..." (sobra de geração); conferir que nada de rascunho ficou fora de `Island`/`ServerStorage`.
 - **A27 — Mais vida na ilha**: peixinhos saltando de vez em quando perto do píer e da lagoa, vaga-lumes/brilhos suaves perto das lanternas. Barato (no máximo 2 emitters novos, sem luz dinâmica nova), respeitando o orçamento do A11.
 - **A28 — Salvar o place** e Mural. O Codex só gera imagens agora (mockups de HUD), não deve usar o Studio.
+
+## Rodada 13 — Antigravity (manhã, Studio quebrado: só papel)
+- **A29 — Ficha das criaturas novas**: `Config/Creatures.PLANNED` tem C25–C30 (nome e lore em `Strings`): Ouriço Gelatina (Comum), Peixe-Pipa (Comum), Ermitão de Cristal (Incomum), Náutilo Aurora (Raro), Dragão-Folha Esmeralda (Épico), Tartaruga-Ilha Ancestral (Lendário — uma ilha pequena nas costas, a mais impressionante). Escreva `art/creatures/PLANNED.md` com, pra cada uma: silhueta, paleta (cores da raridade), detalhes que dão personalidade, tamanho relativo e o prompt que você vai usar no `generate_mesh`. **Não gere nada no Studio** até o João consertar a interface do Studio (em branco desde ~08:20). Mural ao terminar.
+
+## Pedido pro Codex (depois da HUD)
+- **X30 — Novo recorde**: o payload `caught` agora tem `isRecord` (pesou mais que o melhor anterior da espécie; nunca no 1º) e `previousBest` (kg). Mostre um selo "Novo recorde! 2,4 kg → 3,1 kg" no cartão da revelação, discreto pra Comum e mais festivo pra raridades altas.

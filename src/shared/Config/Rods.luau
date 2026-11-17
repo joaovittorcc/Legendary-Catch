@@ -1,10 +1,10 @@
 --!strict
 -- Rods sold at the upgrade workshop. Bonuses stack with training:
 --   controlBonus  extra fraction on minigame zones/windows (0.2 = +20%)
---   luckBonus     extra weight per rarity rank above Common (0.3 = Legendary x1.3)
--- Prices from a rough pacing estimate (2026-11-17): ~13 s per catch, ~62 coins per catch at
--- base luck = ~285 coins/min. Coral ~2 min, Crystal ~10 min, Storm ~50 min, Astral ~3.5 h of
--- fishing. Re-tune with real Analytics data after launch.
+--   luckBonus     extra weight per rarity rank above Common (0.32 = Legendary x2.28)
+-- Prices from a simulated pace (2026-11-17, ~13 s per catch): starter ~310 coins/min,
+-- Astral ~450. Coral ~2 min, Crystal ~9 min, Storm ~40 min, Astral ~2.5 h of fishing.
+-- Re-tune with real Analytics data after launch.
 
 export type Rod = {
 	id: string,
@@ -78,8 +78,11 @@ function Rods.get(id: string): Rod?
 	return byId[id]
 end
 
+-- Weight multiplier for a rarity rank (1 = Common ... 5 = Legendary). Grows with the rank so
+-- better rods shift catches toward rarer creatures. Simulated 2026-11-17: Astral earns ~45%
+-- more coins/min than the starter and Legendary goes from 1% to ~1.9%.
 function Rods.luckMultiplier(rod: Rod?, rank: number): number
-	return 1 + (if rod then rod.luckBonus else 0) * (rank - 1) / 4
+	return 1 + (if rod then rod.luckBonus else 0) * (rank - 1)
 end
 
 return Rods

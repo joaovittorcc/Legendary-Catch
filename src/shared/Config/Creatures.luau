@@ -236,6 +236,65 @@ local LIST: { Creature } = {
 	},
 }
 
+-- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
+-- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
+local PLANNED: { Creature } = {
+	{
+		id = "C25_Ourico_Gelatina",
+		rarity = "Common",
+		tier = 1,
+		baseValue = 12,
+		weightMin = 0.1,
+		weightMax = 0.6,
+		revealStyle = "bubbles",
+	},
+	{
+		id = "C26_Peixe_Pipa",
+		rarity = "Common",
+		tier = 1,
+		baseValue = 13,
+		weightMin = 0.2,
+		weightMax = 0.9,
+		revealStyle = "splash",
+	},
+	{
+		id = "C27_Ermitao_Cristal",
+		rarity = "Uncommon",
+		tier = 2,
+		baseValue = 44,
+		weightMin = 0.5,
+		weightMax = 2.2,
+		revealStyle = "crystal",
+	},
+	{
+		id = "C28_Nautilo_Aurora",
+		rarity = "Rare",
+		tier = 3,
+		baseValue = 135,
+		weightMin = 2,
+		weightMax = 10,
+		revealStyle = "prism",
+	},
+	{
+		id = "C29_Dragao_Folha",
+		rarity = "Epic",
+		tier = 4,
+		baseValue = 390,
+		weightMin = 8,
+		weightMax = 30,
+		revealStyle = "spark",
+	},
+	{
+		id = "C30_Tartaruga_Ilha",
+		rarity = "Legendary",
+		tier = 5,
+		baseValue = 1650,
+		weightMin = 3000,
+		weightMax = 9000,
+		revealStyle = "crystal",
+	},
+}
+
 local byId: { [string]: Creature } = {}
 for _, c in LIST do
 	byId[c.id] = c
@@ -244,6 +303,7 @@ end
 local Creatures = {}
 
 Creatures.LIST = LIST
+Creatures.PLANNED = PLANNED
 Creatures.MODELS_FOLDER = "Creatures"
 
 function Creatures.get(id: string): Creature?

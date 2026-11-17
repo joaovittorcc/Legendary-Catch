@@ -14,6 +14,8 @@ export type FishingUpdate = {
 	isNew: boolean?, -- first time this creature was caught
 	count: number?, -- total caught of this creature, including this one
 	variant: string?, -- "" or "Shiny", on "caught"
+	isRecord: boolean?, -- heavier than this player's previous best of the species (not on first catch)
+	previousBest: number?, -- kg, the beaten record (only when isRecord)
 }
 
 export type TrainingUpdate = {

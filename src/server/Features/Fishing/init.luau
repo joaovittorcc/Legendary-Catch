@@ -269,12 +269,16 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 			* (if shiny then FishingConfig.SHINY_VALUE_MULTIPLIER else 1)
 			* Monetization.coinMultiplier(player)
 	)
-	local isNew, count = false, 1
+	local isNew, count, isRecord, previousBest = false, 1, false, 0
 	PlayerData.update(player, function(p)
 		local entry = p.collection[creature.id]
 		if entry then
 			entry.count += 1
-			entry.bestWeight = math.max(entry.bestWeight, weight)
+			if weight > entry.bestWeight then
+				isRecord = true
+				previousBest = entry.bestWeight
+				entry.bestWeight = weight
+			end
 		else
 			isNew = true
 			entry = { count = 1, bestWeight = weight, firstAt = os.time(), shiny = 0 }
@@ -304,6 +308,8 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 		isNew = isNew,
 		count = count,
 		variant = if shiny then "Shiny" else "",
+		isRecord = isRecord,
+		previousBest = if isRecord then previousBest else nil,
 	})
 	Progress.onCatch(player, creature, value, castId)
 	Social.onCatch(player, creature, if shiny then "Shiny" else "")
