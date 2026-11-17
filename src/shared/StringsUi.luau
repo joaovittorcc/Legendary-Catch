@@ -4,6 +4,15 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local PT = {
+	nextGoal = {
+		title = "Próxima meta",
+		rod = "Faltam %d moedas pra %s",
+		rodReady = "Já dá pra comprar %s",
+		species = "Faltam %d espécies",
+		speciesRarity = "Faltam %d espécies · %s",
+		milestoneReady = "Marco da coleção pronto pra resgatar",
+		missionReady = "Desafio diário pronto pra resgatar",
+	},
 	dailyGift = "Presente do dia #%d",
 	dailyCoins = "+%d moedas",
 	photo = "Foto",
@@ -112,6 +121,15 @@ local PT = {
 type Labels = typeof(PT)
 
 local EN = {
+	nextGoal = {
+		title = "Next goal",
+		rod = "%d coins to go for %s",
+		rodReady = "You can buy %s now",
+		species = "%d species to go",
+		speciesRarity = "%d species to go · %s",
+		milestoneReady = "Collection milestone ready to claim",
+		missionReady = "Daily challenge ready to claim",
+	},
 	dailyGift = "Daily gift #%d",
 	dailyCoins = "+%d coins",
 	photo = "Photo",

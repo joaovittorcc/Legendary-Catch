@@ -338,12 +338,15 @@ function Collection.start()
 		end)
 	end
 	Hud.panelChanged:Connect(function(name: string)
-		gui.Enabled = name == "Collection"
+		gui.Enabled = name == "Collection" or name == "Milestones"
 		if rotation then
 			rotation:Disconnect()
 			rotation = nil
 		end
 		if gui.Enabled then
+			selected = nil
+			showRewards = name == "Milestones"
+			scroll.CanvasPosition = Vector2.zero
 			render()
 			local elapsed = 0
 			local wasReduced = false
