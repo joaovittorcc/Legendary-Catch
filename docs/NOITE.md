@@ -68,3 +68,7 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 
 ## Rodada 7 (2026-11-17 ~03:15) — Antigravity
 - **A14 — NPC guia**: um pescador veterano **original** (estilo da ilha: chapéu de pescador, colete, barba branca, vara nas costas), parado perto da entrada do píer olhando pra praça, sem atrapalhar o caminho. Pode ser rig R15 com acessórios/mesh, ancorado, `CanCollide` só no corpo. Tag **`GuideNPC`** no Model e um **`Attachment` chamado `SpeechPoint`** ~1 stud acima da cabeça (o Claude coloca os balões de fala ali). Uma pose parada simpática (sem animação obrigatória). Salve o place e Mural.
+
+## Rodada 8 (2026-11-17 ~03:45) — Antigravity
+- **A15 — QA de ponta a ponta (segundo par de olhos)**: perfil novo (no Studio o save é simulado, cada Play começa do zero), jogue como um jogador de verdade: título → tutorial inteiro → 10 capturas (forçando raridades variadas com `DevForceRarity`) → coleção → marcos → oficina (`DevGrantCoins`) → comprar/equipar varas → treino → desafios → ajustes (reduzir efeitos) → evento (`workspace:SetAttribute(""DevStartEvent"",""starTide"")`). **Não corrija código de ninguém**: anote cada bug no Mural com passo a passo, arquivo provável e gravidade. Corrija só o que for do mapa.
+- **A16 — Salvar o place** e Mural.
