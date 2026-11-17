@@ -23,7 +23,9 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 type CatchInfo = { weight: number?, value: number?, isNew: boolean?, variant: string? }
 local seen: { [string]: boolean } = {}
 local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
-local RevealStyles = require(script.Parent.Parent:WaitForChild("RevealStyles"))
+local stylesModule = script.Parent.Parent:WaitForChild("RevealStyles")
+local RevealStyles = require(stylesModule)
+local Legendary = require(stylesModule:WaitForChild("Legendary"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
@@ -215,12 +217,18 @@ local function tunnel(color: Color3)
 	end
 end
 
-local function legendaryIntro(origin: Vector3, color: Color3, cancelled: () -> boolean): () -> ()
+local function legendaryIntro(
+	id: string,
+	origin: Vector3,
+	viewer: Vector3,
+	color: Color3,
+	cancelled: () -> boolean
+): (() -> (), Folder?)
 	local restore = Effects.darken(Color3.fromRGB(140, 120, 255), 0.4)
 	task.wait(0.4)
 	for pulse = 1, 3 do
 		if cancelled() then
-			return restore
+			return restore, nil
 		end
 		Effects.ripple(origin, color, 7 + pulse * 3, 0.68)
 		Effects.shake(0.25, 1.2)
@@ -231,9 +239,12 @@ local function legendaryIntro(origin: Vector3, color: Color3, cancelled: () -> b
 	task.wait(0.35)
 	if not cancelled() then
 		Effects.flash(Ui.screen(), Color3.new(1, 1, 1), 0.7)
-		tunnel(color)
+		if id == "C10_Leviata_Astral" then
+			tunnel(color)
+		end
+		return restore, Legendary.play(id, origin, viewer)
 	end
-	return restore
+	return restore, nil
 end
 
 -- Yields until the reveal is over.
@@ -280,8 +291,9 @@ function Reveal.play(
 		Audio.play("legendary", 0.24, 0.74)
 	end
 	local restore: (() -> ())? = nil
+	local signature: Folder? = nil
 	if level >= 5 and not reduced then
-		restore = legendaryIntro(origin, accent, cancelled)
+		restore, signature = legendaryIntro(creatureId, origin, root.Position, accent, cancelled)
 	elseif level >= 4 and not reduced then
 		Effects.pillar(origin, color, 35, 1)
 		Effects.ripple(origin, color, 10, 0.9)
@@ -289,6 +301,9 @@ function Reveal.play(
 	end
 
 	if cancelled() then
+		if signature then
+			signature:Destroy()
+		end
 		if restore then
 			restore()
 		end
@@ -370,6 +385,9 @@ function Reveal.play(
 		RunService.RenderStepped:Wait()
 	end
 	CreatureMotion.reset(motion, base)
+	if signature then
+		signature:Destroy()
+	end
 
 	if restore then
 		restore()
