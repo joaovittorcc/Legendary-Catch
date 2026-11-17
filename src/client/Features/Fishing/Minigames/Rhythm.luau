@@ -16,7 +16,6 @@ local FishingConfig = require(
 )
 local Control = require(Fishing:WaitForChild("Control"))
 local PressInput = require(Fishing:WaitForChild("PressInput"))
-local Perfect = require(Fishing.Parent:WaitForChild("Missions"):WaitForChild("Perfect"))
 local Ui = require(Fishing:WaitForChild("Ui"))
 
 local Rhythm = {}
@@ -31,7 +30,7 @@ function Rhythm.run(
 	area: Frame,
 	tier: number,
 	color: Color3,
-	done: (boolean) -> (),
+	done: (boolean, boolean?) -> (),
 	ringCount: number?
 ): () -> ()
 	local cfg = FishingConfig.RHYTHM
@@ -81,10 +80,7 @@ function Rhythm.run(
 		finished = true
 		pressConn:Disconnect()
 		stepConn:Disconnect()
-		if success and misses == 0 and ringCount == nil then
-			Perfect.mark()
-		end
-		task.delay(0.34, done, success)
+		task.delay(0.34, done, success, success and misses == 0)
 	end
 	local current: { target: Frame, ring: Frame, t: number }? = nil
 	local gap = 0.4

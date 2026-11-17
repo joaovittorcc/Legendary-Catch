@@ -23,7 +23,6 @@ type Daily = { day: number, list: { Mission } }
 type ClaimResult = { ok: boolean, kind: string, id: string, reward: number?, reason: string? }
 local DAY_SECONDS = 86400
 local Missions = {}
-local Perfect = require(script:WaitForChild("Perfect"))
 
 local function description(mission: Mission): string
 	local rarity = string.match(mission.kind, "^catchRarity:(.+)$")
@@ -35,7 +34,6 @@ end
 
 function Missions.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
-	Perfect.start(remotes)
 	local gui, scroll = Panel.create("Missions", Text.missions.title, Theme.gold)
 	Panel.stack(scroll)
 	local clock = Panel.label(scroll, "", 15, Theme.gold)

@@ -15,7 +15,6 @@ local FishingConfig = require(
 )
 local Control = require(Fishing:WaitForChild("Control"))
 local PressInput = require(Fishing:WaitForChild("PressInput"))
-local Perfect = require(Fishing.Parent:WaitForChild("Missions"):WaitForChild("Perfect"))
 local Ui = require(Fishing:WaitForChild("Ui"))
 
 local Precision = {}
@@ -23,7 +22,12 @@ local Precision = {}
 local GREY = Color3.fromRGB(70, 74, 100)
 local RED = Color3.fromRGB(255, 60, 70)
 
-function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean) -> ()): () -> ()
+function Precision.run(
+	area: Frame,
+	tier: number,
+	color: Color3,
+	done: (boolean, boolean?) -> ()
+): () -> ()
 	local cfg = FishingConfig.PRECISION
 	local speed = FishingConfig.tierValue(cfg.markerSpeed, tier)
 	local zoneWidth = math.min(FishingConfig.tierValue(cfg.zoneWidth, tier) * Control.ease(), 0.4)
@@ -102,10 +106,7 @@ function Precision.run(area: Frame, tier: number, color: Color3, done: (boolean)
 		finished = true
 		pressConn:Disconnect()
 		stepConn:Disconnect()
-		if success and misses == 0 then
-			Perfect.mark()
-		end
-		task.delay(0.34, done, success)
+		task.delay(0.34, done, success, success and misses == 0)
 	end
 
 	pressConn = PressInput.Pressed:Connect(function()

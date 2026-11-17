@@ -15,12 +15,16 @@ local FishingConfig = require(
 )
 local Control = require(Fishing:WaitForChild("Control"))
 local PressInput = require(Fishing:WaitForChild("PressInput"))
-local Perfect = require(Fishing.Parent:WaitForChild("Missions"):WaitForChild("Perfect"))
 local Ui = require(Fishing:WaitForChild("Ui"))
 
 local Reel = {}
 
-function Reel.run(area: Frame, tier: number, color: Color3, done: (boolean) -> ()): () -> ()
+function Reel.run(
+	area: Frame,
+	tier: number,
+	color: Color3,
+	done: (boolean, boolean?) -> ()
+): () -> ()
 	local cfg = FishingConfig.REEL
 	local ease = Control.ease()
 	local zoneWidth = math.min(FishingConfig.tierValue(cfg.zoneWidth, tier) * ease, 0.5)
@@ -152,11 +156,10 @@ function Reel.run(area: Frame, tier: number, color: Color3, done: (boolean) -> (
 		if progress >= 1 or fail >= 1 then
 			finished = true
 			conn:Disconnect()
-			if progress >= 1 and not everOutside then
-				Perfect.mark()
-			end
-			Ui.feedback(area, progress >= 1, progress >= 1 and not everOutside)
-			task.delay(0.34, done, progress >= 1)
+			local success = progress >= 1
+			local perfect = success and not everOutside
+			Ui.feedback(area, success, perfect)
+			task.delay(0.34, done, success, perfect)
 		end
 	end)
 
