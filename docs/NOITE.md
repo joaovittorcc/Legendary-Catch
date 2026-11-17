@@ -60,3 +60,8 @@ Dono do que está em `docs/COORDENACAO.md` §2 + `src/client/Features/Tutorial/*
 ## Rodada 5 (2026-11-17 ~02:40)
 - **A9 — Pedestal do Troféu (Antigravity)**: na praça, um pedestal bonito (pedra clara + cristal + aro dourado, ~4 studs de altura) com uma peça invisível no topo com a tag **`TrophyPedestal`** (o servidor coloca em cima dela o modelo da criatura mais rara pescada no servidor e um letreiro com o nome de quem pegou). Sem colisão no topo. Commit do gerador + salvar o place.
 - **A10 — Passada final do mapa contra a arte (Antigravity)**: compare com `art/reference/island-approved.png` e ajuste o que estiver mais distante (cores, cristais, lanternas, vegetação), sem mudar posições de píer/oficina/lagoa/tags. Confira desempenho (instâncias, luzes). Salve o place.
+
+## Rodada 6 (2026-11-17 ~02:50) — Antigravity
+- **A11 — Desempenho celular**: meça instâncias, partes, luzes, partículas e triângulos do mapa + criaturas; confirme `Workspace.StreamingEnabled` com raio adequado à ilha compacta; corte o que pesar sem perder o visual (merge de peças decorativas, `CastShadow` desligado em decoração pequena, menos luzes dinâmicas). Anote antes/depois no Mural.
+- **A12 — Andabilidade e limites**: caminhe (`Humanoid:MoveTo`) por todos os caminhos (spawn, píer, oficina, lagoa, escada, pedestal) e confira que ninguém fica preso nem cai em buraco; coloque uma **barreira invisível no mar** (anel de paredes sem colisão visual, ~250 studs do centro) para o jogador não nadar até a borda do oceano; garanta que quem cai na água consegue voltar (escada/rampa na margem ou respawn suave).
+- **A13 — Salvar o place** e Mural.
