@@ -1,5 +1,5 @@
 --[[
-	Island generator v2 (Edit-time only).
+	Island generator v3 (Edit-time only).
 
 	Builds the hub island from the approved reference (art/reference/island-approved.png):
 	training lagoon on the left, upgrade workshop on a raised terrace at the back, paved plaza
@@ -10,8 +10,7 @@
 
 	Run from the MCP (`execute_luau` in Edit) by requiring a clone of this module. It wipes
 	Terrain and rebuilds Workspace.Island, so the place must be dedicated to this map.
-	AI meshes are optional: templates found in ServerStorage.MapMeshes replace the part
-	fallbacks (see `placeMesh`).
+	AI meshes live in ServerStorage.MapMeshes and replace part fallbacks (see `placeMesh`).
 ]]
 
 local CollectionService = game:GetService("CollectionService")
@@ -29,27 +28,28 @@ local OCEAN_SIZE = 2048
 local OCEAN_DEPTH = 14
 
 local COLORS = {
-	rock = Color3.fromRGB(116, 122, 150),
-	rockDark = Color3.fromRGB(84, 90, 122),
-	grass = Color3.fromRGB(86, 176, 92),
-	sand = Color3.fromRGB(236, 214, 168),
-	seabed = Color3.fromRGB(14, 42, 86),
-	paving = Color3.fromRGB(168, 152, 146),
-	pavingDark = Color3.fromRGB(136, 124, 128),
-	wood = Color3.fromRGB(150, 92, 52),
-	woodLight = Color3.fromRGB(186, 128, 76),
-	woodDark = Color3.fromRGB(92, 56, 38),
-	rope = Color3.fromRGB(226, 196, 140),
-	gold = Color3.fromRGB(255, 196, 92),
-	amber = Color3.fromRGB(255, 170, 64),
-	cyan = Color3.fromRGB(70, 226, 255),
-	crystal = Color3.fromRGB(120, 210, 255),
-	lilac = Color3.fromRGB(196, 140, 255),
-	pink = Color3.fromRGB(255, 140, 210),
-	roof = Color3.fromRGB(38, 92, 180),
-	banner = Color3.fromRGB(40, 86, 170),
+	rock = Color3.fromRGB(112, 118, 148),
+	rockDark = Color3.fromRGB(78, 84, 116),
+	grass = Color3.fromRGB(74, 164, 92),
+	sand = Color3.fromRGB(232, 214, 172),
+	seabed = Color3.fromRGB(12, 40, 84),
+	paving = Color3.fromRGB(178, 162, 156),
+	pavingDark = Color3.fromRGB(142, 130, 134),
+	wood = Color3.fromRGB(148, 90, 52),
+	woodLight = Color3.fromRGB(184, 126, 76),
+	woodDark = Color3.fromRGB(88, 52, 36),
+	rope = Color3.fromRGB(196, 158, 108),
+	bronze = Color3.fromRGB(176, 132, 68),
+	gold = Color3.fromRGB(255, 200, 96),
+	amber = Color3.fromRGB(255, 174, 68),
+	cyan = Color3.fromRGB(74, 228, 255),
+	crystal = Color3.fromRGB(108, 204, 255),
+	lilac = Color3.fromRGB(198, 140, 255),
+	pink = Color3.fromRGB(246, 142, 214),
+	roof = Color3.fromRGB(36, 92, 182),
+	banner = Color3.fromRGB(36, 84, 172),
 	cream = Color3.fromRGB(248, 238, 214),
-	red = Color3.fromRGB(226, 60, 56),
+	red = Color3.fromRGB(224, 58, 54),
 	white = Color3.fromRGB(245, 245, 245),
 }
 
@@ -134,6 +134,9 @@ local function beam(
 	opts: PartOpts?
 )
 	local len = (b - a).Magnitude
+	if len < 0.01 then
+		return nil
+	end
 	return part(
 		name,
 		parent,
@@ -142,6 +145,29 @@ local function beam(
 		color,
 		material,
 		opts
+	)
+end
+
+local function cylinderPost(
+	name: string,
+	parent: Instance,
+	base: Vector3,
+	height: number,
+	radius: number,
+	color: Color3,
+	material: Enum.Material,
+	opts: PartOpts?
+)
+	local o: PartOpts = opts or {}
+	o.shape = Enum.PartType.Cylinder
+	return part(
+		name,
+		parent,
+		Vector3.new(height, radius * 2, radius * 2),
+		CFrame.new(base + Vector3.new(0, height / 2, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		color,
+		material,
+		o
 	)
 end
 
@@ -177,78 +203,178 @@ local function disc(
 	)
 end
 
-local function neonRing(
-	parent,
+-- Smooth concentric cylinder ring (zero segment overlap / zero Z-fighting).
+local function flushRing(
+	parent: Instance,
+	name: string,
 	center: Vector3,
-	radius: number,
-	thick: number,
-	color: Color3,
-	segments: number
+	outerR: number,
+	innerR: number,
+	ringColor: Color3,
+	fillColor: Color3,
+	fillMaterial: Enum.Material,
+	ringTopOffset: number
 )
-	for i = 1, segments do
-		local a0 = (i - 1) / segments * math.pi * 2
-		local a1 = i / segments * math.pi * 2
+	local thick = 0.08
+	disc(
+		name,
+		parent,
+		center + Vector3.new(0, ringTopOffset - thick / 2, 0),
+		outerR,
+		thick,
+		ringColor,
+		Enum.Material.Neon,
+		{ collide = false, shadow = false }
+	)
+	disc(
+		name .. "Fill",
+		parent,
+		center + Vector3.new(0, ringTopOffset + 0.015 - thick / 2, 0),
+		innerR,
+		thick,
+		fillColor,
+		fillMaterial,
+		{ collide = false, shadow = false }
+	)
+end
+
+-- Hanging catenary rope between `a` and `b` in small non-overlapping segments.
+local function ropeSpan(parent: Instance, a: Vector3, b: Vector3, sag: number, thick: number)
+	local steps = 4
+	local prev = a
+	for i = 1, steps do
+		local t = i / steps
+		local nextPt = a:Lerp(b, t) - Vector3.new(0, math.sin(t * math.pi) * sag, 0)
 		beam(
-			"GlyphLine",
+			"Rope",
 			parent,
-			center + Vector3.new(math.cos(a0) * radius, 0, math.sin(a0) * radius),
-			center + Vector3.new(math.cos(a1) * radius, 0, math.sin(a1) * radius),
+			prev,
+			nextPt,
 			thick,
-			color,
-			Enum.Material.Neon,
+			COLORS.rope,
+			Enum.Material.Fabric,
 			{ collide = false, shadow = false }
 		)
+		prev = nextPt
 	end
 end
 
--- Clones ServerStorage.MapMeshes[name] at `cf` when the AI mesh exists, else runs `fallback`.
--- Templates may carry a "YawOffset" attribute (degrees) to fix the generator's facing.
+type MeshOpts = {
+	scale: number?,
+	collide: boolean?,
+	anchorMode: ("bottom" | "top" | "center")?,
+}
+
 local function placeMesh(
 	name: string,
 	parent: Instance,
 	cf: CFrame,
 	fallback: () -> (),
-	scale: number?
-)
+	optsOrScale: (number | MeshOpts)?
+): Instance?
+	local opts: MeshOpts = if typeof(optsOrScale) == "table"
+		then optsOrScale
+		else { scale = optsOrScale }
 	local lib = ServerStorage:FindFirstChild("MapMeshes")
 	local template = lib and lib:FindFirstChild(name)
 	if not template then
 		fallback()
-		return
+		return nil
 	end
 	local clone = template:Clone()
-	if scale and clone:IsA("Model") then
-		clone:ScaleTo(clone:GetScale() * scale)
+	if opts.scale and clone:IsA("Model") then
+		clone:ScaleTo(clone:GetScale() * opts.scale)
 	end
 	local yaw = template:GetAttribute("YawOffset")
-	local offset = CFrame.Angles(0, math.rad(if typeof(yaw) == "number" then yaw else 0), 0)
+	local yawOffset = CFrame.Angles(0, math.rad(if typeof(yaw) == "number" then yaw else 0), 0)
+	local anchorMode = opts.anchorMode or "bottom"
+	local collide = opts.collide ~= false
+
 	if clone:IsA("Model") then
 		local _, size = clone:GetBoundingBox()
-		clone:PivotTo(cf * offset * CFrame.new(0, size.Y / 2, 0))
+		local shiftY = if anchorMode == "bottom"
+			then size.Y / 2
+			elseif anchorMode == "top" then -size.Y / 2
+			else 0
+		clone:PivotTo(cf * yawOffset * CFrame.new(0, shiftY, 0))
 	elseif clone:IsA("BasePart") then
-		clone.CFrame = cf * offset * CFrame.new(0, clone.Size.Y / 2, 0)
+		local shiftY = if anchorMode == "bottom"
+			then clone.Size.Y / 2
+			elseif anchorMode == "top" then -clone.Size.Y / 2
+			else 0
+		clone.CFrame = cf * yawOffset * CFrame.new(0, shiftY, 0)
 	end
+
 	for _, d in clone:GetDescendants() do
 		if d:IsA("BasePart") then
 			d.Anchored = true
+			d.CanCollide = collide
+			d.CanQuery = collide
+			d.CanTouch = false
 		end
 	end
 	if clone:IsA("BasePart") then
 		clone.Anchored = true
+		clone.CanCollide = collide
+		clone.CanQuery = collide
+		clone.CanTouch = false
 	end
 	clone.Parent = parent
+	return clone
+end
+
+local function hangingLantern(
+	parent: Instance,
+	hookPos: Vector3,
+	scale: number,
+	withLight: boolean,
+	yawDeg: number?
+)
+	local cf = CFrame.new(hookPos) * CFrame.Angles(0, math.rad(yawDeg or 0), 0)
+	placeMesh("HangingLantern", parent, cf, function()
+		deco(
+			"LanternCord",
+			parent,
+			Vector3.new(0.1, 0.7, 0.1),
+			CFrame.new(hookPos - Vector3.new(0, 0.35, 0)),
+			COLORS.woodDark,
+			Enum.Material.Wood,
+			{ shadow = false }
+		)
+		deco(
+			"LanternBody",
+			parent,
+			Vector3.new(0.9 * scale, 1.2 * scale, 0.9 * scale),
+			CFrame.new(hookPos - Vector3.new(0, 1.1 * scale, 0)),
+			COLORS.amber,
+			Enum.Material.Neon,
+			{ shadow = false }
+		)
+	end, { scale = scale, collide = false, anchorMode = "top" })
+
+	if withLight then
+		local emitter = deco(
+			"LanternLight",
+			parent,
+			Vector3.new(0.2, 0.2, 0.2),
+			CFrame.new(hookPos - Vector3.new(0, 1.2 * scale, 0)),
+			COLORS.amber,
+			Enum.Material.Neon,
+			{ transparency = 1, shadow = false }
+		)
+		pointLight(emitter, COLORS.amber, 1.5, 16)
+	end
 end
 
 -- Terrain -----------------------------------------------------------------------------
 
 local function buildOcean()
 	Terrain:Clear()
-	-- Animated grass blades poke through the plaza paving and cost FPS on phones.
 	Terrain.Decoration = false
-	Terrain.WaterColor = Color3.fromRGB(10, 92, 160)
-	Terrain.WaterTransparency = 0.55
-	Terrain.WaterReflectance = 0.5
-	Terrain.WaterWaveSize = 0.12
+	Terrain.WaterColor = Color3.fromRGB(10, 96, 168)
+	Terrain.WaterTransparency = 0.52
+	Terrain.WaterReflectance = 0.55
+	Terrain.WaterWaveSize = 0.14
 	Terrain.WaterWaveSpeed = 9
 	Terrain:SetMaterialColor(Enum.Material.Rock, COLORS.rock)
 	Terrain:SetMaterialColor(Enum.Material.Grass, COLORS.grass)
@@ -256,7 +382,6 @@ local function buildOcean()
 	Terrain:SetMaterialColor(Enum.Material.Slate, COLORS.seabed)
 	Terrain:SetMaterialColor(Enum.Material.Basalt, COLORS.rockDark)
 
-	-- Tiles keep each fill small enough not to freeze Studio.
 	local tile = 512
 	local half = OCEAN_SIZE / 2
 	for x = -half + tile / 2, half - tile / 2, tile do
@@ -275,15 +400,14 @@ local function buildOcean()
 		end
 	end
 
-	-- Sand shelf around the island: shallow water reads turquoise, deep water reads navy.
-	local up = CFrame.new(-20, 0, -4)
-	Terrain:FillCylinder(up * CFrame.new(0, -12, 0), 4, 150, Enum.Material.Sand)
-	Terrain:FillCylinder(up * CFrame.new(0, -10, 0), 4, 118, Enum.Material.Sand)
-	Terrain:FillCylinder(up * CFrame.new(0, -7, 0), 4, 92, Enum.Material.Sand)
+	-- Shallow sand shelf around the island so coastal water glows turquoise.
+	local up = CFrame.new(-16, 0, -2)
+	Terrain:FillCylinder(up * CFrame.new(0, -12, 0), 4, 155, Enum.Material.Sand)
+	Terrain:FillCylinder(up * CFrame.new(0, -9, 0), 4, 120, Enum.Material.Sand)
+	Terrain:FillCylinder(up * CFrame.new(0, -6.5, 0), 4, 92, Enum.Material.Sand)
 end
 
 local ISLAND_CORE = {
-	-- x, z, radius
 	{ -24, -8, 40 },
 	{ -50, -2, 26 },
 	{ 0, 2, 24 },
@@ -300,9 +424,6 @@ local function nearPier(x: number, z: number): boolean
 	return x > 12 and z > -2 and z < 18
 end
 
--- Terrain voxels are 4 studs. A solid fill ending halfway through voxel [4, 8] draws its
--- surface at y = 8 (measured); thin fills round up to the whole voxel, so layers are kept
--- thick and end on the half-voxel line.
 local function buildIsland()
 	for _, c in ISLAND_CORE do
 		Terrain:FillCylinder(CFrame.new(c[1], -10, c[2]), 20, c[3], Enum.Material.Rock)
@@ -312,7 +433,7 @@ local function buildIsland()
 	end
 	task.wait()
 
-	-- Boulder rim along the shore: breaks the cylinder outline and gives the rocky edge.
+	-- Boulder rim along the shore.
 	local cx, cz, rx, rz = -22, -6, 50, 47
 	for i = 1, 64 do
 		local a = (i - 1) / 64 * math.pi * 2
@@ -328,19 +449,19 @@ local function buildIsland()
 	end
 	task.wait()
 
-	-- Workshop terrace and the hill behind it.
+	-- Workshop terrace and rocky hill behind it.
 	Terrain:FillBlock(CFrame.new(-6, 4, -37), Vector3.new(46, 16, 30), Enum.Material.Rock)
-	Terrain:FillBall(Vector3.new(-6, 13, -58), 17, Enum.Material.Rock)
+	Terrain:FillBall(Vector3.new(-6, 14, -57), 18, Enum.Material.Rock)
 	Terrain:FillBall(Vector3.new(-30, 11, -54), 13, Enum.Material.Rock)
 	Terrain:FillBall(Vector3.new(18, 10, -50), 11, Enum.Material.Rock)
-	Terrain:FillBall(Vector3.new(-6, 22, -62), 9, Enum.Material.Grass)
+	Terrain:FillBall(Vector3.new(-6, 24, -60), 10, Enum.Material.Grass)
 	Terrain:FillBall(Vector3.new(-28, 19, -56), 6, Enum.Material.Grass)
 
 	-- Waterfall cliff behind the lagoon.
 	Terrain:FillBall(Vector3.new(-50, 12, -18), 10, Enum.Material.Rock)
 	Terrain:FillBall(Vector3.new(-40, 10, -21), 8, Enum.Material.Rock)
 	Terrain:FillBall(Vector3.new(-58, 10, -16), 7, Enum.Material.Rock)
-	Terrain:FillBall(Vector3.new(-52, 20, -20), 5, Enum.Material.Grass)
+	Terrain:FillBall(Vector3.new(-52, 20, -20), 6, Enum.Material.Grass)
 	task.wait()
 
 	-- Lagoon basin: carve, sand floor, then water.
@@ -358,7 +479,9 @@ end
 
 local function buildPlaza()
 	local g = group("CentralPlaza")
-	local function slab(name, size: Vector3, pos: Vector3)
+	local PATH_Y = PLAZA_Y - 0.05 -- 0.05 stud step below PlazaPaving eliminates all Z-fighting
+
+	local function pathSlab(name: string, size: Vector3, pos: Vector3)
 		part(
 			name,
 			g,
@@ -368,6 +491,7 @@ local function buildPlaza()
 			Enum.Material.Cobblestone
 		)
 	end
+
 	disc(
 		"PlazaPaving",
 		g,
@@ -377,82 +501,100 @@ local function buildPlaza()
 		COLORS.paving,
 		Enum.Material.Cobblestone
 	)
-	slab("PathToPier", Vector3.new(26, 1, 14), Vector3.new(12, PLAZA_Y, 8))
-	slab("PathToLagoon", Vector3.new(14, 1, 14), Vector3.new(-28, PLAZA_Y, 2))
-	slab("PathToStairs", Vector3.new(16, 1, 10), Vector3.new(-6, PLAZA_Y, 23))
-	slab("PathToWorkshop", Vector3.new(18, 1, 10), Vector3.new(-6, PLAZA_Y, -16))
+	-- Paths stop cleanly at pier/stairs/terrace edges and sit 0.05 below PlazaPaving.
+	pathSlab("PathToPier", Vector3.new(20, 1, 14), Vector3.new(8, PATH_Y, 8))
+	pathSlab("PathToLagoon", Vector3.new(14, 1, 14), Vector3.new(-28, PATH_Y, 2))
+	pathSlab("PathToStairs", Vector3.new(16, 1, 10), Vector3.new(-6, PATH_Y, 22))
+	pathSlab("PathToWorkshop", Vector3.new(18, 1, 10), Vector3.new(-6, PATH_Y, -16))
 
-	-- Darker stones scattered on the paving so it doesn't read as one flat disc.
-	for _ = 1, 26 do
-		local a = rng:NextNumber(0, math.pi * 2)
-		local r = rng:NextNumber(3, 20)
+	-- Clean magic compass rune inlaid flush into the paving (concentric cylinders, zero Z-fighting).
+	local glyph = Vector3.new(-2, PLAZA_Y, -4)
+	flushRing(
+		g,
+		"GlyphOuterGold",
+		glyph,
+		6.2,
+		5.95,
+		COLORS.gold,
+		COLORS.paving,
+		Enum.Material.Cobblestone,
+		0.03
+	)
+	flushRing(
+		g,
+		"GlyphInnerCyan",
+		glyph,
+		4.0,
+		3.7,
+		COLORS.cyan,
+		COLORS.paving,
+		Enum.Material.Cobblestone,
+		0.06
+	)
+
+	for i = 0, 1 do
+		local a = i * math.pi / 2 + math.pi / 4
 		deco(
-			"PavingStone",
+			"GlyphRay",
 			g,
-			Vector3.new(rng:NextNumber(2, 4), 0.08, rng:NextNumber(2, 3.5)),
-			CFrame.new(-6 + math.cos(a) * r, PLAZA_Y + 0.02, 4 + math.sin(a) * r)
-				* CFrame.Angles(0, rng:NextNumber(0, math.pi), 0),
-			COLORS.pavingDark,
-			Enum.Material.Slate,
+			Vector3.new(0.28, 0.08, 7.2),
+			CFrame.new(glyph + Vector3.new(0, 0.045 + i * 0.008, 0)) * CFrame.Angles(0, a, 0),
+			COLORS.cyan,
+			Enum.Material.Neon,
 			{ shadow = false }
 		)
 	end
-
-	-- Glowing crystal glyph inlaid in the paving.
-	local glyph = Vector3.new(-2, PLAZA_Y + 0.05, -4)
-	neonRing(g, glyph, 6, 0.18, COLORS.gold, 28)
-	neonRing(g, glyph, 3.6, 0.14, COLORS.cyan, 20)
-	for i = 0, 3 do
-		local a = i * math.pi / 2
-		local tip = glyph + Vector3.new(math.cos(a) * 5.4, 0, math.sin(a) * 5.4)
-		beam(
-			"GlyphStar",
-			g,
-			glyph,
-			tip,
-			0.22,
-			COLORS.cyan,
-			Enum.Material.Neon,
-			{ collide = false, shadow = false }
-		)
-	end
-	-- Thin gold inlays from the glyph to each destination, as in the reference paving.
-	for _, target in
-		{
-			Vector3.new(-6, PLAZA_Y + 0.04, -12), -- workshop steps
-			Vector3.new(16, PLAZA_Y + 0.04, 8), -- pier
-			Vector3.new(-26, PLAZA_Y + 0.04, 2), -- lagoon
-			Vector3.new(-6, PLAZA_Y + 0.04, 26), -- stairs
-		}
-	do
-		local from = glyph + (target - glyph).Unit * 6.2
-		beam(
-			"GoldInlay",
-			g,
-			Vector3.new(from.X, PLAZA_Y + 0.04, from.Z),
-			target,
-			0.16,
-			COLORS.gold,
-			Enum.Material.Neon,
-			{ collide = false, shadow = false }
-		)
-	end
 	deco(
-		"GlyphCore",
+		"GlyphCoreOuter",
 		g,
-		Vector3.new(1.6, 0.1, 1.6),
-		CFrame.new(glyph) * CFrame.Angles(0, math.rad(45), 0),
+		Vector3.new(2.2, 0.08, 2.2),
+		CFrame.new(glyph + Vector3.new(0, 0.06, 0)) * CFrame.Angles(0, math.rad(45), 0),
+		COLORS.gold,
+		Enum.Material.Neon,
+		{ shadow = false }
+	)
+	deco(
+		"GlyphCoreInner",
+		g,
+		Vector3.new(1.5, 0.08, 1.5),
+		CFrame.new(glyph + Vector3.new(0, 0.075, 0)) * CFrame.Angles(0, math.rad(45), 0),
 		COLORS.cyan,
 		Enum.Material.Neon,
 		{ shadow = false }
 	)
 
-	-- Spawn on flat paving between the stairs and the plaza, facing the workshop.
+	-- Golden guide inlays from outside the glyph ring to each area (flat top above both surfaces).
+	for _, target in
+		{
+			Vector3.new(-6, PLAZA_Y, -12.5), -- workshop steps
+			Vector3.new(16.5, PLAZA_Y, 8), -- pier arch
+			Vector3.new(-27, PLAZA_Y, 2), -- lagoon
+			Vector3.new(-6, PLAZA_Y, 25.5), -- front stairs
+		}
+	do
+		local from = glyph + (target - glyph).Unit * 6.3
+		local len = (target - from).Magnitude
+		local mid = (from + target) / 2
+		deco(
+			"GoldInlay",
+			g,
+			Vector3.new(0.18, 0.1, len),
+			CFrame.lookAt(
+				Vector3.new(mid.X, PLAZA_Y - 0.01, mid.Z),
+				Vector3.new(target.X, PLAZA_Y - 0.01, target.Z)
+			),
+			COLORS.gold,
+			Enum.Material.Neon,
+			{ shadow = false }
+		)
+	end
+
+	-- Spawn on flat paving between stairs and plaza, facing the workshop.
 	local spawn = Instance.new("SpawnLocation")
 	spawn.Name = "PlayerSpawn"
 	spawn.Anchored = true
 	spawn.Size = Vector3.new(10, 0.2, 10)
-	spawn.CFrame = CFrame.new(-6, PLAZA_Y + 0.1, 16) * CFrame.Angles(0, 0, 0)
+	spawn.CFrame = CFrame.new(-6, PLAZA_Y + 0.1, 16)
 	spawn.Transparency = 1
 	spawn.CanCollide = false
 	spawn.CanTouch = false
@@ -469,43 +611,45 @@ local function buildCampfire()
 		part(
 			"FireStone",
 			g,
-			Vector3.new(1.6, 1, 1.4),
-			CFrame.new(c + Vector3.new(math.cos(a) * 2.6, 0.4, math.sin(a) * 2.6))
+			Vector3.new(1.5, 0.9, 1.3),
+			CFrame.new(c + Vector3.new(math.cos(a) * 2.5, 0.35, math.sin(a) * 2.5))
 				* CFrame.Angles(0, -a, 0),
 			COLORS.rockDark,
 			Enum.Material.Slate
 		)
 	end
+	local ember = deco(
+		"Embers",
+		g,
+		Vector3.new(0.3, 3.0, 3.0),
+		CFrame.new(c + Vector3.new(0, 0.15, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		COLORS.amber,
+		Enum.Material.Neon,
+		{ shape = Enum.PartType.Cylinder, shadow = false }
+	)
+	pointLight(ember, COLORS.amber, 2.2, 20)
+
 	for i = 0, 2 do
 		local a = i * math.pi / 3
 		beam(
 			"Log",
 			g,
-			c + Vector3.new(math.cos(a) * 1.6, 0.3, math.sin(a) * 1.6),
-			c + Vector3.new(-math.cos(a) * 1.6, 0.5, -math.sin(a) * 1.6),
-			0.6,
+			c + Vector3.new(math.cos(a) * 1.5, 0.35 + i * 0.04, math.sin(a) * 1.5),
+			c + Vector3.new(-math.cos(a) * 1.5, 0.75 + i * 0.04, -math.sin(a) * 1.5),
+			0.55,
 			COLORS.woodDark,
 			Enum.Material.Wood,
 			{ collide = false }
 		)
 	end
-	local ember = deco(
-		"Embers",
-		g,
-		Vector3.new(1.6, 0.4, 1.6),
-		CFrame.new(c + Vector3.new(0, 0.5, 0)),
-		COLORS.amber,
-		Enum.Material.Neon
-	)
-	pointLight(ember, COLORS.amber, 2, 18)
 	local fire = Instance.new("Fire")
-	fire.Size = 4
+	fire.Size = 4.2
 	fire.Heat = 7
-	fire.Color = Color3.fromRGB(255, 170, 60)
-	fire.SecondaryColor = Color3.fromRGB(255, 80, 30)
+	fire.Color = Color3.fromRGB(255, 175, 65)
+	fire.SecondaryColor = Color3.fromRGB(255, 85, 30)
 	fire.Parent = ember
 
-	-- Three log benches around the fire, open toward the stairs.
+	-- Three timber benches around the fire.
 	for _, a in { 200, 270, 340 } do
 		local r = math.rad(a)
 		local pos = c + Vector3.new(math.cos(r) * 6, 0, math.sin(r) * 6)
@@ -513,17 +657,17 @@ local function buildCampfire()
 		part(
 			"BenchSeat",
 			g,
-			Vector3.new(6, 0.7, 1.8),
-			cf * CFrame.new(0, 1.6, 0),
+			Vector3.new(5.8, 0.65, 1.7),
+			cf * CFrame.new(0, 1.55, 0),
 			COLORS.woodLight,
 			Enum.Material.WoodPlanks
 		)
-		for _, dx in { -2.2, 2.2 } do
+		for _, dx in { -2.1, 2.1 } do
 			part(
 				"BenchLeg",
 				g,
-				Vector3.new(0.8, 1.3, 1.4),
-				cf * CFrame.new(dx, 0.65, 0),
+				Vector3.new(0.75, 1.25, 1.35),
+				cf * CFrame.new(dx, 0.625, 0),
 				COLORS.woodDark,
 				Enum.Material.Wood
 			)
@@ -533,7 +677,7 @@ end
 
 -- Lanterns, signs ----------------------------------------------------------------------
 
-local function lantern(parent: Instance, base: Vector3, height: number)
+local function lantern(parent: Instance, base: Vector3, height: number, withLight: boolean?)
 	local g = Instance.new("Model")
 	g.Name = "Lantern"
 	local lib = ServerStorage:FindFirstChild("MapMeshes")
@@ -553,82 +697,118 @@ local function lantern(parent: Instance, base: Vector3, height: number)
 			g,
 			CFrame.new(base) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
 			function() end,
-			height / 4.5
+			{ scale = height / 4.5, collide = false }
 		)
-		-- Light near the hanging lantern of the mesh (upper part of the post).
-		local glow = deco(
-			"LightSource",
-			g,
-			Vector3.new(0.2, 0.2, 0.2),
-			CFrame.new(base + Vector3.new(0, height * 0.72, 0)),
-			COLORS.amber,
-			Enum.Material.Neon,
-			{ transparency = 1, shadow = false }
-		)
-		pointLight(glow, COLORS.amber, 1.4, 16)
+		if withLight ~= false then
+			local glow = deco(
+				"LightSource",
+				g,
+				Vector3.new(0.2, 0.2, 0.2),
+				CFrame.new(base + Vector3.new(0, height * 0.72, 0)),
+				COLORS.amber,
+				Enum.Material.Neon,
+				{ transparency = 1, shadow = false }
+			)
+			pointLight(glow, COLORS.amber, 1.3, 15)
+		end
 		return g
 	end
-	part(
-		"Post",
-		g,
-		Vector3.new(0.7, height, 0.7),
-		CFrame.new(base + Vector3.new(0, height / 2, 0)),
-		COLORS.woodDark,
-		Enum.Material.Wood
-	)
-	part(
-		"Arm",
-		g,
-		Vector3.new(0.4, 0.4, 1.8),
-		CFrame.new(base + Vector3.new(0, height - 0.3, 0.8)),
-		COLORS.woodDark,
-		Enum.Material.Wood,
-		{ collide = false }
-	)
-	local top = base + Vector3.new(0, height - 1.4, 1.5)
-	deco(
-		"Cap",
-		g,
-		Vector3.new(1.3, 0.35, 1.3),
-		CFrame.new(top + Vector3.new(0, 0.9, 0)),
-		COLORS.woodDark,
-		Enum.Material.Wood
-	)
-	local glass = deco(
-		"Glow",
-		g,
-		Vector3.new(0.9, 1.3, 0.9),
-		CFrame.new(top),
-		COLORS.amber,
-		Enum.Material.Neon,
-		{ shadow = false }
-	)
-	deco(
-		"Base",
-		g,
-		Vector3.new(1.1, 0.3, 1.1),
-		CFrame.new(top - Vector3.new(0, 0.8, 0)),
-		COLORS.woodDark,
-		Enum.Material.Wood
-	)
-	pointLight(glass, COLORS.amber, 1.4, 16)
+	cylinderPost("Post", g, base, height, 0.35, COLORS.woodDark, Enum.Material.Wood)
+	hangingLantern(g, base + Vector3.new(0, height - 0.2, 1.1), 0.75, withLight ~= false, 0)
 	g.Parent = parent
 	return g
 end
 
-local function sign(parent: Instance, text: string, cf: CFrame, width: number, height: number)
+local function stonePedestalLantern(parent: Instance, base: Vector3, withLight: boolean)
+	local g = Instance.new("Model")
+	g.Name = "StoneLanternPedestal"
+	g.Parent = parent
+	part(
+		"Pedestal",
+		g,
+		Vector3.new(2.2, 1.2, 2.2),
+		CFrame.new(base + Vector3.new(0, 0.6, 0)),
+		COLORS.pavingDark,
+		Enum.Material.Cobblestone
+	)
+	local lanternBase = base + Vector3.new(0, 1.2, 0)
+	placeMesh("StoneLantern", g, CFrame.new(lanternBase), function()
+		part(
+			"LanternPost",
+			g,
+			Vector3.new(1.2, 2.2, 1.2),
+			CFrame.new(lanternBase + Vector3.new(0, 1.1, 0)),
+			COLORS.amber,
+			Enum.Material.Neon
+		)
+	end, { scale = 1.0, collide = true })
+	if withLight then
+		local glow = deco(
+			"LightSource",
+			g,
+			Vector3.new(0.2, 0.2, 0.2),
+			CFrame.new(lanternBase + Vector3.new(0, 2.0, 0)),
+			COLORS.amber,
+			Enum.Material.Neon,
+			{ transparency = 1, shadow = false }
+		)
+		pointLight(glow, COLORS.amber, 1.4, 15)
+	end
+end
+
+local function sign(
+	parent: Instance,
+	text: string,
+	cf: CFrame,
+	width: number,
+	height: number,
+	withFishCrest: boolean?
+)
 	local g = Instance.new("Model")
 	g.Name = "Sign_" .. text:gsub("%W", "")
 	part(
 		"Frame",
 		g,
-		Vector3.new(width + 0.8, height + 0.8, 0.5),
+		Vector3.new(width + 0.8, height + 0.8, 0.45),
 		cf,
 		COLORS.woodDark,
 		Enum.Material.Wood
 	)
 	local board =
 		part("Board", g, Vector3.new(width, height, 0.6), cf, COLORS.wood, Enum.Material.WoodPlanks)
+
+	-- Optional curved wood crest + fish emblem above the board, matching the reference signs.
+	if withFishCrest then
+		part(
+			"ArchedCap",
+			g,
+			Vector3.new(width * 0.72, 1.1, 0.55),
+			cf * CFrame.new(0, height / 2 + 0.55, 0),
+			COLORS.woodDark,
+			Enum.Material.Wood
+		)
+		deco(
+			"FishEmblemBody",
+			g,
+			Vector3.new(1.6, 0.75, 0.16),
+			cf * CFrame.new(0, height / 2 + 0.65, 0.34),
+			COLORS.cream,
+			Enum.Material.SmoothPlastic,
+			{ shape = Enum.PartType.Ball, shadow = false }
+		)
+		deco(
+			"FishEmblemTail",
+			g,
+			Vector3.new(0.14, 0.6, 0.65),
+			cf
+				* CFrame.new(-0.9, height / 2 + 0.65, 0.34)
+				* CFrame.Angles(0, math.rad(90), math.rad(90)),
+			COLORS.cream,
+			Enum.Material.SmoothPlastic,
+			{ wedge = true, shadow = false }
+		)
+	end
+
 	for _, side in { Enum.NormalId.Back, Enum.NormalId.Front } do
 		local gui = Instance.new("SurfaceGui")
 		gui.Face = side
@@ -669,33 +849,78 @@ local function buildStairs()
 			Enum.Material.Cobblestone
 		)
 	end
-	local landingY = PLAZA_Y - steps * 0.8
+	local landingY = PLAZA_Y - steps * 0.8 - 0.15 -- 0.15 below step 11 prevents Z-fighting
 	part(
 		"Landing",
 		g,
 		Vector3.new(18, 4, 6),
-		CFrame.new(-6, landingY - 2, 50),
+		CFrame.new(-6, landingY - 2, 51.1),
 		COLORS.pavingDark,
 		Enum.Material.Cobblestone
 	)
-	-- Rocky flanks that step down with the stairs, like the cliff in the reference.
-	for _, x in { -16.5, 4.5 } do
+
+	-- Stepped stone retaining walls along both flanks of the stairs.
+	for _, x in { -13.9, 1.9 } do
+		for i = 0, 4 do
+			local z = 28 + i * 4.4
+			local top = PLAZA_Y + 0.5 - i * 1.7
+			local h = top + 4
+			part(
+				"StairCurb",
+				g,
+				Vector3.new(1.8, h, 4.6),
+				CFrame.new(x, top - h / 2, z),
+				COLORS.pavingDark,
+				Enum.Material.Cobblestone
+			)
+		end
+	end
+
+	-- Rocky flanks and submerged reef rocks in the shallow turquoise water.
+	for _, x in { -17, 5 } do
 		for i = 0, 5 do
-			local z = 28 + i * 4
+			local z = 28 + i * 4.2
 			local y = PLAZA_Y - 4 - i * 1.6
 			Terrain:FillBall(Vector3.new(x, y, z), rng:NextNumber(3.6, 4.4), Enum.Material.Rock)
 		end
 	end
-	for _, x in { -14.5, 2.5 } do
-		lantern(g, Vector3.new(x, PLAZA_Y, 25), 6)
-		lantern(g, Vector3.new(x, landingY, 50), 5)
+	for _, rp in
+		{
+			{ -18, -1.2, 56, 3.8 },
+			{ 6, -1.0, 57, 3.4 },
+			{ -12, -1.6, 61, 2.8 },
+			{ 2, -1.5, 62, 2.6 },
+		}
+	do
+		deco(
+			"ReefRock",
+			g,
+			Vector3.new(rp[4], rp[4] * 0.65, rp[4]),
+			CFrame.new(rp[1], rp[2], rp[3]) * CFrame.Angles(0, rp[1], 0),
+			COLORS.rockDark,
+			Enum.Material.Slate,
+			{ shape = Enum.PartType.Ball, shadow = false }
+		)
 	end
+
+	-- Four warm stone pedestal lanterns flanking the top and bottom of the stairs.
+	for _, x in { -14.2, 2.2 } do
+		stonePedestalLantern(g, Vector3.new(x, PLAZA_Y, 25.5), true)
+		stonePedestalLantern(g, Vector3.new(x, landingY, 49.5), x > 0)
+	end
+
+	-- Cute orange starfish on the front-left shore rock, as in the reference.
+	placeMesh(
+		"Starfish",
+		g,
+		CFrame.new(-21.5, 5.2, 37.5) * CFrame.Angles(math.rad(-75), math.rad(25), math.rad(15)),
+		function() end,
+		{ scale = 3.2, collide = false, anchorMode = "center" }
+	)
 end
 
 -- Blossom tree ------------------------------------------------------------------------
 
--- AI meshes can't do a full canopy (they come back bare or boxy), so the tree is a
--- generated trunk crowned by cloned blossom clumps, hanging wisteria and lanterns.
 local function buildBlossomTree(parent: Instance, base: Vector3)
 	local g = Instance.new("Model")
 	g.Name = "BlossomTree"
@@ -711,21 +936,22 @@ local function buildBlossomTree(parent: Instance, base: Vector3)
 			COLORS.wood,
 			Enum.Material.Wood
 		)
-	end, 0.6)
+	end, { scale = 0.62, collide = true })
 
-	local crown = base + Vector3.new(1, trunkHeight + 1, 0)
+	local crown = base + Vector3.new(1.5, trunkHeight + 1.5, 0)
 	local clumps = {
-		{ 0, 3, 0, 1.3 },
-		{ 6, 1, 2, 1.1 },
-		{ -6, 1, -1, 1.15 },
-		{ 2, 0, 7, 1 },
-		{ -2, 0, -7, 1.05 },
-		{ 9, -2, -4, 0.9 },
-		{ -9, -2, 5, 0.9 },
-		{ 4, 4, -4, 1 },
-		{ -4, 4, 4, 1 },
-		{ 10, -3, 5, 0.75 },
-		{ -10, -3, -6, 0.8 },
+		{ 0, 3.5, 0, 1.4 },
+		{ 6.5, 1.2, 2.2, 1.2 },
+		{ -6.5, 1.2, -1.2, 1.2 },
+		{ 2.5, 0.2, 7.5, 1.1 },
+		{ -2.5, 0.2, -7.5, 1.1 },
+		{ 10, -1.8, -4, 0.95 },
+		{ -9.5, -1.8, 5.5, 0.95 },
+		{ 4.5, 4.2, -4.5, 1.05 },
+		{ -4.5, 4.2, 4.5, 1.05 },
+		{ 11.5, -2.6, 4.5, 0.85 },
+		{ -10.5, -2.6, -5.5, 0.85 },
+		{ 1.5, 5.5, 1.5, 1.0 },
 	}
 	for i, c in clumps do
 		local pos = crown + Vector3.new(c[1], c[2], c[3])
@@ -744,52 +970,33 @@ local function buildBlossomTree(parent: Instance, base: Vector3)
 					{ shape = Enum.PartType.Ball }
 				)
 			end,
-			c[4] * 1.45
+			{ scale = c[4] * 1.5, collide = false }
 		)
 	end
 
-	-- Hanging wisteria strands and lanterns along the canopy rim.
-	-- Each strand is a chain of shrinking blossom beads, so it reads as a flower cluster.
-	for i = 1, 18 do
-		local a = i / 18 * math.pi * 2
-		local r = rng:NextNumber(7, 11)
-		local top = crown + Vector3.new(math.cos(a) * r, -3, math.sin(a) * r)
-		local beads = rng:NextInteger(3, 5)
-		for b = 0, beads - 1 do
-			local s = 1.1 - b * 0.18
+	-- Cascading wisteria vines hanging around the blossom canopy rim.
+	for i = 1, 8 do
+		local a = i / 8 * math.pi * 2 + 0.3
+		local r = rng:NextNumber(8, 11)
+		local top = crown + Vector3.new(math.cos(a) * r, -1.8, math.sin(a) * r)
+		placeMesh("WisteriaDrape", g, CFrame.new(top) * CFrame.Angles(0, a, 0), function()
 			deco(
-				"Wisteria",
+				"WisteriaFallback",
 				g,
-				Vector3.new(s, s * 1.2, s),
-				CFrame.new(top - Vector3.new(0, b * 0.9, 0)),
-				if (i + b) % 2 == 0 then COLORS.lilac else Color3.fromRGB(170, 120, 240),
+				Vector3.new(1.4, 2.8, 1.4),
+				CFrame.new(top - Vector3.new(0, 1.4, 0)),
+				COLORS.lilac,
 				Enum.Material.SmoothPlastic,
 				{ shape = Enum.PartType.Ball, shadow = false }
 			)
-		end
+		end, { scale = 1.6, collide = false, anchorMode = "top" })
 	end
+
+	-- Hanging glowing lanterns under the pink branches (2 carry lights for mobile budget).
 	for i = 1, 4 do
-		local a = i / 4 * math.pi * 2 + 0.4
-		local hook = crown + Vector3.new(math.cos(a) * 8, -2, math.sin(a) * 8)
-		deco(
-			"LanternString",
-			g,
-			Vector3.new(0.1, 2, 0.1),
-			CFrame.new(hook - Vector3.new(0, 1, 0)),
-			COLORS.rope,
-			Enum.Material.Fabric,
-			{ shadow = false }
-		)
-		local glow = deco(
-			"HangingLantern",
-			g,
-			Vector3.new(0.9, 1.2, 0.9),
-			CFrame.new(hook - Vector3.new(0, 2.6, 0)),
-			COLORS.amber,
-			Enum.Material.Neon,
-			{ shadow = false }
-		)
-		pointLight(glow, COLORS.amber, 1, 12)
+		local a = i / 4 * math.pi * 2 + 0.45
+		local hook = crown + Vector3.new(math.cos(a) * 8.5, -2.2, math.sin(a) * 8.5)
+		hangingLantern(g, hook, 0.9, i % 2 == 0, i * 75)
 	end
 end
 
@@ -815,17 +1022,16 @@ local function buildLagoon()
 		)
 	end
 
-	-- Glow sheet under the surface: terrain water alone reads grey, the reference lagoon
-	-- is bright turquoise.
+	-- Bright turquoise water glow sheet and bed.
 	disc(
 		"LagoonGlow",
 		g,
 		c + Vector3.new(0, 8.08, 0),
 		14.8,
 		0.1,
-		Color3.fromRGB(60, 226, 220),
+		Color3.fromRGB(56, 230, 226),
 		Enum.Material.Glass,
-		{ collide = false, transparency = 0.35, reflectance = 0.15, shadow = false }
+		{ collide = false, transparency = 0.3, reflectance = 0.2, shadow = false }
 	)
 	disc(
 		"LagoonBed",
@@ -833,12 +1039,12 @@ local function buildLagoon()
 		c + Vector3.new(0, 6, 0),
 		15,
 		0.2,
-		Color3.fromRGB(40, 200, 210),
+		Color3.fromRGB(32, 206, 218),
 		Enum.Material.SmoothPlastic,
 		{ collide = false, shadow = false }
 	)
 
-	-- Lily pads and lotus flowers.
+	-- Lily pads and glowing lotus flowers.
 	for i = 1, 9 do
 		local a = rng:NextNumber(0, math.pi * 2)
 		local r = rng:NextNumber(4, 12)
@@ -847,9 +1053,9 @@ local function buildLagoon()
 			"LilyPad",
 			g,
 			p,
-			rng:NextNumber(1, 1.6),
+			rng:NextNumber(1.1, 1.65),
 			0.1,
-			Color3.fromRGB(60, 168, 86),
+			Color3.fromRGB(58, 174, 88),
 			Enum.Material.Grass,
 			{ collide = false, shadow = false }
 		)
@@ -857,7 +1063,7 @@ local function buildLagoon()
 			deco(
 				"Lotus",
 				g,
-				Vector3.new(0.9, 0.7, 0.9),
+				Vector3.new(0.95, 0.7, 0.95),
 				CFrame.new(p + Vector3.new(0, 0.35, 0)),
 				COLORS.pink,
 				Enum.Material.Neon,
@@ -866,159 +1072,172 @@ local function buildLagoon()
 		end
 	end
 
-	-- Fish silhouettes swimming in the shallows.
-	for i = 1, 5 do
-		local a = i / 5 * math.pi * 2
-		-- Just under the glow sheet so the silhouettes stay visible through it.
-		local p = c + Vector3.new(math.cos(a) * 8, 7.85, math.sin(a) * 6)
+	-- Fish silhouettes swimming in the shallows (body + tail fin).
+	for i = 1, 4 do
+		local a = i / 4 * math.pi * 2 + 0.4
+		local p = c + Vector3.new(math.cos(a) * 7.5, 7.85, math.sin(a) * 5.5)
+		local cf = CFrame.lookAt(p, p + Vector3.new(-math.sin(a), 0, math.cos(a)))
 		deco(
-			"FishShadow",
+			"FishShadowBody",
 			g,
-			Vector3.new(0.8, 0.3, 2.6),
-			CFrame.lookAt(p, p + Vector3.new(-math.sin(a), 0, math.cos(a))),
-			Color3.fromRGB(14, 60, 96),
+			Vector3.new(0.85, 0.28, 2.2),
+			cf,
+			Color3.fromRGB(12, 58, 96),
 			Enum.Material.SmoothPlastic,
 			{ shape = Enum.PartType.Ball, shadow = false }
 		)
+		deco(
+			"FishShadowTail",
+			g,
+			Vector3.new(0.18, 0.85, 0.85),
+			cf * CFrame.new(0, 0, 1.15) * CFrame.Angles(0, 0, math.rad(90)),
+			Color3.fromRGB(12, 58, 96),
+			Enum.Material.SmoothPlastic,
+			{ wedge = true, shadow = false }
+		)
 	end
 
-	-- Wooden fence with rope on the plaza side.
-	local fenceAngles = { -50, -25, 0, 25, 50, 75 }
+	-- Wooden fence with natural rope on the plaza side (stops before the sign so it never clips!).
+	local fenceAngles = { -58, -32, -6, 20, 46 }
 	local prev: Vector3? = nil
 	for _, deg in fenceAngles do
 		local a = math.rad(deg)
-		local base = c + Vector3.new(math.cos(a) * 18.5, PLAZA_Y - 0.3, math.sin(a) * 18.5)
-		part(
-			"FencePost",
-			g,
-			Vector3.new(0.9, 3.6, 0.9),
-			CFrame.new(base + Vector3.new(0, 1.8, 0)),
-			COLORS.wood,
-			Enum.Material.Wood
-		)
+		local base = c + Vector3.new(math.cos(a) * 18.2, PLAZA_Y - 0.3, math.sin(a) * 18.2)
+		cylinderPost("FencePost", g, base, 3.6, 0.42, COLORS.wood, Enum.Material.Wood)
 		deco(
 			"FenceCap",
 			g,
-			Vector3.new(1.1, 0.4, 1.1),
-			CFrame.new(base + Vector3.new(0, 3.8, 0)),
-			COLORS.gold,
-			Enum.Material.Metal
+			Vector3.new(0.3, 1.0, 1.0),
+			CFrame.new(base + Vector3.new(0, 3.7, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+			COLORS.bronze,
+			Enum.Material.Metal,
+			{ shape = Enum.PartType.Cylinder }
 		)
 		if prev then
-			local top0 = prev + Vector3.new(0, 3.2, 0)
-			local top1 = base + Vector3.new(0, 3.2, 0)
-			local mid = (top0 + top1) / 2 - Vector3.new(0, 0.6, 0)
-			beam(
-				"Rope",
-				g,
-				top0,
-				mid,
-				0.25,
-				COLORS.rope,
-				Enum.Material.Fabric,
-				{ collide = false, shadow = false }
-			)
-			beam(
-				"Rope",
-				g,
-				mid,
-				top1,
-				0.25,
-				COLORS.rope,
-				Enum.Material.Fabric,
-				{ collide = false, shadow = false }
-			)
+			ropeSpan(g, prev + Vector3.new(0, 3.1, 0), base + Vector3.new(0, 3.1, 0), 0.55, 0.18)
 		end
 		prev = base
 	end
 
-	-- Waterfall falling from the cliff into the back of the lagoon.
-	-- Two segments follow the measured cliff face (rock at z -12.7 @ y22, -8.6 @ y14), so
-	-- the sheet stays in front of the terrain instead of disappearing into it.
+	-- Lush continuous curving waterfall (replaces the broken gap strips).
 	local fallPath = {
-		Vector3.new(-48, 21.5, -11.4),
-		Vector3.new(-48, 15, -7.6),
-		Vector3.new(-48, 8, -6.6),
+		Vector3.new(-48, 22.0, -12.0),
+		Vector3.new(-48, 16.0, -8.2),
+		Vector3.new(-48, 8.05, -6.5),
 	}
 	for seg = 1, #fallPath - 1 do
 		local a, b = fallPath[seg], fallPath[seg + 1]
-		for i = -2, 2 do
-			local off = Vector3.new(i * 1.2, 0, 0)
+		local len = (b - a).Magnitude + 0.8
+		local look = CFrame.lookAt((a + b) / 2, b)
+		deco(
+			"WaterfallSheet",
+			g,
+			Vector3.new(7.4, 0.55, len),
+			look,
+			Color3.fromRGB(92, 226, 255),
+			Enum.Material.Glass,
+			{ transparency = 0.28, reflectance = 0.25, shadow = false }
+		)
+		for _, dx in { -2.2, 0, 2.2 } do
 			deco(
-				"Waterfall",
+				"WaterfallFoamStreak",
 				g,
-				Vector3.new(1.4, 0.4, (b - a).Magnitude + 0.6),
-				CFrame.lookAt((a + b) / 2 + off, b + off),
-				if i % 2 == 0 then COLORS.cyan else COLORS.white,
-				Enum.Material.Glass,
-				{ transparency = if i % 2 == 0 then 0.25 else 0.45, shadow = false }
+				Vector3.new(0.9, 0.2, len),
+				look * CFrame.new(dx, 0.28, 0),
+				Color3.fromRGB(220, 250, 255),
+				Enum.Material.Neon,
+				{ transparency = 0.55, shadow = false }
 			)
 		end
 	end
-	do
-		local p = deco(
-			"WaterfallMistSource",
-			g,
-			Vector3.new(3, 0.2, 1),
-			CFrame.new(fallPath[#fallPath]),
-			COLORS.white,
-			Enum.Material.SmoothPlastic,
-			{ transparency = 1, shadow = false }
-		)
-		do
-			local mist = Instance.new("ParticleEmitter")
-			mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
-			mist.Color = ColorSequence.new(COLORS.white)
-			mist.Size = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 2),
-				NumberSequenceKeypoint.new(1, 5),
-			})
-			mist.Transparency = NumberSequence.new({
-				NumberSequenceKeypoint.new(0, 0.6),
-				NumberSequenceKeypoint.new(1, 1),
-			})
-			mist.Lifetime = NumberRange.new(1.2, 2)
-			mist.Rate = 8
-			mist.Speed = NumberRange.new(1, 3)
-			mist.EmissionDirection = Enum.NormalId.Bottom
-			mist.Parent = p
-		end
-	end
-	disc(
-		"Foam",
+	local mistPart = deco(
+		"WaterfallMistSource",
 		g,
-		Vector3.new(-48, 8.2, -6),
-		4,
-		0.15,
+		Vector3.new(5.5, 0.2, 2),
+		CFrame.new(fallPath[#fallPath]),
 		COLORS.white,
-		Enum.Material.Neon,
-		{ collide = false, transparency = 0.4, shadow = false }
+		Enum.Material.SmoothPlastic,
+		{ transparency = 1, shadow = false }
 	)
+	local mist = Instance.new("ParticleEmitter")
+	mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+	mist.Color = ColorSequence.new(Color3.fromRGB(220, 250, 255))
+	mist.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 2.2),
+		NumberSequenceKeypoint.new(1, 5.5),
+	})
+	mist.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.45),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	mist.Lifetime = NumberRange.new(1.1, 1.9)
+	mist.Rate = 14
+	mist.Speed = NumberRange.new(1.5, 3.5)
+	mist.EmissionDirection = Enum.NormalId.Top
+	mist.Parent = mistPart
 
-	-- Training spot: interaction will be added later; for now a marked platform.
-	local spot = Vector3.new(-30, PLAZA_Y, -6)
-	neonRing(g, spot + Vector3.new(0, 0.06, 0), 3, 0.14, COLORS.lilac, 18)
-
-	sign(
+	disc(
+		"FoamOuter",
 		g,
-		"TRAINING LAGOON\n(PRACTICE)",
-		CFrame.new(-31, PLAZA_Y + 4.2, 14) * CFrame.Angles(0, math.rad(30), 0),
-		7,
-		3.4
+		Vector3.new(-48, 8.15, -6),
+		4.4,
+		0.14,
+		Color3.fromRGB(200, 248, 255),
+		Enum.Material.Neon,
+		{ collide = false, transparency = 0.48, shadow = false }
 	)
-	for _, dx in { -3.2, 3.2 } do
-		part(
+
+	-- Training spot (tagged TrainingSpot so server Training feature activates automatically).
+	local spot = Vector3.new(-30, PLAZA_Y, -6)
+	flushRing(
+		g,
+		"TrainingRing",
+		spot,
+		3.1,
+		2.75,
+		COLORS.lilac,
+		COLORS.paving,
+		Enum.Material.Cobblestone,
+		0.04
+	)
+	local spotZone = part(
+		"TrainingSpot",
+		g,
+		Vector3.new(5.5, 4, 5.5),
+		CFrame.new(spot + Vector3.new(0, 2, 0)),
+		COLORS.lilac,
+		Enum.Material.ForceField,
+		{ collide = false, transparency = 1, shadow = false }
+	)
+	spotZone.CanQuery = false
+	CollectionService:AddTag(spotZone, "TrainingSpot")
+
+	-- Sign placed cleanly in front of the lagoon rim, clear of the fence, with hanging lantern.
+	local signCf = CFrame.new(-42, PLAZA_Y + 4.3, 19.5) * CFrame.Angles(0, math.rad(28), 0)
+	sign(g, "TRAINING LAGOON\n(PRACTICE)", signCf, 7.6, 3.6, true)
+	for _, dx in { -3.5, 3.5 } do
+		cylinderPost(
 			"SignPost",
 			g,
-			Vector3.new(0.8, 6, 0.8),
-			CFrame.new(-31, PLAZA_Y + 3, 14)
-				* CFrame.Angles(0, math.rad(30), 0)
-				* CFrame.new(dx, 0, 0.5),
+			(signCf * CFrame.new(dx, -4.3, 0)).Position,
+			6.2,
+			0.45,
 			COLORS.woodDark,
 			Enum.Material.Wood
 		)
 	end
-	lantern(g, Vector3.new(-26, PLAZA_Y, 14), 5.5)
+	local lanternArm = (signCf * CFrame.new(-4.8, 1.8, 0)).Position
+	beam(
+		"SignLanternArm",
+		g,
+		(signCf * CFrame.new(-3.5, 1.8, 0)).Position,
+		lanternArm,
+		0.28,
+		COLORS.woodDark,
+		Enum.Material.Wood,
+		{ collide = false }
+	)
+	hangingLantern(g, lanternArm, 0.85, true, 28)
 
 	buildBlossomTree(g, Vector3.new(-58, PLAZA_Y - 0.6, -14))
 end
@@ -1037,20 +1256,21 @@ local function buildWorkshop()
 		COLORS.woodLight,
 		Enum.Material.WoodPlanks
 	)
-	for i = 1, 5 do
+	-- 4 steps rising 0.8 each (11.1, 11.9, 12.7, 13.5) -> top step never Z-fights with TerraceFloor (14.3).
+	for i = 1, 4 do
 		local top = PLAZA_Y + i * 0.8
 		local h = top - 4
 		part(
 			"WorkshopStep",
 			g,
-			Vector3.new(16, h, 1.8),
-			CFrame.new(-6, top - h / 2, -13.6 - (i - 1) * 1.8),
+			Vector3.new(16, h, 2.0),
+			CFrame.new(-6, top - h / 2, -13.6 - (i - 1) * 2.0),
 			COLORS.paving,
 			Enum.Material.Cobblestone
 		)
 	end
 	for _, x in { -15, 3 } do
-		lantern(g, Vector3.new(x, TERRACE_Y, front + 1), 6)
+		lantern(g, Vector3.new(x, TERRACE_Y, front + 1), 6, false)
 	end
 
 	placeMesh("Workshop", g, CFrame.new(-6, TERRACE_Y, -36), function()
@@ -1075,52 +1295,70 @@ local function buildWorkshop()
 		end
 	end)
 
-	-- Crystal pedestal at the open front: the upgrade station.
-	local pedestal = Vector3.new(-6, TERRACE_Y, -26)
-	part(
-		"Pedestal",
+	-- Ornate round crystal pedestal altar at the workshop front.
+	local pedestal = Vector3.new(-6, TERRACE_Y, -26.5)
+	flushRing(
 		g,
-		Vector3.new(4, 2, 4),
-		CFrame.new(pedestal + Vector3.new(0, 1, 0)),
-		COLORS.woodDark,
-		Enum.Material.Wood
+		"AltarFloorRing",
+		pedestal,
+		3.2,
+		2.85,
+		COLORS.gold,
+		COLORS.woodLight,
+		Enum.Material.WoodPlanks,
+		0.04
 	)
-	neonRing(g, pedestal + Vector3.new(0, 2.05, 0), 2.4, 0.14, COLORS.gold, 18)
+	placeMesh("WorkshopAltar", g, CFrame.new(pedestal), function()
+		cylinderPost("Pedestal", g, pedestal, 2.4, 2.0, COLORS.woodDark, Enum.Material.Wood)
+	end, { scale = 1.0, collide = true })
+
+	local altarTop = pedestal + Vector3.new(0, 2.8, 0)
+	local workshopZone = part(
+		"WorkshopSpot",
+		g,
+		Vector3.new(8, 5, 8),
+		CFrame.new(pedestal + Vector3.new(0, 2.5, 1.5)),
+		COLORS.gold,
+		Enum.Material.ForceField,
+		{ collide = false, transparency = 1, shadow = false }
+	)
+	workshopZone.CanQuery = false
+	CollectionService:AddTag(workshopZone, "WorkshopSpot")
 	local gem = deco(
 		"UpgradeCrystalLight",
 		g,
 		Vector3.new(0.2, 0.2, 0.2),
-		CFrame.new(pedestal + Vector3.new(0, 4, 0)),
+		CFrame.new(altarTop + Vector3.new(0, 2.0, 0)),
 		COLORS.cyan,
 		Enum.Material.Neon,
 		{ transparency = 1, shadow = false }
 	)
-	pointLight(gem, COLORS.cyan, 2.4, 20)
-	placeMesh("CrystalCluster", g, CFrame.new(pedestal + Vector3.new(0, 2, 0)), function()
+	pointLight(gem, COLORS.cyan, 2.5, 22)
+	placeMesh("CrystalCluster", g, CFrame.new(altarTop), function()
 		deco(
 			"UpgradeCrystal",
 			g,
 			Vector3.new(1.6, 3.4, 1.6),
-			CFrame.new(pedestal + Vector3.new(0, 4, 0)) * CFrame.Angles(0, math.rad(45), 0),
+			CFrame.new(altarTop + Vector3.new(0, 1.8, 0)) * CFrame.Angles(0, math.rad(45), 0),
 			COLORS.cyan,
 			Enum.Material.Neon,
 			{ shadow = false }
 		)
-	end, 0.4)
+	end, { scale = 0.42, collide = false })
 
-	-- The mesh has an empty board under the roof; the sign goes right on its face.
+	-- Sign and 3D golden sunburst emblem above the roof.
 	local shop = g:FindFirstChild("Workshop")
-	local emblem = Vector3.new(-6, TERRACE_Y + 25, -40)
+	local emblem = Vector3.new(-6, TERRACE_Y + 25.5, -39)
 	if shop and shop:IsA("Model") then
 		local cf, size = shop:GetBoundingBox()
 		local face = cf.Position + Vector3.new(0, size.Y * 0.12, size.Z / 2 + 0.1)
-		sign(g, "UPGRADE WORKSHOP", CFrame.new(face), size.X * 0.42, size.Y * 0.14)
-		emblem = cf.Position + Vector3.new(0, size.Y / 2 + 4, size.Z * 0.1)
+		sign(g, "UPGRADE WORKSHOP", CFrame.new(face), size.X * 0.42, size.Y * 0.14, false)
+		emblem = cf.Position + Vector3.new(0, size.Y / 2 + 3.8, size.Z * 0.08)
 	else
-		sign(g, "UPGRADE WORKSHOP", CFrame.new(-6, TERRACE_Y + 12.5, front - 1.5), 12, 3.6)
+		sign(g, "UPGRADE WORKSHOP", CFrame.new(-6, TERRACE_Y + 12.5, front - 1.5), 12, 3.6, false)
 	end
 
-	-- Golden magic emblem floating above the roof, as in the reference.
+	-- 3D golden star + sleek halo ring nestled above the roof.
 	local e = Instance.new("Model")
 	e.Name = "RoofEmblem"
 	for i = 1, 24 do
@@ -1129,35 +1367,61 @@ local function buildWorkshop()
 		beam(
 			"EmblemRing",
 			e,
-			emblem + Vector3.new(math.cos(a0) * 4.5, math.sin(a0) * 2.2, 0),
-			emblem + Vector3.new(math.cos(a1) * 4.5, math.sin(a1) * 2.2, 0),
-			0.2,
+			emblem + Vector3.new(math.cos(a0) * 4.8, math.sin(a0) * 1.4, 0),
+			emblem + Vector3.new(math.cos(a1) * 4.8, math.sin(a1) * 1.4, 0),
+			0.22,
 			COLORS.gold,
 			Enum.Material.Neon,
 			{ collide = false, shadow = false }
 		)
 	end
+	deco(
+		"EmblemCenter",
+		e,
+		Vector3.new(1.4, 1.4, 1.4),
+		CFrame.new(emblem),
+		COLORS.gold,
+		Enum.Material.Neon,
+		{ shape = Enum.PartType.Ball, shadow = false }
+	)
 	for i = 0, 3 do
 		local a = i * math.pi / 2
-		beam(
-			"EmblemStar",
+		local rayLen = if i % 2 == 0 then 3.2 else 4.0
+		deco(
+			"EmblemPoint",
 			e,
-			emblem,
-			emblem + Vector3.new(math.cos(a) * 3.6, math.sin(a) * 3.6, 0),
-			0.35,
+			Vector3.new(0.85, rayLen, 0.85),
+			CFrame.new(
+				emblem + Vector3.new(math.cos(a) * rayLen * 0.5, math.sin(a) * rayLen * 0.5, 0)
+			) * CFrame.Angles(0, 0, a - math.pi / 2),
 			COLORS.gold,
 			Enum.Material.Neon,
-			{ collide = false, shadow = false }
+			{ wedge = true, shadow = false }
 		)
 	end
 	e.Parent = g
+
+	-- Lush cascading wisteria vines on the rocky peak behind/above the workshop roof.
+	for _, wp in
+		{
+			{ -12, TERRACE_Y + 19, -48, 2.2 },
+			{ 2, TERRACE_Y + 19.5, -49, 2.4 },
+			{ -5, TERRACE_Y + 21, -50, 2.0 },
+		}
+	do
+		placeMesh("WisteriaDrape", g, CFrame.new(wp[1], wp[2], wp[3]), function() end, {
+			scale = wp[4],
+			collide = false,
+			anchorMode = "top",
+		})
+	end
 end
 
 -- Fishing pier -------------------------------------------------------------------------
 
 local function buildPier()
 	local g = group("FishingPier")
-	local x0, x1, zc, w = 18, 84, 8, 14
+	local x0, x1, zc, w = 18.2, 84, 8, 14
 
 	for x = x0, x1, 2.4 do
 		part(
@@ -1180,59 +1444,46 @@ local function buildPier()
 		)
 	end
 
+	-- Pilings stay strictly below the planks (top at PIER_Y - 0.55) to eliminate deck Z-fighting;
+	-- round railing posts sit cleanly on top of the deck.
 	local railTop: { [number]: Vector3? } = {}
 	local postIndex = 0
 	for x = x0 + 4, x1, 8 do
 		postIndex += 1
-		for side, dz in { -w / 2 + 0.4, w / 2 - 0.4 } do
-			part(
+		for side, dz in { -w / 2 + 0.45, w / 2 - 0.45 } do
+			cylinderPost(
 				"Piling",
 				g,
-				Vector3.new(1.4, 22, 1.4),
-				CFrame.new(x, PIER_Y - 11, zc + dz),
+				Vector3.new(x, PIER_Y - 22, zc + dz),
+				21.45,
+				0.72,
 				COLORS.woodDark,
 				Enum.Material.Wood
 			)
-			local top = Vector3.new(x, PIER_Y + 3.4, zc + dz)
+			local postBase = Vector3.new(x, PIER_Y, zc + dz)
+			cylinderPost("RailingPost", g, postBase, 3.3, 0.42, COLORS.wood, Enum.Material.Wood)
+			local top = postBase + Vector3.new(0, 3.3, 0)
 			deco(
 				"PostCap",
 				g,
-				Vector3.new(1.6, 0.5, 1.6),
-				CFrame.new(top + Vector3.new(0, 0.25, 0)),
-				COLORS.gold,
-				Enum.Material.Metal
+				Vector3.new(0.28, 1.0, 1.0),
+				CFrame.new(top + Vector3.new(0, 0.14, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+				COLORS.bronze,
+				Enum.Material.Metal,
+				{ shape = Enum.PartType.Cylinder }
 			)
 			local prev = railTop[side]
 			if prev then
-				local mid = (prev + top) / 2 - Vector3.new(0, 0.8, 0)
-				beam(
-					"Rope",
-					g,
-					prev,
-					mid,
-					0.28,
-					COLORS.rope,
-					Enum.Material.Fabric,
-					{ collide = false, shadow = false }
-				)
-				beam(
-					"Rope",
-					g,
-					mid,
-					top,
-					0.28,
-					COLORS.rope,
-					Enum.Material.Fabric,
-					{ collide = false, shadow = false }
-				)
+				ropeSpan(g, prev - Vector3.new(0, 0.2, 0), top - Vector3.new(0, 0.2, 0), 0.65, 0.17)
 			end
 			railTop[side] = top
 			if postIndex % 3 == 2 and side == 1 then
-				lantern(g, Vector3.new(x, PIER_Y, zc + dz), 5.5)
+				lantern(g, Vector3.new(x, PIER_Y, zc + dz), 5.5, true)
 			end
 		end
 	end
-	-- Invisible rails keep players on the deck without blocking the cast.
+
+	-- Invisible side/end rails keep players on deck without blocking casts.
 	for _, dz in { -w / 2, w / 2 } do
 		local rail = part(
 			"RailCollider",
@@ -1256,32 +1507,31 @@ local function buildPier()
 	).CanQuery =
 		false
 
-	-- Entrance arch with the FISHING PIER board and a blue banner.
-	local archX = x0 + 1
-	for _, dz in { -w / 2 + 0.4, w / 2 - 0.4 } do
+	-- Sturdy rustic entrance arch with fish crest, 2 hanging lanterns, and left blue pennant banner.
+	local archX = x0 + 1.0
+	for _, dz in { -w / 2 + 0.45, w / 2 - 0.45 } do
+		local base = Vector3.new(archX, PIER_Y, zc + dz)
 		part(
-			"ArchPost",
+			"ArchStoneBase",
 			g,
-			Vector3.new(1.6, 13, 1.6),
-			CFrame.new(archX, PIER_Y + 6.5, zc + dz),
-			COLORS.woodDark,
-			Enum.Material.Wood
+			Vector3.new(2.0, 1.4, 2.0),
+			CFrame.new(base + Vector3.new(0, 0.7, 0)),
+			COLORS.pavingDark,
+			Enum.Material.Cobblestone
 		)
-		local glow = deco(
-			"ArchLantern",
+		cylinderPost("ArchPost", g, base, 13.0, 0.75, COLORS.woodDark, Enum.Material.Wood)
+		hangingLantern(
 			g,
-			Vector3.new(0.9, 1.3, 0.9),
-			CFrame.new(archX - 1.2, PIER_Y + 8, zc + dz),
-			COLORS.amber,
-			Enum.Material.Neon,
-			{ shadow = false }
+			Vector3.new(archX - 0.9, PIER_Y + 11.4, zc + dz * 0.78),
+			0.95,
+			dz > 0,
+			-90
 		)
-		pointLight(glow, COLORS.amber, 1.4, 16)
 	end
 	part(
 		"ArchBeam",
 		g,
-		Vector3.new(1.4, 1.2, w + 2),
+		Vector3.new(1.5, 1.3, w + 2.4),
 		CFrame.new(archX, PIER_Y + 12.8, zc),
 		COLORS.woodDark,
 		Enum.Material.Wood
@@ -1291,68 +1541,90 @@ local function buildPier()
 		"FISHING PIER",
 		CFrame.new(archX, PIER_Y + 10.4, zc) * CFrame.Angles(0, math.rad(-90), 0),
 		10,
-		3
+		3,
+		true
 	)
-	local banner = deco(
+
+	-- Blue pennant banner on the left (north / -Z) column of the pier arch, matching the reference.
+	local bannerCf = CFrame.new(archX - 1.1, PIER_Y + 8.6, zc - w / 2 + 0.45)
+	deco(
 		"Banner",
 		g,
-		Vector3.new(0.2, 5, 2.6),
-		CFrame.new(archX + 1, PIER_Y + 8.5, zc - w / 2 + 0.4),
+		Vector3.new(0.18, 4.8, 2.4),
+		bannerCf,
 		COLORS.banner,
-		Enum.Material.Fabric
+		Enum.Material.Fabric,
+		{ shadow = false }
+	)
+	deco(
+		"BannerTrim",
+		g,
+		Vector3.new(0.22, 0.25, 2.6),
+		bannerCf * CFrame.new(0, 2.4, 0),
+		COLORS.gold,
+		Enum.Material.Metal,
+		{ shadow = false }
 	)
 	deco(
 		"BannerEmblem",
 		g,
-		Vector3.new(0.25, 1.4, 1.4),
-		banner.CFrame * CFrame.Angles(math.rad(45), 0, 0),
+		Vector3.new(0.24, 1.35, 1.35),
+		bannerCf * CFrame.Angles(math.rad(45), 0, 0),
 		COLORS.cyan,
-		Enum.Material.Neon
+		Enum.Material.Neon,
+		{ shadow = false }
 	)
 
-	-- Life rings, crates, fishing spot, buoys.
+	-- Smooth AI-mesh lifebuoy rings mounted vertically on the pier side stringers.
 	for _, x in { 38, 70 } do
-		local ring = Instance.new("Model")
-		ring.Name = "LifeRing"
-		for i = 1, 12 do
-			local a0 = (i - 1) / 12 * math.pi * 2
-			local a1 = i / 12 * math.pi * 2
-			local center = Vector3.new(x, PIER_Y + 1, zc + w / 2 + 0.7)
-			beam(
-				"RingSegment",
-				ring,
-				center + Vector3.new(math.cos(a0) * 1.4, math.sin(a0) * 1.4, 0),
-				center + Vector3.new(math.cos(a1) * 1.4, math.sin(a1) * 1.4, 0),
-				0.6,
-				if i % 3 == 0 then COLORS.red else COLORS.white,
-				Enum.Material.SmoothPlastic,
-				{ collide = false }
-			)
-		end
-		ring.Parent = g
+		placeMesh(
+			"LifeRing",
+			g,
+			CFrame.new(x, PIER_Y + 0.6, zc + w / 2 + 0.3) * CFrame.Angles(math.rad(90), 0, 0),
+			function()
+				deco(
+					"LifeRingFallback",
+					g,
+					Vector3.new(0.4, 2.6, 2.6),
+					CFrame.new(x, PIER_Y + 0.6, zc + w / 2 + 0.3)
+						* CFrame.Angles(0, math.rad(90), 0),
+					COLORS.red,
+					Enum.Material.SmoothPlastic,
+					{ shape = Enum.PartType.Cylinder }
+				)
+			end,
+			{ scale = 3.2, collide = false, anchorMode = "center" }
+		)
 	end
+
+	-- Crate stacks neatly tucked next to the pier entrance.
 	for _, spot in
 		{
-			{ pos = Vector3.new(15, PLAZA_Y, 17.5), yaw = 20 },
-			{ pos = Vector3.new(15, PLAZA_Y, -2), yaw = 160 },
+			{ pos = Vector3.new(15, PLAZA_Y - 0.05, 17.5), yaw = 20 },
+			{ pos = Vector3.new(15, PLAZA_Y - 0.05, -2.5), yaw = 160 },
 		}
 	do
-		local p, yaw = spot.pos, spot.yaw
-		placeMesh("CrateStack", g, CFrame.new(p) * CFrame.Angles(0, math.rad(yaw), 0), function()
-			for i = 0, 2 do
-				part(
-					"Crate",
-					g,
-					Vector3.new(2.4, 2.4, 2.4),
-					CFrame.new(p + Vector3.new(i % 2 * 2.5, 1.2 + math.floor(i / 2) * 2.4, 0))
-						* CFrame.Angles(0, math.rad(i * 17), 0),
-					COLORS.woodLight,
-					Enum.Material.WoodPlanks
-				)
-			end
-		end, 1.1)
+		placeMesh(
+			"CrateStack",
+			g,
+			CFrame.new(spot.pos) * CFrame.Angles(0, math.rad(spot.yaw), 0),
+			function() end,
+			{ scale = 1.1, collide = true }
+		)
 	end
-	neonRing(g, Vector3.new(x1 - 3, PIER_Y + 0.05, zc), 2.6, 0.12, COLORS.cyan, 16)
+
+	-- Fishing spot ring at the pier tip.
+	flushRing(
+		g,
+		"FishingSpotRing",
+		Vector3.new(x1 - 3, PIER_Y, zc),
+		2.8,
+		2.5,
+		COLORS.cyan,
+		COLORS.wood,
+		Enum.Material.WoodPlanks,
+		0.03
+	)
 
 	-- Server checks the player stands inside this box before accepting a cast.
 	local zone = part(
@@ -1367,76 +1639,79 @@ local function buildPier()
 	zone.CanQuery = false
 	CollectionService:AddTag(zone, "FishingZone")
 
-	for _, p in { Vector3.new(58, 0, 26), Vector3.new(96, 0, 18), Vector3.new(76, 0, -12) } do
-		local b = Instance.new("Model")
-		b.Name = "Buoy"
-		part(
-			"BuoyBase",
-			b,
-			Vector3.new(2.6, 1.6, 2.6),
-			CFrame.new(p + Vector3.new(0, 0.3, 0)),
-			COLORS.white,
-			Enum.Material.SmoothPlastic,
-			{ shape = Enum.PartType.Cylinder }
+	-- Red & white cone buoys bobbing in the shallow turquoise sea near the pier.
+	for _, bp in
+		{
+			{ 46, -0.6, 25, 15 },
+			{ 90, -0.6, 18, -25 },
+			{ 74, -0.6, -12, 40 },
+		}
+	do
+		placeMesh(
+			"ConeBuoy",
+			g,
+			CFrame.new(bp[1], bp[2], bp[3]) * CFrame.Angles(0, math.rad(bp[4]), 0),
+			function()
+				cylinderPost(
+					"BuoyFallback",
+					g,
+					Vector3.new(bp[1], bp[2], bp[3]),
+					3.5,
+					1.2,
+					COLORS.red,
+					Enum.Material.SmoothPlastic
+				)
+			end,
+			{ scale = 1.15, collide = false }
 		)
-		for i = 0, 2 do
-			part(
-				"BuoyBand",
-				b,
-				Vector3.new(2.2 - i * 0.6, 0.8, 2.2 - i * 0.6),
-				CFrame.new(p + Vector3.new(0, 1.4 + i * 0.8, 0)),
-				if i % 2 == 0 then COLORS.red else COLORS.white,
-				Enum.Material.SmoothPlastic
-			)
-		end
-		b.Parent = g
 	end
 end
 
 -- Vegetation and crystals ----------------------------------------------------------------
 
-local function crystalCluster(parent: Instance, base: Vector3, scale: number)
-	local glow = deco(
-		"CrystalGlow",
-		parent,
-		Vector3.new(0.2, 0.2, 0.2),
-		CFrame.new(base + Vector3.new(0, scale * 0.6, 0)),
-		COLORS.cyan,
-		Enum.Material.Neon,
-		{ transparency = 1, shadow = false }
-	)
-	pointLight(glow, COLORS.cyan, 1.6, scale * 2.2)
-	placeMesh(
-		"CrystalCluster",
-		parent,
-		CFrame.new(base) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
-		function()
-			for i = 1, 4 do
-				local a = i * 1.7
-				local h = scale * rng:NextNumber(0.5, 1)
-				local p = base
-					+ Vector3.new(math.cos(a) * scale * 0.3, h / 2, math.sin(a) * scale * 0.3)
-				local c = deco(
-					"Crystal",
-					parent,
-					Vector3.new(h * 0.32, h, h * 0.32),
-					CFrame.new(p)
-						* CFrame.Angles(
-							math.rad(rng:NextNumber(-18, 18)),
-							a,
-							math.rad(rng:NextNumber(-18, 18))
-						),
-					if i == 3 then COLORS.lilac else COLORS.crystal,
-					Enum.Material.Glass,
-					{ transparency = 0.15, shadow = false }
-				)
-				if i == 1 then
-					pointLight(c, COLORS.cyan, 1, 12)
-				end
-			end
-		end,
-		scale / 12 * 2
-	)
+local function crystalCluster(
+	parent: Instance,
+	base: Vector3,
+	scale: number,
+	withLight: boolean,
+	tiltDeg: number?
+)
+	if withLight then
+		local glow = deco(
+			"CrystalGlow",
+			parent,
+			Vector3.new(0.2, 0.2, 0.2),
+			CFrame.new(base + Vector3.new(0, scale * 0.6, 0)),
+			COLORS.cyan,
+			Enum.Material.Neon,
+			{ transparency = 1, shadow = false }
+		)
+		pointLight(glow, COLORS.cyan, 1.7, math.min(scale * 2.4, 34))
+	end
+	local cf = CFrame.new(base)
+		* CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), math.rad(tiltDeg or 0))
+	placeMesh("CrystalCluster", parent, cf, function()
+		for i = 1, 4 do
+			local a = i * 1.7
+			local h = scale * rng:NextNumber(0.5, 1)
+			local p = base
+				+ Vector3.new(math.cos(a) * scale * 0.3, h / 2, math.sin(a) * scale * 0.3)
+			deco(
+				"Crystal",
+				parent,
+				Vector3.new(h * 0.32, h, h * 0.32),
+				CFrame.new(p)
+					* CFrame.Angles(
+						math.rad(rng:NextNumber(-16, 16)),
+						a,
+						math.rad(rng:NextNumber(-16, 16))
+					),
+				if i == 3 then COLORS.lilac else COLORS.crystal,
+				Enum.Material.Glass,
+				{ transparency = 0.15, shadow = false }
+			)
+		end
+	end, { scale = scale / 12 * 2, collide = false })
 end
 
 local function palm(parent: Instance, base: Vector3, s: number)
@@ -1447,94 +1722,60 @@ local function palm(parent: Instance, base: Vector3, s: number)
 		function()
 			local top = base + Vector3.new(s * 1.5, s * 9, 0)
 			beam("PalmTrunk", parent, base, top, s * 0.9, COLORS.wood, Enum.Material.Wood)
-			for i = 1, 7 do
-				local a = i / 7 * math.pi * 2
-				beam(
-					"PalmLeaf",
-					parent,
-					top,
-					top + Vector3.new(math.cos(a) * s * 5, -s * 1.6, math.sin(a) * s * 5),
-					s * 0.5,
-					Color3.fromRGB(56, 170, 80),
-					Enum.Material.Grass,
-					{ collide = false }
-				)
-			end
 		end,
-		s * 0.85
+		{ scale = s * 0.88, collide = true }
 	)
 end
 
 local function flowerBush(parent: Instance, base: Vector3, s: number)
 	placeMesh(
-		"FlowerBush",
+		"FlowerBushRich",
 		parent,
 		CFrame.new(base) * CFrame.Angles(0, rng:NextNumber(0, math.pi * 2), 0),
 		function()
-			for i = 1, 4 do
-				local a = i * 1.6
-				deco(
-					"Leaf",
-					parent,
-					Vector3.new(s * 1.3, s * 0.8, s * 1.2),
-					CFrame.new(
-						base + Vector3.new(math.cos(a) * s * 0.4, s * 0.3, math.sin(a) * s * 0.4)
-					),
-					Color3.fromRGB(60, 160, 80),
-					Enum.Material.Grass,
-					{ shape = Enum.PartType.Ball, shadow = false }
-				)
-			end
-			local palette = {
-				COLORS.pink,
-				COLORS.lilac,
-				Color3.fromRGB(110, 190, 255),
-				Color3.fromRGB(255, 220, 110),
-			}
-			for i = 1, 5 do
-				local a = i * 1.3
-				deco(
-					"Flower",
-					parent,
-					Vector3.new(0.6, 0.5, 0.6),
-					CFrame.new(
-						base + Vector3.new(math.cos(a) * s * 0.5, s * 0.75, math.sin(a) * s * 0.5)
-					),
-					palette[1 + i % #palette],
-					Enum.Material.SmoothPlastic,
-					{ shape = Enum.PartType.Ball, shadow = false }
-				)
-			end
+			deco(
+				"BushFallback",
+				parent,
+				Vector3.new(s * 1.5, s, s * 1.5),
+				CFrame.new(base + Vector3.new(0, s * 0.5, 0)),
+				COLORS.grass,
+				Enum.Material.Grass,
+				{ shape = Enum.PartType.Ball, shadow = false }
+			)
 		end,
-		s * 0.7
+		{ scale = s * 0.65, collide = false }
 	)
 end
 
 local function buildDecor()
 	local g = group("Decor")
+
+	-- Crystals: giant spires behind the workshop + glowing shore & shallow water clusters.
+	-- Light flag kept selective (~5 lights here) to stay well within mobile GPU light limits.
 	for _, c in
 		{
-			{ -36, 9, -46, 9 },
-			{ -24, 20, -58, 12 },
-			{ 8, 18, -60, 10 },
-			{ 22, 10, -40, 7 },
-			{ -70, 4, 14, 8 },
-			{ -54, 4, 34, 9 },
-			{ -66, 6, -26, 7 },
-			{ 10, 3, 36, 8 },
-			{ -19, 4, 36, 7 },
-			{ 7, 3, 42, 6 },
-			{ 22, 4, 24, 7 },
-			{ 72, -2, 22, 7 },
-			{ 30, -2, -18, 6 },
+			{ -25, 19, -59, 19, true, 12 }, -- giant spire behind left of workshop
+			{ -14, 21, -61, 14, false, -8 }, -- secondary giant spire
+			{ 10, 17, -58, 11, false, -10 },
+			{ -37, 9, -46, 9, false, 8 },
+			{ 22, 10, -40, 8, false, -6 },
+			{ -70, 4, 14, 8, false, 10 },
+			{ -55, 3, 34, 9, true, 12 },
+			{ -66, 6, -26, 7, false, 8 },
+			{ 10, 3, 36, 9, true, -10 }, -- front-right shore crystal near stairs
+			{ -19, 4, 36, 8, false, 12 }, -- front-left shore crystal near stairs
+			{ 8, 2, 43, 6, false, -6 },
+			{ 24, 3, 24, 7, false, -8 },
+			{ 56, -2, 22, 8, true, -6 }, -- crystal rising from shallow water near pier
+			{ 30, -2, -18, 7, false, 8 },
 		}
 	do
-		crystalCluster(g, Vector3.new(c[1], c[2], c[3]), c[4])
+		crystalCluster(g, Vector3.new(c[1], c[2], c[3]), c[4], c[5], c[6])
 	end
 
-	palm(g, Vector3.new(-26, TERRACE_Y - 2, -46), 1.4)
-	palm(g, Vector3.new(16, TERRACE_Y - 3, -40), 1.35)
-	palm(g, Vector3.new(-66, PLAZA_Y - 1, 20), 1.1)
+	palm(g, Vector3.new(-26, TERRACE_Y - 2, -46), 1.45)
+	palm(g, Vector3.new(16, TERRACE_Y - 3, -40), 1.4)
+	palm(g, Vector3.new(-66, PLAZA_Y - 1, 20), 1.15)
 
 	for _, b in
 		{
@@ -1545,9 +1786,9 @@ local function buildDecor()
 			{ 16, PLAZA_Y - 0.5, 22, 2.2 },
 			{ 18, PLAZA_Y - 0.5, -6, 2.4 },
 			{ -24, PLAZA_Y - 0.5, -14, 2.2 },
-			{ 8, PLAZA_Y - 0.5, -12, 2 },
-			{ -22, TERRACE_Y, -24, 2 },
-			{ 10, TERRACE_Y, -24, 2 },
+			{ 8, PLAZA_Y - 0.5, -12, 2.0 },
+			{ -22, TERRACE_Y, -24, 2.0 },
+			{ 10, TERRACE_Y, -24, 2.0 },
 			{ -62, PLAZA_Y - 0.5, 4, 2.4 },
 			{ -60, PLAZA_Y - 0.5, 20, 2.2 },
 			{ -14, 20, -52, 2.6 },
@@ -1556,38 +1797,28 @@ local function buildDecor()
 		flowerBush(g, Vector3.new(b[1], b[2], b[3]), b[4])
 	end
 
-	-- Plaza lanterns.
-	for _, p in
-		{
-			Vector3.new(-28, PLAZA_Y, -10),
-			Vector3.new(14, PLAZA_Y, -6),
-			Vector3.new(12, PLAZA_Y, 20),
-			Vector3.new(-26, PLAZA_Y, 20),
-		}
-	do
-		lantern(g, p, 6)
+	-- Plaza corner lanterns (2 carry lights, 2 rely on Neon+Bloom).
+	local plazaLanterns = {
+		{ Vector3.new(-28, PLAZA_Y, -10), true },
+		{ Vector3.new(14, PLAZA_Y, -6), false },
+		{ Vector3.new(12, PLAZA_Y, 20), true },
+		{ Vector3.new(-25, PLAZA_Y, 20), false },
+	}
+	for _, item in plazaLanterns do
+		lantern(g, item[1], 6, item[2])
 	end
 
-	-- Bunting between the workshop and the trees, like the reference.
+	-- Bunting strings between the workshop roof corners and the flanking palm areas.
 	local function bunting(a: Vector3, b: Vector3, count: number)
-		beam(
-			"BuntingLine",
-			g,
-			a,
-			b,
-			0.12,
-			COLORS.rope,
-			Enum.Material.Fabric,
-			{ collide = false, shadow = false }
-		)
-		local palette = { COLORS.pink, COLORS.cyan, Color3.fromRGB(255, 220, 110), COLORS.lilac }
+		ropeSpan(g, a, b, 1.4, 0.1)
+		local palette = { COLORS.pink, COLORS.cyan, COLORS.gold, COLORS.lilac }
 		for i = 1, count do
 			local t = i / (count + 1)
-			local p = a:Lerp(b, t) - Vector3.new(0, math.sin(t * math.pi) * 1.2 + 0.9, 0)
+			local p = a:Lerp(b, t) - Vector3.new(0, math.sin(t * math.pi) * 1.4 + 0.85, 0)
 			deco(
 				"Flag",
 				g,
-				Vector3.new(0.1, 1.6, 1.4),
+				Vector3.new(0.1, 1.5, 1.3),
 				CFrame.lookAt(p, p + (b - a).Unit:Cross(Vector3.yAxis))
 					* CFrame.Angles(0, math.rad(90), math.rad(180)),
 				palette[1 + i % #palette],
@@ -1596,29 +1827,28 @@ local function buildDecor()
 			)
 		end
 	end
-	bunting(Vector3.new(-24, TERRACE_Y + 12, -24), Vector3.new(-36, TERRACE_Y + 8, -16), 6)
-	bunting(Vector3.new(12, TERRACE_Y + 12, -24), Vector3.new(24, TERRACE_Y + 6, -14), 6)
+	bunting(Vector3.new(-21, TERRACE_Y + 12, -26), Vector3.new(-35, TERRACE_Y + 7.5, -18), 6)
+	bunting(Vector3.new(9, TERRACE_Y + 12, -26), Vector3.new(23, TERRACE_Y + 5.5, -17), 6)
 end
 
 -- Horizon and lighting ------------------------------------------------------------------
 
 local function buildHorizon()
 	local g = group("Horizon")
-	-- Far islets: silhouettes in the haze, not playable.
 	for _, p in
 		{ Vector3.new(-420, 0, -520), Vector3.new(-160, 0, -700), Vector3.new(380, 0, -560) }
 	do
 		Terrain:FillBall(p + Vector3.new(0, -6, 0), 26, Enum.Material.Rock)
 		Terrain:FillBall(p + Vector3.new(14, 4, 6), 14, Enum.Material.Rock)
 	end
-	-- Mystic citadel with a halo ring on the horizon (scenery only).
-	local c = Vector3.new(560, 0, -820)
-	Terrain:FillBall(c + Vector3.new(0, -10, 0), 40, Enum.Material.Rock)
+	-- Mystic citadel with a glowing halo ring on the upper-right horizon (scenery only).
+	local c = Vector3.new(440, 0, -720)
+	Terrain:FillBall(c + Vector3.new(0, -10, 0), 42, Enum.Material.Rock)
 	part(
 		"CitadelSpire",
 		g,
-		Vector3.new(14, 70, 14),
-		CFrame.new(c + Vector3.new(0, 35, 0)),
+		Vector3.new(16, 86, 16),
+		CFrame.new(c + Vector3.new(0, 43, 0)),
 		COLORS.rock,
 		Enum.Material.Slate,
 		{ shadow = false }
@@ -1626,8 +1856,8 @@ local function buildHorizon()
 	part(
 		"CitadelTower",
 		g,
-		Vector3.new(9, 44, 9),
-		CFrame.new(c + Vector3.new(-18, 22, 6)),
+		Vector3.new(10, 52, 10),
+		CFrame.new(c + Vector3.new(-20, 26, 6)),
 		COLORS.rock,
 		Enum.Material.Slate,
 		{ shadow = false }
@@ -1635,8 +1865,8 @@ local function buildHorizon()
 	part(
 		"CitadelTower",
 		g,
-		Vector3.new(9, 52, 9),
-		CFrame.new(c + Vector3.new(16, 26, -4)),
+		Vector3.new(10, 60, 10),
+		CFrame.new(c + Vector3.new(18, 30, -4)),
 		COLORS.rock,
 		Enum.Material.Slate,
 		{ shadow = false }
@@ -1644,13 +1874,13 @@ local function buildHorizon()
 	for i = 1, 32 do
 		local a0 = (i - 1) / 32 * math.pi * 2
 		local a1 = i / 32 * math.pi * 2
-		local h = c + Vector3.new(0, 90, 0)
+		local h = c + Vector3.new(0, 102, 0)
 		beam(
 			"Halo",
 			g,
-			h + Vector3.new(math.cos(a0) * 46, 0, math.sin(a0) * 46),
-			h + Vector3.new(math.cos(a1) * 46, 0, math.sin(a1) * 46),
-			1.4,
+			h + Vector3.new(math.cos(a0) * 52, 0, math.sin(a0) * 52),
+			h + Vector3.new(math.cos(a1) * 52, 0, math.sin(a1) * 52),
+			1.6,
 			COLORS.white,
 			Enum.Material.Neon,
 			{ collide = false, shadow = false }
@@ -1666,25 +1896,25 @@ local function buildLighting()
 	end
 	Lighting.ClockTime = 14.2
 	Lighting.Brightness = 3
-	Lighting.EnvironmentDiffuseScale = 0.6
-	Lighting.EnvironmentSpecularScale = 0.8
-	Lighting.Ambient = Color3.fromRGB(110, 120, 150)
-	Lighting.OutdoorAmbient = Color3.fromRGB(150, 170, 200)
+	Lighting.EnvironmentDiffuseScale = 0.65
+	Lighting.EnvironmentSpecularScale = 0.85
+	Lighting.Ambient = Color3.fromRGB(115, 125, 155)
+	Lighting.OutdoorAmbient = Color3.fromRGB(154, 174, 204)
 	Lighting.ExposureCompensation = -0.1
 
 	local atmosphere = Instance.new("Atmosphere")
-	atmosphere.Density = 0.36
+	atmosphere.Density = 0.34
 	atmosphere.Offset = 0.15
 	atmosphere.Color = Color3.fromRGB(196, 226, 255)
 	atmosphere.Decay = Color3.fromRGB(96, 150, 210)
 	atmosphere.Glare = 0.25
-	atmosphere.Haze = 1.4
+	atmosphere.Haze = 1.3
 	atmosphere.Parent = Lighting
 
 	local bloom = Instance.new("BloomEffect")
-	bloom.Intensity = 0.7
-	bloom.Size = 26
-	bloom.Threshold = 1.1
+	bloom.Intensity = 0.65
+	bloom.Size = 24
+	bloom.Threshold = 1.05
 	bloom.Parent = Lighting
 
 	local grade = Instance.new("ColorCorrectionEffect")
@@ -1704,7 +1934,6 @@ local function buildLighting()
 	clouds.Color = Color3.fromRGB(255, 255, 255)
 	clouds.Parent = Terrain
 
-	-- The ocean ends at OCEAN_SIZE / 2; a capped zoom keeps the edge inside the haze.
 	local starterPlayer = game:GetService("StarterPlayer")
 	starterPlayer.CameraMaxZoomDistance = 90
 end
@@ -1739,7 +1968,7 @@ buildDecor()
 buildHorizon()
 buildLighting()
 
-root:SetAttribute("GeneratorVersion", 2)
+root:SetAttribute("GeneratorVersion", 3)
 print(`[IslandGenerator] built {#root:GetDescendants()} instances`)
 
 return true
