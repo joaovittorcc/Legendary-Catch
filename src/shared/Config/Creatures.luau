@@ -462,12 +462,7 @@ local LIST: { Creature } = {
 		weightMax = 1500,
 		revealStyle = "crystal",
 	},
-}
-
--- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
--- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
-local PLANNED: { Creature } = {
-	-- Batch 3 (C35–C64), designed 2026-11-17: waiting for models.
+	-- Batch 3 Commons/Uncommons (C35–C49): models by Antigravity, released 2026-11-17 after review.
 	{
 		id = "C35_Bagre_Bigodudo",
 		rarity = "Common",
@@ -603,6 +598,12 @@ local PLANNED: { Creature } = {
 		weightMax = 4,
 		revealStyle = "bubbles",
 	},
+}
+
+-- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
+-- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
+local PLANNED: { Creature } = {
+	-- Batch 3 (C35–C64), designed 2026-11-17: waiting for models.
 }
 
 local byId: { [string]: Creature } = {}
