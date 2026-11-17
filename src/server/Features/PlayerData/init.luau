@@ -8,6 +8,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
@@ -190,6 +191,17 @@ local function onPlayerAdded(player: Player)
 	player:SetAttribute("DataLoaded", true)
 	push(player)
 	loadedEvent:Fire(player)
+
+	-- Studio only: set the player's DevGrantCoins attribute to a number to receive coins.
+	if RunService:IsStudio() then
+		player:GetAttributeChangedSignal("DevGrantCoins"):Connect(function()
+			local amount = player:GetAttribute("DevGrantCoins")
+			if typeof(amount) == "number" and amount > 0 then
+				player:SetAttribute("DevGrantCoins", 0)
+				PlayerData.addCoins(player, amount)
+			end
+		end)
+	end
 end
 
 local function onPlayerRemoving(player: Player)
