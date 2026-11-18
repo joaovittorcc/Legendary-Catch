@@ -39,10 +39,11 @@ function Rhythm.run(
 		area,
 		"Counter",
 		UDim2.fromOffset(112, 24),
-		UDim2.new(0.5, -56, 0, top()),
+		UDim2.new(if ringCount then 0.5 else 1, if ringCount then 0 else -16, 0, top()),
 		"",
 		Theme.sand
 	)
+	counter.AnchorPoint = Vector2.new(if ringCount then 0.5 else 1, 0)
 	counter.RichText = true
 	local comboTrack =
 		Ui.frame(counter, "ComboTrack", UDim2.new(1, 0, 0, 5), UDim2.new(0, 0, 1, 1), Theme.outline)
@@ -211,7 +212,7 @@ function Rhythm.run(
 		if finished then
 			return
 		end
-		counter.Position = UDim2.new(0.5, -56, 0, top())
+		counter.Position = UDim2.new(counter.Position.X.Scale, counter.Position.X.Offset, 0, top())
 		if lesson and lesson.active() then
 			lesson.update(dt)
 			return
