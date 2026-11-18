@@ -17,8 +17,14 @@ Escrito pelo Claude durante a noite; atualizado no fim. Detalhes por hora no Mur
 - **HUD/UI**: proporcao da arte preservada (nada esticado), menu em grade 2x2, "Proxima meta"/presente/tutorial reposicionados, so moedas e nivel durante a pesca.
 - **Audio**: 14 sons ligados (musica da ilha, ondas, stingers por raridade, level-up, moeda, bau, erro).
 - **Camera da pesca**: mais afastada, sem zoom-in na luta, e na captura vai pro ombro seguindo o peixe.
+- **Mundo vivo (Antigravity B, 06h)**: ciclo de dia e noite do servidor (convive com os eventos do oceano), 3 NPCs com falas que mudam (pescador, vendedora de iscas, menina das conchas), fogueira com fagulhas e lanternas que acendem de noite; 3 varas novas com modelo 3D (Celestial, Abismo, Mistica); Placar (tela) e placa fisica do Placar na praca (os paineis da placa ainda sem o top 5 desenhado: o B esta ligando).
 - **Mapa/varas/ambiente (Antigravity C)**: 5 varas novas com malhas, ambiente da ilha (gaivotas, peixes), props corrigidos; placa fisica do Placar na praca.
 - **Marketing**: icone, 3 thumbnails e banner em art/marketing/; texto da pagina em docs/PAGINA-DO-JOGO.md.
+
+## Estado dos agentes ao amanhecer
+- **Codex** bateu o limite de uso as ~05:50 (volta em 19/11 22:26). Todo o trabalho dele foi commitado (ultimo: QA visual, 12dd29e).
+- **Antigravity A e C** pararam de responder no Mural por volta de 03:00 (a notificacao do OneDrive no canto da tela rouba o foco e eu nao consegui reabri-los); o **B** assumiu tudo.
+- **72 commits locais** a frente do `origin/main`, nenhum push feito. Place salvo na nuvem (varias versoes; a ultima por mim as 06:40).
 
 ## O que depende de voce (nao fiz)
 1. **Push** para o GitHub (tudo esta em commits locais; nada foi enviado).
