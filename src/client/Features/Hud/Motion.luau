@@ -77,7 +77,16 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 	end
 	local function updateIdle()
 		stopIdle()
-		if player:GetAttribute("ReduceEffects") == true or not useIdle then
+		if player:GetAttribute("ReduceEffects") == true then
+			if hoverTween then
+				hoverTween:Cancel()
+				hoverTween = nil
+			end
+			stopPulse()
+			scale.Scale = 1
+			return
+		end
+		if not useIdle then
 			stopPulse()
 			return
 		end
@@ -129,7 +138,10 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 		table.insert(
 			buttonSignals,
 			target.MouseEnter:Connect(function()
-				if UserInputService:GetLastInputType() == Enum.UserInputType.Touch then
+				if
+					not target.Interactable
+					or UserInputService:GetLastInputType() == Enum.UserInputType.Touch
+				then
 					return
 				end
 				hovered = true
@@ -147,10 +159,29 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 		)
 		table.insert(
 			buttonSignals,
+			target.SelectionGained:Connect(function()
+				if target.Interactable then
+					hovered = true
+					scaleTo(1.045, 0.12, Enum.EasingStyle.Back)
+				end
+			end)
+		)
+		table.insert(
+			buttonSignals,
+			target.SelectionLost:Connect(function()
+				hovered = false
+				scaleTo(1, 0.12)
+			end)
+		)
+		table.insert(
+			buttonSignals,
 			target.InputBegan:Connect(function(input)
 				if
-					input.UserInputType ~= Enum.UserInputType.MouseButton1
-					and input.UserInputType ~= Enum.UserInputType.Touch
+					not target.Interactable
+					or (
+						input.UserInputType ~= Enum.UserInputType.MouseButton1
+						and input.UserInputType ~= Enum.UserInputType.Touch
+					)
 				then
 					return
 				end
@@ -162,8 +193,11 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 			buttonSignals,
 			target.InputEnded:Connect(function(input)
 				if
-					input.UserInputType ~= Enum.UserInputType.MouseButton1
-					and input.UserInputType ~= Enum.UserInputType.Touch
+					not pointerPressed
+					or (
+						input.UserInputType ~= Enum.UserInputType.MouseButton1
+						and input.UserInputType ~= Enum.UserInputType.Touch
+					)
 				then
 					return
 				end

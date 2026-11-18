@@ -33,6 +33,15 @@ function Precision.run(
 		1
 	)
 	dock.AnchorPoint = Vector2.new(0.5, 1)
+	local function placeDock()
+		local size = area.AbsoluteSize
+		dock.Position = UDim2.new(0.5, 0, 1, if size.Y > size.X then -116 else -84)
+	end
+	local resize = area:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeDock)
+	dock.Destroying:Once(function()
+		resize:Disconnect()
+	end)
+	placeDock()
 	local cap = Instance.new("UISizeConstraint")
 	cap.MaxSize = Vector2.new(560, 80)
 	cap.Parent = dock

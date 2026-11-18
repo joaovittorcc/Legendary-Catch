@@ -12,6 +12,7 @@ local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Assets = require(script.Parent.Hud:WaitForChild("Assets"))
 local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 local Juice = require(script.Parent:WaitForChild("Juice"))
+local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 
 local DailyGift = { order = 130 }
 local player = Players.LocalPlayer
@@ -27,7 +28,10 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	local card = Art.button(Assets.gift)
 	card.Name = "GiftCard"
 	card.AnchorPoint = Vector2.new(1, 0)
-	local heading = Art.caption(card, "GiftTitle", string.format(Text.dailyGift, gift.days), 25)
+	local title = if gift.days == 1
+		then Text.welcomeGift
+		else string.format(Text.dailyGift, gift.days)
+	local heading = Art.caption(card, "GiftTitle", title, 25)
 	heading.Position = UDim2.fromScale(0.43, 0.19)
 	heading.Size = UDim2.fromScale(0.51, 0.27)
 	local action = Art.caption(card, "GiftAmount", Text.openDailyGift, 24, Theme.gold)
@@ -41,13 +45,17 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 		local width = math.clamp(math.round(screen.X * 0.16), 120, 200)
 		local height = math.round(width * 402 / 1024)
 		card.Size = UDim2.fromOffset(width, height)
-		card.Position = UDim2.new(0.983, 0, 0, Hud.navBottom() + 12)
+		local top = if screen.Y > screen.X
+			then math.max(Hud.navBottom(), Tutorial.cardBottom())
+			else Hud.navBottom()
+		card.Position = UDim2.new(0.983, 0, 0, top + 12)
 	end
 	card.Parent = gui
 	gui.Parent = playerGui
 	place()
 	local setCardVisible = Hud.bindFishingVisibility(card, false)
 	local resize = Hud.layoutChanged:Connect(place)
+	local tutorialLayout = Tutorial.layoutChanged:Connect(place)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 
 	local function refresh()
@@ -62,7 +70,9 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	local minigame = fishing:WaitForChild("Panel") :: GuiObject
 	local mode = minigame:GetPropertyChangedSignal("Visible"):Connect(refresh)
 	gui.Destroying:Once(function()
-		for _, connection in { resize, panel, menu, fishingConnection, reveal, training, mode } do
+		for _, connection in
+			{ resize, tutorialLayout, panel, menu, fishingConnection, reveal, training, mode }
+		do
 			connection:Disconnect()
 		end
 	end)

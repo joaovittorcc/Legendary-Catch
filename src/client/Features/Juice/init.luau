@@ -1,8 +1,5 @@
 --!strict
--- Small rewards for the eye (X18, written by Claude while Codex was rate-limited):
---   * coins fly from the middle of the screen into the HUD coin counter, which pulses
---   * a catch streak badge ("x3!") for catches in a row without an escape
--- Respects the "reduce effects" setting. Visual only: nothing here touches game state.
+-- Presents rewards and combo state already granted by the server.
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -11,14 +8,17 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local Text = require(Shared:WaitForChild("StringsUi")).adventure
 
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
+local Hud = require(script.Parent:WaitForChild("Hud"))
+local Ui = require(script.Parent.Fishing:WaitForChild("Ui"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 
 local Juice = { order = 120 }
 
 local player = Players.LocalPlayer
 local gui: ScreenGui
-local streak = 0
 local lastCoins: number? = nil
 
 local function reduceEffects(): boolean
@@ -96,35 +96,96 @@ function Juice.flyCoins(amount: number, origin: Vector2?)
 	end
 end
 
-local function showStreak(n: number)
-	local badge = Instance.new("TextLabel")
-	badge.Name = "Streak"
-	badge.AnchorPoint = Vector2.new(0.5, 0.5)
-	badge.Position = UDim2.fromScale(0.84, 0.68)
-	badge.Size = UDim2.fromScale(0.2, 0.08)
-	badge.BackgroundTransparency = 1
-	badge.Text = `x{n}!`
-	badge.TextScaled = true
-	badge.Font = Theme.font
-	badge.TextColor3 = Theme.gold
-	badge.TextStrokeTransparency = 0
-	badge.Parent = gui
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.4
-	scale.Parent = badge
-	TweenService:Create(scale, TweenInfo.new(0.3, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	TweenService:Create(
-		badge,
-		TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, 1),
-		{
-			TextTransparency = 1,
-			TextStrokeTransparency = 1,
-			Position = UDim2.fromScale(0.84, 0.62),
-		}
-	):Play()
-	task.delay(1.6, function()
-		badge:Destroy()
-	end)
+type Reward = Net.AdventureReward
+
+local function showReward(reward: Reward)
+	local coins = reward.coins or 0
+	if reward.kind == "tutorial" and coins > 0 then
+		Hud.toast(string.format(Text.tutorialReward, coins), Theme.gold)
+	elseif reward.kind == "level" and reward.level then
+		local title = string.format(Text.levelUp, reward.level)
+		if coins > 0 then
+			title ..= " · " .. string.format(Text.chestCoins, coins)
+		end
+		Hud.toast(title, Theme.gold)
+		Audio.play("level", 0.26, 1)
+	elseif reward.kind == "chest" and coins > 0 then
+		local card = Ui.frame(
+			gui,
+			"CatchChest",
+			UDim2.new(0.76, 0, 0, 92),
+			UDim2.fromScale(0.5, 0.52),
+			Theme.ink
+		)
+		card.AnchorPoint = Vector2.new(0.5, 0.5)
+		Theme.surface(card, Theme.gold, 19, Theme.ink)
+		local size = Instance.new("UISizeConstraint")
+		size.MaxSize = Vector2.new(300, 92)
+		size.Parent = card
+		local icon = Ui.frame(
+			card,
+			"Chest",
+			UDim2.fromOffset(44, 42),
+			UDim2.fromScale(0.15, 0.5),
+			Theme.ink,
+			1
+		)
+		icon.AnchorPoint = Vector2.new(0.5, 0.5)
+		local box =
+			Ui.frame(icon, "Box", UDim2.fromScale(1, 0.55), UDim2.fromScale(0, 0.45), Theme.gold)
+		Theme.surface(box, Theme.gold, 6, Theme.wood)
+		local lid =
+			Ui.frame(icon, "Lid", UDim2.fromScale(1, 0.38), UDim2.fromScale(0, 0.51), Theme.gold)
+		lid.AnchorPoint = Vector2.new(0, 1)
+		lid.ZIndex = 2
+		Theme.surface(lid, Theme.gold, 6, Theme.wood)
+		local clasp = Ui.frame(
+			box,
+			"Clasp",
+			UDim2.fromOffset(10, 10),
+			UDim2.fromScale(0.5, 0.33),
+			Theme.crystal
+		)
+		clasp.AnchorPoint = Vector2.new(0.5, 0.5)
+		clasp.Rotation = 45
+		clasp.ZIndex = 3
+		Ui.corner(clasp, 0.24)
+		Ui.label(
+			card,
+			"Title",
+			UDim2.fromScale(0.69, 0.28),
+			UDim2.fromScale(0.26, 0.18),
+			Text.chest,
+			Theme.sand
+		)
+		local amount = Ui.label(
+			card,
+			"Amount",
+			UDim2.fromScale(0.69, 0.29),
+			UDim2.fromScale(0.26, 0.51),
+			string.format(Text.chestCoins, coins),
+			Theme.gold
+		)
+		if not reduceEffects() then
+			amount.Visible = false
+			Ui.bounce(card)
+			task.delay(0.36, function()
+				if card.Parent then
+					TweenService:Create(lid, TweenInfo.new(0.2, Enum.EasingStyle.Back), {
+						Rotation = -19,
+						Position = UDim2.fromScale(0, 0.33),
+					}):Play()
+					amount.Visible = true
+					Ui.bounce(amount)
+					Audio.play("coins", 0.3, 1.15)
+					Juice.flyCoins(coins, icon.AbsolutePosition + icon.AbsoluteSize / 2)
+				end
+			end)
+		end
+		task.delay(2.4, function()
+			card:Destroy()
+		end)
+	end
 end
 
 function Juice.start()
@@ -133,6 +194,7 @@ function Juice.start()
 	gui.ResetOnSpawn = false
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.DisplayOrder = 11
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
 
@@ -151,18 +213,47 @@ function Juice.start()
 	lastCoins = if typeof(initial) == "number" then initial else nil
 
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
-	local update = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
-	update.OnClientEvent:Connect(function(u: Net.FishingUpdate)
-		if u.event == "caught" then
-			streak += 1
-			if streak >= 2 and not reduceEffects() then
-				-- Show after the reveal has had its moment.
-				task.delay(2.5, showStreak, streak)
-			end
-		elseif u.event == "escaped" then
-			streak = 0
+	local queue: { Reward } = {}
+	local showing = false
+	local function watch(remote: Instance)
+		if remote.Name ~= Net.ADVENTURE_REWARD or not remote:IsA("RemoteEvent") then
+			return
 		end
-	end)
+		remote.OnClientEvent:Connect(function(reward: Reward)
+			local last = queue[#queue]
+			if last and last.kind == "level" and reward.kind == "level" then
+				queue[#queue] = {
+					kind = "level",
+					level = reward.level,
+					coins = (last.coins or 0) + (reward.coins or 0),
+				}
+			else
+				table.insert(queue, reward)
+			end
+			if showing then
+				return
+			end
+			showing = true
+			while #queue > 0 do
+				repeat
+					task.wait(0.2)
+				until not Hud.isFishingActive()
+					and Hud.panel() == ""
+					and player:GetAttribute("CatchRevealActive") ~= true
+				local nextReward = table.remove(queue, 1)
+				if nextReward then
+					showReward(nextReward)
+					task.wait(2.5)
+				end
+			end
+			showing = false
+		end)
+	end
+	local existing = remotes:FindFirstChild(Net.ADVENTURE_REWARD)
+	if existing then
+		watch(existing)
+	end
+	remotes.ChildAdded:Connect(watch)
 end
 
 return Juice

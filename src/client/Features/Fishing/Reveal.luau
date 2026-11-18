@@ -26,6 +26,7 @@ type CatchInfo = {
 	isNew: boolean?,
 	variant: string?,
 	isRecord: boolean?,
+	isGiant: boolean?,
 	previousBest: number?,
 }
 local seen: { [string]: boolean } = {}
@@ -38,6 +39,7 @@ local Effects = require(script.Parent:WaitForChild("Effects"))
 local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 local Art = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Art"))
+local Motion = require(script.Parent.Parent.Hud:WaitForChild("Motion"))
 
 local Reveal = {}
 
@@ -113,7 +115,19 @@ end
 
 local function nameCard(name: string, rarity: string, color: Color3, info: CatchInfo?): Frame
 	local gui = Ui.screen()
-	local hasDiscovery = info ~= nil and (info.isNew == true or info.variant == "Shiny")
+	local badges: { string } = {}
+	if info then
+		if info.variant == "Shiny" then
+			table.insert(badges, "✦ " .. Text.shiny)
+		end
+		if info.isGiant then
+			table.insert(badges, Text.adventure.giant)
+		end
+		if info.isNew then
+			table.insert(badges, Text.discovery)
+		end
+	end
+	local hasDiscovery = #badges > 0
 	local hasRecord = info ~= nil and info.isRecord == true and info.previousBest ~= nil
 	local card = Ui.frame(
 		gui,
@@ -171,12 +185,11 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 			"Discovery",
 			UDim2.fromScale(0.88, 0.13),
 			UDim2.fromScale(0.06, 0.035),
-			if info.variant == "Shiny"
-				then (if info.isNew then Text.shiny .. "  ·  " .. Text.discovery else Text.shiny)
-				else Text.discovery,
+			table.concat(badges, " · "),
 			Theme.ink
 		)
 		discovery.TextStrokeTransparency = 0.5
+		discovery.TextWrapped = true
 		local discoveryLimit = Instance.new("UITextSizeConstraint")
 		discoveryLimit.MinTextSize = 11
 		discoveryLimit.MaxTextSize = 15
@@ -347,6 +360,7 @@ function Reveal.play(
 		button.Font = Theme.font
 		button.TextSize = 19
 		Theme.surface(button, color, 12)
+		Motion.mount(button)
 		button.Activated:Connect(function()
 			skipped = true
 			button:Destroy()
@@ -431,9 +445,12 @@ function Reveal.play(
 		CFrame.lookAt(display, root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, display.Y, 0))
 
 	local start = os.clock()
-	local flight = if reduced and level == 6 then 0.85 else style.flight
+	local flight = if reduced and level >= 5 then 0.85 else style.flight
 	while not cancelled() do
 		local a = math.min((os.clock() - start) / flight, 1)
+		if level >= 5 and not reduced then
+			a = TweenService:GetValue(a, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+		end
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
 		local spin = if reduced
 			then CFrame.identity
@@ -447,6 +464,9 @@ function Reveal.play(
 
 	if not cancelled() then
 		Audio.capture(rarity, shiny)
+		if info and (info.isRecord or info.isGiant) then
+			Audio.play("level", 0.23, if info.isGiant then 0.9 else 1.12)
+		end
 	end
 	if skipButton and level == 5 then
 		skipButton:Destroy()

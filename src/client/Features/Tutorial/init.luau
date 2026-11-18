@@ -11,6 +11,7 @@ local Text = require(Shared:WaitForChild("StringsUi")).tutorial
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
+local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
@@ -52,6 +53,7 @@ function Tutorial.start()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	local card = Instance.new("Frame")
+	card.Name = "TutorialCard"
 	card.AnchorPoint = Vector2.new(0.5, 0)
 	card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
 	card.Size = UDim2.new(0.92, 0, 0, CARD_HEIGHT)
@@ -60,11 +62,13 @@ function Tutorial.start()
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(500, CARD_HEIGHT)
 	bounds.Parent = card
-	local iconHolder = Instance.new("Frame")
+	local iconHolder = Instance.new("TextButton")
 	iconHolder.Name = "StepIcon"
+	iconHolder.Text = ""
+	iconHolder.AutoButtonColor = false
 	iconHolder.AnchorPoint = Vector2.new(0, 0.5)
 	iconHolder.Position = UDim2.fromOffset(10, CARD_HEIGHT / 2)
-	iconHolder.Size = UDim2.fromOffset(42, 42)
+	iconHolder.Size = UDim2.fromOffset(44, 44)
 	iconHolder.BackgroundColor3 = Theme.cream
 	iconHolder.BorderSizePixel = 0
 	iconHolder.ZIndex = 3
@@ -78,7 +82,13 @@ function Tutorial.start()
 	stepIcon.TextScaled = true
 	stepIcon.TextStrokeTransparency = 1
 	stepIcon.ZIndex = 4
+	Motion.mount(iconHolder)
 	iconHolder.Parent = card
+	iconHolder.Activated:Connect(function()
+		if step == "collection" then
+			Hud.showPanel("Collection")
+		end
+	end)
 	local message = Panel.label(card, "", 14)
 	message.Size = UDim2.new(1, -176, 1, -12)
 	message.TextScaled = true
@@ -95,13 +105,15 @@ function Tutorial.start()
 
 	local guide = Instance.new("BillboardGui")
 	guide.Name = "TutorialDestination"
-	guide.Size = UDim2.fromOffset(142, 56)
+	guide.Size = UDim2.fromOffset(130, 48)
 	guide.StudsOffsetWorldSpace = Vector3.new(0, 5, 0)
 	guide.AlwaysOnTop = true
 	guide.Enabled = false
-	local arrow = Panel.label(guide, "", 18, Theme.crystal)
+	local arrow = Panel.label(guide, "", 15, Theme.sand)
 	arrow.Size = UDim2.fromScale(1, 1)
 	arrow.TextStrokeTransparency = 0.22
+	arrow.BackgroundTransparency = 0.12
+	Theme.surface(arrow, Theme.crystal, 12, Theme.ink)
 	local setArrowVisible = Hud.bindFishingVisibility(arrow, false)
 	guide.Parent = gui
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -151,12 +163,14 @@ function Tutorial.start()
 		setCardVisible(showCard)
 		message.Text = hint or ""
 		stepIcon.Text = icons[if step == "goToPier" and atPier then "cast" else step] or "🧭"
+		iconHolder.Interactable = step == "collection"
+		iconHolder.Selectable = iconHolder.Interactable
 		local tag = if step == "workshop" and not affordable
 			then "FishingZone"
 			else destinations[step]
 		local target = tag and CollectionService:GetTagged(tag)[1]
 		guide.Adornee = if target and target:IsA("BasePart") then target else nil
-		guide.Enabled = target ~= nil
+		guide.Enabled = target ~= nil and not (step == "goToPier" and atPier)
 		setArrowVisible(showCard and target ~= nil)
 		arrow.Text = (if tag then Text.destinations[tag] or "" else "") .. "\n▼"
 	end

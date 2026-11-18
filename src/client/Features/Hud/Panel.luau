@@ -174,17 +174,30 @@ end
 
 local function setOpen(gui: ScreenGui, shell: Frame, opened: boolean)
 	if opened then
+		local entering = not gui.Enabled
 		gui.Enabled = true
 		local scale = shell:FindFirstChildOfClass("UIScale")
-		if scale then
-			scale.Scale = if player:GetAttribute("ReduceEffects") == true then 1 else 0.85
-			TweenService:Create(
-				scale,
-				TweenInfo.new(0.2, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-				{ Scale = 1 }
-			):Play()
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		local backdrop = gui:FindFirstChild("Backdrop")
+		if entering and scale then
+			scale.Scale = if reduced then 1 else 0.92
+			if not reduced then
+				TweenService:Create(
+					scale,
+					TweenInfo.new(0.21, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Scale = 1 }
+				):Play()
+			end
 		end
-		if player:GetAttribute("ReduceEffects") ~= true then
+		if entering and backdrop and backdrop:IsA("Frame") then
+			backdrop.BackgroundTransparency = if reduced then 0.76 else 1
+			if not reduced then
+				TweenService
+					:Create(backdrop, TweenInfo.new(0.17), { BackgroundTransparency = 0.76 })
+					:Play()
+			end
+		end
+		if not reduced then
 			local blur = panelBlur
 			if not blur or blur.Parent ~= Lighting then
 				local effect = Instance.new("BlurEffect")
@@ -239,12 +252,20 @@ function Panel.create(
 	gui.DisplayOrder = 8
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+	local backdrop = Instance.new("Frame")
+	backdrop.Name = "Backdrop"
+	backdrop.Size = UDim2.fromScale(1, 1)
+	backdrop.BackgroundColor3 = Theme.ink
+	backdrop.BackgroundTransparency = 1
+	backdrop.BorderSizePixel = 0
+	backdrop.Parent = gui
 	local shell = Instance.new("Frame")
 	shell.Name = "CandyPanel"
 	shell.AnchorPoint = Vector2.new(0.5, 0.5)
 	shell.Position = UDim2.fromScale(0.5, 0.53)
 	shell.BackgroundColor3 = accent
 	shell.BorderSizePixel = 0
+	shell.ZIndex = 2
 	shell.ClipsDescendants = false
 	Theme.corner(shell, 28)
 	local outline = Instance.new("UIStroke")

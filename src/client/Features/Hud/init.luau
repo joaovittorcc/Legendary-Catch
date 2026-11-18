@@ -17,6 +17,7 @@ local Art = require(script:WaitForChild("Art"))
 local Assets = require(script:WaitForChild("Assets"))
 local Motion = require(script:WaitForChild("Motion"))
 local RodHotbar = require(script:WaitForChild("RodHotbar"))
+local StarterOffer = require(script.Parent.Shop:WaitForChild("StarterOffer"))
 
 -- Width / height of the uploaded HUD art (art/hud-v2): containers must keep these.
 local COIN_RATIO = 1024 / 386
@@ -451,13 +452,57 @@ function Hud.start()
 	levelLabel.Size = UDim2.fromScale(0.66, 0.72)
 	levelLabel.TextStrokeTransparency = 1
 	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
+	local levelTrack = Instance.new("Frame")
+	levelTrack.Name = "LevelTrack"
+	levelTrack.Position = UDim2.fromScale(0.32, 0.8)
+	levelTrack.Size = UDim2.fromScale(0.58, 0.11)
+	levelTrack.BackgroundColor3 = Theme.track
+	levelTrack.BorderSizePixel = 0
+	Theme.corner(levelTrack, 5)
+	local levelFill = Instance.new("Frame")
+	levelFill.Name = "LevelFill"
+	levelFill.Size = UDim2.fromScale(0, 1)
+	levelFill.BackgroundColor3 = Theme.crystal
+	levelFill.BorderSizePixel = 0
+	Theme.corner(levelFill, 5)
+	levelFill.Parent = levelTrack
+	levelTrack.Parent = levelChip
 	levelChip.Parent = bar
 	local function updateLevel()
-		local level = player:GetAttribute(levelConfig.levelAttribute("Control"))
-		local amount = if typeof(level) == "number" then math.max(0, math.floor(level)) else 0
-		levelLabel.Text = `{Text.control} {amount}`
+		local level = player:GetAttribute("PlayerLevel")
+		local xp = player:GetAttribute("PlayerLevelXP")
+		local total = player:GetAttribute("PlayerLevelXPTotal")
+		local train = player:GetAttribute(levelConfig.levelAttribute("Control"))
+		local combo = player:GetAttribute("FishingCombo")
+		local streak = if typeof(combo) == "number" then combo else 0
+		local hasLevel = typeof(level) == "number"
+		levelTrack.Visible = hasLevel
+			and typeof(xp) == "number"
+			and typeof(total) == "number"
+			and total > 0
+		if typeof(xp) == "number" and typeof(total) == "number" and total > 0 then
+			levelFill.Size = UDim2.fromScale(math.clamp(xp / total, 0, 1), 1)
+		end
+		local title = if typeof(level) == "number"
+			then string.format(Text.adventure.level, level)
+			else `{Text.control} {if typeof(train) == "number" then math.floor(train) else 0}`
+		levelLabel.Text = if streak >= 2
+			then title .. "\n" .. string.format(Text.adventure.combo, streak)
+			else title
+		levelLabel.Size = UDim2.fromScale(0.66, if levelTrack.Visible then 0.69 else 0.72)
+		levelLabel.Position = UDim2.fromScale(0.31, if levelTrack.Visible then 0.09 else 0.14)
 	end
-	player:GetAttributeChangedSignal(levelConfig.levelAttribute("Control")):Connect(updateLevel)
+	for _, attribute in
+		{
+			levelConfig.levelAttribute("Control"),
+			"PlayerLevel",
+			"PlayerLevelXP",
+			"PlayerLevelXPTotal",
+			"FishingCombo",
+		}
+	do
+		player:GetAttributeChangedSignal(attribute):Connect(updateLevel)
+	end
 	updateLevel()
 
 	local moreButton = Instance.new("TextButton")
@@ -760,6 +805,7 @@ function Hud.start()
 	perks.TextColor3 = Theme.gold
 	perks.Font = Theme.font
 	perks.TextSize = 13
+	perks.TextWrapped = true
 	Theme.surface(perks, Theme.gold, 8, Theme.ink)
 	perks.Parent = gui
 	local setPerksVisible = Hud.bindFishingVisibility(perks, false)
@@ -779,11 +825,29 @@ function Hud.start()
 				string.format(Text.robux.luckTimer, math.floor(remaining / 60), remaining % 60)
 			)
 		end
-		perks.Text = table.concat(names, "  ·  ")
-		setPerksVisible(#names > 0 and currentPanel == "")
+		local starterTime = StarterOffer.remaining()
+		local perkText = table.concat(names, "  ·  ")
+		if starterTime > 0 then
+			local starterText = Text.robux.starterPack .. " · " .. StarterOffer.clock(starterTime)
+			perks.Text = if #names > 0 then perkText .. "\n" .. starterText else starterText
+			perks.Size = UDim2.fromOffset(176, if #names > 0 then 44 else 28)
+		else
+			perks.Text = perkText
+			perks.Size = UDim2.fromOffset(134, 28)
+		end
+		setPerksVisible((#names > 0 or starterTime > 0) and currentPanel == "")
 	end
 	player:GetAttributeChangedSignal(vip):Connect(updatePerks)
 	player:GetAttributeChangedSignal(Products.LUCK_BOOST_ATTRIBUTE):Connect(updatePerks)
+	for _, attribute in
+		{
+			StarterOffer.availableAttribute,
+			StarterOffer.ownedAttribute,
+			StarterOffer.endsAtAttribute,
+		}
+	do
+		player:GetAttributeChangedSignal(attribute):Connect(updatePerks)
+	end
 	Hud.panelChanged:Connect(updatePerks)
 	updatePerks()
 

@@ -306,7 +306,12 @@ function Collection.start()
 			end
 			return
 		end
-		Panel.button(body, Text.milestones.title, Theme.gold).Activated:Connect(function()
+		local album =
+			Panel.label(body, string.format(Text.adventure.album, totalFound, #Creatures.LIST), 17)
+		album.LayoutOrder = -2
+		local rewards = Panel.button(body, Text.milestones.title, Theme.gold)
+		rewards.LayoutOrder = -1
+		rewards.Activated:Connect(function()
 			showRewards = true
 			scroll.CanvasPosition = Vector2.zero
 			render()
@@ -372,8 +377,7 @@ function Collection.start()
 				local name = Panel.label(card, label, 13)
 				name.Size = UDim2.fromScale(0.94, 0.27)
 				name.Position = UDim2.fromScale(0.03, 0.61)
-				local rarityName =
-					Panel.label(card, Strings.rarity[entry.rarity] or entry.rarity, 12)
+				local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 12)
 				rarityName.Name = "Rarity"
 				rarityName.Size = UDim2.fromScale(1, 0.17)
 				rarityName.Position = UDim2.fromScale(0, 0.82)
