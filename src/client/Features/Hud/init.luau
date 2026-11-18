@@ -228,6 +228,15 @@ function Hud.toast(message: string, tint: Color3?)
 end
 
 function Hud.start()
+	-- Studio-only QA hook: set the Player attribute DevOpenPanel to a panel name (Shop, Collection...).
+	if game:GetService("RunService"):IsStudio() then
+		player:GetAttributeChangedSignal("DevOpenPanel"):Connect(function()
+			local name = player:GetAttribute("DevOpenPanel")
+			if typeof(name) == "string" then
+				Hud.showPanel(name)
+			end
+		end)
+	end
 	local characterStateConnection: RBXScriptConnection? = nil
 	local function watchCharacter(character: Model?)
 		if characterStateConnection then
