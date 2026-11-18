@@ -125,6 +125,12 @@ local PT = {
 		C92_Serafim_do_Mar = "Serafim do Mar",
 		C93_Ouroboros_Cosmico = "Ouroboros Cósmico",
 		C94_Mare_Primordial = "Maré Primordial",
+		C101_Rena_do_Mar = "Rena do Mar",
+		C102_Peixe_Arvore_de_Natal = "Peixe-Árvore de Natal",
+		C103_Boneco_de_Gelo_Marinho = "Boneco de Gelo Marinho",
+		C104_Polvo_Presente = "Polvo-Presente",
+		C105_Estrela_do_Natal = "Estrela do Natal",
+		C106_Rei_do_Gelo_Natalino = "Rei do Gelo Natalino",
 	} :: { [string]: string },
 	creatureLore = {
 		C01_Bolhinha_Azul = "Solta bolhinhas quando está feliz. Ou seja, sempre.",
@@ -227,6 +233,12 @@ local PT = {
 		C92_Serafim_do_Mar = "Seis asas de luz que acalmam qualquer tempestade.",
 		C93_Ouroboros_Cosmico = "A serpente que come a própria cauda e recria o universo.",
 		C94_Mare_Primordial = "A primeira onda, feita de estrelas, ainda não terminou de quebrar.",
+		C101_Rena_do_Mar = "Guia os cardumes no nevoeiro de dezembro com seu nariz brilhante.",
+		C102_Peixe_Arvore_de_Natal = "Acende luzinhas coloridas nas escamas toda vez que alguém festeja perto do píer.",
+		C103_Boneco_de_Gelo_Marinho = "Feito de espuma gelada e cachecol festivo; nunca derrete enquanto houver alegria.",
+		C104_Polvo_Presente = "Embrulha conchas brilhantes com seus tentáculos de fita dourada para presentear amigos.",
+		C105_Estrela_do_Natal = "Dizem que caiu de uma árvore gigante lá no norte e aprendeu a nadar.",
+		C106_Rei_do_Gelo_Natalino = "Majestoso guardião do inverno; sua coroa cristalina reflete todas as luzes da festa.",
 	} :: { [string]: string },
 	rodName = {
 		starter = "Vara de Iniciante",
@@ -245,6 +257,9 @@ local PT = {
 		shimmerShoal = "Cardume Cintilante",
 		fogBank = "Banco de Nevoeiro",
 		aurora = "Aurora Boreal",
+	} :: { [string]: string },
+	seasonName = {
+		xmas = "Natal Cintilante",
 	} :: { [string]: string },
 	instructions = {
 		reel = "Segure para manter o peixe na zona",
@@ -285,6 +300,11 @@ local PT = {
 	caught = "Pegou!",
 	newRecord = "NOVA DESCOBERTA!",
 	guideName = "Vô Anzol",
+	guideWelcome = {
+		"Bem-vindo à ilha!",
+		"Pegue sua vara e vá ao píer!",
+		"Quando algo morder, toque para puxar!",
+	},
 	guideStep = {
 		goToPier = "Ei, novato! O píer é logo ali. Vai lá e lança a linha!",
 		fight = "Sentiu o puxão? Não solta! Cada bicho briga de um jeito.",
@@ -445,6 +465,12 @@ local EN: Strings = {
 		C92_Serafim_do_Mar = "Sea Seraph",
 		C93_Ouroboros_Cosmico = "Cosmic Ouroboros",
 		C94_Mare_Primordial = "Primordial Tide",
+		C101_Rena_do_Mar = "Sea Reindeer",
+		C102_Peixe_Arvore_de_Natal = "Holiday Treefish",
+		C103_Boneco_de_Gelo_Marinho = "Frosty Sea Snowman",
+		C104_Polvo_Presente = "Gift-Wrapped Octopus",
+		C105_Estrela_do_Natal = "Sparkling Holiday Star",
+		C106_Rei_do_Gelo_Natalino = "Winter Frost Leviathan",
 	},
 	creatureLore = {
 		C01_Bolhinha_Azul = "Blows little bubbles when it's happy. So, always.",
@@ -547,6 +573,12 @@ local EN: Strings = {
 		C92_Serafim_do_Mar = "Six wings of light that calm any storm.",
 		C93_Ouroboros_Cosmico = "The serpent that eats its own tail and remakes the universe.",
 		C94_Mare_Primordial = "The first wave, made of stars, hasn't finished breaking yet.",
+		C101_Rena_do_Mar = "Guides winter schools through December mist with its bright glowing nose.",
+		C102_Peixe_Arvore_de_Natal = "Lights up its pine-green scales whenever celebrations echo by the pier.",
+		C103_Boneco_de_Gelo_Marinho = "Shaped from sea frost and a cozy scarf; never melts while cheer is in the air.",
+		C104_Polvo_Presente = "Ties shiny shells in golden ribbon tentacles to surprise ocean friends.",
+		C105_Estrela_do_Natal = "Legend says it fell from a northern treetop and learned to swim.",
+		C106_Rei_do_Gelo_Natalino = "Majestic winter sovereign whose crystal crown mirrors every festive light.",
 	},
 	rodName = {
 		starter = "Starter Rod",
@@ -565,6 +597,9 @@ local EN: Strings = {
 		shimmerShoal = "Shimmer Shoal",
 		fogBank = "Fog Bank",
 		aurora = "Aurora Borealis",
+	},
+	seasonName = {
+		xmas = "Sparkling Holidays",
 	},
 	instructions = {
 		reel = "Hold to keep the fish in the zone",
@@ -604,6 +639,11 @@ local EN: Strings = {
 	caught = "Caught!",
 	newRecord = "NEW DISCOVERY!",
 	guideName = "Grandpa Hook",
+	guideWelcome = {
+		"Welcome to the island!",
+		"Grab your rod and head to the pier!",
+		"When something bites, tap to reel!",
+	},
 	guideStep = {
 		goToPier = "Hey, rookie! The pier is right there. Go cast your line!",
 		fight = "Feel that tug? Don't let go! Every creature fights its own way.",

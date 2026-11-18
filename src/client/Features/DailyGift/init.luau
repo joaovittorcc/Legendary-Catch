@@ -375,13 +375,28 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 		motion.finishIdle()
 		local totalCoins = gift.lastGift + (gift.lastChest or 0)
 		action.Text = string.format(Text.dailyCoins, totalCoins)
-		Juice.flyCoins(
-			totalCoins,
-			card.AbsolutePosition + card.AbsoluteSize * Vector2.new(0.23, 0.5)
-		)
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		local origin = card.AbsolutePosition + card.AbsoluteSize * Vector2.new(0.23, 0.5)
+		Juice.flyCoins(totalCoins, origin)
 		Audio.play(if (gift.lastChest or 0) > 0 then "chest" else "coins")
-		setCardVisible(false)
-		showStreakModal(gui, gift)
+		if not reduced then
+			local pop = card:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+			pop.Parent = card
+			TweenService:Create(
+				pop,
+				TweenInfo.new(0.14, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1.18 }
+			):Play()
+			task.delay(0.16, function()
+				if gui.Parent then
+					setCardVisible(false)
+					showStreakModal(gui, gift)
+				end
+			end)
+		else
+			setCardVisible(false)
+			showStreakModal(gui, gift)
+		end
 	end)
 end
 

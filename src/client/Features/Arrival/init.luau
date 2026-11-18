@@ -4,17 +4,20 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = script.Parent:WaitForChild("Hud")
 local Panel = require(Hud:WaitForChild("Panel"))
 local Arrival = { order = 0 }
 local player = Players.LocalPlayer
-local LOAD_TIMEOUT = 6
-local MINIMUM_DISPLAY = 0.55
+local LOAD_TIMEOUT = 2.6
+local MINIMUM_DISPLAY = 0.45
+local FLYOVER_SECONDS = 2.3
 
 local function assetsFor(gui: PlayerGui): { Instance }
 	local assets: { Instance } = {}
@@ -93,7 +96,7 @@ function Arrival.start()
 	local skip = Panel.button(gui, Text.skip, Theme.gold)
 	skip.Name = "SkipArrival"
 	skip.AnchorPoint = Vector2.new(0.5, 1)
-	skip.Position = UDim2.fromScale(0.5, 0.83)
+	skip.Position = UDim2.fromScale(0.5, 0.86)
 	skip.Size = UDim2.fromOffset(108, 46)
 	skip.Visible = false
 	local skipped = false
@@ -142,13 +145,18 @@ function Arrival.start()
 	end
 	fill.Size = UDim2.fromScale(1, 1)
 	status.Text = Text.arrival.ready
-
 	cover.Visible = false
-	-- No title screen (João, 2026-11-17): straight from loading into the short arrival glide.
+	cover.Active = false
+
+	-- Only first-time players (tutorial not done) get the short island flyover (~2.3s),
+	-- skippable on any tap/click or the Skip button, ending smoothly behind the character.
+	local snapshot = Data.get()
+	local firstTime = not snapshot or not snapshot.tutorial or not snapshot.tutorial.done
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local camera = workspace.CurrentCamera
-	local animate = camera
+	local animate = firstTime
+		and camera
 		and camera.CameraType == Enum.CameraType.Custom
 		and root
 		and root:IsA("BasePart")
@@ -156,14 +164,19 @@ function Arrival.start()
 	if animate and camera and root and root:IsA("BasePart") then
 		local view = camera.CFrame
 		local focus = root.Position + Vector3.new(0, 2, 0)
-		local backward = -root.CFrame.LookVector
-		local start = CFrame.lookAt(
-			focus + backward * 20 + root.CFrame.RightVector * 8 + Vector3.new(0, 9, 0),
-			focus
-		)
+		local high = focus + Vector3.new(-28, 22, 34)
+		local sweep = focus + Vector3.new(30, 14, 18)
 		camera.CameraType = Enum.CameraType.Scriptable
-		camera.CFrame = start
+		camera.CFrame = CFrame.lookAt(high, focus)
 		skip.Visible = true
+		local tapConn = UserInputService.InputBegan:Connect(function(input)
+			if
+				input.UserInputType == Enum.UserInputType.Touch
+				or input.UserInputType == Enum.UserInputType.MouseButton1
+			then
+				skipped = true
+			end
+		end)
 		local begin = os.clock()
 		while
 			not skipped
@@ -171,16 +184,24 @@ function Arrival.start()
 			and camera.CameraType == Enum.CameraType.Scriptable
 			and root:IsDescendantOf(workspace)
 		do
-			local fraction = math.clamp((os.clock() - begin) / 1.65, 0, 1)
-			camera.CFrame = start:Lerp(
-				view,
+			local fraction = math.clamp((os.clock() - begin) / FLYOVER_SECONDS, 0, 1)
+			local eased =
 				TweenService:GetValue(fraction, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-			)
+			if eased < 0.5 then
+				local sub = eased * 2
+				local pos = high:Lerp(sweep, sub)
+				camera.CFrame = CFrame.lookAt(pos, focus)
+			else
+				local sub = (eased - 0.5) * 2
+				local mid = CFrame.lookAt(sweep, focus)
+				camera.CFrame = mid:Lerp(view, sub)
+			end
 			if fraction >= 1 then
 				break
 			end
 			RunService.RenderStepped:Wait()
 		end
+		tapConn:Disconnect()
 		if camera.CameraType == Enum.CameraType.Scriptable then
 			camera.CFrame = view
 			camera.CameraType = Enum.CameraType.Custom

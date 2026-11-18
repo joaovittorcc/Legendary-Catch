@@ -21,6 +21,8 @@ local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
 local Guide = { order = 140 }
 
 local TALK_DISTANCE = 26
+local WELCOME_DISTANCE = 68
+local WELCOME_LINE_SECONDS = 2.6
 local TIP_SECONDS = 8
 
 local player = Players.LocalPlayer
@@ -118,9 +120,14 @@ local function attach(npc: Instance)
 	end
 	local gui, line, frame = buildBubble(anchor)
 	local setBubbleVisible = Hud.bindFishingVisibility(frame, false)
+	local playerGui = player:WaitForChild("PlayerGui")
 	local tipIndex = 0
 	local lastSwap = 0
 	local bubbleOpen = false
+	local welcomeDone = false
+	local welcomeIndex = 0
+	local welcomeSwap = 0
+
 	task.spawn(function()
 		while gui.Parent and npc.Parent do
 			local character = player.Character
@@ -128,14 +135,53 @@ local function attach(npc: Instance)
 			local snapshot = Data.get()
 			local tutorial = snapshot and snapshot.tutorial
 			local tutorialActive = tutorial ~= nil and not tutorial.done
-			-- Stay quiet while a HUD panel (collection, shop, settings...) is open.
-			local near = Hud.panel() == ""
-				and not Hud.isFishingActive()
+			local arrival = playerGui:FindFirstChild("IslandArrival")
+			local busy = arrival ~= nil
+				or Hud.panel() ~= ""
+				or Hud.isFishingActive()
+				or player:GetAttribute("CatchRevealActive") == true
+
+			if tutorialActive and not welcomeDone and #Strings.guideWelcome > 0 then
+				if tutorial and tutorial.step ~= "goToPier" then
+					welcomeDone = true
+				elseif not busy and root and root:IsA("BasePart") then
+					local dist = (root.Position - anchor.WorldPosition).Magnitude
+					if dist <= WELCOME_DISTANCE then
+						if welcomeIndex == 0 then
+							welcomeIndex = 1
+							welcomeSwap = os.clock()
+							line.Text = Strings.guideWelcome[1]
+							bubbleOpen = true
+							gui.MaxDistance = WELCOME_DISTANCE + 8
+							gui.Size = UDim2.fromOffset(260, 108)
+							setBubbleVisible(true)
+							gui.Enabled = true
+						elseif os.clock() - welcomeSwap >= WELCOME_LINE_SECONDS then
+							welcomeIndex += 1
+							if welcomeIndex <= #Strings.guideWelcome then
+								welcomeSwap = os.clock()
+								line.Text = Strings.guideWelcome[welcomeIndex]
+							else
+								welcomeDone = true
+								gui.MaxDistance = TALK_DISTANCE + 6
+								bubbleOpen = false
+								setBubbleVisible(false)
+								gui.Enabled = false
+							end
+						end
+						task.wait(0.35)
+						continue
+					end
+				end
+			end
+
+			local near = not busy
 				and not tutorialActive
 				and root
 				and root:IsA("BasePart")
 				and (root.Position - anchor.WorldPosition).Magnitude <= TALK_DISTANCE
 			if near then
+				gui.MaxDistance = TALK_DISTANCE + 6
 				if not bubbleOpen then
 					-- Just walked up: say the current line with a little pop.
 					line.Text = currentLine(tipIndex)
@@ -148,29 +194,15 @@ local function attach(npc: Instance)
 					tipIndex += 1
 					line.Text = currentLine(tipIndex)
 					lastSwap = os.clock()
-				else
-					-- Tutorial lines follow the step right away (no waiting for the timer).
-					local text = currentLine(tipIndex)
-					local snapshot = Data.get()
-					if
-						snapshot
-						and snapshot.tutorial
-						and not snapshot.tutorial.done
-						and line.Text ~= text
-					then
-						line.Text = text
+				end
+			elseif bubbleOpen then
+				bubbleOpen = false
+				setBubbleVisible(false)
+				task.delay(0.2, function()
+					if not bubbleOpen and gui.Parent then
+						gui.Enabled = false
 					end
-				end
-			else
-				if bubbleOpen then
-					bubbleOpen = false
-					setBubbleVisible(false)
-					task.delay(0.2, function()
-						if not bubbleOpen and gui.Parent then
-							gui.Enabled = false
-						end
-					end)
-				end
+				end)
 			end
 			task.wait(0.5)
 		end

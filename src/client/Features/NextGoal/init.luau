@@ -17,6 +17,7 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Assets = require(script.Parent.Hud:WaitForChild("Assets"))
 local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
+local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 
 local NextGoal = { order = 125 }
 local player = Players.LocalPlayer
@@ -133,16 +134,23 @@ function NextGoal.start()
 	golden.ZIndex = fill.ZIndex + 1
 
 	local function place()
-		-- proxima-meta.png is 1024x341: keep that ratio, tucked under the coins on the left.
+		-- proxima-meta.png is 1024x341: keep that ratio, tucked under the coins on the left
+		-- and clear of TutorialCard when the tutorial is still visible on smaller viewports.
 		local width = hud.AbsoluteSize.X
 		local height = math.clamp(math.round(hud.AbsoluteSize.Y * 0.1), 58, 84)
 		local chipWidth = math.min(math.round(height * (1024 / 341)), math.round(width * 0.62))
-		chip.Size = UDim2.fromOffset(chipWidth, math.round(chipWidth * 341 / 1024))
+		local chipHeight = math.round(chipWidth * 341 / 1024)
+		chip.Size = UDim2.fromOffset(chipWidth, chipHeight)
 		chip.AnchorPoint = Vector2.new(0, 0)
-		chip.Position =
-			UDim2.new(0.017, 0, 0, navigation.Position.Y.Offset + navigation.Size.Y.Offset + 7)
+		local navBottom = navigation.Position.Y.Offset + navigation.Size.Y.Offset + 7
+		local tutBottom = Tutorial.cardBottom()
+		local y = if tutBottom > 0 and width < 960
+			then math.max(navBottom, tutBottom + 6)
+			else navBottom
+		chip.Position = UDim2.new(0.017, 0, 0, y)
 	end
 	Hud.layoutChanged:Connect(place)
+	Tutorial.layoutChanged:Connect(place)
 	place()
 	chip.Parent = hud
 	local setChipVisible = Hud.bindFishingVisibility(chip, false)
@@ -152,6 +160,7 @@ function NextGoal.start()
 		local training = player:GetAttribute("TrainingStat")
 		setChipVisible(
 			goal ~= nil
+				and playerGui:FindFirstChild("IslandArrival") == nil
 				and Hud.panel() == ""
 				and not Hud.isMenuOpen()
 				and not Hud.isFishingActive()
@@ -162,11 +171,10 @@ function NextGoal.start()
 		)
 	end
 	local function refresh(snapshot: Types.Snapshot?)
-		goal = if snapshot
-				and snapshot.tutorial
-				and snapshot.tutorial.done
-			then nextGoal(snapshot)
-			else nil
+		local ready = snapshot
+			and snapshot.tutorial
+			and (snapshot.tutorial.done or (snapshot.stats and snapshot.stats.catches >= 1))
+		goal = if ready and snapshot then nextGoal(snapshot) else nil
 		local current = goal
 		if current then
 			message.Text = current.text

@@ -3,6 +3,9 @@ local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
+local Workspace = game:GetService("Workspace")
+
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
@@ -17,6 +20,7 @@ local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
 local CARD_HEIGHT = 64
+local CELEBRATE_HEIGHT = 96
 local layout = Instance.new("BindableEvent")
 local visibleBottom = 0
 Tutorial.layoutChanged = layout.Event
@@ -36,10 +40,97 @@ local icons: { [string]: string } = {
 	goToPier = "🧭",
 	cast = "🎣",
 	fight = "🐟",
-	collection = "📖",
+	collection = "🎉",
 	workshop = "🛠️",
 	training = "✨",
 }
+
+local function spawnConfetti(parent: Instance, card: Frame)
+	if player:GetAttribute("ReduceEffects") == true then
+		return
+	end
+	local center = card.AbsolutePosition + card.AbsoluteSize * 0.5
+	if card.AbsoluteSize.X <= 0 then
+		return
+	end
+	local palette = {
+		Theme.gold,
+		Theme.crystal,
+		Theme.rose,
+		Color3.fromRGB(120, 230, 170),
+	}
+	for i = 1, 14 do
+		local piece = Instance.new("Frame")
+		piece.Name = "Confetti"
+		piece.AnchorPoint = Vector2.new(0.5, 0.5)
+		piece.Position = UDim2.fromOffset(center.X + math.random(-70, 70), center.Y)
+		piece.Size = UDim2.fromOffset(math.random(6, 9), math.random(6, 9))
+		piece.Rotation = math.random(-45, 45)
+		piece.BackgroundColor3 = palette[((i - 1) % #palette) + 1]
+		piece.BorderSizePixel = 0
+		piece.ZIndex = 12
+		Theme.corner(piece, 2)
+		piece.Parent = parent
+
+		local angle = ((i - 1) / 14) * math.pi * 2 + math.random() * 0.3
+		local dist = math.random(65, 135)
+		local goalPos = UDim2.fromOffset(
+			center.X + math.cos(angle) * dist,
+			center.Y + math.sin(angle) * (dist * 0.65) + 28
+		)
+		local tween = TweenService:Create(
+			piece,
+			TweenInfo.new(0.95, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{
+				Position = goalPos,
+				Rotation = piece.Rotation + math.random(-180, 180),
+				BackgroundTransparency = 1,
+			}
+		)
+		tween.Completed:Once(function()
+			piece:Destroy()
+		end)
+		tween:Play()
+	end
+end
+
+local function createGuideBeam(): (Part, Beam)
+	local holder = Instance.new("Part")
+	holder.Name = "TutorialGuideBeam"
+	holder.Size = Vector3.new(1, 1, 1)
+	holder.Transparency = 1
+	holder.Anchored = true
+	holder.CanCollide = false
+	holder.CanQuery = false
+	holder.CanTouch = false
+	holder.CastShadow = false
+
+	local a0 = Instance.new("Attachment")
+	a0.Position = Vector3.new(0, 0.2, 0)
+	a0.Parent = holder
+
+	local a1 = Instance.new("Attachment")
+	a1.Position = Vector3.new(0, 26, 0)
+	a1.Parent = holder
+
+	local beam = Instance.new("Beam")
+	beam.Attachment0 = a0
+	beam.Attachment1 = a1
+	beam.Width0 = 2.4
+	beam.Width1 = 0.7
+	beam.FaceCamera = true
+	beam.LightEmission = 0.85
+	beam.LightInfluence = 0
+	beam.Color = ColorSequence.new(Theme.crystal, Theme.gold)
+	beam.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.4),
+		NumberSequenceKeypoint.new(0.6, 0.72),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	beam.Enabled = false
+	beam.Parent = holder
+	return holder, beam
+end
 
 function Tutorial.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
@@ -47,6 +138,9 @@ function Tutorial.start()
 	local mock: TutorialState = { step = "goToPier", done = false }
 	local step = ""
 	local atPier = false
+	local celebratedFirstCatch = false
+	local cardHeight = CARD_HEIGHT
+
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "TutorialGuide"
 	gui.DisplayOrder = 3
@@ -61,7 +155,7 @@ function Tutorial.start()
 	card.Visible = false
 	Art.panel(card, Theme.crystal)
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(500, CARD_HEIGHT)
+	bounds.MaxSize = Vector2.new(500, CELEBRATE_HEIGHT)
 	bounds.Parent = card
 	local iconHolder = Instance.new("TextButton")
 	iconHolder.Name = "StepIcon"
@@ -97,6 +191,13 @@ function Tutorial.start()
 	textLimit.MaxTextSize = 20
 	textLimit.Parent = message
 	message.Position = UDim2.fromOffset(62, 6)
+	local celebrateTitle = Panel.label(card, Text.firstCatchBanner, 16, Theme.wood)
+	celebrateTitle.Name = "CelebrateTitle"
+	celebrateTitle.Position = UDim2.fromOffset(62, 8)
+	celebrateTitle.Size = UDim2.new(1, -176, 0, 26)
+	celebrateTitle.TextStrokeTransparency = 1
+	celebrateTitle.TextXAlignment = Enum.TextXAlignment.Left
+	celebrateTitle.Visible = false
 	local skip = Panel.button(card, Text.skip, Theme.gold)
 	skip.Size = UDim2.fromOffset(88, 44)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
@@ -104,8 +205,8 @@ function Tutorial.start()
 	local openAlbum = Panel.button(card, StringsUi.adventure.openAlbum, Theme.crystal)
 	openAlbum.Name = "OpenAlbum"
 	openAlbum.Size = UDim2.new(1, -176, 0, 44)
-	openAlbum.Position = UDim2.fromOffset(62, 10)
-	openAlbum.TextSize = 14
+	openAlbum.Position = UDim2.fromOffset(62, 42)
+	openAlbum.TextSize = 15
 	openAlbum.Visible = false
 	openAlbum.Activated:Connect(function()
 		Hud.showPanel("Collection")
@@ -115,7 +216,7 @@ function Tutorial.start()
 
 	local guide = Instance.new("BillboardGui")
 	guide.Name = "TutorialDestination"
-	guide.Size = UDim2.fromOffset(130, 48)
+	guide.Size = UDim2.fromOffset(136, 52)
 	guide.StudsOffsetWorldSpace = Vector3.new(0, 5, 0)
 	guide.AlwaysOnTop = true
 	guide.Enabled = false
@@ -128,9 +229,24 @@ function Tutorial.start()
 	guide.Parent = gui
 	gui.Parent = player:WaitForChild("PlayerGui")
 
+	local beamHolder, beam = createGuideBeam()
+	local beamConn: RBXScriptConnection? = nil
+
+	local function stopBeamBob()
+		if beamConn then
+			beamConn:Disconnect()
+			beamConn = nil
+		end
+	end
+
+	gui.Destroying:Once(function()
+		stopBeamBob()
+		beamHolder:Destroy()
+	end)
+
 	local function publishLayout()
 		local bottom = if gui.Enabled and card.Visible
-			then card.Position.Y.Offset + CARD_HEIGHT
+			then card.Position.Y.Offset + cardHeight
 			else 0
 		if visibleBottom ~= bottom then
 			visibleBottom = bottom
@@ -140,8 +256,9 @@ function Tutorial.start()
 	local function placeCard()
 		local viewport = gui.AbsoluteSize
 		local portrait = viewport.Y > viewport.X
-		card.Size = UDim2.new(if portrait then 0.92 else 0.5, 0, 0, CARD_HEIGHT)
+		card.Size = UDim2.new(if portrait then 0.92 else 0.5, 0, 0, cardHeight)
 		card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
+		iconHolder.Position = UDim2.fromOffset(10, cardHeight / 2)
 		publishLayout()
 	end
 	Hud.layoutChanged:Connect(function()
@@ -166,6 +283,7 @@ function Tutorial.start()
 		if step == "workshop" and not affordable then
 			hint = Text.earn
 		end
+		local reduced = player:GetAttribute("ReduceEffects") == true
 		local training = player:GetAttribute("TrainingStat")
 		local showCard = hint ~= nil
 			and Hud.panel() == ""
@@ -173,21 +291,60 @@ function Tutorial.start()
 			and not Hud.isFishingActive()
 			and (training == nil or training == "")
 			and player:GetAttribute("CatchRevealActive") ~= true
+		local celebrating = showCard and step == "collection"
+		cardHeight = if celebrating then CELEBRATE_HEIGHT else CARD_HEIGHT
+		placeCard()
 		setCardVisible(showCard)
 		message.Text = hint or ""
+		celebrateTitle.Visible = celebrating
 		openAlbum.Visible = step == "collection"
 		message.Visible = not openAlbum.Visible
 		stepIcon.Text = icons[if step == "goToPier" and atPier then "cast" else step] or "🧭"
 		iconHolder.Interactable = step == "collection"
 		iconHolder.Selectable = iconHolder.Interactable
+
+		if celebrating and not celebratedFirstCatch then
+			celebratedFirstCatch = true
+			if not reduced then
+				local scale = card:FindFirstChildOfClass("UIScale") or Instance.new("UIScale")
+				scale.Scale = 0.88
+				scale.Parent = card
+				TweenService:Create(
+					scale,
+					TweenInfo.new(0.28, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Scale = 1 }
+				):Play()
+				task.defer(spawnConfetti, gui, card)
+			end
+		end
+
 		local tag = if step == "workshop" and not affordable
 			then "FishingZone"
 			else destinations[step]
 		local target = tag and CollectionService:GetTagged(tag)[1]
+		local showGuide = showCard and target ~= nil and not (step == "goToPier" and atPier)
 		guide.Adornee = if target and target:IsA("BasePart") then target else nil
-		guide.Enabled = target ~= nil and not (step == "goToPier" and atPier)
-		setArrowVisible(showCard and target ~= nil)
+		guide.Enabled = showGuide
+		setArrowVisible(showGuide)
 		arrow.Text = (if tag then Text.destinations[tag] or "" else "") .. "\n▼"
+
+		local showBeam = showGuide and target ~= nil and target:IsA("BasePart") and not reduced
+		if showBeam and target and target:IsA("BasePart") then
+			beamHolder.CFrame = CFrame.new(target.Position)
+			beamHolder.Parent = Workspace
+			beam.Enabled = true
+			if not beamConn then
+				beamConn = RunService.Heartbeat:Connect(function()
+					guide.StudsOffsetWorldSpace =
+						Vector3.new(0, 5 + math.sin(os.clock() * 3) * 0.55, 0)
+				end)
+			end
+		else
+			beam.Enabled = false
+			beamHolder.Parent = nil
+			stopBeamBob()
+			guide.StudsOffsetWorldSpace = Vector3.new(0, 5, 0)
+		end
 	end
 
 	local function send(name: string, event: string?)
@@ -231,6 +388,7 @@ function Tutorial.start()
 	Data.changed:Connect(refresh)
 	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh)
 	player:GetAttributeChangedSignal("Coins"):Connect(refresh)
+	player:GetAttributeChangedSignal("ReduceEffects"):Connect(refresh)
 	player:GetAttributeChangedSignal("TrainingStat"):Connect(function()
 		if
 			mockEnabled
