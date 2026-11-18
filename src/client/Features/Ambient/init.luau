@@ -476,14 +476,6 @@ function Ambient.start()
 	end
 	findCampfireLight()
 
-	local baseClockTime = Lighting.ClockTime
-	local baseAmbient = Lighting.Ambient
-	local baseOutdoorAmbient = Lighting.OutdoorAmbient
-	local nightAmbient = Color3.fromRGB(110, 128, 178)
-	local nightOutdoor = Color3.fromRGB(122, 146, 198)
-	local cycleStart = os.clock()
-	local lastClockUpdate = 0
-
 	Workspace.ChildAdded:Connect(function(child)
 		if child.Name == "Island" then
 			task.defer(function()
@@ -507,9 +499,6 @@ function Ambient.start()
 		if campfireLight and campfireLight.Parent then
 			campfireLight.Brightness = campfireBaseBrightness
 		end
-		Lighting.ClockTime = baseClockTime
-		Lighting.Ambient = baseAmbient
-		Lighting.OutdoorAmbient = baseOutdoorAmbient
 	end
 
 	local function step()
@@ -667,24 +656,6 @@ function Ambient.start()
 			campfireLight.Brightness = campfireBaseBrightness
 				* boost
 				* (0.9 + 0.14 * math.sin(t * 7.5) + 0.08 * math.cos(t * 13.1))
-		end
-
-		-- Gentle 6-minute day/golden-hour/cozy-night cycle (throttled to 4 Hz)
-		if t - lastClockUpdate >= 0.25 then
-			lastClockUpdate = t
-			local elapsed = t - cycleStart
-			local clock = (baseClockTime + (elapsed / 360) * 24) % 24
-			Lighting.ClockTime = clock
-			local nightWeight = 0
-			if clock >= 17.5 and clock < 19.0 then
-				nightWeight = (clock - 17.5) / 1.5
-			elseif clock >= 19.0 or clock < 5.5 then
-				nightWeight = 1
-			elseif clock >= 5.5 and clock < 7.0 then
-				nightWeight = 1 - (clock - 5.5) / 1.5
-			end
-			Lighting.Ambient = baseAmbient:Lerp(nightAmbient, nightWeight)
-			Lighting.OutdoorAmbient = baseOutdoorAmbient:Lerp(nightOutdoor, nightWeight)
 		end
 	end
 
