@@ -26,6 +26,7 @@ local PRODUCTS: { Product } = {
 
 local PASSES: { Pass } = {
 	{ key = "vip", id = 0, coinMultiplier = 1.25 }, -- TODO: real id
+	{ key = "autoFish", id = 0 }, -- TODO: real id
 }
 
 local Products = {}
@@ -72,5 +73,7 @@ end
 
 -- Player attribute: os.time() when the luck boost ends (0 = none).
 Products.LUCK_BOOST_ATTRIBUTE = "LuckBoostEndsAt"
+Products.AUTO_FISH_OWNED_ATTRIBUTE = "AutoFishOwned"
+Products.AUTO_FISH_ACTIVE_ATTRIBUTE = "AutoFishActive"
 
 return Products

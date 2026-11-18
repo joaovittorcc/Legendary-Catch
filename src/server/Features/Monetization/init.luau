@@ -8,6 +8,7 @@
 local MarketplaceService = game:GetService("MarketplaceService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Products = require(
 	ReplicatedStorage:WaitForChild("Shared"):WaitForChild("Config"):WaitForChild("Products")
@@ -23,6 +24,20 @@ Monetization.order = 25
 
 function Monetization.hasPass(player: Player, key: string): boolean
 	return player:GetAttribute(Products.passAttribute(key)) == true
+end
+
+function Monetization.ownsAutoFish(player: Player): boolean
+	if not Products.pass("autoFish") then
+		return false
+	end
+	if RunService:IsStudio() and player:GetAttribute("DevAutoFish") == true then
+		return true
+	end
+	return Monetization.hasPass(player, "autoFish")
+end
+
+local function publishAutoFish(player: Player)
+	player:SetAttribute(Products.AUTO_FISH_OWNED_ATTRIBUTE, Monetization.ownsAutoFish(player))
 end
 
 function Monetization.coinMultiplier(player: Player): number
@@ -62,6 +77,7 @@ local function checkPasses(player: Player)
 			player:SetAttribute(Products.passAttribute(pass.key), false)
 		end
 	end
+	publishAutoFish(player)
 end
 
 local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseDecision
@@ -117,9 +133,16 @@ function Monetization.start()
 					player:SetAttribute(Products.passAttribute(pass.key), true)
 				end
 			end
+			publishAutoFish(player)
 		end
 	end)
 	local function onPlayer(player: Player)
+		publishAutoFish(player)
+		if RunService:IsStudio() then
+			player:GetAttributeChangedSignal("DevAutoFish"):Connect(function()
+				publishAutoFish(player)
+			end)
+		end
 		task.spawn(checkPasses, player)
 		task.spawn(function()
 			PlayerData.wait(player)

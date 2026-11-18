@@ -6,6 +6,8 @@ local StarterGui = game:GetService("StarterGui")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Net = require(Shared:WaitForChild("Net"))
+local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Art = require(script.Parent:WaitForChild("Art"))
@@ -21,7 +23,8 @@ function RodHotbar.mount(
 	gui: ScreenGui,
 	panelChanged: RBXScriptSignal,
 	panel: () -> string,
-	bindFishingVisibility: (GuiObject, boolean?) -> (boolean) -> ()
+	bindFishingVisibility: (GuiObject, boolean?) -> (boolean) -> (),
+	toast: ((string, Color3?) -> ())?
 )
 	local slot = Art.button(Assets.rod)
 	slot.Name = "RodHotbar"
@@ -38,6 +41,34 @@ function RodHotbar.mount(
 	Motion.mount(slot, 0, 8)
 	slot.Parent = gui
 
+	local autoBtn = Instance.new("TextButton")
+	autoBtn.Name = "AutoFishButton"
+	autoBtn.AnchorPoint = Vector2.new(0, 1)
+	autoBtn.Position = UDim2.new(0.5, 42, 1, -14)
+	autoBtn.Size = UDim2.fromOffset(60, 46)
+	autoBtn.AutoButtonColor = false
+	autoBtn.Font = Theme.font
+	autoBtn.Text = Text.autoFish.lockedButton
+	autoBtn.TextColor3 = Theme.cream
+	autoBtn.TextScaled = true
+	autoBtn.TextStrokeTransparency = 0.25
+	autoBtn.TextStrokeColor3 = Theme.outline
+	autoBtn.Visible = false
+	local autoLimit = Instance.new("UITextSizeConstraint")
+	autoLimit.MaxTextSize = 15
+	autoLimit.Parent = autoBtn
+	local autoPad = Instance.new("UIPadding")
+	autoPad.PaddingLeft = UDim.new(0, 6)
+	autoPad.PaddingRight = UDim.new(0, 6)
+	autoPad.Parent = autoBtn
+	Theme.surface(autoBtn, Color3.fromRGB(158, 166, 180), 14, Color3.fromRGB(162, 172, 188))
+	local autoStroke = autoBtn:FindFirstChildOfClass("UIStroke")
+	local autoGradient = autoBtn:FindFirstChildOfClass("UIGradient")
+	Motion.mount(autoBtn, 0, 8)
+	autoBtn.Parent = gui
+
+	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
+
 	local character: Model? = nil
 	local backpack: Backpack? = nil
 	local rigSignals: { RBXScriptConnection } = {}
@@ -49,8 +80,58 @@ function RodHotbar.mount(
 			then math.clamp(math.round(viewport.X * 0.16), 58, 82)
 			else math.clamp(math.round(viewport.Y * 0.175), 58, 160)
 		slot.Size = UDim2.fromOffset(size, size)
+		local btnHeight = math.clamp(math.round(size * 0.68), 44, 58)
+		local btnWidth = math.clamp(math.round(btnHeight * 1.45), 62, 86)
+		autoBtn.Size = UDim2.fromOffset(btnWidth, btnHeight)
+		autoBtn.Position =
+			UDim2.new(0.5, math.floor(size / 2) + 8, 1, -10 - math.floor((size - btnHeight) / 2))
 	end
 	local setFishingVisible = bindFishingVisibility(slot, false)
+	local setAutoVisible = bindFishingVisibility(autoBtn, false)
+	local function paintAuto(
+		fill: Color3,
+		strokeColor: Color3,
+		thickness: number,
+		textColor: Color3
+	)
+		autoBtn.BackgroundColor3 = fill
+		autoBtn.TextColor3 = textColor
+		if autoGradient then
+			autoGradient.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, fill:Lerp(Color3.new(1, 1, 1), 0.28)),
+				ColorSequenceKeypoint.new(0.2, fill),
+				ColorSequenceKeypoint.new(1, fill:Lerp(Color3.new(0, 0, 0), 0.14)),
+			})
+		end
+		if autoStroke then
+			autoStroke.Color = strokeColor
+			autoStroke.Thickness = thickness
+		end
+	end
+	local function refreshAutoVisual()
+		local owned = player:GetAttribute(Products.AUTO_FISH_OWNED_ATTRIBUTE) == true
+		local active = player:GetAttribute(Products.AUTO_FISH_ACTIVE_ATTRIBUTE) == true
+		if not owned then
+			autoBtn.Text = Text.autoFish.lockedButton
+			paintAuto(
+				Color3.fromRGB(165, 174, 190),
+				Color3.fromRGB(78, 84, 98),
+				2.5,
+				Color3.fromRGB(244, 247, 252)
+			)
+		elseif active then
+			autoBtn.Text = Text.autoFish.button
+			paintAuto(
+				Color3.fromRGB(72, 224, 134),
+				Color3.fromRGB(190, 255, 214),
+				3.5,
+				Color3.new(1, 1, 1)
+			)
+		else
+			autoBtn.Text = Text.autoFish.button
+			paintAuto(Theme.crystal, Theme.outline, 3, Theme.ink)
+		end
+	end
 	local nativeEnabled: boolean? = nil
 	local queued = false
 	local playerGui = player:WaitForChild("PlayerGui")
@@ -90,14 +171,15 @@ function RodHotbar.mount(
 			end
 		end
 		local current = tool
-		setFishingVisible(
-			current ~= nil
-				and nativeEnabled ~= nil
-				and gui.Enabled
-				and panel() == ""
-				and not minigame.Visible
-				and player:GetAttribute("CatchRevealActive") ~= true
-		)
+		local visible = current ~= nil
+			and nativeEnabled ~= nil
+			and gui.Enabled
+			and panel() == ""
+			and not minigame.Visible
+			and player:GetAttribute("CatchRevealActive") ~= true
+		setFishingVisible(visible)
+		setAutoVisible(visible)
+		refreshAutoVisual()
 		slot.ImageColor3 = if current and current.Parent == character
 			then Color3.new(1, 1, 1)
 			else Color3.fromRGB(218, 219, 242)
@@ -157,6 +239,29 @@ function RodHotbar.mount(
 	end
 
 	slot.Activated:Connect(toggle)
+	autoBtn.Activated:Connect(function()
+		if not autoBtn.Visible then
+			return
+		end
+		if player:GetAttribute(Products.AUTO_FISH_OWNED_ATTRIBUTE) ~= true then
+			if toast then
+				toast(Text.autoFish.passSoon, Color3.fromRGB(190, 204, 224))
+			end
+			return
+		end
+		local active = player:GetAttribute(Products.AUTO_FISH_ACTIVE_ATTRIBUTE) == true
+		if not active then
+			local current = tool
+			local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+			if current and current.Parent == backpack and humanoid and humanoid.Health > 0 then
+				humanoid:EquipTool(current)
+			end
+		end
+		local remote = remotes:FindFirstChild(Net.SET_AUTO_FISH)
+		if remote and remote:IsA("RemoteEvent") then
+			remote:FireServer(not active)
+		end
+	end)
 	ContextActionService:BindAction(action, function(_, state)
 		if not slot.Visible or UserInputService:GetFocusedTextBox() then
 			return Enum.ContextActionResult.Pass
@@ -175,6 +280,12 @@ function RodHotbar.mount(
 		player.ChildAdded:Connect(syncBackpack),
 		player.ChildRemoved:Connect(syncBackpack),
 		player:GetAttributeChangedSignal("CatchRevealActive"):Connect(schedule),
+		player
+			:GetAttributeChangedSignal(Products.AUTO_FISH_OWNED_ATTRIBUTE)
+			:Connect(refreshAutoVisual),
+		player
+			:GetAttributeChangedSignal(Products.AUTO_FISH_ACTIVE_ATTRIBUTE)
+			:Connect(refreshAutoVisual),
 		minigame:GetPropertyChangedSignal("Visible"):Connect(schedule),
 		gui:GetPropertyChangedSignal("Enabled"):Connect(schedule),
 		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout),

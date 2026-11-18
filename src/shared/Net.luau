@@ -19,6 +19,7 @@ export type FishingUpdate = {
 	isGiant: boolean?, -- weight in the top 15% of the species range
 	combo: number?, -- consecutive catches including this one
 	comboBonus: number?, -- coin multiplier bonus from the combo (0.09 = +9%)
+	auto: boolean?, -- true when resolved by the server Auto-Fish loop
 }
 
 export type LeaderboardEntry = {
@@ -81,6 +82,7 @@ local Net = {
 	REPORT_PERFECT = "ReportPerfect",
 	CATCH_ANNOUNCE = "CatchAnnounce",
 	DO_PRESTIGE = "DoPrestige",
+	SET_AUTO_FISH = "SetAutoFish",
 	INSPECT_PLAYER = "InspectPlayer",
 	INSPECT_RESULT = "InspectResult",
 }

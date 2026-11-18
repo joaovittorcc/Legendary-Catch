@@ -66,7 +66,8 @@ end
 local function publishFishingState()
 	local character = player.Character
 	local state = character and character:GetAttribute("FishingState")
-	local serverFishing = typeof(state) == "string" and state ~= ""
+	local autoFishing = player:GetAttribute(Products.AUTO_FISH_ACTIVE_ATTRIBUTE) == true
+	local serverFishing = typeof(state) == "string" and state ~= "" and not autoFishing
 	local reveal = player:GetAttribute("CatchRevealActive") == true
 	if reveal then
 		revealWasActive = true
@@ -245,11 +246,17 @@ function Hud.start()
 		publishFishingState()
 	end)
 	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(publishFishingState)
+	player
+		:GetAttributeChangedSignal(Products.AUTO_FISH_ACTIVE_ATTRIBUTE)
+		:Connect(publishFishingState)
 	watchCharacter(player.Character)
 	task.spawn(function()
 		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 		local update = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
 		update.OnClientEvent:Connect(function(payload: Net.FishingUpdate)
+			if payload.auto then
+				return
+			end
 			if payload.event == "cast" or payload.event == "bite" or payload.event == "caught" then
 				localFishingEvent = true
 				if payload.event == "caught" then
@@ -968,7 +975,14 @@ function Hud.start()
 	gui.Parent = playerGui
 	layout()
 	notifications.Parent = playerGui
-	task.spawn(RodHotbar.mount, gui, Hud.panelChanged, Hud.panel, Hud.bindFishingVisibility)
+	task.spawn(
+		RodHotbar.mount,
+		gui,
+		Hud.panelChanged,
+		Hud.panel,
+		Hud.bindFishingVisibility,
+		Hud.toast
+	)
 	task.spawn(function()
 		while gui.Parent do
 			task.wait(1)

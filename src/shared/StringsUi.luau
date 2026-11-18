@@ -123,6 +123,15 @@ local PT = {
 	welcomeGift = "Boas-vindas!",
 	openDailyGift = "Abrir presente",
 	dailyCoins = "+%d moedas",
+	streak = {
+		title = "Sequência Diária · Dia %d",
+		welcome = "Sequência Diária · Dia 1!",
+		dayShort = "D%d",
+		shieldSaved = "🛡️ Escudo semanal manteve sua sequência!",
+		nextBadge = "Amanhã",
+		chestBonus = "🎁 Baú Especial do 7º Dia: +%d moedas!",
+		collectOk = "Oba!",
+	},
 	photo = "Foto",
 	photoHint = "Arraste para girar a câmera.",
 	photoTools = {
@@ -277,6 +286,16 @@ local PT = {
 		bannerTitle = "MARÉ NOVA %d!",
 		toast = "🌊 Maré Nova %d! +%s ◆ de presente!",
 	},
+	autoFish = {
+		button = "Auto",
+		lockedButton = "🔒 Auto",
+		passSoon = "Passe Auto-pesca (em breve)",
+		caught = "Auto: %s · +%d moedas",
+		caughtCoins = "Auto: +%d moedas",
+		escaped = "Auto: escapou!",
+		movedStop = "Auto-pesca pausada: você se moveu",
+		trainingStop = "Auto-pesca pausada no treino",
+	},
 	unavailable = "Tente de novo em instantes.",
 }
 
@@ -402,6 +421,15 @@ local EN = {
 	welcomeGift = "Welcome gift!",
 	openDailyGift = "Open gift",
 	dailyCoins = "+%d coins",
+	streak = {
+		title = "Daily Streak · Day %d",
+		welcome = "Daily Streak · Day 1!",
+		dayShort = "D%d",
+		shieldSaved = "🛡️ Weekly streak shield kept your streak!",
+		nextBadge = "Next",
+		chestBonus = "🎁 Day 7 Special Chest: +%d coins!",
+		collectOk = "Awesome!",
+	},
 	photo = "Photo",
 	photoHint = "Drag to orbit the camera.",
 	photoTools = {
@@ -555,6 +583,16 @@ local EN = {
 		maxLevel = "🏆 Maximum Prestige reached!",
 		bannerTitle = "NEW TIDE %d!",
 		toast = "🌊 New Tide %d! +%s ◆ bonus gift!",
+	},
+	autoFish = {
+		button = "Auto",
+		lockedButton = "🔒 Auto",
+		passSoon = "Auto-Fish Pass (coming soon)",
+		caught = "Auto: %s · +%d coins",
+		caughtCoins = "Auto: +%d coins",
+		escaped = "Auto: slipped away!",
+		movedStop = "Auto-Fish paused: you moved",
+		trainingStop = "Auto-Fish paused during training",
 	},
 	unavailable = "Try again in a moment.",
 }

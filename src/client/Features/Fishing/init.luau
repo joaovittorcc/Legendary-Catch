@@ -11,7 +11,9 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
+local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Strings = require(Shared:WaitForChild("Strings"))
+local StringsUi = require(Shared:WaitForChild("StringsUi"))
 
 local FishingCamera = require(script:WaitForChild("Camera"))
 local Line = require(script:WaitForChild("Line"))
@@ -124,6 +126,9 @@ local function playCastSwing(tool: Tool)
 end
 
 local function onActivated()
+	if player:GetAttribute(Products.AUTO_FISH_ACTIVE_ATTRIBUTE) == true then
+		return
+	end
 	local tool = equippedRod()
 	local root = rootPart()
 	if state ~= "idle" or not tool or not root then
@@ -241,6 +246,24 @@ local function onEscaped()
 end
 
 local function onUpdate(update: Net.FishingUpdate)
+	if update.auto then
+		if update.event == "caught" then
+			Ui.toast(
+				string.format(StringsUi.autoFish.caughtCoins, update.value or 0),
+				Color3.fromRGB(130, 245, 170)
+			)
+		elseif update.event == "escaped" then
+			Ui.toast(StringsUi.autoFish.escaped, Color3.fromRGB(255, 195, 120))
+		elseif update.event == "rejected" then
+			local message = if update.reason == "training"
+				then StringsUi.autoFish.trainingStop
+				elseif update.reason == "moved" then StringsUi.autoFish.movedStop
+				elseif update.reason == "notInZone" then Strings.notInZone
+				else Strings.loading
+			Ui.toast(message, Color3.fromRGB(255, 220, 120))
+		end
+		return
+	end
 	if update.event == "rejected" then
 		state = "idle"
 		local message = if update.reason == "loading" then Strings.loading else Strings.notInZone
