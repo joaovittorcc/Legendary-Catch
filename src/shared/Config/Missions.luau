@@ -46,15 +46,23 @@ function Missions.today(): number
 	return math.floor(os.time() / 86400)
 end
 
--- Daily gift: coins on the first join of each UTC day. Grows with the number of days the
--- player has visited (cumulative, never resets, so missing a day costs nothing), capped.
-Missions.DAILY_GIFT_BASE = 100
-Missions.DAILY_GIFT_STEP = 50
-Missions.DAILY_GIFT_MAX_STEPS = 6 -- day 7 and later: 100 + 6 * 50 = 400
+-- Daily login streak: 7-day escalating coin rewards + special Day 7 treasure chest.
+-- Days 8+ continue incrementing `streak` while cycling slots 1..7 on the reward ladder.
+Missions.STREAK_DAYS = 7
+Missions.STREAK_SHIELD_COOLDOWN_DAYS = 7 -- 1 grace day (gap == 2) allowed once per 7 days
+Missions.STREAK_REWARDS = { 100, 150, 225, 350, 500, 750, 1000 }
+Missions.DAY7_CHEST_MIN = 500
+Missions.DAY7_CHEST_MAX = 1000
 
-function Missions.dailyGift(daysVisited: number): number
-	local steps = math.clamp(daysVisited - 1, 0, Missions.DAILY_GIFT_MAX_STEPS)
-	return Missions.DAILY_GIFT_BASE + steps * Missions.DAILY_GIFT_STEP
+-- Kept for compatibility with callers passing day count; maps 1..N onto the 7-day ladder.
+function Missions.streakDaySlot(streak: number): number
+	local s = math.max(1, math.floor(streak))
+	return ((s - 1) % Missions.STREAK_DAYS) + 1
+end
+
+function Missions.dailyGift(streak: number): number
+	local slot = Missions.streakDaySlot(streak)
+	return Missions.STREAK_REWARDS[slot] or Missions.STREAK_REWARDS[1]
 end
 
 return Missions

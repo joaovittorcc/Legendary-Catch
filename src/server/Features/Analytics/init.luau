@@ -18,6 +18,13 @@ local STEPS: { [string]: { index: number, name: string } } = {
 	firstRare = { index = 4, name = "First rare or better" },
 	firstRodBought = { index = 5, name = "First rod bought" },
 	firstTraining = { index = 6, name = "First training" },
+	firstLegendary = { index = 7, name = "First legendary catch" },
+	firstMystic = { index = 8, name = "First mystic catch" },
+	firstPrestige = { index = 9, name = "First prestige" },
+	firstAchievement = { index = 10, name = "First achievement unlocked" },
+	firstCodeRedeemed = { index = 11, name = "First promo code redeemed" },
+	firstChest = { index = 12, name = "First treasure chest opened" },
+	day2Return = { index = 13, name = "Returned on day 2+" },
 }
 Analytics.STEPS = STEPS
 

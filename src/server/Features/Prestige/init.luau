@@ -73,6 +73,7 @@ local function onPrestige(player: Player)
 	Rod.refresh(player)
 	mirror(player)
 	Analytics.coins(player, true, gift, "Prestige", "prestige_" .. tostring(nextLevel))
+	Analytics.step(player, "firstPrestige")
 
 	local reward: Net.AdventureReward = {
 		kind = "prestige",

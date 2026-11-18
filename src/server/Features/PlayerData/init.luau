@@ -107,7 +107,16 @@ local function template(): Profile
 		purchases = {},
 		purchaseOrder = {},
 		boosts = { luckUntil = 0 },
-		daily = { lastDay = 0, days = 0, lastGift = 0, grantedAt = 0 },
+		daily = {
+			lastDay = 0,
+			days = 0,
+			streak = 0,
+			shieldUsedAt = 0,
+			shieldProtected = false,
+			lastChest = 0,
+			lastGift = 0,
+			grantedAt = 0,
+		},
 	}
 end
 
@@ -189,6 +198,7 @@ local function mirrorAttributes(player: Player, profile: Profile)
 	player:SetAttribute("Coins", profile.coins)
 	player:SetAttribute("EquippedRod", profile.equippedRod)
 	player:SetAttribute("Prestige", profile.prestige)
+	player:SetAttribute("LoginStreak", (profile.daily and profile.daily.streak) or 0)
 	for stat, t in profile.training do
 		player:SetAttribute(TrainingConfig.levelAttribute(stat), t.level)
 		player:SetAttribute(TrainingConfig.xpAttribute(stat), t.xp)

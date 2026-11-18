@@ -51,12 +51,16 @@ export type Settings = {
 	reduceEffects: boolean,
 }
 
--- Daily gift (Config/Missions.dailyGift). `grantedAt` is the os.time() of the last grant:
+-- Daily gift (Config/Missions). `grantedAt` is the os.time() of the last grant:
 -- the client shows the welcome card only if it is recent (granted on this join).
 export type Daily = {
 	lastDay: number, -- Missions.today() of the last grant
 	days: number, -- days visited (cumulative)
-	lastGift: number, -- coins granted on lastDay
+	streak: number, -- consecutive login days (protected once per week by streak shield)
+	shieldUsedAt: number, -- Missions.today() when the 1-day grace shield was last consumed (0 = never)
+	shieldProtected: boolean, -- true when the latest grant kept the streak alive via shield
+	lastChest: number, -- bonus coins from the Day 7 special chest (0 on days 1..6)
+	lastGift: number, -- coins granted on lastDay (base streak tier reward)
 	grantedAt: number,
 }
 

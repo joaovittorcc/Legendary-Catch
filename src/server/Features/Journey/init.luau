@@ -13,6 +13,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 
 local Achievements = require(script.Parent:WaitForChild("Achievements"))
+local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
@@ -83,6 +84,8 @@ function Journey.onCatch(
 		PlayerData.update(player, function(p)
 			p.coins += coins
 		end)
+		Analytics.coins(player, true, coins, "CatchChest", "every_10")
+		Analytics.step(player, "firstChest")
 		reward:FireClient(
 			player,
 			{ kind = "chest", coins = coins, level = level } :: Net.AdventureReward

@@ -8,6 +8,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
@@ -108,20 +109,95 @@ end
 
 -- Daily gift -----------------------------------------------------------------------------
 
--- First join of the UTC day: coins, growing with the days visited (Config/Missions).
+-- First join of the UTC day: 7-day escalating login streak with a 1-day grace shield once per
+-- week and a bonus treasure chest on Day 7 of every 7-day cycle.
 local function grantDailyGift(player: Player)
 	local profile = PlayerData.get(player)
 	local today = Missions.today()
 	if not profile or profile.daily.lastDay == today then
 		return
 	end
+	local prevLast = profile.daily.lastDay or 0
+	local prevStreak = profile.daily.streak or 0
+	local prevShield = profile.daily.shieldUsedAt or 0
+	if prevStreak == 0 and prevLast > 0 then
+		prevStreak = 1
+	end
+
+	local streak = 1
+	local shieldUsedAt = prevShield
+	local shieldProtected = false
+	if prevLast > 0 then
+		local gap = today - prevLast
+		if gap == 1 then
+			streak = prevStreak + 1
+		elseif
+			gap == 2
+			and (prevShield == 0 or (today - prevShield) >= Missions.STREAK_SHIELD_COOLDOWN_DAYS)
+		then
+			streak = prevStreak + 1
+			shieldUsedAt = today
+			shieldProtected = true
+		end
+	end
+
 	local days = profile.daily.days + 1
-	local gift = Missions.dailyGift(days)
+	local daySlot = Missions.streakDaySlot(streak)
+	local gift = Missions.dailyGift(streak)
+	local chestBonus = if daySlot == Missions.STREAK_DAYS
+		then rng:NextInteger(Missions.DAY7_CHEST_MIN, Missions.DAY7_CHEST_MAX)
+		else 0
+
 	PlayerData.update(player, function(p)
-		p.daily = { lastDay = today, days = days, lastGift = gift, grantedAt = os.time() }
-		p.coins += gift
+		p.daily = {
+			lastDay = today,
+			days = days,
+			streak = streak,
+			shieldUsedAt = shieldUsedAt,
+			shieldProtected = shieldProtected,
+			lastChest = chestBonus,
+			lastGift = gift,
+			grantedAt = os.time(),
+		}
+		p.coins += gift + chestBonus
 	end)
-	Analytics.coins(player, true, gift, "DailyGift", tostring(days))
+	Analytics.coins(player, true, gift, "DailyGift", "day_" .. tostring(daySlot))
+	if chestBonus > 0 then
+		Analytics.coins(player, true, chestBonus, "DailyChest", "day_7")
+		Analytics.step(player, "firstChest")
+	end
+	if prevLast > 0 and today > prevLast then
+		Analytics.step(player, "day2Return")
+	end
+end
+
+-- Studio only: set Player attribute `DevDailySimulate` = "daysAgo:streak:shieldDaysAgo"
+-- (e.g. "1:6:99" to simulate joining on Day 7) to test streak transitions in Play without
+-- changing the system clock.
+local function watchDevDaily(player: Player)
+	if not RunService:IsStudio() then
+		return
+	end
+	player:GetAttributeChangedSignal("DevDailySimulate"):Connect(function()
+		local spec = player:GetAttribute("DevDailySimulate")
+		if typeof(spec) ~= "string" or spec == "" then
+			return
+		end
+		player:SetAttribute("DevDailySimulate", "")
+		local parts = string.split(spec, ":")
+		local daysAgo = tonumber(parts[1]) or 1
+		local simStreak = tonumber(parts[2]) or 1
+		local shieldAgo = tonumber(parts[3]) or 99
+		local today = Missions.today()
+		PlayerData.update(player, function(p)
+			p.daily.lastDay = today - math.floor(daysAgo)
+			p.daily.streak = math.max(0, math.floor(simStreak))
+			p.daily.shieldUsedAt = if shieldAgo >= 90 then 0 else today - math.floor(shieldAgo)
+			p.daily.shieldProtected = false
+			p.daily.lastChest = 0
+		end)
+		grantDailyGift(player)
+	end)
 end
 
 -- Milestones -----------------------------------------------------------------------------
@@ -313,11 +389,13 @@ function Progress.start()
 	PlayerData.Loaded:Connect(function(player: Player)
 		refreshMissions(player)
 		grantDailyGift(player)
+		watchDevDaily(player)
 	end)
 	for _, player in Players:GetPlayers() do
 		if PlayerData.get(player) then
 			refreshMissions(player)
 			grantDailyGift(player)
+			watchDevDaily(player)
 		end
 	end
 	Players.PlayerRemoving:Connect(function(player)

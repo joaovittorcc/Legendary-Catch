@@ -14,6 +14,7 @@ local CodeConfig = require(Config:WaitForChild("Codes"))
 local Creatures = require(Config:WaitForChild("Creatures"))
 local Net = require(Shared:WaitForChild("Net"))
 
+local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
@@ -70,6 +71,7 @@ function Achievements.check(player: Player)
 			end
 		end
 	end)
+	Analytics.step(player, "firstAchievement")
 	for _, u in unlocked do
 		reward:FireClient(
 			player,
@@ -105,6 +107,8 @@ local function onRedeem(player: Player, text: unknown)
 		p.redeemed[code.code] = true
 		p.coins += code.coins
 	end)
+	Analytics.coins(player, true, code.coins, "Code", code.code)
+	Analytics.step(player, "firstCodeRedeemed")
 	reward:FireClient(player, { kind = "code", coins = code.coins } :: Net.AdventureReward)
 end
 
