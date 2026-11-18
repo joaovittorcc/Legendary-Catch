@@ -504,3 +504,35 @@ Especificação visual e prompts prontos para `generate_mesh` das 6 criaturas de
 - **Lore:** *"Esquenta a água do mar só de passar."*
 - **Partes:** `Body, Head, Legs, Fins, Tail, Extra` + olhos âmbar, ponta flamejante e fissura magma `Neon` (`Extra`).
 - **Box final:** `1.68 × 2.00 × 2.21` studs · `7.184` faces · `Head.Z - Tail.Z = +0.92`.
+
+## Exclusivas de Evento do Oceano (C95–C100)
+
+### 54. C95 — Peixe-Vagalume Real (`C95_Peixe_Vagalume_Real`)
+- **Raridade:** Raro (`tier = 3`, evento Cardume Brilhante)
+- **Partes:** `Body, Head, FinL, FinR, Fins, Tail, Extra` + olhos dourados, antenas-lanterna e orbe caudal `Neon` (`Extra`).
+- **Box final:** `1.61 × 1.92 × 2.45` studs · `6.174` faces · `Head.Z - Tail.Z = +1.67`.
+
+### 55. C96 — Lua Dourada (`C96_Lua_Dourada`)
+- **Raridade:** Épico (`tier = 4`, evento Lua Cheia)
+- **Partes:** `Body, Head, FinL, FinR, Fins, Tail, Extra` + olhos dourados, badalo do sino e gema do halo `Neon` (`Extra`).
+- **Box final:** `2.20 × 2.27 × 2.47` studs · `7.392` faces · `Head.Z - Tail.Z = +1.74`.
+
+### 56. C97 — Raia Tempestade (`C97_Raia_Tempestade`)
+- **Raridade:** Épico (`tier = 4`, evento Tempestade)
+- **Partes:** `Body, Head, Wings, Tail, Extra` + olhos elétricos e pontas de raio `Neon` (`Extra`).
+- **Box final:** `2.85 × 2.44 × 2.23` studs · `7.424` faces · `Head.Z - Tail.Z = +0.85`.
+
+### 57. C98 — Coral Ancestral Vivo (`C98_Coral_Ancestral_Vivo`)
+- **Raridade:** Épico (`tier = 4`, evento Recife)
+- **Partes:** `Body, Head, Claws, Fins, Tail, Extra` + olhos ciano e peixinhos luminosos ao redor `Neon` (`Extra`).
+- **Box final:** `2.32 × 3.01 × 2.10` studs · `7.482` faces · `Head.Z - Tail.Z = +0.77`.
+
+### 58. C99 — Baleia Fantasma (`C99_Baleia_Fantasma`)
+- **Raridade:** Lendário (`tier = 5`, evento Nevoeiro)
+- **Partes:** `Body, Head, FinL, FinR, Tail, Extra` (`Transparency=0.16` translúcida) + olhos e lanternas espectrais `Neon` (`Extra`).
+- **Box final:** `2.40 × 2.24 × 3.39` studs · `11.326` faces · `Head.Z - Tail.Z = +2.34`.
+
+### 59. C100 — Aurora Boreal Viva (`C100_Aurora_Boreal_Viva`)
+- **Raridade:** Lendário (`tier = 5`, evento Aurora)
+- **Partes:** `Body, Head, Fins, Wings, Tail, Extra` + olhos esmeralda e cristais aurora `Neon` (`Extra`).
+- **Box final:** `3.20 × 3.11 × 2.34` studs · `11.680` faces · `Head.Z - Tail.Z = +1.38`.
