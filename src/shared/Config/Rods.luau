@@ -62,6 +62,34 @@ local LIST: { Rod } = {
 		color = Color3.fromRGB(80, 40, 140),
 		tipColor = Color3.fromRGB(255, 210, 90),
 	},
+	-- Late game (added 2026-11-18): priced for hours of play; luck now reaches the Mystic rank.
+	{
+		id = "celestial",
+		order = 6,
+		price = 200000,
+		controlBonus = 0.24,
+		luckBonus = 0.42,
+		color = Color3.fromRGB(150, 210, 255),
+		tipColor = Color3.fromRGB(255, 255, 255),
+	},
+	{
+		id = "abyss",
+		order = 7,
+		price = 600000,
+		controlBonus = 0.28,
+		luckBonus = 0.55,
+		color = Color3.fromRGB(20, 30, 70),
+		tipColor = Color3.fromRGB(90, 255, 220),
+	},
+	{
+		id = "mystic",
+		order = 8,
+		price = 2000000,
+		controlBonus = 0.32,
+		luckBonus = 0.75,
+		color = Color3.fromRGB(120, 20, 70),
+		tipColor = Color3.fromRGB(255, 64, 110),
+	},
 }
 
 local byId: { [string]: Rod } = {}

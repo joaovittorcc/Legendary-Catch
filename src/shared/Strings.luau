@@ -234,6 +234,9 @@ local PT = {
 		crystal = "Vara de Cristal",
 		storm = "Vara da Tempestade",
 		astral = "Vara Astral",
+		celestial = "Vara Celestial",
+		abyss = "Vara do Abismo",
+		mystic = "Vara Mística",
 	} :: { [string]: string },
 	eventName = {
 		starTide = "Maré Estelar",
@@ -531,6 +534,9 @@ local EN: Strings = {
 		crystal = "Crystal Rod",
 		storm = "Storm Rod",
 		astral = "Astral Rod",
+		celestial = "Celestial Rod",
+		abyss = "Abyss Rod",
+		mystic = "Mystic Rod",
 	},
 	eventName = {
 		starTide = "Star Tide",
