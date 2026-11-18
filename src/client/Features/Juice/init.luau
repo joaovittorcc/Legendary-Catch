@@ -8,7 +8,8 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
-local Text = require(Shared:WaitForChild("StringsUi")).adventure
+local Labels = require(Shared:WaitForChild("StringsUi"))
+local Text = Labels.adventure
 
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Ui = require(script.Parent.Fishing:WaitForChild("Ui"))
@@ -102,6 +103,11 @@ local function showReward(reward: Reward)
 		end
 		Hud.toast(title, Theme.gold)
 		Audio.play("level")
+	elseif reward.kind == "achievement" and reward.id then
+		local copy = Labels.achievements[reward.id]
+		if copy then
+			Hud.toast(string.format(Labels.achievementUi.notice, copy.name, coins), Theme.ink)
+		end
 	elseif reward.kind == "chest" and coins > 0 then
 		local card = Ui.frame(
 			gui,
@@ -237,6 +243,15 @@ function Juice.start()
 			return
 		end
 		remote.OnClientEvent:Connect(function(reward: Reward)
+			local kind = reward.kind
+			if
+				kind ~= "level"
+				and kind ~= "chest"
+				and kind ~= "tutorial"
+				and kind ~= "achievement"
+			then
+				return
+			end
 			local last = queue[#queue]
 			if last and last.kind == "level" and reward.kind == "level" then
 				queue[#queue] = {

@@ -406,10 +406,11 @@ function Hud.start()
 		{ id = "Collection", title = Text.collection, tint = Theme.crystal },
 		{ id = "Shop", title = Text.shop, tint = Theme.gold },
 		{ id = "Missions", title = Text.missions.nav, tint = Theme.rose },
+		{ id = "Achievements", title = Text.achievementUi.title, tint = Theme.gold },
 		{ id = "Settings", title = Text.settings, tint = Color3.fromRGB(188, 151, 255) },
 	}
 	local navBadges: { [string]: TextLabel } = {}
-	local function makeNavBadge(button: ImageButton, name: string, tint: Color3): TextLabel
+	local function makeNavBadge(button: GuiButton, name: string, tint: Color3): TextLabel
 		local badge = Instance.new("TextLabel")
 		badge.Name = name
 		badge.AnchorPoint = Vector2.new(1, 0)
@@ -636,12 +637,25 @@ function Hud.start()
 	end)
 
 	for i, entry in entries do
-		local button = Art.button(Assets.navigation[entry.id])
+		local asset = Assets.navigation[entry.id]
+		local button: GuiButton
+		if asset then
+			button = Art.button(asset)
+		else
+			local native = Instance.new("TextButton")
+			native.Text = ""
+			native.AutoButtonColor = false
+			Theme.surface(native, entry.tint, 14)
+			local icon = Art.caption(native, "Icon", "🏅", 42)
+			icon.Size = UDim2.fromScale(0.72, 0.58)
+			icon.Position = UDim2.fromScale(0.14, 0.08)
+			button = native
+		end
 		button.Name = entry.id
 		button.AnchorPoint = Vector2.new(0.5, 0.5)
 		local label = Art.caption(button, "Label", entry.title, 24)
-		label.Position = UDim2.fromScale(0.1, 0.731)
-		label.Size = UDim2.fromScale(0.8, 0.19)
+		label.Position = if asset then UDim2.fromScale(0.1, 0.731) else UDim2.fromScale(0.04, 0.68)
+		label.Size = if asset then UDim2.fromScale(0.8, 0.19) else UDim2.fromScale(0.92, 0.24)
 		local badge = makeNavBadge(button, "NotificationBadge", entry.tint)
 		if entry.id == "Missions" then
 			navBadges.Missions = badge
@@ -653,9 +667,11 @@ function Hud.start()
 			local selected = name == entry.id
 				or (entry.id == "Collection" and name == "Milestones")
 				or (entry.id == "Shop" and name == "Robux")
-			button.ImageColor3 = if selected
-				then Color3.fromRGB(235, 217, 255)
-				else Color3.new(1, 1, 1)
+			if button:IsA("ImageButton") then
+				button.ImageColor3 = if selected
+					then Color3.fromRGB(235, 217, 255)
+					else Color3.new(1, 1, 1)
+			end
 			if name == "Collection" or name == "Milestones" then
 				newCatch = false
 				if navBadges.Collection then
@@ -740,22 +756,27 @@ function Hud.start()
 		local menuSize = math.clamp(height * 0.82, 46, 60)
 		moreButton.Size = UDim2.fromOffset(menuSize, menuSize)
 		moreButton.Position = UDim2.fromScale(1, 0.5)
-		-- Square-ish cells that keep the art ratio (1024x819); a 2x2 grid hanging from the menu
-		-- button on the right, so it never covers the middle of the screen.
-		local columns = 2
+		-- Use fewer rows on short screens while keeping the original art proportions.
+		local columns = if portrait then 2 else 3
 		local rows = math.ceil(#entries / columns)
 		local gap = 8
-		local cellWidth = math.clamp(math.round(size.Y * (if portrait then 0.11 else 0.2)), 92, 150)
-		local cellHeight = math.round(cellWidth / NAV_RATIO)
-		-- The cream fill sits 8 px inside the frame; buttons sit 8 px inside the cream.
 		local inset = 16
+		local preferredWidth =
+			math.clamp(math.round(size.Y * (if portrait then 0.15 else 0.24)), 92, 150)
+		local fitWidth = (width - inset * 2 - (columns - 1) * gap) / columns
+		local fitHeight = (size.Y - height - 24 - inset * 2 - (rows - 1) * gap) / rows
+		local cellWidth = math.max(
+			math.ceil(44 * NAV_RATIO),
+			math.floor(math.min(preferredWidth, fitWidth, fitHeight * NAV_RATIO))
+		)
+		local cellHeight = math.round(cellWidth / NAV_RATIO)
 		local popupWidth = columns * cellWidth + (columns - 1) * gap + inset * 2
 		local popupHeight = rows * cellHeight + (rows - 1) * gap + inset * 2
 		menu.Size = UDim2.fromOffset(popupWidth, popupHeight)
 		menu.AnchorPoint = Vector2.new(1, 0)
 		menu.Position = UDim2.new(0.983, 0, 0, height + 12)
 		for index, entry in entries do
-			local button = menu:FindFirstChild(entry.id) :: ImageButton
+			local button = menu:FindFirstChild(entry.id) :: GuiButton
 			local row = math.floor((index - 1) / columns)
 			local column = (index - 1) % columns
 			button.AnchorPoint = Vector2.zero

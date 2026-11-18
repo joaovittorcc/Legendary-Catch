@@ -18,6 +18,7 @@ local ICONS = {
 	Robux = "💎",
 	Missions = "📜",
 	Milestones = "🏆",
+	Achievements = "🏅",
 	Settings = "⚙️",
 }
 
