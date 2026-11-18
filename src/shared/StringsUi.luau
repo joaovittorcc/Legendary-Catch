@@ -85,6 +85,7 @@ local PT = {
 	},
 	adventure = {
 		album = "Complete a Coleção! · %d / %d espécies",
+		shinyChance = "✦ Chance de Cintilante por captura · %.1f%%",
 		combo = "Combo ×%d",
 		level = "Nível %d",
 		levelUp = "NÍVEL %d!",
@@ -263,6 +264,7 @@ local EN = {
 	},
 	adventure = {
 		album = "Complete the Collection! · %d / %d species",
+		shinyChance = "✦ Shiny chance per catch · %.1f%%",
 		combo = "Combo ×%d",
 		level = "Level %d",
 		levelUp = "LEVEL %d!",

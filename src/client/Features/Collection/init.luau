@@ -308,7 +308,16 @@ function Collection.start()
 		end
 		local album =
 			Panel.label(body, string.format(Text.adventure.album, totalFound, #Creatures.LIST), 17)
-		album.LayoutOrder = -2
+		album.LayoutOrder = -3
+		local shinyChance = Panel.label(
+			body,
+			string.format(Text.adventure.shinyChance, Fishing.SHINY_CHANCE * 100),
+			14,
+			Theme.ink
+		)
+		shinyChance.Name = "ShinyChance"
+		shinyChance.TextStrokeTransparency = 1
+		shinyChance.LayoutOrder = -2
 		local rewards = Panel.button(body, Text.milestones.title, Theme.gold)
 		rewards.LayoutOrder = -1
 		rewards.Activated:Connect(function()
