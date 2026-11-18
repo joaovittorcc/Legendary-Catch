@@ -1,34 +1,18 @@
 --!strict
--- Fishing HUD: the minigame panel (hint + play area + instruction) and short toasts.
--- Everything is Scale-based so it fits phones in landscape and PC.
+-- Shared safe-area canvas and feedback for fishing and training.
 
 local Players = game:GetService("Players")
-local UserInputService = game:GetService("UserInputService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
-local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
-local Effects = require(script.Parent:WaitForChild("Effects"))
-local Art = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Art"))
 local Ui = {}
-local rarityByHint: { [string]: string } = {}
-for rarity, text in Strings.hint do
-	rarityByHint[text] = rarity
-end
-
 local gui: ScreenGui
-local panel: Frame
-local hint: TextLabel
-local rarityBadge: ImageLabel
-local rarityName: TextLabel
-local instruction: TextLabel
 local area: Frame
 local toastLabel: TextLabel
 local activeToast: Tween? = nil
-local panelTween: Tween? = nil
 
 function Ui.corner(target: GuiObject, scale: number?)
 	local c = Instance.new("UICorner")
@@ -100,62 +84,9 @@ function Ui.init()
 	gui.DisplayOrder = 5
 	gui.Parent = playerGui
 
-	panel = Ui.frame(
-		gui,
-		"Panel",
-		UDim2.fromScale(0.86, 0.42),
-		UDim2.fromScale(0.5, 0.75),
-		Color3.fromRGB(14, 18, 40),
-		0.25
-	)
-	panel.AnchorPoint = Vector2.new(0.5, 1)
-	panel.Visible = false
-	Art.panel(panel, Theme.crystal)
-	local band = Ui.frame(
-		panel,
-		"CrystalTrim",
-		UDim2.fromScale(0.82, 0.025),
-		UDim2.fromScale(0.09, 0.205),
-		Theme.crystal
-	)
-	Theme.corner(band, 3)
-	local ratio = Instance.new("UIAspectRatioConstraint")
-	ratio.AspectRatio = 2.9
-	ratio.Parent = panel
-	local size = Instance.new("UISizeConstraint")
-	size.MaxSize = Vector2.new(620, 260)
-	size.MinSize = Vector2.new(228, 96)
-	size.Parent = panel
-
-	rarityBadge, rarityName = Art.rarity(panel)
-	rarityBadge.AnchorPoint = Vector2.new(0.5, 0)
-	rarityBadge.Position = UDim2.fromScale(0.5, 0.025)
-	rarityBadge.Size = UDim2.fromScale(0.43, 0.19)
-	rarityBadge.Visible = false
-	hint = Ui.label(
-		panel,
-		"Hint",
-		UDim2.fromScale(0.9, 0.18),
-		UDim2.fromScale(0.05, 0.03),
-		"",
-		Color3.new(1, 1, 1)
-	)
-	area = Ui.frame(
-		panel,
-		"Area",
-		UDim2.fromScale(0.86, 0.53),
-		UDim2.fromScale(0.07, 0.26),
-		Color3.new(0, 0, 0),
-		1
-	)
-	instruction = Ui.label(
-		panel,
-		"Instruction",
-		UDim2.fromScale(0.86, 0.105),
-		UDim2.fromScale(0.07, 0.81),
-		"",
-		Theme.sand
-	)
+	-- HUD features observe FishingUI.Panel.Visible to hide competing controls.
+	area = Ui.frame(gui, "Panel", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), Theme.ink, 1)
+	area.Visible = false
 
 	toastLabel = Ui.label(
 		gui,
@@ -173,139 +104,121 @@ function Ui.screen(): ScreenGui
 	return gui
 end
 
--- Shows the panel and returns the empty play area for the minigame to fill.
-function Ui.showPanel(hintText: string, color: Color3, instructionText: string): Frame
-	if panelTween then
-		panelTween:Cancel()
-		panelTween = nil
-	end
-	local ratio = panel:FindFirstChildOfClass("UIAspectRatioConstraint")
-	local bounds = panel:FindFirstChildOfClass("UISizeConstraint")
-	if ratio then
-		ratio.AspectRatio = 2.9
-	end
-	if bounds then
-		bounds.MinSize = Vector2.new(228, 96)
-		bounds.MaxSize = Vector2.new(620, 260)
-	end
-	panel.Size = UDim2.fromScale(0.86, 0.42)
-	area.Size = UDim2.fromScale(0.86, 0.53)
-	area.Position = UDim2.fromScale(0.07, 0.26)
-	instruction.Size = UDim2.fromScale(0.86, 0.105)
-	instruction.Position = UDim2.fromScale(0.07, 0.81)
+-- Controller entry point. Minigames place their controls directly on this transparent canvas.
+function Ui.showPanel(_hintText: string, _color: Color3, _instructionText: string): Frame
+	Ui.hidePanel()
 	if activeToast then
 		activeToast:Cancel()
 		activeToast = nil
 	end
 	toastLabel.TextTransparency = 1
 	toastLabel.TextStrokeTransparency = 1
-	for _, child in area:GetChildren() do
-		child:Destroy()
-	end
-	local rarity = rarityByHint[hintText]
-	hint.Text = hintText
-	hint.TextColor3 = color
-	hint.Visible = rarity == nil
-	rarityBadge.Visible = rarity ~= nil
-	if rarity then
-		Art.setRarity(rarityBadge, rarityName, rarity)
-	end
-	instruction.Text = instructionText
-	panel.Visible = true
-	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then
-		panel.Position = UDim2.fromScale(0.5, 0.75)
-	else
-		panel.Position = UDim2.fromScale(0.5, 1.2)
-		local tween = TweenService:Create(
-			panel,
-			TweenInfo.new(0.25, Enum.EasingStyle.Back),
-			{ Position = UDim2.fromScale(0.5, 0.75) }
-		)
-		panelTween = tween
-		tween:Play()
-	end
+	area.Visible = true
 	return area
 end
 
 function Ui.hidePanel()
-	if panelTween then
-		panelTween:Cancel()
-		panelTween = nil
-	end
-	panel.Visible = false
-	for _, child in area:GetChildren() do
-		child:Destroy()
-	end
+	area.Visible = false
+	area:ClearAllChildren()
 end
 
-function Ui.reelLayout()
-	if panelTween then
-		panelTween:Cancel()
-		panelTween = nil
-	end
-	local ratio = panel:FindFirstChildOfClass("UIAspectRatioConstraint")
-	local bounds = panel:FindFirstChildOfClass("UISizeConstraint")
-	if ratio then
-		ratio.AspectRatio = 1.5
-	end
-	if bounds then
-		bounds.MinSize = Vector2.new(250, 167)
-		bounds.MaxSize = Vector2.new(420, 280)
-	end
-	panel.Size = UDim2.fromScale(0.54, 0.68)
-	panel.Position = UDim2.fromScale(0.5, 0.94)
-	area.Size = UDim2.fromScale(0.86, 0.61)
-	area.Position = UDim2.fromScale(0.07, 0.25)
-	instruction.Size = UDim2.fromScale(0.9, 0.065)
-	instruction.Position = UDim2.fromScale(0.05, 0.885)
-	local controls = Text.minigames
-	instruction.Text = if UserInputService.TouchEnabled
-		then controls.reelControls
-		else controls.reelKeyboard
+function Ui.reduced(): boolean
+	return Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 end
 
-function Ui.feedback(target: Frame, success: boolean, perfect: boolean?)
-	Audio.play(if success then "hit" else "miss", 0.2, if perfect then 1.28 else 1)
-	local color = if success then Theme.crystal else Color3.fromRGB(255, 123, 123)
-	local message = if perfect then Text.perfect elseif success then Text.hit else Text.miss
+function Ui.bounce(target: GuiObject)
+	if Ui.reduced() then
+		return
+	end
+	local scale = Instance.new("UIScale")
+	scale.Scale = 0.94
+	scale.Parent = target
+	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end
+
+function Ui.exitPulse(target: GuiObject, color: Color3)
+	if Ui.reduced() then
+		return
+	end
+	local pulse = Instance.new("UIStroke")
+	pulse.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+	pulse.Color = color:Lerp(Theme.sand, 0.5)
+	pulse.Thickness = 3
+	pulse.Transparency = 0.35
+	pulse.Parent = target
+	local fade = TweenService:Create(pulse, TweenInfo.new(0.18), { Transparency = 1 })
+	fade.Completed:Once(function()
+		pulse:Destroy()
+	end)
+	fade:Play()
+end
+
+function Ui.feedback(
+	target: Frame,
+	at: UDim2,
+	color: Color3,
+	success: boolean,
+	perfect: boolean?,
+	combo: number?
+)
+	local streak = combo or 0
+	local reduced = Ui.reduced()
+	Audio.play(
+		if success then "hit" else "miss",
+		0.2,
+		if success then 1 + math.min(streak, 6) * 0.04 + (if perfect then 0.16 else 0) else 1
+	)
+	local text = Text.minigames
+	local message = if perfect then text.perfect elseif success then text.good else text.miss
+	local accent = if success then color:Lerp(Theme.sand, 0.28) else Color3.fromRGB(255, 125, 148)
 	local badge = Ui.label(
 		target,
 		"TimingFeedback",
-		UDim2.fromScale(0.46, 0.25),
-		UDim2.fromScale(0.27, -0.04),
-		message,
-		color
+		UDim2.fromOffset(156, 26),
+		at,
+		string.upper(message) .. (if streak > 1 then string.format(text.combo, streak) else ""),
+		accent
 	)
-	badge.ZIndex = 5
-	TweenService:Create(badge, TweenInfo.new(0.38), {
-		TextTransparency = 1,
-		TextStrokeTransparency = 1,
-		Position = UDim2.fromScale(0.27, -0.2),
-	}):Play()
-	task.delay(0.4, function()
-		badge:Destroy()
-	end)
-	if not success then
-		Effects.shake(0.18, 0.45)
-	end
-	if success and Players.LocalPlayer:GetAttribute("ReduceEffects") ~= true then
-		for index = 1, 6 do
-			local angle = index * math.pi / 3
-			local spark =
-				Ui.frame(target, "Spark", UDim2.fromOffset(5, 5), UDim2.fromScale(0.5, 0.3), color)
-			spark.Rotation = 45
-			TweenService:Create(spark, TweenInfo.new(0.3), {
-				Position = UDim2.fromScale(
-					0.5 + math.cos(angle) * 0.23,
-					0.3 + math.sin(angle) * 0.35
-				),
-				BackgroundTransparency = 1,
-			}):Play()
-			task.delay(0.32, function()
-				spark:Destroy()
-			end)
+	badge.AnchorPoint = Vector2.new(0.5, 0.5)
+	badge.ZIndex = 7
+	if not reduced then
+		local tween = TweenInfo.new(0.32, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		TweenService
+			:Create(badge, tween, {
+				Position = at
+					+ (if success then UDim2.fromOffset(0, -14) else UDim2.fromOffset(7, 0)),
+				TextTransparency = 1,
+				TextStrokeTransparency = 1,
+			})
+			:Play()
+		if success then
+			for index = 1, 6 do
+				local angle = index * math.pi / 3
+				local spark = Ui.frame(target, "Spark", UDim2.fromOffset(6, 6), at, accent)
+				spark.AnchorPoint = Vector2.new(0.5, 0.5)
+				spark.Rotation = 45
+				spark.ZIndex = 6
+				TweenService
+					:Create(spark, tween, {
+						Position = at
+							+ UDim2.fromOffset(math.cos(angle) * 43, math.sin(angle) * 27),
+						BackgroundTransparency = 1,
+					})
+					:Play()
+				task.delay(0.34, function()
+					spark:Destroy()
+				end)
+			end
+		else
+			badge.Rotation = -5
+			TweenService
+				:Create(badge, TweenInfo.new(0.14, Enum.EasingStyle.Elastic), { Rotation = 0 })
+				:Play()
 		end
 	end
+	task.delay(0.34, function()
+		badge:Destroy()
+	end)
 end
 
 function Ui.toast(text: string, color: Color3?)

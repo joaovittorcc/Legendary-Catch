@@ -20,6 +20,20 @@ local Theme = {
 	rarity = Fishing.RARITY_COLORS,
 }
 
+function Theme.iridescent(target: GuiObject)
+	local existing = target:FindFirstChildOfClass("UIGradient")
+	local gradient = existing or Instance.new("UIGradient")
+	target.BackgroundColor3 = Color3.new(1, 1, 1)
+	gradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(189, 151, 255)),
+		ColorSequenceKeypoint.new(0.40, Color3.fromRGB(101, 234, 255)),
+		ColorSequenceKeypoint.new(0.72, Color3.fromRGB(161, 126, 255)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 142, 220)),
+	})
+	gradient.Rotation = 18
+	gradient.Parent = target
+end
+
 function Theme.rarityRank(rarity: string): number
 	return table.find(Fishing.RARITY_ORDER, rarity) or 0
 end

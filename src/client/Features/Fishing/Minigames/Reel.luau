@@ -2,6 +2,7 @@
 -- Vertical, directly draggable control zone with responsive hold/release and keyboard input.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
@@ -28,57 +29,88 @@ function Reel.run(
 	local gain = Config.tierValue(cfg.gain, tier)
 	local failRise = Config.tierValue(cfg.failRise, tier) / ease
 	local rng = Random.new()
-	Ui.reelLayout()
+	local dock = Ui.frame(
+		area,
+		"ReelDock",
+		UDim2.new(0, 116, 0.50, 0),
+		UDim2.fromScale(0.76, 0.48),
+		Theme.ink,
+		1
+	)
+	dock.AnchorPoint = Vector2.new(0.5, 0.5)
+	local cap = Instance.new("UISizeConstraint")
+	cap.MinSize = Vector2.new(116, 116)
+	cap.MaxSize = Vector2.new(116, 370)
+	cap.Parent = dock
 	local rail =
-		Ui.frame(area, "Bar", UDim2.fromScale(0.22, 0.87), UDim2.fromScale(0.26, 0.01), Theme.track)
-	Ui.gloss(rail, Color3.fromRGB(81, 141, 228))
+		Ui.frame(dock, "Bar", UDim2.new(0, 56, 1, -10), UDim2.fromOffset(2, 5), Theme.outline)
+	Ui.corner(rail, 0.32)
+	Ui.stroke(rail, Theme.ink, 3)
+	Ui.bounce(dock)
+	local hint = Ui.label(
+		area,
+		"ReelControls",
+		UDim2.new(0.92, 0, 0, 22),
+		UDim2.new(0.5, 0, 1, -84),
+		if UserInputService.TouchEnabled then Text.reelControls else Text.reelKeyboard,
+		Theme.sand
+	)
+	hint.AnchorPoint = Vector2.new(0.5, 1)
 	local zone = Ui.frame(
 		rail,
 		"Zone",
 		UDim2.fromScale(1, width),
 		UDim2.fromScale(0, 0.5),
-		Color3.fromRGB(114, 255, 194),
+		color:Lerp(Color3.fromRGB(114, 255, 194), 0.4),
 		0.12
 	)
 	zone.AnchorPoint = Vector2.new(0, 0.5)
-	Ui.corner(zone, 0.2)
-	Ui.stroke(zone, Theme.gold, 3)
-	local fish = Ui.frame(rail, "Fish", UDim2.fromOffset(25, 15), UDim2.fromScale(0.5, 0.5), color)
+	Theme.surface(zone, color, 9)
+	Ui.stroke(zone, color:Lerp(Theme.sand, 0.45), 2)
+	local fish = Ui.frame(rail, "Fish", UDim2.fromOffset(34, 21), UDim2.fromScale(0.5, 0.5), color)
 	fish.AnchorPoint = Vector2.new(0.5, 0.5)
 	Ui.corner(fish, 0.5)
 	Ui.stroke(fish, Theme.sand, 2)
-	local tail = Ui.frame(fish, "Tail", UDim2.fromOffset(8, 8), UDim2.fromScale(0.9, 0.3), color)
+	local tail = Ui.frame(fish, "Tail", UDim2.fromOffset(12, 12), UDim2.fromScale(0.9, 0.3), color)
 	tail.Rotation = 45
 	local eye =
-		Ui.frame(fish, "Eye", UDim2.fromOffset(3, 3), UDim2.fromScale(0.22, 0.27), Theme.ink)
+		Ui.frame(fish, "Eye", UDim2.fromOffset(5, 5), UDim2.fromScale(0.22, 0.27), Theme.ink)
 	Ui.corner(eye, 0.5)
 	local meter = Ui.frame(
-		area,
-		"ProgressBack",
-		UDim2.fromScale(0.09, 0.62),
-		UDim2.fromScale(0.72, 0.08),
-		Theme.track
+		dock,
+		"ProgressRing",
+		UDim2.fromOffset(54, 54),
+		UDim2.new(0, 90, 0.5, 0),
+		Theme.outline
 	)
-	Ui.corner(meter, 0.3)
-	local fill =
-		Ui.frame(meter, "ProgressFill", UDim2.fromScale(1, 0.3), UDim2.fromScale(0, 1), Theme.gold)
-	fill.AnchorPoint = Vector2.new(0, 1)
-	Ui.gloss(fill, Theme.gold)
+	meter.AnchorPoint = Vector2.new(0.5, 0.5)
+	Ui.corner(meter, 0.5)
+	Ui.stroke(meter, Theme.ink, 2)
+	local segments: { Frame } = {}
+	for index = 1, 20 do
+		local angle = (index - 1) / 20 * math.pi * 2
+		local segment = Ui.frame(
+			meter,
+			"Segment",
+			UDim2.fromOffset(4, 6),
+			UDim2.fromOffset(27 + math.sin(angle) * 22, 27 - math.cos(angle) * 22),
+			Theme.muted
+		)
+		segment.AnchorPoint = Vector2.new(0.5, 0.5)
+		segment.Rotation = math.deg(angle)
+		Ui.corner(segment, 0.5)
+		segments[index] = segment
+	end
 	local status = Ui.label(
-		area,
+		meter,
 		"CatchProgress",
-		UDim2.fromScale(0.45, 0.12),
-		UDim2.fromScale(0.54, 0.75),
-		string.format(Text.reelProgress, 30),
+		UDim2.fromScale(0.59, 0.42),
+		UDim2.fromScale(0.205, 0.29),
+		"30%",
 		Theme.sand
 	)
-	local risk = Ui.frame(
-		area,
-		"FailBack",
-		UDim2.fromScale(0.94, 0.055),
-		UDim2.fromScale(0.03, 0.94),
-		Theme.track
-	)
+	local risk =
+		Ui.frame(dock, "FailBack", UDim2.fromOffset(50, 5), UDim2.new(0, 65, 0.5, 36), Theme.track)
 	Ui.corner(risk, 0.5)
 	local riskFill = Ui.frame(
 		risk,
@@ -89,7 +121,7 @@ function Reel.run(
 	)
 	Ui.corner(riskFill, 0.5)
 
-	local lesson = Lesson.show()
+	local lesson = Lesson.show("reel")
 	local controls = Input.bind(function(point)
 		if lesson and lesson.active() then
 			lesson.press(point)
@@ -115,8 +147,12 @@ function Reel.run(
 	local function finish(success: boolean)
 		finished = true
 		stop()
-		Ui.feedback(area, success, success and not everOutside)
-		pending = task.delay(0.34, done, success, success and not everOutside)
+		Ui.exitPulse(rail, if success then color else Theme.rose)
+		Ui.feedback(area, UDim2.fromScale(0.55, 0.25), color, success, success and not everOutside)
+		pending = task.delay(0.34, function()
+			pending = nil
+			done(success, success and not everOutside)
+		end)
 	end
 	step = RunService.RenderStepped:Connect(function(dt)
 		if finished then
@@ -169,9 +205,14 @@ function Reel.run(
 		zone.Position = UDim2.fromScale(0, 1 - pos)
 		zone.BackgroundTransparency = if inside then 0.08 else 0.35
 		fish.Position = UDim2.fromScale(0.5, 1 - fishPos)
-		fill.Size = UDim2.fromScale(1, math.clamp(progress, 0, 1))
+		local ratio = math.clamp(progress, 0, 1)
+		for index, segment in segments do
+			segment.BackgroundColor3 = if index <= math.floor(ratio * #segments)
+				then color
+				else Theme.muted
+		end
 		riskFill.Size = UDim2.fromScale(math.clamp(fail, 0, 1), 1)
-		status.Text = string.format(Text.reelProgress, math.floor(math.clamp(progress, 0, 1) * 100))
+		status.Text = string.format("%d%%", math.floor(ratio * 100))
 		if progress >= 1 or fail >= 1 then
 			finish(progress >= 1)
 		end

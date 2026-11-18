@@ -493,7 +493,7 @@ function Hud.start()
 		local line = Instance.new("Frame")
 		line.Name = `Line{index}`
 		line.Position = UDim2.fromScale(0, (index - 1) * 0.4)
-		line.Size = UDim2.new(1, 0, 0.2, 0)
+		line.Size = UDim2.fromScale(1, 0.2)
 		line.BackgroundColor3 = Theme.ink
 		line.BorderSizePixel = 0
 		line.ZIndex = menuIcon.ZIndex
@@ -678,7 +678,7 @@ function Hud.start()
 		levelChip.Position = UDim2.fromOffset(coinWidth + 8, height / 2)
 		local menuSize = math.clamp(height * 0.82, 46, 60)
 		moreButton.Size = UDim2.fromOffset(menuSize, menuSize)
-		moreButton.Position = UDim2.new(1, 0, 0.5, 0)
+		moreButton.Position = UDim2.fromScale(1, 0.5)
 		-- Square-ish cells that keep the art ratio (1024x819); a 2x2 grid hanging from the menu
 		-- button on the right, so it never covers the middle of the screen.
 		local columns = 2
@@ -814,14 +814,11 @@ function Hud.start()
 	toast.Parent = notifications
 	toastLabel = toast
 	toastStroke = outline
-	setToastVisible = Hud.bindFishingVisibility(toast, false)
-	setToastVisible(true)
+	local showToast = Hud.bindFishingVisibility(toast, false)
+	setToastVisible = showToast
+	showToast(true)
 	Hud.panelChanged:Connect(function(name)
-		if name ~= "" then
-			setToastVisible(false)
-		else
-			setToastVisible(true)
-		end
+		showToast(name == "")
 	end)
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui

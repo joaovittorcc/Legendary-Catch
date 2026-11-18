@@ -64,7 +64,7 @@ function Panel.button(parent: Instance, content: string, accent: Color3): TextBu
 	lip.Parent = button
 	local shine = Instance.new("Frame")
 	shine.Name = "CandyShine"
-	shine.Position = UDim2.new(0, 8, 0, 4)
+	shine.Position = UDim2.fromOffset(8, 4)
 	shine.Size = UDim2.new(1, -16, 0, 5)
 	shine.BackgroundColor3 = Color3.new(1, 1, 1)
 	shine.BackgroundTransparency = 0.56
@@ -185,13 +185,18 @@ local function setOpen(gui: ScreenGui, shell: Frame, opened: boolean)
 			):Play()
 		end
 		if player:GetAttribute("ReduceEffects") ~= true then
-			if not panelBlur or panelBlur.Parent ~= Lighting then
-				panelBlur = Instance.new("BlurEffect")
-				panelBlur.Name = "CandyPanelBlur"
-				panelBlur.Size = 0
-				panelBlur.Parent = Lighting
+			local blur = panelBlur
+			if not blur or blur.Parent ~= Lighting then
+				local effect = Instance.new("BlurEffect")
+				effect.Name = "CandyPanelBlur"
+				effect.Size = 0
+				effect.Parent = Lighting
+				panelBlur = effect
+				blur = effect
 			end
-			TweenService:Create(panelBlur, TweenInfo.new(0.18), { Size = 9 }):Play()
+			if blur then
+				TweenService:Create(blur, TweenInfo.new(0.18), { Size = 9 }):Play()
+			end
 		end
 	elseif gui.Enabled then
 		gui.Enabled = false

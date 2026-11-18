@@ -49,6 +49,7 @@ local STYLES: { [string]: Style } = {
 	Rare = { size = 5, apex = 9, flight = 1, hold = 2.4 },
 	Epic = { size = 6, apex = 11, flight = 1.1, hold = 2.8 },
 	Legendary = { size = 8, apex = 14, flight = 1.4, hold = 3.6 },
+	Mystic = { size = 9, apex = 16, flight = 1.7, hold = 4.6 },
 }
 
 local function cloneCreature(id: string): Model
@@ -136,10 +137,14 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		card,
 		"RevealRibbon",
 		UDim2.new(0.68, 0, 0, 34),
-		UDim2.new(0.16, 0, if hasDiscovery then 0.2 else 0.12, 0),
+		UDim2.fromScale(0.16, if hasDiscovery then 0.2 else 0.12),
 		if rarity == "Common" then Theme.crystal else color
 	)
 	Theme.corner(ribbon, 15)
+	if Theme.rarityRank(rarity) == 6 then
+		Theme.iridescent(card)
+		Theme.iridescent(ribbon)
+	end
 	local ribbonStroke = Instance.new("UIStroke")
 	ribbonStroke.Color = Theme.outline
 	ribbonStroke.Thickness = 3
@@ -148,7 +153,7 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		card,
 		"Name",
 		UDim2.new(0.64, 0, 0, 30),
-		UDim2.new(0.18, 0, if hasDiscovery then 0.2 else 0.12, 0),
+		UDim2.fromScale(0.18, if hasDiscovery then 0.2 else 0.12),
 		name,
 		Theme.ink
 	)
@@ -293,6 +298,25 @@ local function legendaryIntro(
 	return restore, nil
 end
 
+local function mysticIntro(origin: Vector3, color: Color3, cancelled: () -> boolean): () -> ()
+	local restore = Effects.darken(Color3.fromRGB(113, 108, 221), 0.55)
+	local palette = { Theme.crystal, Color3.fromRGB(167, 125, 255), Theme.rose, color }
+	for index, tint in palette do
+		if cancelled() then
+			break
+		end
+		Effects.ripple(origin, tint, 6 + index * 3, 1.12)
+		if index == 2 then
+			tunnel(Theme.crystal)
+		elseif index == 4 then
+			Effects.pillar(origin, color, 55, 1.6)
+			tunnel(Theme.rose)
+		end
+		task.wait(0.5)
+	end
+	return restore
+end
+
 -- Yields until the reveal is over.
 function Reveal.play(
 	creatureId: string,
@@ -309,10 +333,10 @@ function Reveal.play(
 	local shiny = info ~= nil and info.variant == "Shiny"
 	local creature = Creatures.get(creatureId)
 	local motif = if creature then creature.revealStyle else "splash"
-	local accent = RevealStyles.tint(motif)
+	local accent = if level == 6 then Theme.crystal else RevealStyles.tint(motif)
 	local skipped = false
 	local skipButton: TextButton? = nil
-	if level == 5 and (seen[creatureId] or (info and info.isNew == false)) then
+	if level >= 5 and (seen[creatureId] or (info and info.isNew == false)) then
 		local button = Instance.new("TextButton")
 		button.Name = "SkipReveal"
 		button.AnchorPoint = Vector2.new(0.5, 1)
@@ -338,7 +362,9 @@ function Reveal.play(
 	end
 	local restore: (() -> ())? = nil
 	local signature: Folder? = nil
-	if level >= 5 and not reduced then
+	if level == 6 and not reduced then
+		restore = mysticIntro(origin, color, cancelled)
+	elseif level == 5 and not reduced then
 		restore, signature = legendaryIntro(creatureId, origin, root.Position, accent, cancelled)
 	elseif level >= 4 and not reduced then
 		Effects.pillar(origin, color, 35, 1)
@@ -390,7 +416,7 @@ function Reveal.play(
 	model.Parent = Workspace
 
 	RevealStyles.play(motif, origin, level, reduced)
-	Effects.splash(origin, accent, 10 + level * 6)
+	Effects.splash(origin, accent, if reduced then 8 else 10 + level * 6)
 	Effects.ripple(origin, color, 4 + level * 2, 0.8)
 	if level >= 5 and not reduced then
 		Effects.shake(0.5, 2)
@@ -405,10 +431,13 @@ function Reveal.play(
 		CFrame.lookAt(display, root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, display.Y, 0))
 
 	local start = os.clock()
+	local flight = if reduced and level == 6 then 0.85 else style.flight
 	while not cancelled() do
-		local a = math.min((os.clock() - start) / style.flight, 1)
+		local a = math.min((os.clock() - start) / flight, 1)
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
-		local spin = CFrame.Angles(0, (1 - a) * math.pi * 4, (1 - a) * math.pi)
+		local spin = if reduced
+			then CFrame.identity
+			else CFrame.Angles(0, (1 - a) * math.pi * 4, (1 - a) * math.pi)
 		model:PivotTo(CFrame.new(p) * facing.Rotation * spin)
 		if a >= 1 then
 			break
@@ -419,8 +448,9 @@ function Reveal.play(
 	if not cancelled() then
 		Audio.capture(rarity, shiny)
 	end
-	if skipButton then
+	if skipButton and level == 5 then
 		skipButton:Destroy()
+		skipButton = nil
 	end
 	local name = Strings.creatureName[creatureId] or creatureId
 	local card = if cancelled() then nil else nameCard(name, rarity, color, info)
@@ -452,11 +482,15 @@ function Reveal.play(
 
 	local holdStart = os.clock()
 	local base = CFrame.new(display) * facing.Rotation
-	while not cancelled() and not takePhoto and os.clock() - holdStart < style.hold do
+	local hold = if reduced and level == 6 then 2.4 else style.hold
+	while not cancelled() and not takePhoto and os.clock() - holdStart < hold do
 		if not reduced then
 			CreatureMotion.pose(motion, base, os.clock() - holdStart, true)
 		end
 		RunService.RenderStepped:Wait()
+	end
+	if skipButton then
+		skipButton:Destroy()
 	end
 	if photoButton then
 		photoButton:Destroy()
@@ -471,7 +505,7 @@ function Reveal.play(
 	if restore then
 		restore()
 	end
-	if card and takePhoto then
+	if card and (takePhoto or skipped or reduced) then
 		card:Destroy()
 	elseif card then
 		TweenService:Create(card, TweenInfo.new(0.3), { Position = UDim2.fromScale(0.5, -0.25) })

@@ -12,46 +12,49 @@ export type View = {
 	update: (number) -> (),
 	stop: () -> (),
 }
-local shownFor: Model? = nil
+local seen: { [string]: boolean } = {}
 
-function Lesson.show(): View?
+function Lesson.show(kind: string): View?
 	local player = Players.LocalPlayer
-	if shownFor == player.Character or player:GetAttribute("ReelTutorialHidden") == true then
+	if seen[kind] or (kind == "reel" and player:GetAttribute("ReelTutorialHidden") == true) then
 		return nil
 	end
-	shownFor = player.Character
+	seen[kind] = true
+	local title = if kind == "reel"
+		then Text.reelTitle
+		elseif kind == "precision" then Text.precisionTitle
+		else Text.rhythmTitle
+	local instructions = if kind == "reel"
+		then Text.reelLesson
+		elseif kind == "precision" then Text.precisionLesson
+		else Text.rhythmLesson
 	local gui = Instance.new("ScreenGui")
-	gui.Name = "ReelLesson"
+	gui.Name = "MinigameLesson"
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = 9
 	gui.ResetOnSpawn = false
-	local card = Ui.frame(
-		gui,
-		"Lesson",
-		UDim2.new(0.9, 0, 0, 222),
-		UDim2.fromScale(0.5, 0.52),
-		Theme.crystal
-	)
+	local card =
+		Ui.frame(gui, "Lesson", UDim2.new(0.86, 0, 0, 184), UDim2.fromScale(0.5, 0.52), Theme.ink)
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
-	Theme.surface(card, Theme.crystal, 24)
+	Theme.surface(card, Theme.crystal, 22, Theme.ink)
 	local limit = Instance.new("UISizeConstraint")
-	limit.MaxSize = Vector2.new(470, 222)
+	limit.MaxSize = Vector2.new(400, 184)
 	limit.Parent = card
 	Ui.label(
 		card,
 		"Title",
 		UDim2.fromScale(0.9, 0.15),
 		UDim2.fromScale(0.05, 0.04),
-		Text.reelTitle,
+		title,
 		Theme.sand
 	)
 	local body = Ui.label(
 		card,
 		"Instructions",
-		UDim2.fromScale(0.68, 0.49),
+		UDim2.fromScale(0.68, 0.43),
 		UDim2.fromScale(0.04, 0.22),
-		Text.reelLesson,
+		instructions,
 		Theme.sand
 	)
 	body.TextWrapped = true
@@ -85,8 +88,11 @@ function Lesson.show(): View?
 		target.Parent = card
 		return target
 	end
-	local ready = button("Ready", Text.reelReady, 0.04, Theme.gold)
-	local hide = button("HideNextTime", Text.reelHide, 0.52, Theme.rose)
+	rail.Visible = kind == "reel"
+	if not rail.Visible then
+		body.Size = UDim2.fromScale(0.92, 0.43)
+	end
+	local ready = button("Ready", Text.reelReady, 0.28, Theme.gold)
 	gui.Parent = player.PlayerGui
 	local elapsed = 0
 	local active = true
@@ -112,11 +118,7 @@ function Lesson.show(): View?
 			if not active then
 				return
 			end
-			if point and contains(hide, point) then
-				local hidden = player:GetAttribute("ReelTutorialHidden") ~= true
-				player:SetAttribute("ReelTutorialHidden", hidden)
-				hide.Text = (if hidden then "✓ " else "") .. Text.reelHide
-			elseif not point or contains(ready, point) then
+			if not point or contains(ready, point) then
 				close()
 			end
 		end,

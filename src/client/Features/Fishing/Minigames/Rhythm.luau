@@ -1,9 +1,7 @@
 --!strict
 -- Full-screen timing targets. Pointer hits must land on the current circle.
-local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
-local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
@@ -12,8 +10,10 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Control = require(script.Parent.Parent:WaitForChild("Control"))
 local Ui = require(script.Parent.Parent:WaitForChild("Ui"))
 local Input = require(script.Parent:WaitForChild("Input"))
-local Hud = require(script.Parent.Parent.Parent:WaitForChild("Hud"))
-local Audio = require(script.Parent.Parent.Parent:WaitForChild("Audio"))
+local Features = script.Parent.Parent.Parent
+local Hud = require(Features:WaitForChild("Hud"))
+local Tutorial = require(Features:WaitForChild("Tutorial"))
+local Lesson = require(script.Parent:WaitForChild("ReelLesson"))
 
 local Rhythm = {}
 type Target = { disc: Frame, ring: Frame, center: Vector2, diameter: number, time: number }
@@ -23,46 +23,36 @@ function Rhythm.run(
 	tier: number,
 	color: Color3,
 	done: (boolean, boolean?) -> (),
-	ringCount: number?
+	ringCount: number?,
+	interceptPointer: ((Vector2) -> boolean)?
 ): () -> ()
 	local cfg = Config.RHYTHM
 	local total = ringCount or math.floor(Config.tierValue(cfg.rings, tier))
 	local shrink = Config.tierValue(cfg.shrinkSeconds, tier)
 	local window = math.min(shrink * cfg.window * Control.ease(), shrink * 0.46)
 	local interval = Config.tierValue(cfg.gapByTier, tier)
-	local player = Players.LocalPlayer
-	local panel = area.Parent :: GuiObject
-	local hidden: { [GuiObject]: boolean } = {}
-	for _, child in panel:GetChildren() do
-		if child:IsA("GuiObject") then
-			hidden[child] = child.Visible
-			child.Visible = false
-		end
+	local function top(): number
+		local topInset = math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12)
+		return topInset + (if ringCount then 94 else 0)
 	end
-	local hiddenLayers: { [ScreenGui]: boolean } = {}
-	for _, name in { "TutorialGuide", "LegendaryOmen" } do
-		local layer = player.PlayerGui:FindFirstChild(name)
-		if layer and layer:IsA("ScreenGui") then
-			hiddenLayers[layer] = layer.Enabled
-			layer.Enabled = false
-		end
-	end
-	local gui = Instance.new("ScreenGui")
-	gui.Name = "RhythmGame"
-	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
-	gui.DisplayOrder = 7
-	gui.ResetOnSpawn = false
-	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
-	gui.Parent = player.PlayerGui
-
 	local counter = Ui.label(
-		gui,
+		area,
 		"Counter",
-		UDim2.fromOffset(160, 28),
-		UDim2.new(0.5, -80, 0, Hud.navBottom() + 5),
-		string.format(Text.rings, 0, total),
+		UDim2.fromOffset(112, 24),
+		UDim2.new(0.5, -56, 0, top()),
+		"",
 		Theme.sand
 	)
+	counter.RichText = true
+	local comboTrack =
+		Ui.frame(counter, "ComboTrack", UDim2.new(1, 0, 0, 5), UDim2.new(0, 0, 1, 1), Theme.outline)
+	Ui.corner(comboTrack, 0.5)
+	local comboFill =
+		Ui.frame(comboTrack, "ComboFill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
+	Ui.corner(comboFill, 0.5)
+	Ui.bounce(counter)
+	local combo = 0
+	local lesson = if ringCount then nil else Lesson.show("rhythm")
 	local rng = Random.new()
 	local hits, misses = 0, 0
 	local finished = false
@@ -72,9 +62,6 @@ function Rhythm.run(
 	local pending: thread? = nil
 	local step: RBXScriptConnection? = nil
 	local controls: { stop: () -> () }? = nil
-	local function reduced(): boolean
-		return player:GetAttribute("ReduceEffects") == true
-	end
 	local function cleanup()
 		if step then
 			step:Disconnect()
@@ -82,17 +69,10 @@ function Rhythm.run(
 		end
 		if controls then
 			controls.stop()
+			controls = nil
 		end
-		gui:Destroy()
-		for child, visible in hidden do
-			if child.Parent then
-				child.Visible = visible
-			end
-		end
-		for layer, enabled in hiddenLayers do
-			if layer.Parent then
-				layer.Enabled = enabled
-			end
+		if lesson then
+			lesson.stop()
 		end
 	end
 	local function finish(success: boolean)
@@ -100,59 +80,46 @@ function Rhythm.run(
 			return
 		end
 		finished = true
-		if step then
-			step:Disconnect()
-			step = nil
-		end
-		if controls then
-			controls.stop()
-		end
+		cleanup()
+		Ui.exitPulse(comboTrack, if success then color else Theme.rose)
 		pending = task.delay(0.34, function()
-			cleanup()
+			pending = nil
 			done(success, success and misses == 0)
 		end)
 	end
-	local function feedback(target: Target, success: boolean, perfect: boolean)
-		Audio.play(if success then "hit" else "miss", 0.2, if perfect then 1.28 else 1)
-		local width = math.min(160, target.diameter * 1.8)
-		local lifetime = math.min(0.35, interval * 0.85)
-		local label = Ui.label(
-			gui,
-			"TimingFeedback",
-			UDim2.fromOffset(width, 26),
-			UDim2.fromOffset(
-				target.center.X - width / 2,
-				target.center.Y - target.diameter / 2 - 30
-			),
-			if perfect then Text.perfect elseif success then Text.good else Text.miss,
-			if success then Theme.gold else Color3.fromRGB(255, 125, 148)
-		)
-		if not reduced() then
-			TweenService:Create(
-				label,
-				TweenInfo.new(lifetime),
-				{ TextTransparency = 1, TextStrokeTransparency = 1 }
-			):Play()
-		end
-		task.delay(lifetime, function()
-			label:Destroy()
-		end)
+	local function updateCounter()
+		counter.Text = string.format(Text.rings, hits, total)
+			.. '<font color="#FF7D94">'
+			.. string.rep("  ×", misses)
+			.. "</font>"
+		comboFill.Size = UDim2.fromScale(combo / total, 1)
 	end
+	updateCounter()
 	local function resolve(success: boolean, perfect: boolean)
 		local target = current
 		if not target or finished then
 			return
 		end
 		current = nil
-		feedback(target, success, perfect)
 		target.disc:Destroy()
 		target.ring:Destroy()
 		if success then
 			hits += 1
+			combo += 1
 		else
 			misses += 1
+			combo = 0
 		end
-		counter.Text = string.format(Text.rings, hits, total) .. string.rep("  ×", misses)
+		local feedbackX = math.clamp(target.center.X, 80, math.max(80, area.AbsoluteSize.X - 80))
+		Ui.feedback(
+			area,
+			UDim2.fromOffset(feedbackX, target.center.Y - target.diameter / 2 - 16),
+			color,
+			success,
+			perfect,
+			combo
+		)
+		updateCounter()
 		if misses >= cfg.missesAllowed or hits >= total then
 			finish(hits >= total)
 		else
@@ -160,36 +127,45 @@ function Rhythm.run(
 		end
 	end
 	controls = Input.bind(function(point)
+		if point and interceptPointer and interceptPointer(point) then
+			return
+		end
+		if lesson and lesson.active() then
+			lesson.press(point)
+			return
+		end
 		local target = current
 		if not target or finished then
 			return
 		end
-		local inside = point == nil or (point - target.center).Magnitude <= target.diameter * 0.6
+		local center = target.disc.AbsolutePosition + target.disc.AbsoluteSize / 2
+		local inside = point == nil or (point - center).Magnitude <= target.diameter * 0.6
 		local error = math.abs(target.time - shrink)
 		resolve(inside and error <= window, inside and error <= window * 0.3)
 	end)
 	local function bounds(): (Vector2, Vector2, number)
-		local size = gui.AbsoluteSize
+		local size = area.AbsoluteSize
 		local diameter = math.clamp(math.min(size.X, size.Y) * 0.19, 60, 106)
 		local margin = diameter * 0.86
-		local top = Hud.navBottom() + 48
-		local bottom = size.Y - (if size.Y < 430 then 80 else 105)
-		local low = Vector2.new(math.max(size.X * 0.10, margin + 12), top + margin)
-		local high = Vector2.new(size.X - low.X, math.max(low.Y, bottom - margin))
+		local bottom = size.Y - (if size.Y < 430 then 72 else 112)
+		local left = math.min(size.X / 2, math.max(size.X * 0.1, margin + 12))
+		local safeTop = math.min(top() + 38 + margin, math.max(margin, bottom - margin))
+		local low = Vector2.new(left, safeTop)
+		local high = Vector2.new(size.X - left, math.max(safeTop, bottom - margin))
 		return low, high, diameter
 	end
 	local function spawnTarget()
 		local low, high, diameter = bounds()
 		local center = low
 		for _ = 1, 8 do
-			center = Vector2.new(rng:NextNumber(low.X, high.X), rng:NextNumber(low.Y, high.Y))
+			center = low + (high - low) * Vector2.new(rng:NextNumber(), rng:NextNumber())
 			if not previous or (center - previous).Magnitude >= diameter * 1.3 then
 				break
 			end
 		end
 		previous = center
 		local disc = Ui.frame(
-			gui,
+			area,
 			"Target",
 			UDim2.fromOffset(diameter, diameter),
 			UDim2.fromOffset(center.X, center.Y),
@@ -218,7 +194,7 @@ function Rhythm.run(
 		limit.MaxTextSize = 46
 		limit.Parent = number
 		local ring = Ui.frame(
-			gui,
+			area,
 			"Approach",
 			UDim2.fromOffset(diameter * 1.65, diameter * 1.65),
 			disc.Position,
@@ -228,13 +204,18 @@ function Rhythm.run(
 		ring.AnchorPoint = Vector2.new(0.5, 0.5)
 		Ui.corner(ring, 0.5)
 		Ui.stroke(ring, color, 4)
+		Ui.bounce(disc)
 		current = { disc = disc, ring = ring, center = center, diameter = diameter, time = 0 }
 	end
 	step = RunService.RenderStepped:Connect(function(dt)
 		if finished then
 			return
 		end
-		counter.Position = UDim2.new(0.5, -80, 0, Hud.navBottom() + 5)
+		counter.Position = UDim2.new(0.5, -56, 0, top())
+		if lesson and lesson.active() then
+			lesson.update(dt)
+			return
+		end
 		local target = current
 		if not target then
 			gap -= dt

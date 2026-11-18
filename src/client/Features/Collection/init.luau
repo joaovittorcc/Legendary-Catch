@@ -314,11 +314,17 @@ function Collection.start()
 		for _, rarity in Fishing.RARITY_ORDER do
 			local color = Theme.rarity[rarity]
 			local count, total = discovered[rarity] or 0, totals[rarity] or 0
-			Panel.label(
+			local section = Panel.label(
 				body,
 				string.format("%s  ·  %d / %d", Theme.rarityLabel(rarity), count, total),
 				17
 			)
+			local mystic = Theme.rarityRank(rarity) == 6
+			if mystic then
+				section.BackgroundTransparency = 0
+				Theme.corner(section, 10)
+				Theme.iridescent(section)
+			end
 			progressBar(body, count, total, color)
 			local group = Instance.new("Frame")
 			group.BackgroundTransparency = 1
@@ -354,6 +360,9 @@ function Collection.start()
 				local outline = card:FindFirstChildWhichIsA("UIStroke")
 				if outline then
 					outline.Color = color
+				end
+				if mystic then
+					Theme.iridescent(card)
 				end
 				local icon = Instance.new("Frame")
 				icon.BackgroundTransparency = 1

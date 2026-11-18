@@ -6,7 +6,8 @@ local Config = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Text = require(Shared:WaitForChild("StringsUi")).minigames
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Control = require(script.Parent.Parent:WaitForChild("Control"))
-local PressInput = require(script.Parent.Parent:WaitForChild("PressInput"))
+local Input = require(script.Parent:WaitForChild("Input"))
+local Lesson = require(script.Parent:WaitForChild("ReelLesson"))
 local Ui = require(script.Parent.Parent:WaitForChild("Ui"))
 
 local Precision = {}
@@ -23,20 +24,69 @@ function Precision.run(
 	local reverseRate = Config.tierValue(cfg.reverseRate, tier)
 	local jitter = Config.tierValue(cfg.speedJitter, tier)
 	local rng = Random.new()
-	local bar = Ui.frame(area, "Bar", UDim2.fromScale(1, 0.34), UDim2.fromScale(0, 0.3), color)
-	Ui.gloss(bar, Color3.fromRGB(80, 147, 240))
+	local dock = Ui.frame(
+		area,
+		"PrecisionDock",
+		UDim2.new(0.78, 0, 0, 80),
+		UDim2.new(0.5, 0, 1, -84),
+		Theme.ink,
+		1
+	)
+	dock.AnchorPoint = Vector2.new(0.5, 1)
+	local cap = Instance.new("UISizeConstraint")
+	cap.MaxSize = Vector2.new(560, 80)
+	cap.Parent = dock
+	local bar =
+		Ui.frame(dock, "Bar", UDim2.new(1, 0, 0, 18), UDim2.fromScale(0, 0.34), Theme.outline)
+	Ui.corner(bar, 0.5)
+	Ui.stroke(bar, Theme.ink, 3)
+	Ui.bounce(dock)
+	Ui.label(
+		dock,
+		"Instruction",
+		UDim2.new(1, 0, 0, 19),
+		UDim2.fromScale(0, 1.04),
+		Text.precisionControl,
+		Theme.sand
+	)
+	local trail: { Frame } = {}
+	local history: { number } = {}
+	for index = 1, 5 do
+		local ghost = Ui.frame(
+			bar,
+			"Trail",
+			UDim2.fromOffset(6, 9),
+			UDim2.fromScale(0.08, 0.5),
+			color,
+			0.18 + index * 0.13
+		)
+		ghost.AnchorPoint = Vector2.new(0.5, 0.5)
+		Ui.corner(ghost, 0.5)
+		table.insert(trail, ghost)
+		table.insert(history, 0.08)
+	end
+	local sampleTime = 0
 	local zone =
 		Ui.frame(bar, "Zone", UDim2.fromScale(zoneWidth, 1), UDim2.fromScale(0.5, 0), color, 0.12)
 	zone.AnchorPoint = Vector2.new(0.5, 0)
-	Ui.corner(zone, 0.3)
-	Ui.stroke(zone, Theme.gold, 3)
+	Theme.surface(zone, color, 8)
+	Ui.stroke(zone, color:Lerp(Theme.sand, 0.5), 2)
+	local centerLine = Ui.frame(
+		zone,
+		"SweetSpot",
+		UDim2.new(0.3, 0, 1, -4),
+		UDim2.new(0.35, 0, 0, 2),
+		Theme.sand,
+		0.38
+	)
+	Ui.corner(centerLine, 0.5)
 	local marker =
 		Ui.frame(bar, "Marker", UDim2.new(0, 7, 1.35, 0), UDim2.fromScale(0.08, 0.5), Theme.sand)
 	marker.AnchorPoint = Vector2.new(0.5, 0.5)
 	Ui.corner(marker, 0.5)
 	Ui.stroke(marker, Theme.ink, 2)
 	local timer = Ui.label(
-		area,
+		dock,
 		"DecisionTime",
 		UDim2.fromScale(0.25, 0.22),
 		UDim2.fromScale(0.75, 0),
@@ -44,7 +94,7 @@ function Precision.run(
 		Theme.gold
 	)
 	local timerTrack = Ui.frame(
-		area,
+		dock,
 		"TimerTrack",
 		UDim2.fromScale(0.7, 0.065),
 		UDim2.fromScale(0, 0.08),
@@ -58,11 +108,11 @@ function Precision.run(
 	local lives: { Frame } = {}
 	for i = 1, cfg.hitsNeeded do
 		local pip = Ui.frame(
-			area,
+			dock,
 			"Hit" .. i,
 			UDim2.fromScale(0.07, 0.19),
 			UDim2.fromScale((i - 1) * 0.09, 0.78),
-			Color3.fromRGB(157, 199, 246)
+			Theme.outline
 		)
 		Ui.corner(pip, 0.5)
 		Ui.stroke(pip, Theme.sand, 1.5)
@@ -70,11 +120,11 @@ function Precision.run(
 	end
 	for i = 1, cfg.missesAllowed do
 		local light = Ui.frame(
-			area,
+			dock,
 			"Miss" .. i,
 			UDim2.fromScale(0.05, 0.19),
 			UDim2.fromScale(1 - i * 0.075, 0.78),
-			Color3.fromRGB(157, 199, 246)
+			Theme.outline
 		)
 		Ui.corner(light, 0.5)
 		table.insert(lives, light)
@@ -85,9 +135,11 @@ function Precision.run(
 	local hits, misses = 0, 0
 	local remaining = cfg.decisionSeconds
 	local cooldown = 0
+	local combo = 0
 	local finished = false
 	local pending: thread? = nil
-	local press: RBXScriptConnection
+	local lesson = Lesson.show("precision")
+	local controls: { stop: () -> () }
 	local step: RBXScriptConnection
 	local function moveZone()
 		local half = zoneWidth / 2
@@ -99,14 +151,22 @@ function Precision.run(
 	end
 	local function finish(success: boolean)
 		finished = true
-		press:Disconnect()
+		Ui.exitPulse(bar, if success then color else Theme.rose)
+		controls.stop()
+		if lesson then
+			lesson.stop()
+		end
 		step:Disconnect()
-		pending = task.delay(0.34, done, success, success and misses == 0)
+		pending = task.delay(0.34, function()
+			pending = nil
+			done(success, success and misses == 0)
+		end)
 	end
 	local function miss(timedOut: boolean)
 		misses += 1
 		lives[misses].BackgroundColor3 = Color3.fromRGB(255, 83, 118)
-		Ui.feedback(area, false)
+		combo = 0
+		Ui.feedback(dock, UDim2.fromScale(0.5, -0.20), color, false)
 		if timedOut then
 			timer.Text = Text.timeUp
 		end
@@ -117,7 +177,11 @@ function Precision.run(
 		end
 	end
 	moveZone()
-	press = PressInput.Pressed:Connect(function()
+	controls = Input.bind(function(point)
+		if lesson and lesson.active() then
+			lesson.press(point)
+			return
+		end
 		if finished or cooldown > 0 then
 			return
 		end
@@ -126,7 +190,15 @@ function Precision.run(
 		if distance <= zoneWidth / 2 then
 			hits += 1
 			pips[hits].BackgroundColor3 = Theme.gold
-			Ui.feedback(area, true, distance < zoneWidth * 0.15)
+			combo += 1
+			Ui.feedback(
+				dock,
+				UDim2.fromScale(0.5, -0.20),
+				color,
+				true,
+				distance < zoneWidth * 0.15,
+				combo
+			)
 			remaining = cfg.decisionSeconds
 			if hits >= cfg.hitsNeeded then
 				finish(true)
@@ -139,6 +211,10 @@ function Precision.run(
 	end)
 	step = RunService.RenderStepped:Connect(function(dt)
 		if finished then
+			return
+		end
+		if lesson and lesson.active() then
+			lesson.update(dt)
 			return
 		end
 		cooldown = math.max(0, cooldown - dt)
@@ -176,10 +252,23 @@ function Precision.run(
 			pos, direction = 0, 1
 		end
 		marker.Position = UDim2.fromScale(pos, 0.5)
+		sampleTime += dt
+		if sampleTime >= 0.024 then
+			sampleTime = 0
+			table.insert(history, 1, pos)
+			table.remove(history)
+		end
+		for index, ghost in trail do
+			ghost.Visible = not Ui.reduced()
+			ghost.Position = UDim2.fromScale(history[index], 0.5)
+		end
 	end)
 	return function()
 		finished = true
-		press:Disconnect()
+		controls.stop()
+		if lesson then
+			lesson.stop()
+		end
 		step:Disconnect()
 		if pending then
 			task.cancel(pending)

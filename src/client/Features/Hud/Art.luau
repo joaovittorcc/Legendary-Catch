@@ -88,6 +88,13 @@ end
 
 function Art.rarity(parent: GuiObject): (ImageLabel, TextLabel)
 	local badge = Art.image(parent, "", "RarityBadge")
+	local fallback = Instance.new("Frame")
+	fallback.Name = "MysticBadge"
+	fallback.Size = UDim2.fromScale(1, 1)
+	fallback.Visible = false
+	Theme.corner(fallback, 12)
+	Theme.iridescent(fallback)
+	fallback.Parent = badge
 	local label = Art.caption(badge, "Rarity", "", 23)
 	label.Size = UDim2.fromScale(0.51, 0.66)
 	label.Position = UDim2.fromScale(0.44, 0.17)
@@ -95,8 +102,16 @@ function Art.rarity(parent: GuiObject): (ImageLabel, TextLabel)
 end
 
 function Art.setRarity(badge: ImageLabel, label: TextLabel, rarity: string)
-	badge.Image = Assets.rarity[rarity] or Assets.rarity.Common
-	label.Text = Strings.rarity[rarity] or rarity
+	local asset = Assets.rarity[rarity]
+	local fallback = Theme.rarityRank(rarity) == 6 and asset == nil
+	badge.Image = if fallback then "" else asset or Assets.rarity.Common
+	local mystic = badge:FindFirstChild("MysticBadge")
+	if mystic and mystic:IsA("Frame") then
+		mystic.Visible = fallback
+	end
+	label.Position = if fallback then UDim2.fromScale(0.04, 0.17) else UDim2.fromScale(0.44, 0.17)
+	label.Size = if fallback then UDim2.fromScale(0.92, 0.66) else UDim2.fromScale(0.51, 0.66)
+	label.Text = if fallback then Theme.rarityLabel(rarity) else Strings.rarity[rarity] or rarity
 end
 
 return Art

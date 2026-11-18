@@ -6,7 +6,13 @@ local RunService = game:GetService("RunService")
 local PT = {
 	minigames = {
 		rings = "%d / %d",
-		perfect = "Perfeito!",
+		perfect = "PERFEITO!",
+		combo = "  ×%d",
+		precisionTitle = "Precisão",
+		precisionLesson = "Toque na hora em que o marcador passar pela faixa brilhante. Você tem alguns segundos para cada acerto.",
+		rhythmTitle = "Ritmo",
+		rhythmLesson = "Toque no círculo quando o aro encostar nele. No teclado, use Espaço.",
+		precisionControl = "Toque quando o marcador entrar na faixa",
 		good = "Bom!",
 		miss = "Errou!",
 		seconds = "%.1f s",
@@ -21,6 +27,20 @@ local PT = {
 		reelProgress = "Captura %d%%",
 		reelKeep = "Peixe dentro\nda faixa",
 	},
+	training = {
+		gain = "+%d XP",
+		level = "NÍVEL %d",
+		progress = "%d / %d XP",
+		levelUp = "NÍVEL %d!",
+		titles = {
+			"Pescador Aprendiz",
+			"Pescador Experiente",
+			"Mestre da Lagoa",
+			"Guardião da Lagoa",
+			"Lenda da Lagoa",
+		},
+	},
+	rodUnaffordable = "Sem moedas · %d ◆",
 	rodSlot = "Vara",
 	nextGoal = {
 		title = "Próxima meta",
@@ -147,7 +167,13 @@ type Labels = typeof(PT)
 local EN = {
 	minigames = {
 		rings = "%d / %d",
-		perfect = "Perfect!",
+		perfect = "PERFECT!",
+		combo = "  ×%d",
+		precisionTitle = "Precision",
+		precisionLesson = "Tap when the marker crosses the glowing zone. You have a few seconds for each hit.",
+		rhythmTitle = "Rhythm",
+		rhythmLesson = "Tap the circle when the ring reaches it. On keyboard, press Space.",
+		precisionControl = "Tap when the marker enters the zone",
 		good = "Good!",
 		miss = "Miss!",
 		seconds = "%.1f s",
@@ -162,6 +188,20 @@ local EN = {
 		reelProgress = "Catch %d%%",
 		reelKeep = "Keep the fish\ninside the zone",
 	},
+	training = {
+		gain = "+%d XP",
+		level = "LEVEL %d",
+		progress = "%d / %d XP",
+		levelUp = "LEVEL %d!",
+		titles = {
+			"Fishing Apprentice",
+			"Seasoned Angler",
+			"Lagoon Master",
+			"Lagoon Guardian",
+			"Lagoon Legend",
+		},
+	},
+	rodUnaffordable = "Need coins · %d ◆",
 	rodSlot = "Rod",
 	nextGoal = {
 		title = "Next goal",
