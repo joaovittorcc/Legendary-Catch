@@ -679,12 +679,6 @@ local LIST: { Creature } = {
 		weightMax = 200000,
 		revealStyle = "cosmic",
 	},
-}
-
--- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
--- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
-local PLANNED: { Creature } = {
-	-- Batch 3 (C35–C64), designed 2026-11-17: waiting for models.
 	{
 		id = "C65_Tilapia_Moranguinho",
 		rarity = "Common",
@@ -775,6 +769,12 @@ local PLANNED: { Creature } = {
 		weightMax = 1.2,
 		revealStyle = "bubbles",
 	},
+}
+
+-- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
+-- until their model exists in ReplicatedStorage.Creatures; then move each entry into LIST.
+local PLANNED: { Creature } = {
+	-- Batch 3 (C35–C64), designed 2026-11-17: waiting for models.
 	{
 		id = "C82_Kitsune_Aquatica",
 		rarity = "Epic",
