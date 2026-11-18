@@ -12,28 +12,33 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 	scale.Name = "MotionScale"
 	scale.Parent = target
 
-	local shine = Instance.new("Frame")
-	shine.Name = "MotionShine"
-	shine.Position = UDim2.fromScale(0.1, 0.08)
-	shine.Size = UDim2.fromScale(0.8, 0.56)
-	shine.BackgroundColor3 = Color3.new(1, 1, 1)
-	shine.BackgroundTransparency = 0.54
-	shine.BorderSizePixel = 0
-	shine.Visible = false
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0.45, 0)
-	corner.Parent = shine
-	local beam = Instance.new("UIGradient")
-	beam.Rotation = 23
-	beam.Transparency = NumberSequence.new({
-		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.39, 1),
-		NumberSequenceKeypoint.new(0.5, 0.27),
-		NumberSequenceKeypoint.new(0.61, 1),
-		NumberSequenceKeypoint.new(1, 1),
-	})
-	beam.Parent = shine
-	shine.Parent = target
+	local shine: Frame? = nil
+	local beam: UIGradient? = nil
+	if sway then
+		local layer = Instance.new("Frame")
+		layer.Name = "MotionShine"
+		layer.Position = UDim2.fromScale(0.1, 0.08)
+		layer.Size = UDim2.fromScale(0.8, 0.56)
+		layer.BackgroundColor3 = Color3.new(1, 1, 1)
+		layer.BackgroundTransparency = 0.54
+		layer.BorderSizePixel = 0
+		layer.Visible = false
+		local corner = Instance.new("UICorner")
+		corner.CornerRadius = UDim.new(0.45, 0)
+		corner.Parent = layer
+		local gradient = Instance.new("UIGradient")
+		gradient.Rotation = 23
+		gradient.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.39, 1),
+			NumberSequenceKeypoint.new(0.5, 0.27),
+			NumberSequenceKeypoint.new(0.61, 1),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		gradient.Parent = layer
+		layer.Parent = target
+		shine, beam = layer, gradient
+	end
 
 	local rotation = target.Rotation
 	local idle: RBXScriptConnection? = nil
@@ -73,7 +78,9 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 			idle = nil
 		end
 		target.Rotation = rotation
-		shine.Visible = false
+		if shine then
+			shine.Visible = false
+		end
 	end
 	local function updateIdle()
 		stopIdle()
@@ -86,7 +93,8 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 			scale.Scale = 1
 			return
 		end
-		if not useIdle then
+		local layer, gradient = shine, beam
+		if not useIdle or not layer or not gradient then
 			stopPulse()
 			return
 		end
@@ -100,15 +108,15 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 			elapsed = 0
 			local screen = target:FindFirstAncestorWhichIsA("ScreenGui")
 			if not target.Visible or not screen or not screen.Enabled then
-				shine.Visible = false
+				layer.Visible = false
 				return
 			end
 			local now = os.clock()
 			local phase = now % interval
 			target.Rotation = rotation + math.sin(now * 3.2) * (sway or 0)
-			shine.Visible = phase < 0.7
-			if shine.Visible then
-				beam.Offset = Vector2.new(phase / 0.35 - 1, 0)
+			layer.Visible = phase < 0.7
+			if layer.Visible then
+				gradient.Offset = Vector2.new(phase / 0.35 - 1, 0)
 			end
 		end)
 	end

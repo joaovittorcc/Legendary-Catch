@@ -787,9 +787,33 @@ function Hud.start()
 	local badgeArt, rarityText = Art.rarity(badge)
 	badge.Parent = gui
 	local setRarityBadgeVisible = Hud.bindFishingVisibility(badge, false)
-	local recent = 0
+	local hasRecent = false
+	local rarityRevision = 0
+	local function refreshRarity()
+		setRarityBadgeVisible(hasRecent and currentPanel == "")
+	end
+	local function expireRarity()
+		if not hasRecent then
+			return
+		end
+		rarityRevision += 1
+		local revision = rarityRevision
+		task.delay(8, function()
+			if rarityRevision == revision then
+				hasRecent = false
+				refreshRarity()
+			end
+		end)
+	end
 	Hud.panelChanged:Connect(function(name)
-		setRarityBadgeVisible(name == "" and os.clock() < recent)
+		setRarityBadgeVisible(hasRecent and name == "")
+	end)
+	Hud.fishingChanged:Connect(function(active)
+		if active then
+			rarityRevision += 1
+		else
+			expireRarity()
+		end
 	end)
 	task.spawn(function()
 		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
@@ -798,17 +822,15 @@ function Hud.start()
 			local creature = if payload.creatureId then Creatures.get(payload.creatureId) else nil
 			if payload.event == "caught" and creature then
 				Art.setRarity(badgeArt, rarityText, creature.rarity)
-				recent = os.clock() + 8
-				local deadline = recent
-				setRarityBadgeVisible(currentPanel == "")
-				task.delay(8, function()
-					if recent == deadline then
-						setRarityBadgeVisible(false)
-					end
-				end)
-			elseif payload.event == "bite" then
-				recent = 0
-				setRarityBadgeVisible(false)
+				hasRecent = true
+				refreshRarity()
+				if not fishingActive then
+					expireRarity()
+				end
+			elseif payload.event == "cast" or payload.event == "bite" then
+				rarityRevision += 1
+				hasRecent = false
+				refreshRarity()
 			end
 		end)
 	end)
