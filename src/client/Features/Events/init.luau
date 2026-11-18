@@ -38,8 +38,8 @@ function Events.start()
 
 	local banner = Instance.new("Frame")
 	banner.Name = "EventBanner"
-	banner.AnchorPoint = Vector2.new(1, 0)
-	banner.Position = UDim2.new(0.97, 0, 0, 80)
+	banner.AnchorPoint = Vector2.new(0, 0)
+	banner.Position = UDim2.new(0.03, 0, 0, 80)
 	banner.Size = UDim2.fromOffset(250, 50)
 	banner.BackgroundColor3 = Theme.crystal
 	banner.BorderSizePixel = 0
@@ -134,7 +134,7 @@ function Events.start()
 		ratio.AspectRatio = width / height
 		local cardBottom = math.max(Tutorial.cardBottom(), Training.cardBottom())
 		local top = if cardBottom > 0 then cardBottom + 10 else math.clamp(size.Y * 0.2, 76, 190)
-		banner.Position = UDim2.new(0.97, 0, 0, top)
+		banner.Position = UDim2.new(0.03, 0, 0, top)
 		iconHolder.Position = UDim2.fromOffset(8, height / 2)
 	end
 
