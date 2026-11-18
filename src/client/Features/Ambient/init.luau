@@ -81,6 +81,14 @@ type CrystalPartTarget = {
 	phase: number,
 }
 
+type EmberMote = {
+	part: BasePart,
+	phase: number,
+	speed: number,
+	driftX: number,
+	driftZ: number,
+}
+
 local function makePart(
 	parent: Instance,
 	name: string,
@@ -430,15 +438,62 @@ function Ambient.start()
 	local crystalParts: { CrystalPartTarget } = {}
 	collectCrystals(crystalLights, crystalParts)
 
+	-- 6. Campfire embers & subtle warmth flicker (reuses existing Campfire PointLight)
+	local campfireCenter = Vector3.new(-18, 10.7, 9)
+	local embers: { EmberMote } = {}
+	for i = 1, 5 do
+		local color = if i % 2 == 0
+			then Color3.fromRGB(255, 210, 90)
+			else Color3.fromRGB(255, 130, 50)
+		local p = makePart(
+			container,
+			"CampfireEmber" .. i,
+			Vector3.new(0.14, 0.14, 0.14),
+			color,
+			Enum.Material.Neon,
+			Enum.PartType.Ball
+		)
+		table.insert(embers, {
+			part = p,
+			phase = i * 0.43,
+			speed = 0.55 + (i % 3) * 0.12,
+			driftX = (i - 3) * 0.35,
+			driftZ = ((i % 3) - 1) * 0.4,
+		})
+	end
+
+	local campfireLight: PointLight? = nil
+	local campfireBaseBrightness = 2.2
+	local function findCampfireLight()
+		local island = Workspace:FindFirstChild("Island")
+		local campfire = island and island:FindFirstChild("Campfire")
+		local emberPart = campfire and campfire:FindFirstChild("Embers")
+		local pl = emberPart and emberPart:FindFirstChildOfClass("PointLight")
+		if pl then
+			campfireLight = pl
+			campfireBaseBrightness = pl.Brightness
+		end
+	end
+	findCampfireLight()
+
+	local baseClockTime = Lighting.ClockTime
+	local baseAmbient = Lighting.Ambient
+	local baseOutdoorAmbient = Lighting.OutdoorAmbient
+	local nightAmbient = Color3.fromRGB(110, 128, 178)
+	local nightOutdoor = Color3.fromRGB(122, 146, 198)
+	local cycleStart = os.clock()
+	local lastClockUpdate = 0
+
 	Workspace.ChildAdded:Connect(function(child)
 		if child.Name == "Island" then
 			task.defer(function()
 				collectCrystals(crystalLights, crystalParts)
+				findCampfireLight()
 			end)
 		end
 	end)
 
-	local function restoreCrystals()
+	local function restoreLightingAndCrystals()
 		for _, item in crystalLights do
 			if item.light.Parent then
 				item.light.Brightness = item.baseBrightness
@@ -449,6 +504,12 @@ function Ambient.start()
 				item.part.Color = item.baseColor
 			end
 		end
+		if campfireLight and campfireLight.Parent then
+			campfireLight.Brightness = campfireBaseBrightness
+		end
+		Lighting.ClockTime = baseClockTime
+		Lighting.Ambient = baseAmbient
+		Lighting.OutdoorAmbient = baseOutdoorAmbient
 	end
 
 	local function step()
@@ -591,6 +652,40 @@ function Ambient.start()
 				item.part.Color = item.baseColor:Lerp(Color3.new(1, 1, 1), w * colorShift)
 			end
 		end
+
+		-- Campfire ember motes & gentle flame light pulse
+		for _, e in embers do
+			local u = ((t * e.speed + e.phase) % 1)
+			local py = campfireCenter.Y + 0.4 + u * 3.8
+			local px = campfireCenter.X + e.driftX * u + math.sin(t * 2.4 + e.phase * 6) * 0.28
+			local pz = campfireCenter.Z + e.driftZ * u + math.cos(t * 2.1 + e.phase * 5) * 0.28
+			e.part.CFrame = CFrame.new(px, py, pz)
+			e.part.Transparency = if u < 0.2 then (1 - u / 0.2) * 0.8 else (u - 0.2) / 0.8
+		end
+		if campfireLight and campfireLight.Parent then
+			local boost = if night then 1.25 else 1.0
+			campfireLight.Brightness = campfireBaseBrightness
+				* boost
+				* (0.9 + 0.14 * math.sin(t * 7.5) + 0.08 * math.cos(t * 13.1))
+		end
+
+		-- Gentle 6-minute day/golden-hour/cozy-night cycle (throttled to 4 Hz)
+		if t - lastClockUpdate >= 0.25 then
+			lastClockUpdate = t
+			local elapsed = t - cycleStart
+			local clock = (baseClockTime + (elapsed / 360) * 24) % 24
+			Lighting.ClockTime = clock
+			local nightWeight = 0
+			if clock >= 17.5 and clock < 19.0 then
+				nightWeight = (clock - 17.5) / 1.5
+			elseif clock >= 19.0 or clock < 5.5 then
+				nightWeight = 1
+			elseif clock >= 5.5 and clock < 7.0 then
+				nightWeight = 1 - (clock - 5.5) / 1.5
+			end
+			Lighting.Ambient = baseAmbient:Lerp(nightAmbient, nightWeight)
+			Lighting.OutdoorAmbient = baseOutdoorAmbient:Lerp(nightOutdoor, nightWeight)
+		end
 	end
 
 	local player = Players.LocalPlayer
@@ -604,7 +699,7 @@ function Ambient.start()
 				conn = nil
 			end
 			container.Parent = nil
-			restoreCrystals()
+			restoreLightingAndCrystals()
 		else
 			container.Parent = Workspace
 			if not conn then

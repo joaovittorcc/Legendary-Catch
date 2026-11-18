@@ -35,6 +35,9 @@ export type TrainingUpdate = {
 	stat: string?,
 	level: number?,
 	reason: string?,
+	bonusXp: number?, -- "dailyBonus": first training of the day
+	rewardCoins: number?, -- "levelUp" on every 5th level
+	combo: number?, -- "ringResult": consecutive successful rings
 }
 
 local Net = {

@@ -78,11 +78,19 @@ function Legendary.play(id: string, origin: Vector3, viewer: Vector3): Folder?
 
 	if id == "C10_Leviata_Astral" then
 		root.Name = "LeviathanConstellation"
-		local stars =
-			{ { -10, 7 }, { -6, 11 }, { -2, 10 }, { 2, 14 }, { 5, 12 }, { 8, 9 }, { 11, 11 }, {
+		local stars = {
+			{ -10, 7 },
+			{ -6, 11 },
+			{ -2, 10 },
+			{ 2, 14 },
+			{ 5, 12 },
+			{ 8, 9 },
+			{ 11, 11 },
+			{
 				7,
 				15,
-			} }
+			},
+		}
 		local last: Vector3? = nil
 		for index, point in stars do
 			local at = origin + right * point[1] + Vector3.yAxis * point[2] - view * 3

@@ -25,6 +25,7 @@ type Session = {
 	nextRingAt: number,
 	ringId: number,
 	ringExpires: number, -- 0 when no ring is pending
+	combo: number,
 }
 
 local Training = {}
@@ -57,6 +58,7 @@ local function stop(player: Player, reason: string)
 	end
 	sessions[player] = nil
 	player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, "")
+	player:SetAttribute("TrainingCombo", 0)
 	update:FireClient(player, { event = "stopped", reason = reason } :: Net.TrainingUpdate)
 end
 
@@ -71,9 +73,16 @@ local function addXp(player: Player, stat: string, amount: number)
 	while lvl < TrainingConfig.MAX_LEVEL and total >= TrainingConfig.xpToNext(lvl) do
 		total -= TrainingConfig.xpToNext(lvl)
 		lvl += 1
+		-- Every 5th level pays coins (10 per level reached: level 10 = 100).
+		local rewardCoins = if lvl % 5 == 0 then lvl * 10 else nil
+		if rewardCoins then
+			PlayerData.update(player, function(p)
+				p.coins += rewardCoins
+			end)
+		end
 		update:FireClient(
 			player,
-			{ event = "levelUp", stat = stat, level = lvl } :: Net.TrainingUpdate
+			{ event = "levelUp", stat = stat, level = lvl, rewardCoins = rewardCoins } :: Net.TrainingUpdate
 		)
 	end
 	if lvl >= TrainingConfig.MAX_LEVEL then
@@ -95,8 +104,24 @@ local function start(player: Player, stat: string, spot: BasePart)
 			+ rng:NextNumber(TrainingConfig.RING_INTERVAL_MIN, TrainingConfig.RING_INTERVAL_MAX),
 		ringId = 0,
 		ringExpires = 0,
+		combo = 0,
 	}
 	player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, stat)
+	player:SetAttribute("TrainingCombo", 0)
+	-- First training of the (UTC) day: a bonus that grows a little with the stat level.
+	local today = os.time() // 86400
+	local profile = PlayerData.get(player)
+	if profile and profile.stats.trainDay ~= today then
+		PlayerData.update(player, function(p)
+			p.stats.trainDay = today
+		end)
+		local bonus = 15 + level(player, stat) * 3
+		addXp(player, stat, bonus)
+		update:FireClient(
+			player,
+			{ event = "dailyBonus", stat = stat, bonusXp = bonus } :: Net.TrainingUpdate
+		)
+	end
 	Analytics.step(player, "firstTraining")
 	Progress.onTrainingStarted(player)
 end
@@ -135,6 +160,8 @@ local function step()
 
 		if s.ringExpires > 0 and now > s.ringExpires then
 			s.ringExpires = 0
+			s.combo = 0
+			player:SetAttribute("TrainingCombo", 0)
 		end
 		if s.ringExpires == 0 and now >= s.nextRingAt then
 			s.ringId += 1
@@ -160,8 +187,14 @@ local function onRingResult(player: Player, ringId: unknown, success: unknown)
 	end
 	s.ringExpires = 0
 	if success then
-		addXp(player, s.stat, TrainingConfig.ringBonus(level(player, s.stat)))
+		s.combo += 1
+		-- Streak of rings in a row: +10% bonus XP per step, up to +50%.
+		local mult = 1 + math.min(s.combo - 1, 5) * 0.1
+		addXp(player, s.stat, math.floor(TrainingConfig.ringBonus(level(player, s.stat)) * mult))
+	else
+		s.combo = 0
 	end
+	player:SetAttribute("TrainingCombo", s.combo)
 end
 
 -- Used by fishing: the player's current level in a stat (0 if never trained).

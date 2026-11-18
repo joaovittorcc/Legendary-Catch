@@ -20,6 +20,7 @@ export type Stats = {
 	level: number,
 	levelXp: number,
 	bestCombo: number,
+	trainDay: number, -- os.time() // 86400 of the last daily training bonus
 }
 
 export type Tutorial = {

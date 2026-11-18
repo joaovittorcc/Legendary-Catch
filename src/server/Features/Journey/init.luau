@@ -74,6 +74,19 @@ function Journey.onCatch(
 		end
 	end)
 	mirror(player)
+	-- Every 10th catch opens a surprise chest.
+	local profile = PlayerData.get(player)
+	if profile and profile.stats.catches % 10 == 0 then
+		local level = profile.stats.level
+		local coins = math.random(100, 300) + level * 10
+		PlayerData.update(player, function(p)
+			p.coins += coins
+		end)
+		reward:FireClient(
+			player,
+			{ kind = "chest", coins = coins, level = level } :: Net.AdventureReward
+		)
+	end
 	for _, g in gained do
 		reward:FireClient(
 			player,
