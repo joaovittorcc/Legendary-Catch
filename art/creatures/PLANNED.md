@@ -416,3 +416,91 @@ Especificação visual e prompts prontos para `generate_mesh` das 6 criaturas de
 - **Paleta:** Basalto abissal escuro, bronze/ouro antigo (`#FFCD46`), cracas turquesa e fogo/luz âmbar-magma + ciano `Neon`.
 - **Box:** `3.3 × 3.6 × 3.2` · `maxTriangles = 12000` · **Mínimo 2 tentativas** + núcleo `Neon` da lanterna antiga e runas da armadura.
 - **Prompt:** `Stylized cartoon colossal ancient abyssal sea guardian titan standing heroically facing forward +Z, massive weathered deep-sea stone and tarnished gold armored golem torso encrusted with glowing cyan barnacles and coral, horned ancient diving-knight helm with glowing amber visor eyes, wide armored shoulder pauldrons, holding a grand ornate ancient golden-cage lantern glowing bright amber-gold in its right hand, lower body tapering into armored sea-serpent tail and tentacles, Roblox fantasy adventure masterpiece, single piece`
+
+---
+
+# Ficha de Produção — Lote 4 (Místicas `C93–C94`, Lendárias `C88–C92`, Épicas `C82–C87` — Agente A)
+
+## Místicas (C93–C94) — Nível Acima de Lendário
+
+### 41. C93 — Ouroboros Cósmico (`C93_Ouroboros_Cosmico`)
+- **Raridade:** Místico (`tier = 6`) · **Peso:** `20000–80000 kg` · **Valor:** `9000 ◆` · **Reveal:** `cosmic`
+- **Lore:** *"A serpente que come a própria cauda e recria o universo."*
+- **Partes:** `Body, Head, Tail, Fins, Wings, Extra` + núcleo galáctico, estrelas orbitais e olhos `Neon` (`Extra`).
+- **Box final:** `1.15 × 3.50 × 3.29` studs · `11.864` faces · `Head.Z - Tail.Z = +1.50`.
+
+### 42. C94 — Maré Primordial (`C94_Mare_Primordial`)
+- **Raridade:** Místico (`tier = 6`) · **Peso:** `50000–200000 kg` · **Valor:** `10000 ◆` · **Reveal:** `cosmic`
+- **Lore:** *"A primeira onda, feita de estrelas, ainda não terminou de quebrar."*
+- **Partes:** `Body, Head, FinL, FinR, Wings, Tail, Extra` + olhos de luz, núcleo estelar no peito e estrelas `Neon` (`Extra`).
+- **Box final:** `2.86 × 3.24 × 2.55` studs · `11.948` faces · `Head.Z - Tail.Z = +0.54`.
+
+## Lendárias (C88–C92) — Extremamente Épicas e Detalhadas
+
+### 43. C88 — Rei Tritão Colossal (`C88_Rei_Tritao_Colossal`)
+- **Raridade:** Lendário (`tier = 5`) · **Peso:** `3000–9000 kg` · **Valor:** `1900 ◆` · **Reveal:** `storm`
+- **Lore:** *"Governa os sete mares com um tridente de tempestade."*
+- **Partes:** `Body, Head, Claws, Tail, Fins, Extra` + olhos, núcleo/ponta do tridente e runa peitoral `Neon` (`Extra`).
+- **Box final:** `2.18 × 3.55 × 1.68` studs · `11.740` faces · `Head.Z - Tail.Z = +0.21`.
+
+### 44. C89 — Dragão de Jade (`C89_Dragao_de_Jade`)
+- **Raridade:** Lendário (`tier = 5`) · **Peso:** `1500–5000 kg` · **Valor:** `1850 ◆` · **Reveal:** `cloud`
+- **Lore:** *"Antigo guardião das nuvens e das marés."*
+- **Partes:** `Body, Head, Wings, Claws, Tail, Extra` + olhos, pérola de jade flutuante e estrelas `Neon` (`Extra`).
+- **Box final:** `2.71 × 3.32 × 3.44` studs · `11.948` faces · `Head.Z - Tail.Z = +1.99`.
+
+### 45. C90 — Tartaruga-Mundo (`C90_Tartaruga_Mundo`)
+- **Raridade:** Lendário (`tier = 5`) · **Peso:** `8000–20000 kg` · **Valor:** `1950 ◆` · **Reveal:** `crystal`
+- **Lore:** *"Carrega uma ilha inteira nas costas, com florestas e tudo."*
+- **Partes:** `Body, Head, Shell, FinL, FinR, Tail, Extra` + olhos dourados, cristais do templo e do casco `Neon` (`Extra`).
+- **Box final:** `2.11 × 3.30 × 3.34` studs · `11.816` faces · `Head.Z - Tail.Z = +2.60`.
+
+### 46. C91 — Hipocampo Imperial (`C91_Hipocampo_Imperial`)
+- **Raridade:** Lendário (`tier = 5`) · **Peso:** `600–2400 kg` · **Valor:** `1800 ◆` · **Reveal:** `prism`
+- **Lore:** *"Cavalga as ondas vestindo armadura dourada."*
+- **Partes:** `Body, Head, FinL, FinR, Fins, Tail, Extra` + olhos ciano, gema do elmo e núcleo prismático `Neon` (`Extra`).
+- **Box final:** `2.13 × 3.29 × 3.44` studs · `11.840` faces · `Head.Z - Tail.Z = +2.24`.
+
+### 47. C92 — Serafim do Mar (`C92_Serafim_do_Mar`)
+- **Raridade:** Lendário (`tier = 5`) · **Peso:** `1500–6000 kg` · **Valor:** `1900 ◆` · **Reveal:** `cosmic`
+- **Lore:** *"Seis asas de luz que acalmam qualquer tempestade."*
+- **Partes:** `Body, Head, Wings, FinL, FinR, Tail, Extra` + olhos, auréola dourada, pontas das 6 asas e núcleo `Neon` (`Extra`).
+- **Box final:** `3.21 × 3.20 × 1.00` studs · `11.210` faces · `Head.Z - Tail.Z = +0.15`.
+
+## Épicas (C82–C87)
+
+### 48. C82 — Kitsune Aquática (`C82_Kitsune_Aquatica`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `20–80 kg` · **Valor:** `420 ◆` · **Reveal:** `spark`
+- **Lore:** *"Nove caudas, nove segredos, nenhum contado."*
+- **Partes:** `Body, Head, FinL, FinR, Tail, Extra` + olhos ciano, pérola de fogo-fátuo e estrelas `Neon` (`Extra`).
+- **Box final:** `2.80 × 2.57 × 2.09` studs · `7.468` faces · `Head.Z - Tail.Z = +1.13`.
+
+### 49. C83 — Golfinho Trovão (`C83_Golfinho_Trovao`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `90–300 kg` · **Valor:** `400 ◆` · **Reveal:** `storm`
+- **Lore:** *"Cada salto vem com um trovão de aplausos."*
+- **Partes:** `Body, Head, FinL, FinR, Fins, Tail, Extra` + olhos elétricos e arcos `Neon` (`Extra`).
+- **Box final:** `1.66 × 2.30 × 2.56` studs · `6.778` faces · `Head.Z - Tail.Z = +1.73`.
+
+### 50. C84 — Tubarão-Martelo de Cristal (`C84_Tubarao_Martelo_de_Cristal`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `120–420 kg` · **Valor:** `410 ◆` · **Reveal:** `crystal`
+- **Lore:** *"Seu martelo brilha como um diamante gigante."*
+- **Partes:** `Body, Head, FinL, FinR, Fins, Tail, Extra` + olhos nas pontas do martelo e núcleo cristalino `Neon` (`Extra`).
+- **Box final:** `2.09 × 2.75 × 1.40` studs · `7.084` faces · `Head.Z - Tail.Z = +0.47`.
+
+### 51. C85 — Lula Galáxia (`C85_Lula_Galaxia`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `30–140 kg` · **Valor:** `380 ◆` · **Reveal:** `cosmic`
+- **Lore:** *"Carrega uma galáxia inteira dentro do manto."*
+- **Partes:** `Body, Head, Fins, Tentacles, Extra` + olhos estelares, núcleo galáctico e estrelas `Neon` (`Extra`).
+- **Box final:** `1.36 × 2.95 × 0.80` studs · `6.868` faces · `Head.Z - Tentacles.Z = +0.21`.
+
+### 52. C86 — Cervo-Coral (`C86_Cervo_Coral`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `50–200 kg` · **Valor:** `390 ◆` · **Reveal:** `splash`
+- **Lore:** *"Seus chifres são recifes onde moram mil peixinhos."*
+- **Partes:** `Body, Head, Legs, Fins, Tail, Extra` + olhos dourados e joias de coral `Neon` (`Extra`).
+- **Box final:** `1.90 × 2.95 × 2.07` studs · `7.478` faces · `Head.Z - Tail.Z = +1.36`.
+
+### 53. C87 — Salamandra de Lava (`C87_Salamandra_de_Lava`)
+- **Raridade:** Épico (`tier = 4`) · **Peso:** `10–45 kg` · **Valor:** `370 ◆` · **Reveal:** `magma`
+- **Lore:** *"Esquenta a água do mar só de passar."*
+- **Partes:** `Body, Head, Legs, Fins, Tail, Extra` + olhos âmbar, ponta flamejante e fissura magma `Neon` (`Extra`).
+- **Box final:** `1.68 × 2.00 × 2.21` studs · `7.184` faces · `Head.Z - Tail.Z = +0.92`.
