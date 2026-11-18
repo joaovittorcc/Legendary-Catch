@@ -491,6 +491,7 @@ function Reveal.play(
 		button.Text = Text.photo
 		button.TextColor3 = Theme.sand
 		Theme.surface(button, Theme.crystal, 20)
+		Motion.mount(button)
 		button.TextStrokeTransparency = 0.15
 		button.TextStrokeColor3 = Theme.ink
 		button.Activated:Connect(function()

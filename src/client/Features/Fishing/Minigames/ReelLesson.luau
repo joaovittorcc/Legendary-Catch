@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Theme = require(ReplicatedStorage.Shared.UiTheme)
 local Text = require(ReplicatedStorage.Shared.StringsUi).minigames
 local Ui = require(script.Parent.Parent:WaitForChild("Ui"))
+local Motion = require(script.Parent.Parent.Parent.Hud:WaitForChild("Motion"))
 
 local Lesson = {}
 export type View = {
@@ -85,6 +86,7 @@ function Lesson.show(kind: string): View?
 		target.TextStrokeColor3 = Theme.ink
 		target.TextStrokeTransparency = 0.1
 		Theme.surface(target, accent, 18)
+		Motion.mount(target)
 		target.Parent = card
 		return target
 	end
