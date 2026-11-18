@@ -10,6 +10,23 @@ local PT = {
 		unlocked = "Desbloqueada",
 		notice = "Conquista desbloqueada: %s · +%d ◆",
 	},
+	leaderboard = {
+		title = "Placar",
+		tabs = {
+			Catches = "Capturas",
+			Species = "Espécies",
+			Level = "Nível",
+		} :: { [string]: string },
+		empty = "Seja o primeiro!",
+		yourScore = "Sua pontuação: %s",
+		you = "Você",
+		loading = "Carregando placar…",
+		units = {
+			Catches = "%d capturas",
+			Species = "%d espécies",
+			Level = "Nível %d",
+		} :: { [string]: string },
+	},
 	achievements = {
 		firstCatch = { name = "Primeira fisgada", description = "Capture seu primeiro peixe" },
 		catches10 = { name = "Pegando o jeito", description = "Capture 10 peixes" },
@@ -241,6 +258,23 @@ local EN = {
 		summary = "%d / %d unlocked",
 		unlocked = "Unlocked",
 		notice = "Achievement unlocked: %s · +%d ◆",
+	},
+	leaderboard = {
+		title = "Leaderboard",
+		tabs = {
+			Catches = "Catches",
+			Species = "Species",
+			Level = "Level",
+		} :: { [string]: string },
+		empty = "Be the first!",
+		yourScore = "Your score: %s",
+		you = "You",
+		loading = "Loading leaderboard…",
+		units = {
+			Catches = "%d catches",
+			Species = "%d species",
+			Level = "Level %d",
+		} :: { [string]: string },
 	},
 	achievements = {
 		firstCatch = { name = "First Bite", description = "Catch your first fish" },

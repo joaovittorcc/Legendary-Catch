@@ -19,6 +19,7 @@ local ICONS = {
 	Missions = "📜",
 	Milestones = "🏆",
 	Achievements = "🏅",
+	Leaderboard = "👑",
 	Settings = "⚙️",
 }
 

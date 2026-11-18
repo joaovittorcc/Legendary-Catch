@@ -1,4 +1,5 @@
 --!strict
+local CaptureService = game:GetService("CaptureService")
 local GuiService = game:GetService("GuiService")
 local Players = game:GetService("Players")
 local ProximityPromptService = game:GetService("ProximityPromptService")
@@ -12,9 +13,10 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
+local Panel = require(script.Parent.Parent.Hud:WaitForChild("Panel"))
 
 local PhotoMode = {}
-local DURATION = 18
+local DURATION = 30
 local FIELD_OF_VIEW = 38
 
 local function framePhoto(gui: ScreenGui, name: string, rarity: string, color: Color3)
@@ -132,21 +134,120 @@ function PhotoMode.show(model: Model, root: BasePart, name: string, rarity: stri
 	local hint = Ui.label(
 		gui,
 		"Hint",
-		UDim2.new(0.9, 0, 0, 18),
-		UDim2.new(0.05, 0, 0, 24),
+		UDim2.new(0.9, 0, 0, 30),
+		UDim2.new(0.05, 0, 0, 76),
 		Text.photoHint,
 		Theme.sand
 	)
-	task.delay(3, function()
-		if hint.Parent then
-			hint:Destroy()
-		end
-	end)
+	local controls = Instance.new("Frame")
+	controls.Name = "PhotoControls"
+	controls.AnchorPoint = Vector2.new(0.5, 0)
+	controls.Position = UDim2.new(0.5, 0, 0, 22)
+	controls.Size = UDim2.new(1, -42, 0, 46)
+	controls.BackgroundTransparency = 1
+	local controlBounds = Instance.new("UISizeConstraint")
+	controlBounds.MaxSize = Vector2.new(420, 46)
+	controlBounds.Parent = controls
+	local capture = Panel.button(controls, Text.photoTools.capture, Theme.crystal)
+	capture.Name = "Capture"
+	capture.Size = UDim2.new(1, -58, 1, 0)
+	local save = Panel.button(controls, Text.photoTools.save, Theme.gold)
+	save.Name = "Save"
+	save.Size = UDim2.new(0.5, -31, 1, 0)
+	save.Visible = false
+	local share = Panel.button(controls, Text.photoTools.share, Theme.crystal)
+	share.Name = "Share"
+	share.Position = UDim2.new(0.5, -23, 0, 0)
+	share.Size = UDim2.new(0.5, -35, 1, 0)
+	share.TextSize = 14
+	share.Visible = false
+	local close = Panel.button(controls, Text.close, Theme.rose)
+	close.Name = "Close"
+	close.AnchorPoint = Vector2.new(1, 0)
+	close.Position = UDim2.fromScale(1, 0)
+	close.Size = UDim2.new(0, 52, 1, 0)
+	close.TextSize = 13
+	controls.Parent = gui
 	gui.Parent = playerGui
 	camera.CameraType = Enum.CameraType.Scriptable
 	camera.FieldOfView = FIELD_OF_VIEW
 
 	local open = true
+	local deadline = os.clock() + DURATION
+	local taking = false
+	local captureVersion = 0
+	local photo: ScreenshotCapture? = nil
+	close.Activated:Connect(function()
+		open = false
+	end)
+	capture.Activated:Connect(function()
+		if taking then
+			return
+		end
+		taking = true
+		captureVersion += 1
+		local version = captureVersion
+		controls.Visible = false
+		hint.Visible = false
+		local function finish(result: ScreenshotCapture?)
+			if not open or not gui.Parent or not taking or version ~= captureVersion then
+				return
+			end
+			taking = false
+			photo = result
+			capture.Visible = result == nil
+			save.Visible = result ~= nil
+			share.Visible = result ~= nil
+			controls.Visible = true
+			hint.Visible = true
+			hint.Text = if result then Text.photoTools.ready else Text.photoTools.unavailable
+			deadline = os.clock() + DURATION
+		end
+		task.delay(4, finish, nil)
+		local ok = pcall(function()
+			CaptureService:TakeScreenshotCaptureAsync(function(result, screenshot)
+				finish(if result == Enum.ScreenshotCaptureResult.Success then screenshot else nil)
+			end, { UICaptureMode = Enum.UICaptureMode.All })
+		end)
+		if not ok then
+			finish(nil)
+		end
+	end)
+	save.Activated:Connect(function()
+		local screenshot = photo
+		if not screenshot or not save.Interactable then
+			return
+		end
+		local ok = pcall(function()
+			CaptureService:PromptSaveCapturesToGallery({ screenshot }, function(results)
+				if gui.Parent and results[screenshot] then
+					hint.Text = Text.photoTools.saved
+					save.Interactable = false
+				end
+			end)
+		end)
+		if not ok then
+			hint.Text = Text.photoTools.unavailable
+		end
+	end)
+	share.Activated:Connect(function()
+		local screenshot = photo
+		if not screenshot then
+			return
+		end
+		local ok = pcall(function()
+			CaptureService:PromptShareCapture(
+				Content.fromObject(screenshot),
+				"",
+				function() end,
+				function() end
+			)
+		end)
+		if not ok then
+			hint.Text = Text.photoTools.shareUnavailable
+		end
+	end)
+
 	local pointer: InputObject? = nil
 	local startPoint = Vector2.zero
 	local previousPoint = Vector2.zero
@@ -159,6 +260,7 @@ function PhotoMode.show(model: Model, root: BasePart, name: string, rarity: stri
 			open = false
 		elseif
 			not processed
+			and not taking
 			and not pointer
 			and (
 				input.UserInputType == Enum.UserInputType.Touch
@@ -194,16 +296,12 @@ function PhotoMode.show(model: Model, root: BasePart, name: string, rarity: stri
 	local ended = UserInputService.InputEnded:Connect(function(input)
 		if input == pointer then
 			pointer = nil
-			if not dragged then
-				open = false
-			end
 		end
 	end)
 	local menu = GuiService.MenuOpened:Connect(function()
 		open = false
 	end)
 
-	local deadline = os.clock() + DURATION
 	while
 		open
 		and os.clock() < deadline

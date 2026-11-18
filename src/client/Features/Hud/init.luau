@@ -402,11 +402,12 @@ function Hud.start()
 	player:GetAttributeChangedSignal("ReduceEffects"):Connect(updateCoins)
 	updateCoins()
 
-	local entries = {
+	local entries: { { id: string, title: string, tint: Color3, icon: string? } } = {
 		{ id = "Collection", title = Text.collection, tint = Theme.crystal },
 		{ id = "Shop", title = Text.shop, tint = Theme.gold },
 		{ id = "Missions", title = Text.missions.nav, tint = Theme.rose },
-		{ id = "Achievements", title = Text.achievementUi.title, tint = Theme.gold },
+		{ id = "Achievements", title = Text.achievementUi.title, tint = Theme.gold, icon = "🏅" },
+		{ id = "Leaderboard", title = Text.leaderboard.title, tint = Theme.crystal, icon = "👑" },
 		{ id = "Settings", title = Text.settings, tint = Color3.fromRGB(188, 151, 255) },
 	}
 	local navBadges: { [string]: TextLabel } = {}
@@ -646,7 +647,7 @@ function Hud.start()
 			native.Text = ""
 			native.AutoButtonColor = false
 			Theme.surface(native, entry.tint, 14)
-			local icon = Art.caption(native, "Icon", "🏅", 42)
+			local icon = Art.caption(native, "Icon", entry.icon or "🏅", 42)
 			icon.Size = UDim2.fromScale(0.72, 0.58)
 			icon.Position = UDim2.fromScale(0.14, 0.08)
 			button = native
