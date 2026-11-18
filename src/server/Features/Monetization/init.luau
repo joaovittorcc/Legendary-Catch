@@ -52,7 +52,7 @@ end
 
 function Monetization.luckBoostActive(player: Player): boolean
 	local profile = PlayerData.get(player)
-	return profile ~= nil and profile.boosts.luckUntil > os.time()
+	return profile ~= nil and profile.boosts ~= nil and (profile.boosts.luckUntil or 0) > os.time()
 end
 
 local function publishBoost(player: Player)

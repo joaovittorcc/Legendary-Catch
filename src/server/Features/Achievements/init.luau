@@ -26,7 +26,7 @@ local lastRedeem: { [Player]: number } = {}
 
 local function metrics(profile: PlayerData.Profile): { [string]: number }
 	local species, mystic = 0, 0
-	for id in profile.collection do
+	for id in profile.collection or {} do
 		species += 1
 		local creature = Creatures.get(id)
 		if creature and creature.rarity == "Mystic" then
@@ -34,15 +34,16 @@ local function metrics(profile: PlayerData.Profile): { [string]: number }
 		end
 	end
 	local training = 0
-	for _, t in profile.training do
-		training = math.max(training, t.level)
+	for _, t in profile.training or {} do
+		training = math.max(training, t.level or 0)
 	end
+	local stats = profile.stats
 	return {
-		catches = profile.stats.catches,
+		catches = if stats then stats.catches or 0 else 0,
 		species = species,
-		legendaries = profile.stats.legendaries,
-		level = profile.stats.level,
-		combo = profile.stats.bestCombo,
+		legendaries = if stats then stats.legendaries or 0 else 0,
+		level = if stats then stats.level or 1 else 1,
+		combo = if stats then stats.bestCombo or 0 else 0,
 		training = training,
 		mystic = mystic,
 	}

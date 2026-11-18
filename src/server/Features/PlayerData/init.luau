@@ -19,6 +19,7 @@ local ServerScriptService = game:GetService("ServerScriptService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
+local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -95,6 +96,7 @@ local function template(): Profile
 			levelXp = 0,
 			bestCombo = 0,
 			trainDay = 0,
+			suspicious = 0,
 		},
 		funnel = {},
 		tutorial = { step = "goToPier", done = false },
@@ -122,10 +124,31 @@ end
 
 local store = ProfileStore.New(STORE_NAME, template())
 
+local function deepClone(value: any): any
+	if typeof(value) ~= "table" then
+		return value
+	end
+	local out = {}
+	for k, v in value do
+		out[deepClone(k)] = deepClone(v)
+	end
+	return out
+end
+
+local function finiteNumber(value: any, fallback: number, minimum: number?): number
+	if typeof(value) ~= "number" or value ~= value or math.abs(value) >= math.huge then
+		return fallback
+	end
+	if minimum and value < minimum then
+		return minimum
+	end
+	return value
+end
+
 -- Version steps go here (v1 -> v2 ...). Each returns nil on success or an error string.
 -- Runs before reconcile. There are none yet: v1 is the first schema.
 local function migrate(data: { [string]: any }): string?
-	if typeof(data.version) ~= "number" then
+	if typeof(data.version) ~= "number" or data.version ~= data.version then
 		data.version = SCHEMA_VERSION
 	end
 	if data.version > SCHEMA_VERSION then
@@ -134,43 +157,125 @@ local function migrate(data: { [string]: any }): string?
 	return nil
 end
 
--- Fills fields missing from older saves (nested too), in place; never overwrites values.
+local function mergeTable(
+	target: { [string]: any },
+	defaults: { [string]: any },
+	mins: { [string]: number }?
+)
+	for key, defaultVal in defaults do
+		local cur = target[key]
+		if typeof(defaultVal) == "number" then
+			local minVal = if mins and mins[key] ~= nil then mins[key] else 0
+			target[key] = finiteNumber(cur, defaultVal, minVal)
+		elseif typeof(defaultVal) == "boolean" then
+			if typeof(cur) ~= "boolean" then
+				target[key] = defaultVal
+			end
+		elseif typeof(defaultVal) == "string" then
+			if typeof(cur) ~= "string" then
+				target[key] = defaultVal
+			end
+		elseif cur == nil then
+			target[key] = deepClone(defaultVal)
+		end
+	end
+end
+
+-- Fills fields missing from older saves (nested too), in place; never overwrites valid values.
 local function reconcile(data: { [string]: any })
 	local defaults = template() :: any
 	for key, value in defaults do
-		if data[key] == nil then
+		if typeof(value) == "table" then
+			if typeof(data[key]) ~= "table" then
+				data[key] = deepClone(value)
+			end
+		elseif typeof(value) == "number" then
+			data[key] = finiteNumber(data[key], value, 0)
+		elseif typeof(value) == "string" then
+			if typeof(data[key]) ~= "string" then
+				data[key] = value
+			end
+		elseif data[key] == nil then
 			data[key] = value
 		end
 	end
+
 	for stat, value in defaults.training do
-		if data.training[stat] == nil then
-			data.training[stat] = value
+		if typeof(data.training[stat]) ~= "table" then
+			data.training[stat] = deepClone(value)
+		else
+			data.training[stat].level = finiteNumber(data.training[stat].level, 0, 0)
+			data.training[stat].xp = finiteNumber(data.training[stat].xp, 0, 0)
 		end
 	end
-	for key, value in defaults.stats do
-		if data.stats[key] == nil then
-			data.stats[key] = value
+
+	mergeTable(data.stats, defaults.stats, { level = 1 })
+	mergeTable(data.boosts, defaults.boosts)
+	mergeTable(data.settings, defaults.settings)
+	data.settings.music = math.clamp(data.settings.music, 0, 1)
+	data.settings.sfx = math.clamp(data.settings.sfx, 0, 1)
+	mergeTable(data.daily, defaults.daily)
+	mergeTable(data.tutorial, defaults.tutorial)
+
+	data.missions.day = finiteNumber(data.missions.day, 0, 0)
+	if typeof(data.missions.list) ~= "table" then
+		data.missions.list = {}
+	else
+		local cleanMissions = {}
+		for _, m in data.missions.list do
+			if typeof(m) == "table" and typeof(m.id) == "string" and typeof(m.kind) == "string" then
+				table.insert(cleanMissions, {
+					id = m.id,
+					kind = m.kind,
+					target = finiteNumber(m.target, 1, 1),
+					progress = finiteNumber(m.progress, 0, 0),
+					reward = finiteNumber(m.reward, 0, 0),
+					claimed = m.claimed == true,
+				})
+			end
+		end
+		data.missions.list = cleanMissions
+	end
+
+	for id, entry in data.collection do
+		if typeof(id) ~= "string" or typeof(entry) ~= "table" then
+			data.collection[id] = nil
+		else
+			local rawCount = if entry.count ~= nil then entry.count else entry.catches
+			entry.count = finiteNumber(rawCount, 1, 1)
+			entry.bestWeight = finiteNumber(entry.bestWeight, 0.1, 0)
+			entry.firstAt = finiteNumber(entry.firstAt, 0, 0)
+			entry.shiny = finiteNumber(entry.shiny, 0, 0)
 		end
 	end
-	for key, value in defaults.boosts do
-		if data.boosts[key] == nil then
-			data.boosts[key] = value
+
+	local cleanRods: { string } = {}
+	local seenRods: { [string]: boolean } = {}
+	for _, rodId in data.rodsOwned do
+		if typeof(rodId) == "string" and Rods.get(rodId) and not seenRods[rodId] then
+			seenRods[rodId] = true
+			table.insert(cleanRods, rodId)
 		end
 	end
-	for key, value in defaults.settings do
-		if data.settings[key] == nil then
-			data.settings[key] = value
-		end
+	if not seenRods[STARTER_ROD] then
+		table.insert(cleanRods, 1, STARTER_ROD)
 	end
-	for key, value in defaults.daily do
-		if data.daily[key] == nil then
-			data.daily[key] = value
-		end
+	data.rodsOwned = cleanRods
+	if not table.find(cleanRods, data.equippedRod) or not Rods.get(data.equippedRod) then
+		data.equippedRod = STARTER_ROD
 	end
-	if not table.find(data.rodsOwned, STARTER_ROD) then
-		table.insert(data.rodsOwned, STARTER_ROD)
-	end
+
 	data.version = SCHEMA_VERSION
+end
+
+-- Exposed so tests and migration checks run the exact same pipeline as onPlayerAdded.
+function PlayerData.reconcileProfile(data: { [string]: any }): string?
+	local ok, failure = pcall(migrate, data)
+	if not ok or failure ~= nil then
+		return if ok then failure :: string? else tostring(failure)
+	end
+	reconcile(data)
+	return nil
 end
 
 -- Snapshot -----------------------------------------------------------------------------
@@ -179,19 +284,26 @@ local function snapshot(profile: Profile): Types.Snapshot
 	return {
 		coins = profile.coins,
 		equippedRod = profile.equippedRod,
-		rodsOwned = table.clone(profile.rodsOwned),
-		collection = table.clone(profile.collection),
-		training = table.clone(profile.training),
-		stats = table.clone(profile.stats),
-		tutorial = table.clone(profile.tutorial),
-		missions = { day = profile.missions.day, list = table.clone(profile.missions.list) },
-		milestones = table.clone(profile.milestones),
-		achievements = table.clone(profile.achievements),
-		redeemed = table.clone(profile.redeemed),
+		rodsOwned = deepClone(profile.rodsOwned),
+		collection = deepClone(profile.collection),
+		training = deepClone(profile.training),
+		stats = deepClone(profile.stats),
+		tutorial = deepClone(profile.tutorial),
+		missions = {
+			day = profile.missions.day,
+			list = deepClone(profile.missions.list),
+		},
+		milestones = deepClone(profile.milestones),
+		achievements = deepClone(profile.achievements),
+		redeemed = deepClone(profile.redeemed),
 		prestige = profile.prestige,
-		settings = table.clone(profile.settings),
-		daily = table.clone(profile.daily),
+		settings = deepClone(profile.settings),
+		daily = deepClone(profile.daily),
 	}
+end
+
+function PlayerData.buildSnapshot(profile: Profile): Types.Snapshot
+	return snapshot(profile)
 end
 
 local function mirrorAttributes(player: Player, profile: Profile)
@@ -238,14 +350,27 @@ function PlayerData.wait(player: Player): Profile?
 	return profiles[player]
 end
 
--- The only way to change a profile. `mutate` runs synchronously and must not yield.
--- It edits ProfileStore's own Data table in place, which is what gets saved.
+-- The only way to change a profile. `mutate` runs synchronously against a deep copy so a
+-- runtime error mid-mutation never leaves ProfileStore's live session.Data half-written.
 function PlayerData.update(player: Player, mutate: (Profile) -> ()): boolean
 	local profile = profiles[player]
 	if not profile then
 		return false
 	end
-	mutate(profile)
+	local draft = deepClone(profile) :: Profile
+	local ok, err = pcall(mutate, draft)
+	if not ok then
+		warn(`[PlayerData] update failed for {player.Name}: {err}`)
+		return false
+	end
+	for key, value in draft :: any do
+		(profile :: any)[key] = value
+	end
+	for key in profile :: any do
+		if (draft :: any)[key] == nil then
+			(profile :: any)[key] = nil
+		end
+	end
 	mirrorAttributes(player, profile)
 	markDirty(player)
 	return true
@@ -333,8 +458,12 @@ local function activate(player: Player, session: Session)
 							break
 						end
 						if not p.collection[creature.id] then
-							p.collection[creature.id] =
-								{ catches = 1, bestWeight = creature.baseWeight }
+							p.collection[creature.id] = {
+								count = 1,
+								bestWeight = creature.weightMin,
+								firstAt = os.time(),
+								shiny = 0,
+							}
 							total += 1
 						end
 					end
@@ -358,8 +487,8 @@ local function onPlayerAdded(player: Player)
 	session:AddUserId(player.UserId) -- lets Roblox data deletion requests find this profile
 
 	-- Migrate BEFORE reconciling. Never fall back to a fresh profile on failure.
-	local ok, failure = pcall(migrate, session.Data)
-	if not ok or failure ~= nil then
+	local failure = PlayerData.reconcileProfile(session.Data)
+	if failure ~= nil then
 		warn(`[PlayerData] migration failed for {player.Name}: {failure}`)
 		session:EndSession()
 		player:Kick(Strings.forLocale(player.LocaleId).dataLoadFailed)

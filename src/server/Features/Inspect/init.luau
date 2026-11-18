@@ -44,11 +44,11 @@ local function onInspect(player: Player, userId: unknown)
 	local species = 0
 	local shinies = 0
 
-	for creatureId, entry in profile.collection do
-		if Creatures.get(creatureId) then
+	for creatureId, entry in profile.collection or {} do
+		if Creatures.get(creatureId) and typeof(entry) == "table" then
 			species += 1
 			table.insert(discovered, creatureId)
-			bestWeights[creatureId] = entry.bestWeight
+			bestWeights[creatureId] = entry.bestWeight or 0
 			local s = entry.shiny
 			if typeof(s) == "number" and s > 0 then
 				shinies += s
@@ -58,13 +58,14 @@ local function onInspect(player: Player, userId: unknown)
 	end
 	table.sort(discovered)
 
+	local stats = profile.stats
 	local payload: Net.InspectResult = {
 		userId = target.UserId,
 		displayName = target.DisplayName,
-		level = profile.stats.level,
+		level = if stats then stats.level or 1 else 1,
 		prestige = profile.prestige or 0,
 		species = species,
-		catches = profile.stats.catches,
+		catches = if stats then stats.catches or 0 else 0,
 		shinies = shinies,
 		discovered = discovered,
 		bestWeights = bestWeights,

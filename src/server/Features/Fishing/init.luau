@@ -425,10 +425,10 @@ local function payCatch(
 	PlayerData.update(player, function(p)
 		local entry = p.collection[creature.id]
 		if entry then
-			entry.count += 1
-			if weight > entry.bestWeight then
+			entry.count = (entry.count or 0) + 1
+			if weight > (entry.bestWeight or 0) then
 				isRecord = true
-				previousBest = entry.bestWeight
+				previousBest = entry.bestWeight or 0
 				entry.bestWeight = weight
 			end
 		else
@@ -441,11 +441,11 @@ local function payCatch(
 		end
 		count = entry.count
 		p.coins += value
-		p.stats.catches += 1
+		p.stats.catches = (p.stats.catches or 0) + 1
 		if creature.rarity == "Legendary" or creature.rarity == "Mystic" then
-			p.stats.legendaries += 1
+			p.stats.legendaries = (p.stats.legendaries or 0) + 1
 		end
-		if not isAuto and combo > p.stats.bestCombo then
+		if not isAuto and combo > (p.stats.bestCombo or 0) then
 			p.stats.bestCombo = combo
 		end
 	end)

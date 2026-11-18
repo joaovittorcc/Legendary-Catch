@@ -31,3 +31,32 @@ Roteiro ponta a ponta no `Play` (Studio, Device Emulator mobile landscape `~750�
 3. **Rolagem orgânica de `C100_Aurora_Boreal_Viva` durante evento `aurora`:** validado o banner e a captura com o evento ativo, sem rodar dezenas de lançamentos até sortear especificamente a lendária exclusiva de evento (em `Play`, a 1ª captura sem histórico prévio ativa o override amigável Uncommon).
 4. **iPhone retrato (`Device Emulator`):** os testes visuais desta sessão rodaram no preset ativo mobile landscape (`~750×381`); retrato e aparelho físico não foram testados.
 5. **Console do Studio (`get_console_output`):** `0` erros e `0` warnings nos scripts do jogo; restam apenas os avisos normais do ambiente Studio sem APIs (`DataStoreService: StudioAccessToApisNotAllowed`, `rbxassetid://203785492` e reset de câmera do `ExecuteLuauActions`).
+
+---
+
+## Segurança de Dados, Migração de Perfil e Regressão 2 (2026-11-18)
+
+### Bugs e Riscos de Dados Encontrados e Corrigidos
+
+| Data | Arquivo / Área | Bug / Risco | Causa | Correção | Status |
+|---|---|---|---|---|---|
+| 2026-11-18 | `PlayerData` (`reconcile`) | Perfis parciais (`missions` sem `list`, `tutorial` parcial), valores `NaN`/negativos (`stats.catches = -5`, `coins = NaN`), `equippedRod` inválido e entradas antigas sem `count`/`shiny` podiam causar crash em `snapshot()` (`table.clone(nil)`) ou matemática inválida | `reconcile()` não validava tipos das sub-tabelas (`tutorial`, `missions`, `collection`, `rodsOwned`), `mergeTable` passava `nil` como mínimo quando `mins` tinha outra chave (`catches = -5` passava), e `DevGrantSpecies` escrevia `{ catches = 1, bestWeight = creature.baseWeight }` (`nil` em `count`/`bestWeight`) | Adicionado `mergeTable` tipado + `finiteNumber` (com `mins[key] ~= nil` e fallback `0`), validação de `tutorial`, `missions.list`, `collection[*]` (migrando `catches -> count` e preenchendo `shiny = 0`), `rodsOwned`/`equippedRod`, correção de `DevGrantSpecies`, e exportado `PlayerData.reconcileProfile` + `PlayerData.buildSnapshot` | **Corrigido e validado no Play (`tools/migration-test.luau`)** |
+| 2026-11-18 | `PlayerData` (`snapshot`) | `snapshot(profile)` fazia `table.clone` raso em `collection`, `training` e `missions.list`, compartilhando referências mutáveis entre `ProfileStore` e consumidores do snapshot | Uso de `table.clone` não recursivo em tabelas aninhadas | Implementado `deepClone` recursivo aplicado em todos os campos compostos de `snapshot()` | **Corrigido e testado (mutar snapshot não afeta `v0`)** |
+| 2026-11-18 | `PlayerData.update` | Se `mutate(profile)` lançasse erro no meio (ex.: após descontar moedas), `session.Data` ficava parcialmente corrompido e `mirrorAttributes`/`markDirty` não rodavam | `mutate(profile)` escrevia diretamente sobre a tabela viva do `ProfileStore` sem isolamento transacional | `PlayerData.update` agora executa `pcall(mutate, draft)` sobre `deepClone(profile)` e só aplica as chaves em `profile` se não houver erro | **Corrigido e revisado** (rollback por `pcall` preservando referência `session.Data`) |
+| 2026-11-18 | Features (`Inspect`, `Fishing`, `Achievements`, `Monetization`) | Leituras diretas de sub-campos (`entry.count`, `entry.bestWeight`, `profile.stats.catches/level/bestCombo`, `profile.boosts.luckUntil`) sem fallback defensivo | Suposição de schema sempre completo | Adicionados nil-guards defensivos em todas as leituras identificadas | **Corrigido** |
+
+### Testes Rodados no `Play` (Server + Client)
+1. **Roteiro de Migração ([`tools/migration-test.luau`](../tools/migration-test.luau)) via `execute_luau` no Server em `Play`:**
+   - `v0` (apenas campos originais, sem `stats.level/levelXp/bestCombo/trainDay/suspicious`, sem `missions.list`, sem `prestige/achievements/redeemed/boosts`, sem `daily.streak/shieldUsedAt/shieldProtected/lastChest`, sem `collection.*.shiny` e sem `starter` em `rodsOwned`): migrado e validado 100%.
+   - `v-mid` (campos intermediários + `equippedRod` inexistente): preservou progresso e resetou vara inválida para `starter`.
+   - `v-corrupt` (`coins = NaN`, `stats.level = 0`, `stats.catches = -5`, `settings.music = 99`, `collection` legado `{ catches = 2 }`): todos sanitizados (`coins = 0`, `level = 1`, `catches = 0`, `music = 1`, `count = 2`).
+   - `vFuture` (`version = 99`): rejeitado sem sobrescrever.
+   - Isolamento de `buildSnapshot`: alterações no snapshot não afetaram o perfil `v0` original.
+2. **Regressão 2 (Play em fluxo completo):**
+   - **Primeira pesca guiada em `lagoon`:** `FishingZone == "lagoon"`, mordida em `2.13 s` (`Uncommon`, `reel`), captura `C43_Baiacu_Algodao_Doce` (`180` moedas).
+   - **Prestígio + Coral:** comprou/equipou `coral` (`EquippedRod == "coral"`), `DoPrestige` elevou `Prestige` `0 -> 1`, moedas `25.000`, `EquippedRod == "starter"`, tentativa seguinte `EquipRod("coral")` bloqueada em `"starter"`.
+   - **`InspectPlayer`:** retornou `{ species = 60, prestige = 1, level = 1, catches = 1 }` sem erro após `DevGrantSpecies` + Prestígio.
+   - **Auto-pesca + `DevForceRarity = "Legendary"`:** 6 capturas automáticas seguidas (`Common`, `Rare`, `Rare`, `Common`, `Uncommon`, `Common`) — nenhuma Lendária ou Mística paga.
+   - **Evento (`aurora`) + Estação (`xmas`) juntos e desligamento:** `EventBanner` + `SeasonBanner` visíveis juntos sem sobreposição (`bannersOverlap = false`); desligar `DevSeason` ocultou `SeasonBanner` e removeu neve/luzes mantendo `EventBanner` ativo.
+   - **Console (`get_console_output`):** `0` erros e `0` warnings nos scripts do jogo.
+
