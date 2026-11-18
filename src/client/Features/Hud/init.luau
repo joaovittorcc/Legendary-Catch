@@ -513,12 +513,6 @@ function Hud.start()
 	menu.BorderSizePixel = 0
 	menu.Visible = false
 	Art.panel(menu, Theme.crystal)
-	local menuPadding = Instance.new("UIPadding")
-	menuPadding.PaddingTop = UDim.new(0, 14)
-	menuPadding.PaddingBottom = UDim.new(0, 10)
-	menuPadding.PaddingLeft = UDim.new(0, 10)
-	menuPadding.PaddingRight = UDim.new(0, 10)
-	menuPadding.Parent = menu
 	menu.Parent = gui
 	local setMenuVisible = Hud.bindFishingVisibility(menu, false)
 	local menuOpen = false
@@ -692,8 +686,10 @@ function Hud.start()
 		local gap = 8
 		local cellWidth = math.clamp(math.round(size.Y * (if portrait then 0.11 else 0.2)), 92, 150)
 		local cellHeight = math.round(cellWidth / NAV_RATIO)
-		local popupWidth = columns * cellWidth + (columns - 1) * gap + 20
-		local popupHeight = rows * cellHeight + (rows - 1) * gap + 28
+		-- The cream fill sits 8 px inside the frame; buttons sit 8 px inside the cream.
+		local inset = 16
+		local popupWidth = columns * cellWidth + (columns - 1) * gap + inset * 2
+		local popupHeight = rows * cellHeight + (rows - 1) * gap + inset * 2
 		menu.Size = UDim2.fromOffset(popupWidth, popupHeight)
 		menu.AnchorPoint = Vector2.new(1, 0)
 		menu.Position = UDim2.new(0.983, 0, 0, height + 12)
@@ -703,7 +699,10 @@ function Hud.start()
 			local column = (index - 1) % columns
 			button.AnchorPoint = Vector2.zero
 			button.Size = UDim2.fromOffset(cellWidth, cellHeight)
-			button.Position = UDim2.fromOffset(column * (cellWidth + gap), row * (cellHeight + gap))
+			button.Position = UDim2.fromOffset(
+				inset + column * (cellWidth + gap),
+				inset + row * (cellHeight + gap)
+			)
 		end
 		resized:Fire()
 	end
