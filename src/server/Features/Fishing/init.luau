@@ -701,8 +701,14 @@ function Fishing.start()
 		if humanoid then
 			humanoid.Died:Connect(function()
 				local s = sessions[player]
-				if s and s.autoEnabled then
+				if not s then
+					return
+				end
+				if s.autoEnabled then
 					stopAuto(player, s, nil)
+				elseif s.phase ~= "idle" then
+					reset(player, s)
+					send(player, { event = "cancelled", castId = s.castId })
 				end
 			end)
 		end

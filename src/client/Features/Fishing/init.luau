@@ -300,6 +300,26 @@ end
 
 local function onCharacter(character: Model)
 	cleanup()
+	local hum = character:FindFirstChildOfClass("Humanoid")
+	if hum then
+		hum.Died:Connect(function()
+			if state ~= "idle" and state ~= "revealing" then
+				cleanup()
+			end
+		end)
+	else
+		local addedConn: RBXScriptConnection
+		addedConn = character.ChildAdded:Connect(function(child)
+			if child:IsA("Humanoid") then
+				addedConn:Disconnect()
+				child.Died:Connect(function()
+					if state ~= "idle" and state ~= "revealing" then
+						cleanup()
+					end
+				end)
+			end
+		end)
+	end
 	for _, child in character:GetChildren() do
 		watchTool(child)
 	end

@@ -49,8 +49,13 @@ local function rootOf(player: Player): BasePart?
 end
 
 local function near(player: Player, spot: BasePart): boolean
+	local character = player.Character
 	local root = rootOf(player)
-	return root ~= nil and (root.Position - spot.Position).Magnitude <= TrainingConfig.SPOT_RADIUS
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	return root ~= nil
+		and humanoid ~= nil
+		and humanoid.Health > 0
+		and (root.Position - spot.Position).Magnitude <= TrainingConfig.SPOT_RADIUS
 end
 
 local function stop(player: Player, reason: string)
@@ -215,6 +220,22 @@ function Training.start()
 
 	local function initPlayer(player: Player)
 		player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, "")
+		local function watchCharacter(character: Model?)
+			if not character then
+				return
+			end
+			local humanoid = character:FindFirstChildOfClass("Humanoid")
+				or character:WaitForChild("Humanoid", 5)
+			if humanoid and humanoid:IsA("Humanoid") then
+				humanoid.Died:Connect(function()
+					stop(player, "respawn")
+				end)
+			end
+		end
+		if player.Character then
+			task.spawn(watchCharacter, player.Character)
+		end
+		player.CharacterAdded:Connect(watchCharacter)
 		player.CharacterRemoving:Connect(function()
 			stop(player, "respawn")
 		end)

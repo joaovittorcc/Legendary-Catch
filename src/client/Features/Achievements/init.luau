@@ -57,6 +57,11 @@ local function leftLabel(
 	label.Name = name
 	label.Position = UDim2.fromOffset(indent, y)
 	label.Size = UDim2.new(1, -indent - 10, 0, height)
+	label.TextScaled = true
+	label.TextWrapped = true
+	local cap = Instance.new("UITextSizeConstraint")
+	cap.MaxTextSize = size
+	cap.Parent = label
 	label.TextXAlignment = Enum.TextXAlignment.Left
 	label.TextStrokeTransparency = 1
 	return label
@@ -84,9 +89,9 @@ local function card(
 	Theme.corner(icon, 11)
 
 	leftLabel(frame, "Title", if copy then copy.name else achievement.id, 16, 4, 26, 48)
-	leftLabel(frame, "Description", if copy then copy.description else "", 13, 29, 28, 48)
-	local badge = leftLabel(frame, "Status", "", 13, 58, 19, 10)
-	local reward = Panel.label(frame, string.format("+%d ◆", achievement.reward), 13, Theme.wood)
+	leftLabel(frame, "Description", if copy then copy.description else "", 14, 29, 28, 48)
+	local badge = leftLabel(frame, "Status", "", 14, 58, 19, 10)
+	local reward = Panel.label(frame, string.format("+%d ◆", achievement.reward), 14, Theme.wood)
 	reward.Name = "Reward"
 	reward.Position = UDim2.new(1, -85, 0, 58)
 	reward.Size = UDim2.fromOffset(75, 19)
