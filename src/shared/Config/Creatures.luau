@@ -661,6 +661,24 @@ local LIST: { Creature } = {
 		weightMax = 18,
 		revealStyle = "cloud",
 	},
+	{
+		id = "C93_Ouroboros_Cosmico",
+		rarity = "Mystic",
+		tier = 6,
+		baseValue = 9000,
+		weightMin = 20000,
+		weightMax = 80000,
+		revealStyle = "cosmic",
+	},
+	{
+		id = "C94_Mare_Primordial",
+		rarity = "Mystic",
+		tier = 6,
+		baseValue = 10000,
+		weightMin = 50000,
+		weightMax = 200000,
+		revealStyle = "cosmic",
+	},
 }
 
 -- Next batch: designed, not released. They stay out of LIST (no rolls, bestiary or milestones)
@@ -854,24 +872,6 @@ local PLANNED: { Creature } = {
 		baseValue = 1900,
 		weightMin = 1500,
 		weightMax = 6000,
-		revealStyle = "cosmic",
-	},
-	{
-		id = "C93_Ouroboros_Cosmico",
-		rarity = "Mystic",
-		tier = 6,
-		baseValue = 9000,
-		weightMin = 20000,
-		weightMax = 80000,
-		revealStyle = "cosmic",
-	},
-	{
-		id = "C94_Mare_Primordial",
-		rarity = "Mystic",
-		tier = 6,
-		baseValue = 10000,
-		weightMin = 50000,
-		weightMax = 200000,
 		revealStyle = "cosmic",
 	},
 }

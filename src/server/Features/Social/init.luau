@@ -49,6 +49,7 @@ end
 -- Called by Fishing after a catch is paid.
 function Social.onCatch(player: Player, creature: Creatures.Creature, variant: string)
 	local big = creature.rarity == "Legendary"
+		or creature.rarity == "Mystic"
 		or (variant == "Shiny" and (creature.rarity == "Epic"))
 	if not big then
 		return

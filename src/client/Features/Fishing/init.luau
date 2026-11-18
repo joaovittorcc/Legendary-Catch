@@ -168,7 +168,7 @@ local function startFight(update: Net.FishingUpdate)
 	state = "fighting"
 	Line.bite(l, color)
 	FishingCamera.fight()
-	if rarity == "Legendary" then
+	if rarity == "Legendary" or rarity == "Mystic" then
 		Omen.start()
 	end
 	freeze(true)
@@ -218,7 +218,7 @@ local function onCaught(update: Net.FishingUpdate)
 	local rarity = if creature then creature.rarity else "Common"
 	local origin = l.rest
 	-- Legendaries run their own cinematic; the rest watch the fish fly in over the shoulder.
-	if rarity == "Legendary" then
+	if rarity == "Legendary" or rarity == "Mystic" then
 		FishingCamera.stop()
 	else
 		FishingCamera.catch(origin)

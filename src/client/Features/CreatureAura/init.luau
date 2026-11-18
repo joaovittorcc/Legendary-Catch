@@ -306,7 +306,14 @@ end
 -- models inside ViewportFrames (particles and lights don't show there).
 function CreatureAura.attach(model: Model)
 	local creature = Creatures.get(model.Name)
-	if not creature or (creature.rarity ~= "Epic" and creature.rarity ~= "Legendary") then
+	if
+		not creature
+		or (
+			creature.rarity ~= "Epic"
+			and creature.rarity ~= "Legendary"
+			and creature.rarity ~= "Mystic"
+		)
+	then
 		return
 	end
 	if
@@ -317,8 +324,8 @@ function CreatureAura.attach(model: Model)
 		return
 	end
 	model:SetAttribute("HasAura", true)
-	local legendary = creature.rarity == "Legendary"
-	local spec = SPECS[model.Name] or FALLBACK[creature.rarity]
+	local legendary = creature.rarity == "Legendary" or creature.rarity == "Mystic"
+	local spec = SPECS[model.Name] or FALLBACK[creature.rarity] or FALLBACK.Legendary
 	local calm = player:GetAttribute("ReduceEffects") == true
 
 	local box, size = model:GetBoundingBox()
