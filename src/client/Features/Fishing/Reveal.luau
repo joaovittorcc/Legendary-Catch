@@ -20,7 +20,14 @@ local Players = game:GetService("Players")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 
-type CatchInfo = { weight: number?, value: number?, isNew: boolean?, variant: string? }
+type CatchInfo = {
+	weight: number?,
+	value: number?,
+	isNew: boolean?,
+	variant: string?,
+	isRecord: boolean?,
+	previousBest: number?,
+}
 local seen: { [string]: boolean } = {}
 local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local stylesModule = script.Parent.Parent:WaitForChild("RevealStyles")
@@ -105,10 +112,12 @@ end
 
 local function nameCard(name: string, rarity: string, color: Color3, info: CatchInfo?): Frame
 	local gui = Ui.screen()
+	local hasDiscovery = info ~= nil and (info.isNew == true or info.variant == "Shiny")
+	local hasRecord = info ~= nil and info.isRecord == true and info.previousBest ~= nil
 	local card = Ui.frame(
 		gui,
 		"RevealCard",
-		UDim2.fromScale(0.76, 0.24),
+		UDim2.fromScale(0.62, 0.2),
 		UDim2.fromScale(0.5, 0.12),
 		Theme.ink,
 		0.08
@@ -116,7 +125,7 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	Art.panel(card, if rarity == "Common" then Theme.crystal else color)
 	card.AnchorPoint = Vector2.new(0.5, 1)
 	local aspect = Instance.new("UIAspectRatioConstraint")
-	aspect.AspectRatio = 2.65
+	aspect.AspectRatio = 3.1
 	aspect.DominantAxis = Enum.DominantAxis.Width
 	aspect.Parent = card
 	local bounds = Instance.new("UISizeConstraint")
@@ -126,8 +135,8 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	local ribbon = Ui.frame(
 		card,
 		"RevealRibbon",
-		UDim2.new(0.68, 0, 0, 38),
-		UDim2.new(0.16, 0, 0.12, 0),
+		UDim2.new(0.68, 0, 0, 34),
+		UDim2.new(0.16, 0, if hasDiscovery then 0.2 else 0.12, 0),
 		if rarity == "Common" then Theme.crystal else color
 	)
 	Theme.corner(ribbon, 15)
@@ -138,8 +147,8 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	local title = Ui.label(
 		card,
 		"Name",
-		UDim2.new(0.64, 0, 0, 34),
-		UDim2.new(0.18, 0, 0.12, 0),
+		UDim2.new(0.64, 0, 0, 30),
+		UDim2.new(0.18, 0, if hasDiscovery then 0.2 else 0.12, 0),
 		name,
 		Theme.ink
 	)
@@ -148,20 +157,25 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	title.ZIndex = 4
 	local badge, rarityLabel = Art.rarity(card)
 	badge.AnchorPoint = Vector2.new(0.5, 0)
-	badge.Position = UDim2.fromScale(0.5, 0.54)
-	badge.Size = UDim2.fromScale(0.44, 0.19)
+	badge.Position = UDim2.fromScale(0.5, if hasRecord then 0.45 else 0.54)
+	badge.Size = UDim2.fromScale(0.44, 0.17)
 	Art.setRarity(badge, rarityLabel, rarity)
-	if info and (info.isNew or info.variant == "Shiny") then
-		Ui.label(
+	if info and hasDiscovery then
+		local discovery = Ui.label(
 			card,
 			"Discovery",
-			UDim2.fromScale(0.88, 0.15),
-			UDim2.fromScale(0.06, 0.1),
+			UDim2.fromScale(0.88, 0.13),
+			UDim2.fromScale(0.06, 0.035),
 			if info.variant == "Shiny"
 				then (if info.isNew then Text.shiny .. "  ·  " .. Text.discovery else Text.shiny)
 				else Text.discovery,
-			Theme.gold
+			Theme.ink
 		)
+		discovery.TextStrokeTransparency = 0.5
+		local discoveryLimit = Instance.new("UITextSizeConstraint")
+		discoveryLimit.MinTextSize = 11
+		discoveryLimit.MaxTextSize = 15
+		discoveryLimit.Parent = discovery
 	end
 	if info and info.weight and info.value then
 		local reward = string.format(Text.captureReward, info.weight, info.value)
@@ -173,11 +187,25 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 				reward ..= "   ·   " .. string.format(Strings.odds, (digits:gsub("^%.", "")))
 			end
 		end
+		local rewardY = 0.755
+		if info and info.isRecord and info.previousBest then
+			local record = string.format(Text.newRecord, info.previousBest, info.weight)
+			local recordLabel = Ui.label(
+				card,
+				"Record",
+				UDim2.fromScale(0.88, 0.13),
+				UDim2.fromScale(0.06, 0.69),
+				record,
+				if Theme.rarityRank(rarity) >= 4 then Theme.gold else Theme.ink
+			)
+			recordLabel.TextStrokeTransparency = 0.1
+			rewardY = 0.82
+		end
 		Ui.label(
 			card,
 			"Reward",
 			UDim2.fromScale(0.88, 0.16),
-			UDim2.fromScale(0.06, 0.755),
+			UDim2.fromScale(0.06, rewardY),
 			reward,
 			if Theme.rarityRank(rarity) >= 5 then Theme.gold else Theme.ink
 		)
