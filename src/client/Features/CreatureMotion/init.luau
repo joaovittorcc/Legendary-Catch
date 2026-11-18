@@ -37,7 +37,7 @@ local LIMB_MOTION: { [string]: (phase: number, side: number) -> CFrame } = {
 		return CFrame.Angles(math.sin(phase * 2.2) * 0.18, 0, math.sin(phase * 2.2) * 0.22)
 	end,
 	Wings = function(phase)
-		return CFrame.Angles(math.sin(phase * 1.6) * 0.28, 0, 0)
+		return CFrame.Angles(math.sin(phase * 1.6) * 0.2, 0, 0)
 	end,
 	Tentacles = function(phase)
 		return CFrame.Angles(math.sin(phase * 1.3) * 0.22, math.sin(phase * 0.9) * 0.12, 0)
@@ -49,9 +49,59 @@ local LIMB_MOTION: { [string]: (phase: number, side: number) -> CFrame } = {
 		return CFrame.Angles(math.sin(phase * 2.6) * 0.3, 0, 0)
 	end,
 	Claws = function(phase)
-		return CFrame.Angles(math.max(0, math.sin(phase * 1.8)) * 0.35, 0, 0)
+		return CFrame.Angles(math.max(0, math.sin(phase * 1.8)) * 0.32, 0, 0)
+	end,
+	Shell = function(phase)
+		return CFrame.Angles(math.sin(phase * 0.7) * 0.045, 0, math.sin(phase * 0.5) * 0.03)
+	end,
+	Extra = function(phase)
+		return CFrame.Angles(math.sin(phase * 1.3) * 0.07, 0, math.sin(phase * 1.0) * 0.05)
 	end,
 }
+
+local PRIMARY_LIMBS: { [string]: boolean } = {
+	Tail = true,
+	FinL = true,
+	FinR = true,
+	Fins = true,
+	Wings = true,
+	Tentacles = true,
+	Head = true,
+	Legs = true,
+	Claws = true,
+	Shell = true,
+}
+
+-- Closest distance from a world point to a BasePart's oriented bounding box (0 if inside).
+local function surfaceDistance(host: BasePart, worldPos: Vector3): number
+	local localPos = host.CFrame:PointToObjectSpace(worldPos)
+	local half = host.Size * 0.5
+	local clamped = Vector3.new(
+		math.clamp(localPos.X, -half.X, half.X),
+		math.clamp(localPos.Y, -half.Y, half.Y),
+		math.clamp(localPos.Z, -half.Z, half.Z)
+	)
+	return (localPos - clamped).Magnitude
+end
+
+local function computeHinge(pivot: CFrame, part: BasePart, hostCenter: Vector3): Vector3
+	local rest = pivot:ToObjectSpace(part.CFrame)
+	local toHost = hostCenter - rest.Position
+	local dist = toHost.Magnitude
+	if dist <= 0.01 then
+		return rest.Position
+	end
+	local dir = toHost / dist
+	local localDir = rest:VectorToObjectSpace(dir)
+	local halfExtent = 0.5
+		* (
+			math.abs(localDir.X) * part.Size.X
+			+ math.abs(localDir.Y) * part.Size.Y
+			+ math.abs(localDir.Z) * part.Size.Z
+		)
+	local reach = math.min(dist, math.max(halfExtent * 0.85, 0.05))
+	return rest.Position + dir * reach
+end
 
 local TEMPO: { [string]: number } = {
 	bubbles = 0.92,
@@ -83,31 +133,92 @@ function CreatureMotion.bind(model: Model, style: string?): Motion
 			table.insert(neon, { part = item, color = item.Color })
 		end
 	end
-	-- Segmented parts: find the hinge of each limb (the point of the part closest to the
-	-- body), so it rotates from where it attaches instead of spinning around its center.
+	-- Segmented parts: find the hinge of each limb along the part's surface facing its host,
+	-- so it rotates from where it attaches instead of swinging off-center or clipping.
 	local pivot = model:GetPivot()
-	local body = model:FindFirstChild("Body")
-	local bodyCenter = if body and body:IsA("BasePart")
+	local bodyInst = model:FindFirstChild("Body")
+	local body = if bodyInst and bodyInst:IsA("BasePart") then bodyInst else nil
+	local headInst = model:FindFirstChild("Head")
+	local head = if headInst and headInst:IsA("BasePart") then headInst else nil
+	local bodyCenter = if body
 		then pivot:PointToObjectSpace(body.Position)
 		else pivot:PointToObjectSpace(box.Position)
+
 	local limbs: { Limb } = {}
+	local extras: { BasePart } = {}
 	for _, item in model:GetChildren() do
-		if item:IsA("BasePart") and LIMB_MOTION[item.Name] then
-			local rest = pivot:ToObjectSpace(item.CFrame)
-			local toBody = bodyCenter - rest.Position
-			local reach = math.max(item.Size.X, item.Size.Y, item.Size.Z) * 0.4
-			local joint = if toBody.Magnitude > 0.01
-				then rest.Position + toBody.Unit * math.min(reach, toBody.Magnitude)
-				else rest.Position
+		if item:IsA("BasePart") then
+			if PRIMARY_LIMBS[item.Name] then
+				local hostCenter = bodyCenter
+				if item.Name == "Claws" and body and head then
+					if
+						(item.Position - head.Position).Magnitude
+						< (item.Position - body.Position).Magnitude
+					then
+						hostCenter = pivot:PointToObjectSpace(head.Position)
+					end
+				end
+				table.insert(limbs, {
+					part = item,
+					kind = item.Name,
+					rest = pivot:ToObjectSpace(item.CFrame),
+					joint = computeHinge(pivot, item, hostCenter),
+					side = if item.Name == "FinR" then -1 else 1,
+				})
+			elseif item.Name == "Extra" then
+				table.insert(extras, item)
+			end
+		end
+	end
+
+	-- Extra parts (eyes, wing crystals, crowns, ribbons): if attached to an animated limb
+	-- (closer to that limb than to Body), inherit that limb's exact hinge + motion so eyes
+	-- and accents never detach from Head/Wings/Tail/Shell. Large Body ornaments sway gently.
+	local primaryCount = #limbs
+	for _, item in extras do
+		local bodyDist = if body then surfaceDistance(body, item.Position) else math.huge
+		local bestLimb: Limb? = nil
+		local bestDist = math.huge
+		local bestCenterDist = math.huge
+		for i = 1, primaryCount do
+			local limb = limbs[i]
+			local sd = surfaceDistance(limb.part, item.Position)
+			local cd = (limb.part.Position - item.Position).Magnitude
+			if
+				sd < bestDist - 0.01 or (math.abs(sd - bestDist) <= 0.01 and cd < bestCenterDist)
+			then
+				bestDist = sd
+				bestCenterDist = cd
+				bestLimb = limb
+			end
+		end
+		local maxDim = math.max(item.Size.X, item.Size.Y, item.Size.Z)
+		if
+			bestLimb
+			and bestDist <= 1.0
+			and (bestDist + 0.04 < bodyDist or (bestDist <= 0.02 and maxDim <= 0.35))
+		then
 			table.insert(limbs, {
 				part = item,
-				kind = item.Name,
-				rest = rest,
-				joint = joint,
-				side = if item.Name == "FinR" then -1 else 1,
+				kind = bestLimb.kind,
+				rest = pivot:ToObjectSpace(item.CFrame),
+				joint = bestLimb.joint,
+				side = bestLimb.side,
+			})
+		elseif
+			maxDim > 0.28
+			and (pivot:PointToObjectSpace(item.Position) - bodyCenter).Magnitude > 0.35
+		then
+			table.insert(limbs, {
+				part = item,
+				kind = "Extra",
+				rest = pivot:ToObjectSpace(item.CFrame),
+				joint = computeHinge(pivot, item, bodyCenter),
+				side = 1,
 			})
 		end
 	end
+
 	-- Epic/Legendary aura (skips ViewportFrames by itself). Deferred so callers can parent
 	-- the model right after binding.
 	task.defer(CreatureAura.attach, model)
