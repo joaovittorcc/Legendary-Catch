@@ -461,8 +461,8 @@ local function buildIsland()
 	Terrain:FillBall(Vector3.new(18, 10, -50), 11, Enum.Material.Rock)
 	Terrain:FillBall(Vector3.new(-6, 24, -60), 10, Enum.Material.Grass)
 	Terrain:FillBall(Vector3.new(-28, 19, -56), 6, Enum.Material.Grass)
-	-- Keep the workshop interior clear of the rear rocky hill.
-	Terrain:FillBlock(CFrame.new(-6, 23, -36), Vector3.new(30, 17, 23), Enum.Material.Air)
+	-- Keep the workshop interior clear of the rear rocky hill (extends below TERRACE_Y=14.3 and clears corner voxels).
+	Terrain:FillBlock(CFrame.new(-6, 22, -36), Vector3.new(34, 19, 24), Enum.Material.Air)
 
 	-- Waterfall cliff behind the lagoon.
 	Terrain:FillBall(Vector3.new(-50, 12, -18), 10, Enum.Material.Rock)
