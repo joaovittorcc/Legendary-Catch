@@ -35,24 +35,13 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	action.Size = UDim2.fromScale(0.51, 0.26)
 	local motion = Motion.mount(card, 1.6, 4.5)
 
-	local adventure = playerGui:FindFirstChild("AdventureHud")
-	local navigation = adventure and adventure:FindFirstChild("Navigation")
-	local lastButton = navigation and navigation:FindFirstChild("Settings")
 	local function place()
+		-- gift.png is 1024x402; tucked under the menu button on the right, clear of the left column.
 		local screen = gui.AbsoluteSize
-		local width = math.clamp(math.round(screen.X * 0.18), 126, 220)
-		local height = math.clamp(math.round(width / 2.45), 52, 90)
-		local hasSideRoom = lastButton
-			and lastButton:IsA("GuiObject")
-			and lastButton.AbsolutePosition.X + lastButton.AbsoluteSize.X + width + 20
-				<= screen.X
-		local right = if not hasSideRoom and screen.Y < 305
-			then math.max(82, math.floor(screen.X * 0.14))
-			else 12
+		local width = math.clamp(math.round(screen.X * 0.16), 120, 200)
+		local height = math.round(width * 402 / 1024)
 		card.Size = UDim2.fromOffset(width, height)
-		local goalHeight = math.clamp(math.round(screen.Y * 0.108), 50, 88)
-		card.Position =
-			UDim2.new(1, -right, 0, if hasSideRoom then 6 else Hud.navBottom() + goalHeight + 15)
+		card.Position = UDim2.new(0.983, 0, 0, Hud.navBottom() + 12)
 	end
 	card.Parent = gui
 	gui.Parent = playerGui
@@ -62,9 +51,10 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 
 	local function refresh()
-		setCardVisible(not busy())
+		setCardVisible(not busy() and not Hud.isMenuOpen())
 	end
 	local panel = Hud.panelChanged:Connect(refresh)
+	local menu = Hud.menuChanged:Connect(refresh)
 	local fishingConnection = Hud.fishingChanged:Connect(refresh)
 	local reveal = player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh)
 	local training = player:GetAttributeChangedSignal("TrainingStat"):Connect(refresh)
@@ -72,7 +62,7 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	local minigame = fishing:WaitForChild("Panel") :: GuiObject
 	local mode = minigame:GetPropertyChangedSignal("Visible"):Connect(refresh)
 	gui.Destroying:Once(function()
-		for _, connection in { resize, panel, fishingConnection, reveal, training, mode } do
+		for _, connection in { resize, panel, menu, fishingConnection, reveal, training, mode } do
 			connection:Disconnect()
 		end
 	end)

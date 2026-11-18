@@ -347,20 +347,17 @@ function Panel.create(
 	scroll.Name = "Content"
 	scroll.BackgroundTransparency = 1
 	scroll.BorderSizePixel = 0
-	scroll.Position = UDim2.fromOffset(20, 44)
-	scroll.Size = UDim2.new(1, -40, 1, -60)
+	-- Margins live in Position/Size, not in a UIPadding: scale-sized children of a ScrollingFrame
+	-- ignore its padding and ended up wider than the visible area (cut at the right edge).
+	scroll.Position = UDim2.fromOffset(26, 66)
+	scroll.Size = UDim2.new(1, -52, 1, -84)
 	scroll.ZIndex = 2
 	scroll.ScrollBarThickness = 6
+	scroll.VerticalScrollBarInset = Enum.ScrollBarInset.Always
 	scroll.ScrollBarImageColor3 = accent
 	scroll.ScrollingDirection = Enum.ScrollingDirection.Y
 	scroll.AutomaticCanvasSize = Enum.AutomaticSize.Y
 	scroll.CanvasSize = UDim2.new()
-	local padding = Instance.new("UIPadding")
-	padding.PaddingTop = UDim.new(0, 20)
-	padding.PaddingBottom = UDim.new(0, 12)
-	padding.PaddingLeft = UDim.new(0, 8)
-	padding.PaddingRight = UDim.new(0, 12)
-	padding.Parent = scroll
 	scroll.Parent = inner
 
 	local function fit()

@@ -133,11 +133,14 @@ function NextGoal.start()
 	golden.ZIndex = fill.ZIndex + 1
 
 	local function place()
+		-- proxima-meta.png is 1024x341: keep that ratio, tucked under the coins on the left.
 		local width = hud.AbsoluteSize.X
-		local height = math.clamp(math.round(hud.AbsoluteSize.Y * 0.108), 50, 88)
-		chip.Size = UDim2.fromOffset(math.round(math.min(width * 0.82, height * 4.5)), height)
+		local height = math.clamp(math.round(hud.AbsoluteSize.Y * 0.1), 58, 84)
+		local chipWidth = math.min(math.round(height * (1024 / 341)), math.round(width * 0.62))
+		chip.Size = UDim2.fromOffset(chipWidth, math.round(chipWidth * 341 / 1024))
+		chip.AnchorPoint = Vector2.new(0, 0)
 		chip.Position =
-			UDim2.new(0.5, 0, 0, navigation.Position.Y.Offset + navigation.Size.Y.Offset + 7)
+			UDim2.new(0.017, 0, 0, navigation.Position.Y.Offset + navigation.Size.Y.Offset + 7)
 	end
 	Hud.layoutChanged:Connect(place)
 	place()
@@ -150,6 +153,7 @@ function NextGoal.start()
 		setChipVisible(
 			goal ~= nil
 				and Hud.panel() == ""
+				and not Hud.isMenuOpen()
 				and not Hud.isFishingActive()
 				and not minigame.Visible
 				and player:GetAttribute("CatchRevealActive") ~= true
@@ -179,6 +183,7 @@ function NextGoal.start()
 	end)
 	Data.changed:Connect(refresh)
 	Hud.panelChanged:Connect(refreshVisibility)
+	Hud.menuChanged:Connect(refreshVisibility)
 	Hud.fishingChanged:Connect(refreshVisibility)
 	minigame:GetPropertyChangedSignal("Visible"):Connect(refreshVisibility)
 	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refreshVisibility)

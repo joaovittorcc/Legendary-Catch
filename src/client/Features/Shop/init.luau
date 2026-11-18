@@ -125,13 +125,13 @@ function Shop.start()
 			return
 		end
 		for _, rod in Rods.LIST do
-			local row = Panel.card(body, rod.tipColor, 124)
+			local row = Panel.card(body, rod.tipColor, 136)
 			row.Name = rod.id
 			row.LayoutOrder = rod.order
 			preview(row, rod)
-			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 19, rod.tipColor)
-			title.Position = UDim2.fromScale(0.33, 0.035)
-			title.Size = UDim2.fromScale(0.64, 0.23)
+			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 22, rod.tipColor)
+			title.Position = UDim2.fromScale(0.33, 0.04)
+			title.Size = UDim2.fromScale(0.64, 0.22)
 			local bonus = Panel.label(
 				row,
 				string.format(
@@ -141,18 +141,18 @@ function Shop.start()
 					Text.luck,
 					rod.luckBonus * 100
 				),
-				14
+				16
 			)
-			bonus.Position = UDim2.fromScale(0.33, 0.29)
-			bonus.Size = UDim2.fromScale(0.64, 0.2)
+			bonus.Position = UDim2.fromScale(0.33, 0.28)
+			bonus.Size = UDim2.fromScale(0.64, 0.18)
 
 			local owned = table.find(snapshot.rodsOwned, rod.id) ~= nil
 			local equipped = snapshot.equippedRod == rod.id
-			local stars = Panel.label(row, "", 12, Theme.gold)
+			local stars = Panel.label(row, "", 18, Theme.gold)
 			stars.Name = "RodAccent"
 			stars.Text = string.rep("★", math.clamp(1 + rod.order, 1, 5))
-			stars.Position = UDim2.fromScale(0.33, 0.46)
-			stars.Size = UDim2.fromScale(0.38, 0.16)
+			stars.Position = UDim2.fromScale(0.33, 0.47)
+			stars.Size = UDim2.fromScale(0.64, 0.17)
 			local button = Panel.button(
 				row,
 				if equipped
@@ -162,8 +162,9 @@ function Shop.start()
 				if equipped or owned then Theme.crystal else Color3.fromRGB(68, 194, 104)
 			)
 			button.Name = "RodAction"
-			button.Position = UDim2.fromScale(0.36, 0.61)
-			button.Size = UDim2.new(0.57, 0, 0, 42)
+			button.AnchorPoint = Vector2.new(0.5, 0)
+			button.Position = UDim2.fromScale(0.65, 0.67)
+			button.Size = UDim2.new(0.62, 0, 0, 42)
 			button.Activated:Connect(function()
 				if equipped or pending ~= "" then
 					return

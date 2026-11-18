@@ -18,11 +18,19 @@ local Assets = require(script:WaitForChild("Assets"))
 local Motion = require(script:WaitForChild("Motion"))
 local RodHotbar = require(script:WaitForChild("RodHotbar"))
 
+-- Width / height of the uploaded HUD art (art/hud-v2): containers must keep these.
+local COIN_RATIO = 1024 / 386
+local NAV_RATIO = 1024 / 819
+local RARITY_RATIO = 1024 / 341
+
 local Hud = { order = 10 }
 local player = Players.LocalPlayer
 local panelChanged = Instance.new("BindableEvent")
 Hud.panelChanged = panelChanged.Event
 local currentPanel = ""
+local menuChanged = Instance.new("BindableEvent")
+Hud.menuChanged = menuChanged.Event
+local menuIsOpen = false
 local fishingChanged = Instance.new("BindableEvent")
 Hud.fishingChanged = fishingChanged.Event
 local fishingActive = false
@@ -44,6 +52,10 @@ local setToastVisible: ((boolean) -> ())? = nil
 
 function Hud.panel(): string
 	return currentPanel
+end
+
+function Hud.isMenuOpen(): boolean
+	return menuIsOpen
 end
 
 function Hud.isFishingActive(): boolean
@@ -533,7 +545,12 @@ function Hud.start()
 	local readyMissionCount = 0
 	local refreshMoreBadge: () -> ()
 	local function openMenu(open: boolean)
+		local wasOpen = menuOpen
 		menuOpen = open and not fishingActive
+		if menuOpen ~= wasOpen then
+			menuIsOpen = menuOpen
+			menuChanged:Fire(menuOpen)
+		end
 		setMenuVisible(menuOpen and currentPanel == "")
 		local missionBadge = navBadges.Missions
 		if missionBadge then
@@ -656,9 +673,10 @@ function Hud.start()
 			then math.clamp(math.round(size.Y * 0.065), 50, 60)
 			else math.clamp(math.round(size.Y * 0.12), 50, 76)
 		bar.Size = UDim2.new(0.966, 0, 0, height)
-		local coinWidth =
-			math.round(math.min(width * (if portrait then 0.25 else 0.2), height * 1.9))
-		coins.Size = UDim2.fromOffset(coinWidth, math.round(height * 0.84))
+		-- Art keeps its own proportions (moedas.png is 1024x386): never stretch it.
+		local coinHeight = math.round(height * 0.84)
+		local coinWidth = math.round(coinHeight * COIN_RATIO)
+		coins.Size = UDim2.fromOffset(coinWidth, coinHeight)
 		coins.Position = UDim2.fromOffset(0, math.round(height * 0.08))
 		local levelWidth =
 			math.round(math.clamp(width * (if portrait then 0.34 else 0.14), 104, 150))
@@ -667,24 +685,25 @@ function Hud.start()
 		local menuSize = math.clamp(height * 0.82, 46, 60)
 		moreButton.Size = UDim2.fromOffset(menuSize, menuSize)
 		moreButton.Position = UDim2.new(1, 0, 0.5, 0)
-		local popupWidth =
-			math.min(width * (if portrait then 0.88 else 0.62), if portrait then 390 else 560)
-		local columns = if portrait then 2 else 4
+		-- Square-ish cells that keep the art ratio (1024x819); a 2x2 grid hanging from the menu
+		-- button on the right, so it never covers the middle of the screen.
+		local columns = 2
 		local rows = math.ceil(#entries / columns)
-		local popupHeight = rows * (if portrait then 58 else 62) + (if portrait then 28 else 22)
-		menu.Size = UDim2.fromOffset(popupWidth, popupHeight)
-		menu.Position = UDim2.new(0.5, 0, 0, height + 14)
 		local gap = 8
-		local cellWidth = (popupWidth - 20 - gap * (columns - 1)) / columns
+		local cellWidth = math.clamp(math.round(size.Y * (if portrait then 0.11 else 0.2)), 92, 150)
+		local cellHeight = math.round(cellWidth / NAV_RATIO)
+		local popupWidth = columns * cellWidth + (columns - 1) * gap + 20
+		local popupHeight = rows * cellHeight + (rows - 1) * gap + 28
+		menu.Size = UDim2.fromOffset(popupWidth, popupHeight)
+		menu.AnchorPoint = Vector2.new(1, 0)
+		menu.Position = UDim2.new(0.983, 0, 0, height + 12)
 		for index, entry in entries do
 			local button = menu:FindFirstChild(entry.id) :: ImageButton
 			local row = math.floor((index - 1) / columns)
 			local column = (index - 1) % columns
-			button.Size = UDim2.fromOffset(cellWidth, if portrait then 58 else 62)
-			button.Position = UDim2.fromOffset(
-				10 + column * (cellWidth + gap),
-				10 + row * (button.Size.Y.Offset + gap)
-			)
+			button.AnchorPoint = Vector2.zero
+			button.Size = UDim2.fromOffset(cellWidth, cellHeight)
+			button.Position = UDim2.fromOffset(column * (cellWidth + gap), row * (cellHeight + gap))
 		end
 		resized:Fire()
 	end
@@ -694,11 +713,15 @@ function Hud.start()
 	badge.Name = "RecentRarity"
 	badge.AnchorPoint = Vector2.new(0, 0)
 	badge.Position = UDim2.fromScale(0.027, 0.32)
-	badge.Size = UDim2.fromScale(0.16, 0.053)
+	badge.Size = UDim2.fromScale(0.16, 0.16)
 	badge.Visible = false
+	local badgeRatio = Instance.new("UIAspectRatioConstraint")
+	badgeRatio.AspectRatio = RARITY_RATIO
+	badgeRatio.DominantAxis = Enum.DominantAxis.Width
+	badgeRatio.Parent = badge
 	local badgeBounds = Instance.new("UISizeConstraint")
-	badgeBounds.MinSize = Vector2.new(106, 25)
-	badgeBounds.MaxSize = Vector2.new(222, 55)
+	badgeBounds.MinSize = Vector2.new(120, 40)
+	badgeBounds.MaxSize = Vector2.new(240, 80)
 	badgeBounds.Parent = badge
 	badge.BackgroundTransparency = 1
 	local badgeArt, rarityText = Art.rarity(badge)

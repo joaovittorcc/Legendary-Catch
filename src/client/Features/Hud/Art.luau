@@ -13,6 +13,7 @@ function Art.image(parent: GuiObject, id: string, name: string?): ImageLabel
 	image.Size = UDim2.fromScale(1, 1)
 	image.BackgroundTransparency = 1
 	image.Image = id
+	image.ScaleType = Enum.ScaleType.Fit -- safety net: art is never stretched
 	image.Parent = parent
 	return image
 end
@@ -22,6 +23,7 @@ function Art.button(id: string): ImageButton
 	button.BackgroundTransparency = 1
 	button.AutoButtonColor = false
 	button.Image = id
+	button.ScaleType = Enum.ScaleType.Fit
 	return button
 end
 
