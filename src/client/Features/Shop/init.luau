@@ -70,7 +70,7 @@ local function preview(parent: Instance, rod: Rods.Rod)
 	view.Position = UDim2.fromScale(0.025, 0.07)
 	Theme.corner(view, 10)
 	local camera = Instance.new("Camera")
-	camera.FieldOfView = 31
+	camera.FieldOfView = 21
 	camera.CFrame = CFrame.lookAt(Vector3.new(0, 0, 11), Vector3.zero)
 	camera.Parent = view
 	view.CurrentCamera = camera
