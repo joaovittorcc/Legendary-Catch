@@ -40,8 +40,8 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	local lastButton = navigation and navigation:FindFirstChild("Settings")
 	local function place()
 		local screen = gui.AbsoluteSize
-		local width = math.clamp(math.round(screen.X * 0.24), 146, 302)
-		local height = math.clamp(math.round(width / 2.45), 54, 120)
+		local width = math.clamp(math.round(screen.X * 0.18), 126, 220)
+		local height = math.clamp(math.round(width / 2.45), 52, 90)
 		local hasSideRoom = lastButton
 			and lastButton:IsA("GuiObject")
 			and lastButton.AbsolutePosition.X + lastButton.AbsoluteSize.X + width + 20
@@ -57,20 +57,22 @@ local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean
 	card.Parent = gui
 	gui.Parent = playerGui
 	place()
+	local setCardVisible = Hud.bindFishingVisibility(card, false)
 	local resize = Hud.layoutChanged:Connect(place)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(place)
 
 	local function refresh()
-		card.Visible = not busy()
+		setCardVisible(not busy())
 	end
 	local panel = Hud.panelChanged:Connect(refresh)
+	local fishingConnection = Hud.fishingChanged:Connect(refresh)
 	local reveal = player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh)
 	local training = player:GetAttributeChangedSignal("TrainingStat"):Connect(refresh)
 	local fishing = playerGui:WaitForChild("FishingUI")
 	local minigame = fishing:WaitForChild("Panel") :: GuiObject
 	local mode = minigame:GetPropertyChangedSignal("Visible"):Connect(refresh)
 	gui.Destroying:Once(function()
-		for _, connection in { resize, panel, reveal, training, mode } do
+		for _, connection in { resize, panel, fishingConnection, reveal, training, mode } do
 			connection:Disconnect()
 		end
 	end)
@@ -122,6 +124,7 @@ function DailyGift.start()
 		local training = player:GetAttribute("TrainingStat")
 		-- The gift waits until the island panorama clears.
 		return playerGui:FindFirstChild("IslandArrival") ~= nil
+			or Hud.isFishingActive()
 			or Hud.panel() ~= ""
 			or player:GetAttribute("CatchRevealActive") == true
 			or (typeof(training) == "string" and training ~= "")

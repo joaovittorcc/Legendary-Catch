@@ -142,16 +142,20 @@ function NextGoal.start()
 	Hud.layoutChanged:Connect(place)
 	place()
 	chip.Parent = hud
+	local setChipVisible = Hud.bindFishingVisibility(chip, false)
 
 	local goal: Goal? = nil
 	local function refreshVisibility()
 		local training = player:GetAttribute("TrainingStat")
-		chip.Visible = goal ~= nil
-			and Hud.panel() == ""
-			and not minigame.Visible
-			and player:GetAttribute("CatchRevealActive") ~= true
-			and not (typeof(training) == "string" and training ~= "")
-			and announcements:FindFirstChild("CatchBanner") == nil
+		setChipVisible(
+			goal ~= nil
+				and Hud.panel() == ""
+				and not Hud.isFishingActive()
+				and not minigame.Visible
+				and player:GetAttribute("CatchRevealActive") ~= true
+				and not (typeof(training) == "string" and training ~= "")
+				and announcements:FindFirstChild("CatchBanner") == nil
+		)
 	end
 	local function refresh(snapshot: Types.Snapshot?)
 		goal = if snapshot
@@ -175,6 +179,7 @@ function NextGoal.start()
 	end)
 	Data.changed:Connect(refresh)
 	Hud.panelChanged:Connect(refreshVisibility)
+	Hud.fishingChanged:Connect(refreshVisibility)
 	minigame:GetPropertyChangedSignal("Visible"):Connect(refreshVisibility)
 	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refreshVisibility)
 	player:GetAttributeChangedSignal("TrainingStat"):Connect(refreshVisibility)

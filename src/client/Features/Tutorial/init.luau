@@ -14,7 +14,7 @@ local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
-local CARD_HEIGHT = 60
+local CARD_HEIGHT = 64
 local layout = Instance.new("BindableEvent")
 local visibleBottom = 0
 Tutorial.layoutChanged = layout.Event
@@ -29,6 +29,14 @@ local destinations: { [string]: string } = {
 	cast = "FishingZone",
 	workshop = "WorkshopSpot",
 	training = "TrainingSpot",
+}
+local icons: { [string]: string } = {
+	goToPier = "🧭",
+	cast = "🎣",
+	fight = "🐟",
+	collection = "📖",
+	workshop = "🛠️",
+	training = "✨",
 }
 
 function Tutorial.start()
@@ -52,18 +60,38 @@ function Tutorial.start()
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MaxSize = Vector2.new(630, CARD_HEIGHT)
 	bounds.Parent = card
+	local iconHolder = Instance.new("Frame")
+	iconHolder.Name = "StepIcon"
+	iconHolder.AnchorPoint = Vector2.new(0, 0.5)
+	iconHolder.Position = UDim2.fromOffset(10, CARD_HEIGHT / 2)
+	iconHolder.Size = UDim2.fromOffset(42, 42)
+	iconHolder.BackgroundColor3 = Theme.cream
+	iconHolder.BorderSizePixel = 0
+	iconHolder.ZIndex = 3
+	Theme.corner(iconHolder, 21)
+	local iconStroke = Instance.new("UIStroke")
+	iconStroke.Color = Theme.outline
+	iconStroke.Thickness = 2
+	iconStroke.Parent = iconHolder
+	local stepIcon = Panel.label(iconHolder, "🧭", 26)
+	stepIcon.Size = UDim2.fromScale(1, 1)
+	stepIcon.TextScaled = true
+	stepIcon.TextStrokeTransparency = 1
+	stepIcon.ZIndex = 4
+	iconHolder.Parent = card
 	local message = Panel.label(card, "", 14)
-	message.Size = UDim2.new(1, -124, 1, -12)
+	message.Size = UDim2.new(1, -176, 1, -12)
 	message.TextScaled = true
 	local textLimit = Instance.new("UITextSizeConstraint")
 	textLimit.MaxTextSize = 20
 	textLimit.Parent = message
-	message.Position = UDim2.fromOffset(18, 6)
+	message.Position = UDim2.fromOffset(62, 6)
 	local skip = Panel.button(card, Text.skip, Theme.gold)
 	skip.Size = UDim2.fromOffset(88, 44)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
 	skip.Position = UDim2.new(1, -17, 0.5, 0)
 	card.Parent = gui
+	local setCardVisible = Hud.bindFishingVisibility(card, false)
 
 	local guide = Instance.new("BillboardGui")
 	guide.Name = "TutorialDestination"
@@ -74,6 +102,7 @@ function Tutorial.start()
 	local arrow = Panel.label(guide, "", 18, Theme.crystal)
 	arrow.Size = UDim2.fromScale(1, 1)
 	arrow.TextStrokeTransparency = 0.22
+	local setArrowVisible = Hud.bindFishingVisibility(arrow, false)
 	guide.Parent = gui
 	gui.Parent = player:WaitForChild("PlayerGui")
 
@@ -86,10 +115,17 @@ function Tutorial.start()
 			layout:Fire()
 		end
 	end
-	Hud.layoutChanged:Connect(function()
-		card.Position = UDim2.fromOffset(0, Hud.navBottom() + 8) + UDim2.fromScale(0.5, 0)
+	local function placeCard()
+		local viewport = gui.AbsoluteSize
+		local portrait = viewport.Y > viewport.X
+		card.Size = UDim2.new(if portrait then 0.92 else 0.78, 0, 0, CARD_HEIGHT)
+		card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
 		publishLayout()
+	end
+	Hud.layoutChanged:Connect(function()
+		placeCard()
 	end)
+	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(placeCard)
 	gui:GetPropertyChangedSignal("Enabled"):Connect(publishLayout)
 	card:GetPropertyChangedSignal("Visible"):Connect(publishLayout)
 
@@ -108,16 +144,20 @@ function Tutorial.start()
 		if step == "workshop" and not affordable then
 			hint = Text.earn
 		end
-		card.Visible = hint ~= nil
+		local showCard = hint ~= nil
 			and Hud.panel() == ""
+			and not Hud.isFishingActive()
 			and player:GetAttribute("CatchRevealActive") ~= true
+		setCardVisible(showCard)
 		message.Text = hint or ""
+		stepIcon.Text = icons[if step == "goToPier" and atPier then "cast" else step] or "🧭"
 		local tag = if step == "workshop" and not affordable
 			then "FishingZone"
 			else destinations[step]
 		local target = tag and CollectionService:GetTagged(tag)[1]
 		guide.Adornee = if target and target:IsA("BasePart") then target else nil
-		guide.Enabled = card.Visible and not not target
+		guide.Enabled = target ~= nil
+		setArrowVisible(showCard and target ~= nil)
 		arrow.Text = (if tag then Text.destinations[tag] or "" else "") .. "\n▼"
 	end
 
@@ -157,6 +197,7 @@ function Tutorial.start()
 		end
 		refresh()
 	end)
+	Hud.fishingChanged:Connect(refresh)
 	Data.changed:Connect(refresh)
 	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh)
 	player:GetAttributeChangedSignal("Coins"):Connect(refresh)

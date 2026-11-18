@@ -23,6 +23,8 @@ local Rhythm = require(FishingFolder:WaitForChild("Minigames"):WaitForChild("Rhy
 local Ui = require(FishingFolder:WaitForChild("Ui"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
+local Art = require(script.Parent.Hud:WaitForChild("Art"))
+local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
 
 local STAT_COLORS: { [string]: Color3 } = {
 	Control = Color3.fromRGB(90, 220, 255),
@@ -46,6 +48,7 @@ local animationTrack: AnimationTrack? = nil
 local previousCameraType: Enum.CameraType? = nil
 local aura: BasePart? = nil
 local stopRing: (() -> ())? = nil
+local setHudFishingVisible: ((boolean) -> ())? = nil
 
 local function rootPart(): BasePart?
 	local character = player.Character
@@ -99,7 +102,24 @@ local function buildHud(color: Color3)
 		0.25
 	)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
-	Theme.surface(frame, color, 13)
+	Art.panel(frame, color)
+	local icon = Instance.new("Frame")
+	icon.Name = "StatIcon"
+	icon.AnchorPoint = Vector2.new(0, 0.5)
+	icon.Position = UDim2.fromScale(0.035, 0.5)
+	icon.Size = UDim2.fromOffset(40, 40)
+	icon.BackgroundColor3 = Theme.cream
+	icon.BorderSizePixel = 0
+	Theme.corner(icon, 20)
+	local iconStroke = Instance.new("UIStroke")
+	iconStroke.Color = Theme.outline
+	iconStroke.Thickness = 2
+	iconStroke.Parent = icon
+	local glyph = Panel.label(icon, if activeStat == "Instinct" then "✨" else "🎣", 26)
+	glyph.TextStrokeTransparency = 1
+	glyph.TextScaled = true
+	glyph.Size = UDim2.fromScale(1, 1)
+	icon.Parent = frame
 	local size = Instance.new("UISizeConstraint")
 	size.MinSize = Vector2.new(280, 68)
 	size.MaxSize = Vector2.new(520, 110)
@@ -109,38 +129,40 @@ local function buildHud(color: Color3)
 		frame,
 		"Level",
 		UDim2.fromScale(0.7, 0.45),
-		UDim2.fromScale(0.04, 0.08),
+		UDim2.fromScale(0.18, 0.08),
 		"",
 		Color3.new(1, 1, 1)
 	)
+	levelLabel.Size = UDim2.fromScale(0.54, 0.45)
+	levelLabel.TextColor3 = Theme.ink
+	levelLabel.TextStrokeTransparency = 1
 	local back = Ui.frame(
 		frame,
 		"XpBack",
-		UDim2.fromScale(0.7, 0.22),
-		UDim2.fromScale(0.04, 0.64),
-		Color3.fromRGB(30, 34, 60)
+		UDim2.fromScale(0.54, 0.22),
+		UDim2.fromScale(0.18, 0.64),
+		Theme.muted
 	)
-	Ui.corner(back, 0.5)
+	Ui.corner(back, 12)
+	local backStroke = Instance.new("UIStroke")
+	backStroke.Color = Theme.outline
+	backStroke.Thickness = 2
+	backStroke.Parent = back
 	local fill = Ui.frame(back, "XpFill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
-	Ui.corner(fill, 0.5)
+	Ui.corner(fill, 12)
 	xpFill = fill
 
-	local button = Instance.new("TextButton")
+	local button = Panel.button(frame, Strings.stop, Color3.fromRGB(247, 75, 91))
 	button.Name = "Stop"
 	button.Size = UDim2.new(0.22, 0, 0, 44)
-	button.Position = UDim2.fromScale(0.77, 0.15)
-	button.BackgroundColor3 = Color3.fromRGB(220, 70, 80)
-	button.Text = Strings.stop
-	button.TextScaled = true
-	button.Font = Enum.Font.FredokaOne
-	button.TextColor3 = Color3.new(1, 1, 1)
-	button.Parent = frame
-	Ui.corner(button, 0.3)
+	button.Position = UDim2.fromScale(0.76, 0.15)
 	button.Activated:Connect(function()
 		stopRemote:FireServer()
 	end)
 
 	hud = frame
+	setHudFishingVisible = Hud.bindFishingVisibility(frame, false)
+	setHudFishingVisible(true)
 	positionHud()
 	refreshHud()
 end
@@ -254,6 +276,7 @@ local function stopVisuals()
 	end
 	local h = hud
 	hud, levelLabel, xpFill = nil, nil, nil
+	setHudFishingVisible = nil
 	if h then
 		h:Destroy()
 	end

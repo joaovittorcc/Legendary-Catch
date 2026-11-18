@@ -141,7 +141,7 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		UDim2.new(0.64, 0, 0, 34),
 		UDim2.new(0.18, 0, 0.12, 0),
 		name,
-		Theme.sand
+		Theme.ink
 	)
 	title.TextStrokeTransparency = 0
 	title.TextScaled = true
@@ -179,7 +179,7 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 			UDim2.fromScale(0.88, 0.16),
 			UDim2.fromScale(0.06, 0.755),
 			reward,
-			if Theme.rarityRank(rarity) >= 5 then Theme.gold else Theme.sand
+			if Theme.rarityRank(rarity) >= 5 then Theme.gold else Theme.ink
 		)
 	end
 	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then

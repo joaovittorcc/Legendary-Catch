@@ -7,7 +7,6 @@
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Events = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
@@ -16,6 +15,8 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
+local Art = require(script.Parent.Hud:WaitForChild("Art"))
+local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
 
 local Guide = { order = 140 }
 
@@ -38,11 +39,11 @@ local function currentLine(tipIndex: number): string
 	return tips[(tipIndex % #tips) + 1]
 end
 
-local function buildBubble(anchor: Attachment): (BillboardGui, TextLabel)
+local function buildBubble(anchor: Attachment): (BillboardGui, TextLabel, Frame)
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "GuideBubble"
 	gui.Adornee = anchor
-	gui.Size = UDim2.fromOffset(240, 92)
+	gui.Size = UDim2.fromOffset(260, 108)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.2, 0)
 	gui.MaxDistance = TALK_DISTANCE + 6
 	-- Draw over map props (the pier flag post used to cut the bubble in half).
@@ -50,46 +51,64 @@ local function buildBubble(anchor: Attachment): (BillboardGui, TextLabel)
 	gui.Enabled = false
 
 	local frame = Instance.new("Frame")
+	frame.Visible = false
 	frame.Size = UDim2.fromScale(1, 1)
-	frame.BackgroundColor3 = Theme.ink
-	frame.BackgroundTransparency = 0.1
+	frame.BackgroundColor3 = Theme.crystal
+	frame.BorderSizePixel = 0
+	Art.panel(frame, Theme.crystal)
 	frame.Parent = gui
-	local corner = Instance.new("UICorner")
-	corner.CornerRadius = UDim.new(0, 12)
-	corner.Parent = frame
-	local stroke = Instance.new("UIStroke")
-	stroke.Color = Theme.gold
-	stroke.Thickness = 2
-	stroke.Parent = frame
+
+	local icon = Instance.new("Frame")
+	icon.Name = "GuideIcon"
+	icon.Position = UDim2.fromOffset(10, 9)
+	icon.Size = UDim2.fromOffset(38, 38)
+	icon.BackgroundColor3 = Theme.cream
+	icon.BorderSizePixel = 0
+	icon.ZIndex = 2
+	Theme.corner(icon, 19)
+	local iconStroke = Instance.new("UIStroke")
+	iconStroke.Color = Theme.outline
+	iconStroke.Thickness = 2
+	iconStroke.Parent = icon
+	local glyph = Panel.label(icon, "🎣", 24, Theme.ink)
+	glyph.Size = UDim2.fromScale(1, 1)
+	glyph.TextScaled = true
+	glyph.TextStrokeTransparency = 1
+	glyph.ZIndex = 3
+	icon.Parent = frame
 
 	local name = Instance.new("TextLabel")
-	name.Size = UDim2.new(1, -16, 0, 20)
-	name.Position = UDim2.fromOffset(8, 4)
+	name.Size = UDim2.new(1, -66, 0, 22)
+	name.Position = UDim2.fromOffset(56, 8)
 	name.BackgroundTransparency = 1
 	name.Text = Strings.guideName
 	name.Font = Theme.font
 	name.TextSize = 16
 	name.TextXAlignment = Enum.TextXAlignment.Left
-	name.TextColor3 = Theme.gold
+	name.TextColor3 = Theme.ink
+	name.TextStrokeTransparency = 1
+	name.ZIndex = 2
 	name.Parent = frame
 
 	local line = Instance.new("TextLabel")
-	line.Size = UDim2.new(1, -16, 1, -30)
-	line.Position = UDim2.fromOffset(8, 26)
+	line.Size = UDim2.new(1, -24, 1, -52)
+	line.Position = UDim2.fromOffset(12, 48)
 	line.BackgroundTransparency = 1
 	line.TextWrapped = true
 	line.TextScaled = true
 	line.Font = Theme.font
-	line.TextColor3 = Theme.sand
-	line.TextXAlignment = Enum.TextXAlignment.Left
-	line.TextYAlignment = Enum.TextYAlignment.Top
+	line.TextColor3 = Theme.ink
+	line.TextStrokeTransparency = 1
+	line.TextXAlignment = Enum.TextXAlignment.Center
+	line.TextYAlignment = Enum.TextYAlignment.Center
+	line.ZIndex = 2
 	line.Parent = frame
 	local maxSize = Instance.new("UITextSizeConstraint")
 	maxSize.MaxTextSize = 18
 	maxSize.Parent = line
 
 	gui.Parent = player:WaitForChild("PlayerGui")
-	return gui, line
+	return gui, line, frame
 end
 
 local function attach(npc: Instance)
@@ -97,28 +116,34 @@ local function attach(npc: Instance)
 	if not (anchor and anchor:IsA("Attachment")) then
 		return
 	end
-	local gui, line = buildBubble(anchor)
+	local gui, line, frame = buildBubble(anchor)
+	local setBubbleVisible = Hud.bindFishingVisibility(frame, false)
 	local tipIndex = 0
 	local lastSwap = 0
+	local bubbleOpen = false
 	task.spawn(function()
 		while gui.Parent and npc.Parent do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
+			local snapshot = Data.get()
+			local tutorial = snapshot and snapshot.tutorial
+			local tutorialActive = tutorial ~= nil and not tutorial.done
 			-- Stay quiet while a HUD panel (collection, shop, settings...) is open.
 			local near = Hud.panel() == ""
+				and not Hud.isFishingActive()
+				and not tutorialActive
 				and root
 				and root:IsA("BasePart")
 				and (root.Position - anchor.WorldPosition).Magnitude <= TALK_DISTANCE
 			if near then
-				if not gui.Enabled then
+				if not bubbleOpen then
 					-- Just walked up: say the current line with a little pop.
 					line.Text = currentLine(tipIndex)
 					lastSwap = os.clock()
+					bubbleOpen = true
+					setBubbleVisible(true)
 					gui.Enabled = true
-					gui.Size = UDim2.fromOffset(200, 76)
-					TweenService:Create(gui, TweenInfo.new(0.25, Enum.EasingStyle.Back), {
-						Size = UDim2.fromOffset(240, 92),
-					}):Play()
+					gui.Size = UDim2.fromOffset(260, 108)
 				elseif os.clock() - lastSwap >= TIP_SECONDS then
 					tipIndex += 1
 					line.Text = currentLine(tipIndex)
@@ -137,7 +162,15 @@ local function attach(npc: Instance)
 					end
 				end
 			else
-				gui.Enabled = false
+				if bubbleOpen then
+					bubbleOpen = false
+					setBubbleVisible(false)
+					task.delay(0.2, function()
+						if not bubbleOpen and gui.Parent then
+							gui.Enabled = false
+						end
+					end)
+				end
 			end
 			task.wait(0.5)
 		end

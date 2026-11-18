@@ -17,7 +17,12 @@ local player = Players.LocalPlayer
 local action = "AdventureRodSlot"
 local backpackGui = Enum.CoreGuiType.Backpack
 
-function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: () -> string)
+function RodHotbar.mount(
+	gui: ScreenGui,
+	panelChanged: RBXScriptSignal,
+	panel: () -> string,
+	bindFishingVisibility: (GuiObject, boolean?) -> (boolean) -> ()
+)
 	local slot = Art.button(Assets.rod)
 	slot.Name = "RodHotbar"
 	slot.AnchorPoint = Vector2.new(0.5, 1)
@@ -39,9 +44,13 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 	local bagSignals: { RBXScriptConnection } = {}
 	local tool: Tool? = nil
 	local function layout()
-		local height = math.clamp(math.round(gui.AbsoluteSize.Y * 0.175), 58, 160)
-		slot.Size = UDim2.fromOffset(height, height)
+		local viewport = gui.AbsoluteSize
+		local size = if viewport.Y > viewport.X
+			then math.clamp(math.round(viewport.X * 0.16), 58, 82)
+			else math.clamp(math.round(viewport.Y * 0.175), 58, 160)
+		slot.Size = UDim2.fromOffset(size, size)
 	end
+	local setFishingVisible = bindFishingVisibility(slot, false)
 	local nativeEnabled: boolean? = nil
 	local queued = false
 	local playerGui = player:WaitForChild("PlayerGui")
@@ -81,12 +90,14 @@ function RodHotbar.mount(gui: ScreenGui, panelChanged: RBXScriptSignal, panel: (
 			end
 		end
 		local current = tool
-		slot.Visible = current ~= nil
-			and nativeEnabled ~= nil
-			and gui.Enabled
-			and panel() == ""
-			and not minigame.Visible
-			and player:GetAttribute("CatchRevealActive") ~= true
+		setFishingVisible(
+			current ~= nil
+				and nativeEnabled ~= nil
+				and gui.Enabled
+				and panel() == ""
+				and not minigame.Visible
+				and player:GetAttribute("CatchRevealActive") ~= true
+		)
 		slot.ImageColor3 = if current and current.Parent == character
 			then Color3.new(1, 1, 1)
 			else Color3.fromRGB(218, 219, 242)

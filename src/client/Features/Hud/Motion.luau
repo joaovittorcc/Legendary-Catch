@@ -2,6 +2,7 @@
 local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 
 local Motion = {}
 local player = Players.LocalPlayer
@@ -37,14 +38,34 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 	local rotation = target.Rotation
 	local idle: RBXScriptConnection? = nil
 	local tween: Tween? = nil
+	local hoverTween: Tween? = nil
+	local hovered = false
+	local pointerPressed = false
+	local skipActivatedPulse = false
 	local useIdle = sway ~= nil
+	local buttonSignals: { RBXScriptConnection } = {}
+	local function scaleTo(value: number, duration: number, style: Enum.EasingStyle?)
+		if player:GetAttribute("ReduceEffects") == true then
+			return
+		end
+		if hoverTween then
+			hoverTween:Cancel()
+		end
+		local running = TweenService:Create(
+			scale,
+			TweenInfo.new(duration, style or Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{ Scale = value }
+		)
+		hoverTween = running
+		running:Play()
+	end
 	local function stopPulse()
 		local running = tween
 		tween = nil
 		if running then
 			running:Cancel()
 		end
-		scale.Scale = 1
+		scale.Scale = if hovered then 1.045 else 1
 	end
 	local function stopIdle()
 		if idle then
@@ -94,20 +115,109 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?)
 			if tween ~= pop or state ~= Enum.PlaybackState.Completed then
 				return
 			end
-			local settle = TweenService:Create(scale, TweenInfo.new(0.15), { Scale = 1 })
+			local settle = TweenService:Create(
+				scale,
+				TweenInfo.new(0.15),
+				{ Scale = if hovered then 1.045 else 1 }
+			)
 			tween = settle
 			settle:Play()
 		end)
 		pop:Play()
 	end
 	if target:IsA("GuiButton") then
-		target.Activated:Connect(function()
-			pulse(0.9)
-		end)
+		table.insert(
+			buttonSignals,
+			target.MouseEnter:Connect(function()
+				if UserInputService:GetLastInputType() == Enum.UserInputType.Touch then
+					return
+				end
+				hovered = true
+				scaleTo(1.045, 0.12, Enum.EasingStyle.Back)
+			end)
+		)
+		table.insert(
+			buttonSignals,
+			target.MouseLeave:Connect(function()
+				hovered = false
+				if not pointerPressed then
+					scaleTo(1, 0.12)
+				end
+			end)
+		)
+		table.insert(
+			buttonSignals,
+			target.InputBegan:Connect(function(input)
+				if
+					input.UserInputType ~= Enum.UserInputType.MouseButton1
+					and input.UserInputType ~= Enum.UserInputType.Touch
+				then
+					return
+				end
+				pointerPressed = true
+				scaleTo(0.9, 0.07)
+			end)
+		)
+		table.insert(
+			buttonSignals,
+			target.InputEnded:Connect(function(input)
+				if
+					input.UserInputType ~= Enum.UserInputType.MouseButton1
+					and input.UserInputType ~= Enum.UserInputType.Touch
+				then
+					return
+				end
+				pointerPressed = false
+				if player:GetAttribute("ReduceEffects") == true then
+					scale.Scale = 1
+					return
+				end
+				skipActivatedPulse = true
+				local pop = TweenService:Create(
+					scale,
+					TweenInfo.new(0.11, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Scale = 1.05 }
+				)
+				tween = pop
+				pop.Completed:Once(function(state)
+					if tween ~= pop or state ~= Enum.PlaybackState.Completed then
+						return
+					end
+					local settle = TweenService:Create(
+						scale,
+						TweenInfo.new(0.15),
+						{ Scale = if hovered then 1.045 else 1 }
+					)
+					tween = settle
+					settle:Play()
+				end)
+				pop:Play()
+				task.delay(0.25, function()
+					skipActivatedPulse = false
+				end)
+			end)
+		)
+		table.insert(
+			buttonSignals,
+			target.Activated:Connect(function()
+				if skipActivatedPulse then
+					skipActivatedPulse = false
+					return
+				end
+				pulse(0.9)
+			end)
+		)
 	end
 	local choice = player:GetAttributeChangedSignal("ReduceEffects"):Connect(updateIdle)
 	target.Destroying:Once(function()
 		choice:Disconnect()
+		for _, connection in buttonSignals do
+			connection:Disconnect()
+		end
+		if hoverTween then
+			hoverTween:Cancel()
+			hoverTween = nil
+		end
 		stopIdle()
 		stopPulse()
 	end)

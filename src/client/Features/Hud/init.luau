@@ -7,9 +7,12 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+local Missions = require(Shared:WaitForChild("Config"):WaitForChild("Missions"))
 local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
+local Types = require(Shared:WaitForChild("Types"))
+local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Art = require(script:WaitForChild("Art"))
 local Assets = require(script:WaitForChild("Assets"))
 local Motion = require(script:WaitForChild("Motion"))
@@ -20,6 +23,12 @@ local player = Players.LocalPlayer
 local panelChanged = Instance.new("BindableEvent")
 Hud.panelChanged = panelChanged.Event
 local currentPanel = ""
+local fishingChanged = Instance.new("BindableEvent")
+Hud.fishingChanged = fishingChanged.Event
+local fishingActive = false
+local localFishingEvent = false
+local revealWasActive = false
+local localFishingRevision = 0
 local navigation: Frame? = nil
 local resized = Instance.new("BindableEvent")
 Hud.layoutChanged = resized.Event
@@ -31,9 +40,134 @@ end
 local activeToast: Tween? = nil
 local toastLabel: TextLabel? = nil
 local toastStroke: UIStroke? = nil
+local setToastVisible: ((boolean) -> ())? = nil
 
 function Hud.panel(): string
 	return currentPanel
+end
+
+function Hud.isFishingActive(): boolean
+	return fishingActive
+end
+
+local function publishFishingState()
+	local character = player.Character
+	local state = character and character:GetAttribute("FishingState")
+	local serverFishing = typeof(state) == "string" and state ~= ""
+	local reveal = player:GetAttribute("CatchRevealActive") == true
+	if reveal then
+		revealWasActive = true
+	elseif revealWasActive then
+		revealWasActive = false
+		localFishingEvent = false
+	end
+	local active = serverFishing or localFishingEvent or reveal
+	if active ~= fishingActive then
+		fishingActive = active
+		fishingChanged:Fire(active)
+	end
+end
+
+type FadeProperty = { instance: Instance, property: string, shown: number }
+
+function Hud.bindFishingVisibility(
+	target: GuiObject,
+	visibleDuringFishing: boolean?
+): (boolean) -> ()
+	local properties: { FadeProperty } = {}
+	local function save(instance: Instance, property: string)
+		local ok, value = pcall(function()
+			return (instance :: any)[property]
+		end)
+		if ok and typeof(value) == "number" then
+			table.insert(properties, { instance = instance, property = property, shown = value })
+		end
+	end
+	local function collect(instance: Instance)
+		if instance:IsA("GuiObject") then
+			save(instance, "BackgroundTransparency")
+		end
+		if instance:IsA("TextLabel") or instance:IsA("TextButton") or instance:IsA("TextBox") then
+			save(instance, "TextTransparency")
+			save(instance, "TextStrokeTransparency")
+		end
+		if instance:IsA("ImageLabel") or instance:IsA("ImageButton") then
+			save(instance, "ImageTransparency")
+		end
+		if instance:IsA("UIStroke") then
+			save(instance, "Transparency")
+		end
+	end
+	collect(target)
+	for _, descendant in target:GetDescendants() do
+		collect(descendant)
+	end
+	local desired = target.Visible
+	local revision = 0
+	local activeTweens: { Tween } = {}
+	local oldActive = target.Active
+	local oldInteractable = if target:IsA("GuiButton") then target.Interactable else nil
+	local function apply()
+		revision += 1
+		local token = revision
+		for _, tween in activeTweens do
+			tween:Cancel()
+		end
+		table.clear(activeTweens)
+		local shown = desired and (visibleDuringFishing == true or not fishingActive)
+		if shown then
+			target.Visible = true
+			target.Active = oldActive
+			if target:IsA("GuiButton") and oldInteractable ~= nil then
+				target.Interactable = oldInteractable
+			end
+		else
+			target.Active = false
+			if target:IsA("GuiButton") then
+				target.Interactable = false
+			end
+		end
+		local immediate = player:GetAttribute("ReduceEffects") == true
+		for _, entry in properties do
+			local value = if shown then entry.shown else 1
+			if immediate then
+				(entry.instance :: any)[entry.property] = value
+			else
+				local tween = TweenService:Create(
+					entry.instance,
+					TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ [entry.property] = value }
+				)
+				table.insert(activeTweens, tween)
+				tween:Play()
+			end
+		end
+		if not shown then
+			if immediate then
+				target.Visible = false
+			else
+				task.delay(0.2, function()
+					if revision == token and target.Parent then
+						target.Visible = false
+					end
+				end)
+			end
+		end
+	end
+	local fishingConnection = fishingChanged.Event:Connect(apply)
+	local effectsConnection = player:GetAttributeChangedSignal("ReduceEffects"):Connect(apply)
+	target.Destroying:Once(function()
+		fishingConnection:Disconnect()
+		effectsConnection:Disconnect()
+		for _, tween in activeTweens do
+			tween:Cancel()
+		end
+	end)
+	apply()
+	return function(visible: boolean)
+		desired = visible
+		apply()
+	end
 end
 
 function Hud.showPanel(name: string)
@@ -43,8 +177,11 @@ end
 
 function Hud.toast(message: string, tint: Color3?)
 	local label = toastLabel
-	if not label then
+	if not label or fishingActive then
 		return
+	end
+	if setToastVisible then
+		setToastVisible(currentPanel == "")
 	end
 	if activeToast then
 		activeToast:Cancel()
@@ -76,6 +213,56 @@ function Hud.toast(message: string, tint: Color3?)
 end
 
 function Hud.start()
+	local characterStateConnection: RBXScriptConnection? = nil
+	local function watchCharacter(character: Model?)
+		if characterStateConnection then
+			characterStateConnection:Disconnect()
+			characterStateConnection = nil
+		end
+		if character then
+			characterStateConnection =
+				character:GetAttributeChangedSignal("FishingState"):Connect(publishFishingState)
+		end
+		publishFishingState()
+	end
+	player.CharacterAdded:Connect(watchCharacter)
+	player.CharacterRemoving:Connect(function()
+		watchCharacter(nil)
+		localFishingEvent = false
+		publishFishingState()
+	end)
+	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(publishFishingState)
+	watchCharacter(player.Character)
+	task.spawn(function()
+		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
+		local update = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
+		update.OnClientEvent:Connect(function(payload: Net.FishingUpdate)
+			if payload.event == "cast" or payload.event == "bite" or payload.event == "caught" then
+				localFishingEvent = true
+				if payload.event == "caught" then
+					localFishingRevision += 1
+					local revision = localFishingRevision
+					task.delay(12, function()
+						if
+							localFishingRevision == revision
+							and player:GetAttribute("CatchRevealActive") ~= true
+						then
+							localFishingEvent = false
+							publishFishingState()
+						end
+					end)
+				end
+			elseif
+				payload.event == "escaped"
+				or payload.event == "cancelled"
+				or payload.event == "rejected"
+			then
+				localFishingEvent = false
+				localFishingRevision += 1
+			end
+			publishFishingState()
+		end)
+	end)
 	task.spawn(function()
 		local images =
 			{ Assets.coins, Assets.gift, Assets.goal, Assets.progress, Assets.rod, Assets.panel }
@@ -101,8 +288,9 @@ function Hud.start()
 	bar.BackgroundTransparency = 1
 	bar.Parent = gui
 	navigation = bar
+	local setBarVisible = Hud.bindFishingVisibility(bar, true)
 	Hud.panelChanged:Connect(function(name)
-		bar.Visible = name == ""
+		setBarVisible(name == "")
 	end)
 
 	local coins = Instance.new("Frame")
@@ -121,6 +309,17 @@ function Hud.start()
 	end)
 	local coinTween: Tween? = nil
 	local previousAmount: number? = nil
+	local deltaLabel = Art.caption(coins, "CoinDelta", "", 20, Theme.gold)
+	deltaLabel.AnchorPoint = Vector2.new(0.5, 1)
+	deltaLabel.Position = UDim2.fromScale(0.76, 0.18)
+	deltaLabel.Size = UDim2.fromScale(0.5, 0.38)
+	deltaLabel.Visible = false
+	local deltaStroke = Instance.new("UIStroke")
+	deltaStroke.Color = Theme.outline
+	deltaStroke.Thickness = 2
+	deltaStroke.Parent = deltaLabel
+	local deltaTween: Tween? = nil
+	local deltaRevision = 0
 	local function updateCoins()
 		local amount = player:GetAttribute("Coins")
 		if typeof(amount) ~= "number" then
@@ -130,7 +329,43 @@ function Hud.start()
 		local before = previousAmount
 		previousAmount = amount
 		if before and amount > before then
-			coinMotion.pulse(0.96)
+			coinMotion.pulse(0.9)
+			deltaRevision += 1
+			local revision = deltaRevision
+			if deltaTween then
+				deltaTween:Cancel()
+			end
+			deltaLabel.Text = `+{math.round(amount - before)}`
+			deltaLabel.Position = UDim2.fromScale(0.76, 0.22)
+			deltaLabel.TextTransparency = 0
+			deltaStroke.Transparency = 0
+			deltaLabel.Visible = true
+			if player:GetAttribute("ReduceEffects") ~= true then
+				local delta = TweenService:Create(
+					deltaLabel,
+					TweenInfo.new(0.72, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Position = UDim2.fromScale(0.76, -0.08), TextTransparency = 1 }
+				)
+				local strokeFade = TweenService:Create(
+					deltaStroke,
+					TweenInfo.new(0.72, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Transparency = 1 }
+				)
+				deltaTween = delta
+				delta.Completed:Once(function()
+					if deltaRevision == revision then
+						deltaLabel.Visible = false
+					end
+				end)
+				delta:Play()
+				strokeFade:Play()
+			else
+				task.delay(0.6, function()
+					if deltaRevision == revision then
+						deltaLabel.Visible = false
+					end
+				end)
+			end
 		end
 		if coinTween then
 			coinTween:Cancel()
@@ -155,19 +390,193 @@ function Hud.start()
 	updateCoins()
 
 	local entries = {
-		{ id = "Collection", title = Text.collection },
-		{ id = "Shop", title = Text.shop },
-		{ id = "Missions", title = Text.missions.nav },
-		{ id = "Settings", title = Text.settings },
+		{ id = "Collection", title = Text.collection, tint = Theme.crystal },
+		{ id = "Shop", title = Text.shop, tint = Theme.gold },
+		{ id = "Missions", title = Text.missions.nav, tint = Theme.rose },
+		{ id = "Settings", title = Text.settings, tint = Color3.fromRGB(188, 151, 255) },
 	}
+	local navBadges: { [string]: TextLabel } = {}
+	local function makeNavBadge(button: ImageButton, name: string, tint: Color3): TextLabel
+		local badge = Instance.new("TextLabel")
+		badge.Name = name
+		badge.AnchorPoint = Vector2.new(1, 0)
+		badge.Position = UDim2.new(1, 4, 0, -4)
+		badge.Size = UDim2.fromOffset(28, 28)
+		badge.BackgroundColor3 = tint
+		badge.BorderSizePixel = 0
+		badge.TextColor3 = Color3.new(1, 1, 1)
+		badge.TextStrokeColor3 = Theme.outline
+		badge.TextStrokeTransparency = 0
+		badge.TextSize = 17
+		badge.Font = Theme.font
+		badge.Visible = false
+		badge.ZIndex = 20
+		Theme.corner(badge, 14)
+		local stroke = Instance.new("UIStroke")
+		stroke.Color = Theme.outline
+		stroke.Thickness = 2
+		stroke.Parent = badge
+		badge.Parent = button
+		return badge
+	end
+	local levelConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
+	local levelChip = Instance.new("Frame")
+	levelChip.Name = "FishingLevel"
+	levelChip.AnchorPoint = Vector2.new(0, 0.5)
+	levelChip.BackgroundColor3 = Theme.gold
+	levelChip.BorderSizePixel = 0
+	Theme.corner(levelChip, 16)
+	local levelStroke = Instance.new("UIStroke")
+	levelStroke.Color = Theme.outline
+	levelStroke.Thickness = 3
+	levelStroke.Parent = levelChip
+	local levelIcon = Art.caption(levelChip, "LevelIcon", "⭐", 22, Theme.ink)
+	levelIcon.Position = UDim2.fromScale(0.05, 0.12)
+	levelIcon.Size = UDim2.fromScale(0.25, 0.76)
+	levelIcon.TextStrokeTransparency = 1
+	local levelLabel = Art.caption(levelChip, "LevelText", "", 18, Theme.ink)
+	levelLabel.Position = UDim2.fromScale(0.31, 0.14)
+	levelLabel.Size = UDim2.fromScale(0.66, 0.72)
+	levelLabel.TextStrokeTransparency = 1
+	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
+	levelChip.Parent = bar
+	local function updateLevel()
+		local level = player:GetAttribute(levelConfig.levelAttribute("Control"))
+		local amount = if typeof(level) == "number" then math.max(0, math.floor(level)) else 0
+		levelLabel.Text = `{Text.control} {amount}`
+	end
+	player:GetAttributeChangedSignal(levelConfig.levelAttribute("Control")):Connect(updateLevel)
+	updateLevel()
+
+	local moreButton = Instance.new("TextButton")
+	moreButton.Name = "MoreButton"
+	moreButton.AnchorPoint = Vector2.new(1, 0.5)
+	moreButton.BackgroundColor3 = Theme.crystal
+	moreButton.BorderSizePixel = 0
+	moreButton.Text = ""
+	moreButton.TextColor3 = Theme.ink
+	moreButton.TextSize = 27
+	moreButton.TextStrokeColor3 = Theme.outline
+	moreButton.TextStrokeTransparency = 0.8
+	moreButton.Font = Theme.font
+	moreButton.AutoButtonColor = false
+	Theme.surface(moreButton, Theme.crystal, 16)
+	moreButton.BackgroundTransparency = 0.08
+	local moreGradient = moreButton:FindFirstChildWhichIsA("UIGradient")
+	if moreGradient then
+		moreGradient.Transparency = NumberSequence.new(0.12)
+	end
+	Motion.mount(moreButton)
+	moreButton.Parent = bar
+	local menuIcon = Instance.new("Frame")
+	menuIcon.Name = "MoreIcon"
+	menuIcon.AnchorPoint = Vector2.new(0.5, 0.5)
+	menuIcon.Position = UDim2.fromScale(0.5, 0.5)
+	menuIcon.Size = UDim2.fromScale(0.5, 0.42)
+	menuIcon.BackgroundTransparency = 1
+	menuIcon.Active = false
+	menuIcon.ZIndex = moreButton.ZIndex + 2
+	menuIcon.Parent = moreButton
+	for index = 1, 3 do
+		local line = Instance.new("Frame")
+		line.Name = `Line{index}`
+		line.Position = UDim2.fromScale(0, (index - 1) * 0.4)
+		line.Size = UDim2.new(1, 0, 0.2, 0)
+		line.BackgroundColor3 = Theme.ink
+		line.BorderSizePixel = 0
+		line.ZIndex = menuIcon.ZIndex
+		Theme.corner(line, 4)
+		line.Parent = menuIcon
+	end
+	local setMoreButtonVisible = Hud.bindFishingVisibility(moreButton, false)
+	setMoreButtonVisible(true)
+	Hud.panelChanged:Connect(function(name)
+		setMoreButtonVisible(name == "")
+	end)
+
+	local menu = Instance.new("Frame")
+	menu.Name = "QuickMenu"
+	menu.AnchorPoint = Vector2.new(0.5, 0)
+	menu.BackgroundColor3 = Theme.crystal
+	menu.BorderSizePixel = 0
+	menu.Visible = false
+	Art.panel(menu, Theme.crystal)
+	local menuPadding = Instance.new("UIPadding")
+	menuPadding.PaddingTop = UDim.new(0, 14)
+	menuPadding.PaddingBottom = UDim.new(0, 10)
+	menuPadding.PaddingLeft = UDim.new(0, 10)
+	menuPadding.PaddingRight = UDim.new(0, 10)
+	menuPadding.Parent = menu
+	menu.Parent = gui
+	local setMenuVisible = Hud.bindFishingVisibility(menu, false)
+	local menuOpen = false
+	local moreBadge = Instance.new("TextLabel")
+	moreBadge.Name = "NotificationBadge"
+	moreBadge.AnchorPoint = Vector2.new(1, 0)
+	moreBadge.Position = UDim2.new(1, 4, 0, -4)
+	moreBadge.Size = UDim2.fromOffset(26, 26)
+	moreBadge.BackgroundColor3 = Theme.rose
+	moreBadge.BorderSizePixel = 0
+	moreBadge.TextColor3 = Color3.new(1, 1, 1)
+	moreBadge.TextStrokeColor3 = Theme.outline
+	moreBadge.TextStrokeTransparency = 0
+	moreBadge.TextSize = 17
+	moreBadge.Font = Theme.font
+	moreBadge.Visible = false
+	Theme.corner(moreBadge, 13)
+	local moreBadgeStroke = Instance.new("UIStroke")
+	moreBadgeStroke.Color = Theme.outline
+	moreBadgeStroke.Thickness = 2
+	moreBadgeStroke.Parent = moreBadge
+	moreBadge.Parent = moreButton
+	local newCatch = false
+	local readyMissionCount = 0
+	local refreshMoreBadge: () -> ()
+	local function openMenu(open: boolean)
+		menuOpen = open and not fishingActive
+		setMenuVisible(menuOpen and currentPanel == "")
+		local missionBadge = navBadges.Missions
+		if missionBadge then
+			missionBadge.Visible = menuOpen and readyMissionCount > 0
+		end
+		local collectionBadge = navBadges.Collection
+		if collectionBadge then
+			collectionBadge.Visible = menuOpen and newCatch
+		end
+		refreshMoreBadge()
+	end
+	refreshMoreBadge = function()
+		local count = math.min(9, readyMissionCount)
+		moreBadge.Text = if newCatch then "!" else tostring(count)
+		moreBadge.Visible = (newCatch or count > 0) and not menuOpen and not fishingActive
+	end
+	moreButton.Activated:Connect(function()
+		openMenu(not menuOpen)
+	end)
+	Hud.fishingChanged:Connect(function(active)
+		if active then
+			openMenu(false)
+			if currentPanel ~= "" then
+				Hud.showPanel("")
+			end
+		end
+		refreshMoreBadge()
+	end)
+
 	for i, entry in entries do
 		local button = Art.button(Assets.navigation[entry.id])
 		button.Name = entry.id
 		button.AnchorPoint = Vector2.new(0.5, 0.5)
-		local label = Art.caption(button, "Label", entry.title, 29)
+		local label = Art.caption(button, "Label", entry.title, 24)
 		label.Position = UDim2.fromScale(0.1, 0.731)
 		label.Size = UDim2.fromScale(0.8, 0.19)
-		Motion.mount(button, 0.65, 6 + i * 0.42)
+		local badge = makeNavBadge(button, "NotificationBadge", entry.tint)
+		if entry.id == "Missions" then
+			navBadges.Missions = badge
+		elseif entry.id == "Collection" then
+			navBadges.Collection = badge
+		end
+		Motion.mount(button, 0.3, 7 + i * 0.42)
 		Hud.panelChanged:Connect(function(name)
 			local selected = name == entry.id
 				or (entry.id == "Collection" and name == "Milestones")
@@ -175,31 +584,106 @@ function Hud.start()
 			button.ImageColor3 = if selected
 				then Color3.fromRGB(235, 217, 255)
 				else Color3.new(1, 1, 1)
+			if name == "Collection" or name == "Milestones" then
+				newCatch = false
+				if navBadges.Collection then
+					navBadges.Collection.Visible = false
+				end
+				refreshMoreBadge()
+			end
 		end)
 		button.Activated:Connect(function()
+			openMenu(false)
 			Hud.showPanel(if currentPanel == entry.id then "" else entry.id)
 		end)
-		button.Parent = bar
+		button.Parent = menu
+	end
+	Hud.panelChanged:Connect(function(name)
+		if name ~= "" then
+			openMenu(false)
+		end
+	end)
+
+	local function updateMissionBadge(snapshot: Types.Snapshot?)
+		local badge = navBadges.Missions
+		if not badge then
+			return
+		end
+		local missions = snapshot and snapshot.missions
+		local ready = 0
+		if missions and missions.day == Missions.today() then
+			for _, mission in missions.list do
+				if not mission.claimed and mission.progress >= mission.target then
+					ready += 1
+				end
+			end
+		end
+		readyMissionCount = ready
+		badge.Text = if ready > 9 then "9+" else tostring(ready)
+		badge.Visible = ready > 0 and menuOpen and not fishingActive
+		refreshMoreBadge()
+	end
+	Data.changed:Connect(updateMissionBadge)
+	Hud.panelChanged:Connect(function(name)
+		if name == "Missions" then
+			local badge = navBadges.Missions
+			if badge then
+				badge.Visible = false
+			end
+		else
+			updateMissionBadge(Data.get())
+		end
+	end)
+	updateMissionBadge(Data.get())
+	local collectionBadge = navBadges.Collection
+	if collectionBadge then
+		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
+		local update = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
+		update.OnClientEvent:Connect(function(payload: Net.FishingUpdate)
+			if payload.event == "caught" and payload.isNew == true and Hud.panel() == "" then
+				newCatch = true
+				collectionBadge.Text = "!"
+				collectionBadge.Visible = menuOpen and not fishingActive
+				refreshMoreBadge()
+			end
+		end)
 	end
 	local function layout()
 		local size = gui.AbsoluteSize
 		local width = size.X * 0.966
-		local height = math.clamp(math.round(size.Y * 0.14), 50, 123)
+		local portrait = size.Y > size.X
+		local height = if portrait
+			then math.clamp(math.round(size.Y * 0.065), 50, 60)
+			else math.clamp(math.round(size.Y * 0.12), 50, 76)
 		bar.Size = UDim2.new(0.966, 0, 0, height)
-		local coinWidth = math.round(math.min(width * 0.205, height * 2.05))
+		local coinWidth =
+			math.round(math.min(width * (if portrait then 0.25 else 0.2), height * 1.9))
 		coins.Size = UDim2.fromOffset(coinWidth, math.round(height * 0.84))
 		coins.Position = UDim2.fromOffset(0, math.round(height * 0.08))
-		local gap = math.clamp(width * 0.008, 4, 12)
-		local buttonWidth =
-			math.floor(math.min(height * 1.30, (width - coinWidth - gap * 4) / #entries))
-		local groupWidth = buttonWidth * #entries + gap * (#entries - 1)
-		local left = math.max(coinWidth + gap, (width - groupWidth) / 2)
-		for i, entry in entries do
-			local button = bar:FindFirstChild(entry.id) :: ImageButton
-			button.Size = UDim2.fromOffset(buttonWidth, height)
+		local levelWidth =
+			math.round(math.clamp(width * (if portrait then 0.34 else 0.14), 104, 150))
+		levelChip.Size = UDim2.fromOffset(levelWidth, math.round(height * 0.72))
+		levelChip.Position = UDim2.fromOffset(coinWidth + 8, height / 2)
+		local menuSize = math.clamp(height * 0.82, 46, 60)
+		moreButton.Size = UDim2.fromOffset(menuSize, menuSize)
+		moreButton.Position = UDim2.new(1, 0, 0.5, 0)
+		local popupWidth =
+			math.min(width * (if portrait then 0.88 else 0.62), if portrait then 390 else 560)
+		local columns = if portrait then 2 else 4
+		local rows = math.ceil(#entries / columns)
+		local popupHeight = rows * (if portrait then 58 else 62) + (if portrait then 28 else 22)
+		menu.Size = UDim2.fromOffset(popupWidth, popupHeight)
+		menu.Position = UDim2.new(0.5, 0, 0, height + 14)
+		local gap = 8
+		local cellWidth = (popupWidth - 20 - gap * (columns - 1)) / columns
+		for index, entry in entries do
+			local button = menu:FindFirstChild(entry.id) :: ImageButton
+			local row = math.floor((index - 1) / columns)
+			local column = (index - 1) % columns
+			button.Size = UDim2.fromOffset(cellWidth, if portrait then 58 else 62)
 			button.Position = UDim2.fromOffset(
-				math.round(left + buttonWidth / 2 + (i - 1) * (buttonWidth + gap)),
-				height / 2
+				10 + column * (cellWidth + gap),
+				10 + row * (button.Size.Y.Offset + gap)
 			)
 		end
 		resized:Fire()
@@ -219,9 +703,10 @@ function Hud.start()
 	badge.BackgroundTransparency = 1
 	local badgeArt, rarityText = Art.rarity(badge)
 	badge.Parent = gui
+	local setRarityBadgeVisible = Hud.bindFishingVisibility(badge, false)
 	local recent = 0
 	Hud.panelChanged:Connect(function(name)
-		badge.Visible = name == "" and os.clock() < recent
+		setRarityBadgeVisible(name == "" and os.clock() < recent)
 	end)
 	task.spawn(function()
 		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
@@ -232,15 +717,15 @@ function Hud.start()
 				Art.setRarity(badgeArt, rarityText, creature.rarity)
 				recent = os.clock() + 8
 				local deadline = recent
-				badge.Visible = currentPanel == ""
+				setRarityBadgeVisible(currentPanel == "")
 				task.delay(8, function()
 					if recent == deadline then
-						badge.Visible = false
+						setRarityBadgeVisible(false)
 					end
 				end)
 			elseif payload.event == "bite" then
 				recent = 0
-				badge.Visible = false
+				setRarityBadgeVisible(false)
 			end
 		end)
 	end)
@@ -255,6 +740,7 @@ function Hud.start()
 	perks.TextSize = 13
 	Theme.surface(perks, Theme.gold, 8, Theme.ink)
 	perks.Parent = gui
+	local setPerksVisible = Hud.bindFishingVisibility(perks, false)
 	local vip = Products.passAttribute("vip")
 	local function updatePerks()
 		local names = {}
@@ -272,7 +758,7 @@ function Hud.start()
 			)
 		end
 		perks.Text = table.concat(names, "  ·  ")
-		perks.Visible = #names > 0 and currentPanel == ""
+		setPerksVisible(#names > 0 and currentPanel == "")
 	end
 	player:GetAttributeChangedSignal(vip):Connect(updatePerks)
 	player:GetAttributeChangedSignal(Products.LUCK_BOOST_ATTRIBUTE):Connect(updatePerks)
@@ -306,18 +792,20 @@ function Hud.start()
 	toast.Parent = notifications
 	toastLabel = toast
 	toastStroke = outline
+	setToastVisible = Hud.bindFishingVisibility(toast, false)
+	setToastVisible(true)
 	Hud.panelChanged:Connect(function(name)
 		if name ~= "" then
-			toast.TextTransparency = 1
-			toast.BackgroundTransparency = 1
-			outline.Transparency = 1
+			setToastVisible(false)
+		else
+			setToastVisible(true)
 		end
 	end)
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
 	layout()
 	notifications.Parent = playerGui
-	task.spawn(RodHotbar.mount, gui, Hud.panelChanged, Hud.panel)
+	task.spawn(RodHotbar.mount, gui, Hud.panelChanged, Hud.panel, Hud.bindFishingVisibility)
 	task.spawn(function()
 		while gui.Parent do
 			task.wait(1)
