@@ -21,5 +21,6 @@ accepts http/https URLs: the files were served from a temporary local server on
 | raridade-raro.png | rbxassetid://86548789484870 |
 | raridade-epico.png | rbxassetid://140233241420286 |
 | raridade-lendario.png | rbxassetid://116077682585545 |
+| raridade-mistico.png | rbxassetid://70598046192474 |
 
 New uploads can take a moment to pass moderation before they show in game.

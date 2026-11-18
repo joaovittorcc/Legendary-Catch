@@ -19,5 +19,6 @@ return {
 		Rare = "rbxassetid://86548789484870",
 		Epic = "rbxassetid://140233241420286",
 		Legendary = "rbxassetid://116077682585545",
+		Mystic = "rbxassetid://70598046192474",
 	} :: { [string]: string },
 }

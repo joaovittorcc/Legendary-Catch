@@ -86,6 +86,17 @@ function Art.caption(
 	return label
 end
 
+local function updateRarityLabel(badge: ImageLabel, label: TextLabel, rarity: string)
+	local fallback = Theme.rarityRank(rarity) == 6 and (badge.Image == "" or not badge.IsLoaded)
+	local mystic = badge:FindFirstChild("MysticBadge")
+	if mystic and mystic:IsA("Frame") then
+		mystic.Visible = fallback
+	end
+	label.Position = if fallback then UDim2.fromScale(0.04, 0.17) else UDim2.fromScale(0.44, 0.17)
+	label.Size = if fallback then UDim2.fromScale(0.92, 0.66) else UDim2.fromScale(0.51, 0.66)
+	label.Text = if fallback then Theme.rarityLabel(rarity) else Strings.rarity[rarity] or rarity
+end
+
 function Art.rarity(parent: GuiObject): (ImageLabel, TextLabel)
 	local badge = Art.image(parent, "", "RarityBadge")
 	local fallback = Instance.new("Frame")
@@ -103,15 +114,21 @@ end
 
 function Art.setRarity(badge: ImageLabel, label: TextLabel, rarity: string)
 	local asset = Assets.rarity[rarity]
-	local fallback = Theme.rarityRank(rarity) == 6 and asset == nil
-	badge.Image = if fallback then "" else asset or Assets.rarity.Common
-	local mystic = badge:FindFirstChild("MysticBadge")
-	if mystic and mystic:IsA("Frame") then
-		mystic.Visible = fallback
+	badge:SetAttribute("Rarity", rarity)
+	badge.Image = asset or (if Theme.rarityRank(rarity) == 6 then "" else Assets.rarity.Common)
+	updateRarityLabel(badge, label, rarity)
+	if Theme.rarityRank(rarity) == 6 and asset and not badge.IsLoaded then
+		task.spawn(function()
+			local deadline = os.clock() + 5
+			while badge.Parent and badge:GetAttribute("Rarity") == rarity do
+				if badge.IsLoaded or os.clock() >= deadline then
+					updateRarityLabel(badge, label, rarity)
+					return
+				end
+				task.wait(0.12)
+			end
+		end)
 	end
-	label.Position = if fallback then UDim2.fromScale(0.04, 0.17) else UDim2.fromScale(0.44, 0.17)
-	label.Size = if fallback then UDim2.fromScale(0.92, 0.66) else UDim2.fromScale(0.51, 0.66)
-	label.Text = if fallback then Theme.rarityLabel(rarity) else Strings.rarity[rarity] or rarity
 end
 
 return Art
