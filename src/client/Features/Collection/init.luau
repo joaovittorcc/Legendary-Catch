@@ -172,6 +172,15 @@ function Collection.start()
 			local rarity = Panel.label(body, Theme.rarityLabel(creature.rarity), 15)
 			rarity.Name = "Rarity"
 			rarity.Size = UDim2.new(1, 0, 0, 22)
+			if creature.event then
+				local eventName = Strings.eventName[creature.event] or creature.event
+				local event =
+					Panel.label(body, string.format(Text.adventure.eventCreature, eventName), 14)
+				event.Name = "EventHint"
+				event.Size = UDim2.new(1, 0, 0, 36)
+				event.TextStrokeTransparency = 1
+				Theme.surface(event, Theme.crystal, 12, Theme.crystal:Lerp(Theme.cream, 0.55))
+			end
 			local stage = Instance.new("Frame")
 			stage.Size = UDim2.new(1, 0, 0, 145)
 			Theme.surface(stage, Theme.crystal, 22, Theme.viewport)
@@ -357,6 +366,7 @@ function Collection.start()
 				string.format("%s  ·  %d / %d", Theme.rarityLabel(rarity), count, total),
 				17
 			)
+			section.TextStrokeTransparency = 1
 			local mystic = Theme.rarityRank(rarity) == 6
 			if mystic then
 				section.BackgroundTransparency = 0
@@ -387,9 +397,10 @@ function Collection.start()
 				card.Text = ""
 				card.AutoButtonColor = false
 				card.BorderSizePixel = 0
-				card.BackgroundColor3 = Theme.cream
+				card.BackgroundColor3 = color:Lerp(Theme.cream, 0.86)
 				Theme.corner(card, 14)
 				local outline = Instance.new("UIStroke")
+				outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 				outline.Color = color
 				outline.Thickness = 3
 				outline.Parent = card
@@ -398,7 +409,16 @@ function Collection.start()
 				end
 				local icon = Instance.new("Frame")
 				icon.BackgroundTransparency = 1
-				icon.Size = UDim2.fromScale(1, 0.61)
+				icon.Size = UDim2.fromScale(1, if entry.event then 0.43 else 0.61)
+				if entry.event then
+					icon.Position = UDim2.fromScale(0, 0.18)
+					local event = Panel.label(card, Text.adventure.eventOnly, 11, Theme.ink)
+					event.Name = "EventBadge"
+					event.Size = UDim2.new(0.86, 0, 0, 19)
+					event.Position = UDim2.new(0.07, 0, 0, 4)
+					event.TextStrokeTransparency = 1
+					Theme.surface(event, Theme.crystal, 9, Theme.crystal:Lerp(Theme.cream, 0.55))
+				end
 				icon.Parent = card
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
 				local name = Panel.label(card, label, 13)

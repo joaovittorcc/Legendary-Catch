@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi")).adventure
 local Config = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
+local Creatures = require(Shared.Config:WaitForChild("Creatures"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
@@ -31,6 +32,12 @@ local icons: { [string]: string } = {
 }
 
 function Events.start()
+	local exclusives: { [string]: number } = {}
+	for _, creature in Creatures.LIST do
+		if creature.event then
+			exclusives[creature.event] = (exclusives[creature.event] or 0) + 1
+		end
+	end
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "OceanEventHud"
 	gui.ResetOnSpawn = false
@@ -50,7 +57,7 @@ function Events.start()
 	local rim = banner:FindFirstChildWhichIsA("UIStroke")
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(210, 48)
-	bounds.MaxSize = Vector2.new(300, 66)
+	bounds.MaxSize = Vector2.new(300, 70)
 	bounds.Parent = banner
 	local ratio = Instance.new("UIAspectRatioConstraint")
 	ratio.AspectRatio = 5
@@ -89,7 +96,7 @@ function Events.start()
 	titleLimit.MaxTextSize = 17
 	titleLimit.Parent = title
 
-	local timer = Panel.label(banner, "", 14, Theme.muted)
+	local timer = Panel.label(banner, "", 14, Theme.wood)
 	timer.Name = "EventTimer"
 	timer.Position = UDim2.fromOffset(54, 24)
 	timer.Size = UDim2.new(1, -64, 0, 16)
@@ -99,6 +106,13 @@ function Events.start()
 	local timerLimit = Instance.new("UITextSizeConstraint")
 	timerLimit.MaxTextSize = 14
 	timerLimit.Parent = timer
+	local exclusive = Panel.label(banner, "", 12, Theme.ink)
+	exclusive.Name = "EventExclusives"
+	exclusive.Position = UDim2.fromOffset(54, 39)
+	exclusive.Size = UDim2.new(1, -64, 0, 15)
+	exclusive.TextStrokeTransparency = 1
+	exclusive.TextXAlignment = Enum.TextXAlignment.Left
+	exclusive.Visible = false
 
 	local track = Instance.new("Frame")
 	track.Name = "EventTrack"
@@ -146,7 +160,9 @@ function Events.start()
 		end
 		local portrait = size.Y > size.X
 		local width = math.clamp(size.X * (if portrait then 0.62 else 0.36), 210, 300)
-		local height = if portrait then 56 else 50
+		local height = if exclusive.Visible
+			then (if portrait then 68 else 64)
+			else (if portrait then 56 else 50)
 		banner.Size = UDim2.fromOffset(width, height)
 		ratio.AspectRatio = width / height
 		local cardBottom = math.max(Tutorial.cardBottom(), Training.cardBottom())
@@ -158,6 +174,9 @@ function Events.start()
 	local lastId = ""
 	local lastRemaining = -1
 	local wasActive = false
+	local function updateVisibility()
+		setBannerVisible(wasActive and Hud.panel() == "")
+	end
 	local function refresh()
 		local id = ReplicatedStorage:GetAttribute(Config.ACTIVE_ATTRIBUTE)
 		local ends = ReplicatedStorage:GetAttribute(Config.ENDS_AT_ATTRIBUTE)
@@ -168,7 +187,7 @@ function Events.start()
 		local active = event ~= nil and remaining > 0
 		if active ~= wasActive then
 			wasActive = active
-			setBannerVisible(active)
+			updateVisibility()
 		end
 		local tint = if typeof(id) == "string" then colors[id] or Theme.crystal else Theme.crystal
 		local decorations = active and player:GetAttribute("ReduceEffects") ~= true
@@ -180,7 +199,6 @@ function Events.start()
 			end
 		end
 		if active and event then
-			layout()
 			if lastId ~= event.id then
 				lastId = event.id
 				lastRemaining = -1
@@ -189,12 +207,18 @@ function Events.start()
 				end
 				icon.Text = icons[event.id] or "🌊"
 				title.Text = Strings.eventName[event.id] or event.id
+				local count = exclusives[event.id] or 0
+				exclusive.Visible = count > 0
+				exclusive.Text = if count == 1
+					then Text.eventExclusiveOne
+					else string.format(Text.eventExclusiveMany, count)
 				fill.BackgroundColor3 = tint
 				atmosphere.TintColor = Color3.new(1, 1, 1):Lerp(tint, 0.28)
 				atmosphere.Brightness = if event.id == "thunderStorm" then -0.11 else 0.025
 				emitter.Color = ColorSequence.new(tint)
 				motion.pulse(0.94)
 			end
+			layout()
 			if lastRemaining ~= remaining then
 				lastRemaining = remaining
 				local clock = string.format("%d:%02d", math.floor(remaining / 60), remaining % 60)
@@ -223,6 +247,7 @@ function Events.start()
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	Tutorial.layoutChanged:Connect(layout)
 	Hud.layoutChanged:Connect(layout)
+	Hud.panelChanged:Connect(updateVisibility)
 	gui.Destroying:Once(function()
 		atmosphere:Destroy()
 		anchor:Destroy()
