@@ -180,6 +180,14 @@ function Collection.start()
 				event.Size = UDim2.new(1, 0, 0, 36)
 				event.TextStrokeTransparency = 1
 				Theme.surface(event, Theme.crystal, 12, Theme.crystal:Lerp(Theme.cream, 0.55))
+			elseif creature.season then
+				local seasonName = Strings.seasonName[creature.season] or creature.season
+				local season =
+					Panel.label(body, string.format(Text.adventure.seasonCreature, seasonName), 14)
+				season.Name = "SeasonHint"
+				season.Size = UDim2.new(1, 0, 0, 36)
+				season.TextStrokeTransparency = 1
+				Theme.surface(season, Theme.rose, 12, Theme.rose:Lerp(Theme.cream, 0.55))
 			end
 			local stage = Instance.new("Frame")
 			stage.Size = UDim2.new(1, 0, 0, 145)
@@ -407,9 +415,10 @@ function Collection.start()
 				if mystic then
 					Theme.iridescent(card)
 				end
+				local hasBadge = entry.event ~= nil or entry.season ~= nil
 				local icon = Instance.new("Frame")
 				icon.BackgroundTransparency = 1
-				icon.Size = UDim2.fromScale(1, if entry.event then 0.43 else 0.61)
+				icon.Size = UDim2.fromScale(1, if hasBadge then 0.43 else 0.61)
 				if entry.event then
 					icon.Position = UDim2.fromScale(0, 0.18)
 					local event = Panel.label(card, Text.adventure.eventOnly, 14, Theme.ink)
@@ -422,6 +431,18 @@ function Collection.start()
 					evLimit.MaxTextSize = 14
 					evLimit.Parent = event
 					Theme.surface(event, Theme.crystal, 9, Theme.crystal:Lerp(Theme.cream, 0.55))
+				elseif entry.season then
+					icon.Position = UDim2.fromScale(0, 0.18)
+					local season = Panel.label(card, Text.adventure.seasonOnly, 14, Theme.ink)
+					season.Name = "SeasonBadge"
+					season.Size = UDim2.new(0.86, 0, 0, 20)
+					season.Position = UDim2.new(0.07, 0, 0, 4)
+					season.TextScaled = true
+					season.TextStrokeTransparency = 1
+					local sLimit = Instance.new("UITextSizeConstraint")
+					sLimit.MaxTextSize = 14
+					sLimit.Parent = season
+					Theme.surface(season, Theme.rose, 9, Theme.rose:Lerp(Theme.cream, 0.55))
 				end
 				icon.Parent = card
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })

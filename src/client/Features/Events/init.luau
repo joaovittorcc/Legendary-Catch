@@ -8,6 +8,7 @@ local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi")).adventure
 local Config = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
 local Creatures = require(Shared.Config:WaitForChild("Creatures"))
+local Seasons = require(Shared.Config:WaitForChild("Seasons"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
@@ -209,6 +210,72 @@ function Events.start()
 	local motion = Motion.mount(banner)
 	banner.Parent = gui
 	local setBannerVisible = Hud.bindFishingVisibility(banner, false)
+
+	local seasonBanner = Instance.new("Frame")
+	seasonBanner.Name = "SeasonBanner"
+	seasonBanner.AnchorPoint = Vector2.new(0, 0)
+	seasonBanner.Position = UDim2.new(0.03, 0, 0, 80)
+	seasonBanner.Size = UDim2.fromOffset(250, 50)
+	seasonBanner.BackgroundColor3 = Color3.fromRGB(228, 78, 96)
+	seasonBanner.BorderSizePixel = 0
+	seasonBanner.Visible = false
+	Art.panel(seasonBanner, Color3.fromRGB(228, 78, 96))
+	local seasonBounds = Instance.new("UISizeConstraint")
+	seasonBounds.MinSize = Vector2.new(210, 48)
+	seasonBounds.MaxSize = Vector2.new(300, 74)
+	seasonBounds.Parent = seasonBanner
+	local seasonRatio = Instance.new("UIAspectRatioConstraint")
+	seasonRatio.AspectRatio = 5
+	seasonRatio.DominantAxis = Enum.DominantAxis.Width
+	seasonRatio.Parent = seasonBanner
+
+	local sIconHolder = Instance.new("Frame")
+	sIconHolder.Name = "SeasonIcon"
+	sIconHolder.AnchorPoint = Vector2.new(0, 0.5)
+	sIconHolder.Position = UDim2.fromOffset(8, 25)
+	sIconHolder.Size = UDim2.fromOffset(38, 38)
+	sIconHolder.BackgroundColor3 = Theme.cream
+	sIconHolder.BorderSizePixel = 0
+	sIconHolder.ZIndex = 3
+	Theme.corner(sIconHolder, 19)
+	local sIconStroke = Instance.new("UIStroke")
+	sIconStroke.Color = Theme.outline
+	sIconStroke.Thickness = 2
+	sIconStroke.Parent = sIconHolder
+	local sIcon = Panel.label(sIconHolder, "🎄", 22)
+	sIcon.TextScaled = true
+	sIcon.TextStrokeTransparency = 1
+	sIcon.Size = UDim2.fromScale(1, 1)
+	sIcon.ZIndex = 4
+	sIconHolder.Parent = seasonBanner
+
+	local sTitle = Panel.label(seasonBanner, Text.seasonBannerTitle, 16, Theme.ink)
+	sTitle.Name = "SeasonName"
+	sTitle.Position = UDim2.fromOffset(54, 6)
+	sTitle.Size = UDim2.new(1, -64, 0, 20)
+	sTitle.TextScaled = true
+	sTitle.TextStrokeTransparency = 1
+	sTitle.TextXAlignment = Enum.TextXAlignment.Left
+	local sTitleLimit = Instance.new("UITextSizeConstraint")
+	sTitleLimit.MinTextSize = 12
+	sTitleLimit.MaxTextSize = 17
+	sTitleLimit.Parent = sTitle
+
+	local sSub = Panel.label(seasonBanner, Text.seasonBannerSub, 14, Theme.wood)
+	sSub.Name = "SeasonSub"
+	sSub.Position = UDim2.fromOffset(54, 26)
+	sSub.Size = UDim2.new(1, -64, 0, 18)
+	sSub.TextScaled = true
+	sSub.TextStrokeTransparency = 1
+	sSub.TextXAlignment = Enum.TextXAlignment.Left
+	local sSubLimit = Instance.new("UITextSizeConstraint")
+	sSubLimit.MaxTextSize = 14
+	sSubLimit.Parent = sSub
+
+	Motion.mount(seasonBanner)
+	seasonBanner.Parent = gui
+	local setSeasonVisible = Hud.bindFishingVisibility(seasonBanner, false)
+
 	gui.Parent = player:WaitForChild("PlayerGui")
 
 	local atmosphere = Instance.new("ColorCorrectionEffect")
@@ -259,17 +326,34 @@ function Events.start()
 			else (if portrait then 56 else 50)
 		banner.Size = UDim2.fromOffset(width, height)
 		ratio.AspectRatio = width / height
-		local cardBottom = math.max(Tutorial.cardBottom(), Training.cardBottom())
-		local top = if cardBottom > 0 then cardBottom + 10 else math.clamp(size.Y * 0.2, 76, 190)
+		local hudGui = player.PlayerGui:FindFirstChild("AdventureHud")
+		local ng = hudGui and hudGui:FindFirstChild("NextGoal")
+		local ngBottom = if ng
+				and ng:IsA("GuiObject")
+				and ng.Visible
+			then ng.AbsolutePosition.Y + ng.AbsoluteSize.Y - gui.AbsolutePosition.Y
+			else 0
+		local cardBottom = math.max(Tutorial.cardBottom(), Training.cardBottom(), ngBottom)
+		local top = if cardBottom > 0 then cardBottom + 8 else math.clamp(size.Y * 0.2, 76, 190)
 		banner.Position = UDim2.new(0.03, 0, 0, top)
 		iconHolder.Position = UDim2.fromOffset(8, height / 2)
+
+		local sHeight = if portrait then 56 else 50
+		seasonBanner.Size = UDim2.fromOffset(width, sHeight)
+		seasonRatio.AspectRatio = width / sHeight
+		local seasonTop = if banner.Visible then top + height + 8 else top
+		seasonBanner.Position = UDim2.new(0.03, 0, 0, seasonTop)
+		sIconHolder.Position = UDim2.fromOffset(8, sHeight / 2)
 	end
 
 	local lastId = ""
 	local lastRemaining = -1
 	local wasActive = false
+	local seasonActive = false
 	local function updateVisibility()
 		setBannerVisible(wasActive and Hud.panel() == "")
+		setSeasonVisible(seasonActive and Hud.panel() == "")
+		layout()
 	end
 	local function refresh()
 		local id = ReplicatedStorage:GetAttribute(Config.ACTIVE_ATTRIBUTE)
@@ -279,8 +363,10 @@ function Events.start()
 			else 0
 		local event = if typeof(id) == "string" then Config.get(id) else nil
 		local active = event ~= nil and remaining > 0
-		if active ~= wasActive then
+		local isXmas = Seasons.isActive("xmas", player, workspace:GetServerTimeNow())
+		if active ~= wasActive or isXmas ~= seasonActive then
 			wasActive = active
+			seasonActive = isXmas
 			updateVisibility()
 		end
 		local tint = if typeof(id) == "string" then colors[id] or Theme.crystal else Theme.crystal
@@ -396,7 +482,18 @@ function Events.start()
 	end)
 	ReplicatedStorage:GetAttributeChangedSignal(Config.ACTIVE_ATTRIBUTE):Connect(refresh)
 	ReplicatedStorage:GetAttributeChangedSignal(Config.ENDS_AT_ATTRIBUTE):Connect(refresh)
+	player:GetAttributeChangedSignal(Seasons.DEV_ATTRIBUTE):Connect(refresh)
 	player:GetAttributeChangedSignal("ReduceEffects"):Connect(refresh)
+	task.spawn(function()
+		local hudGui = player:WaitForChild("PlayerGui"):WaitForChild("AdventureHud", 5)
+		local ng = hudGui and hudGui:WaitForChild("NextGoal", 5)
+		if ng and ng:IsA("GuiObject") then
+			ng:GetPropertyChangedSignal("Visible"):Connect(layout)
+			ng:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
+			ng:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+			layout()
+		end
+	end)
 	layout()
 	refresh()
 end

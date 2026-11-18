@@ -14,6 +14,7 @@ local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local EventsConfig = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
+local SeasonsConfig = require(Shared:WaitForChild("Config"):WaitForChild("Seasons"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 
@@ -285,6 +286,106 @@ local function makePart(
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = parent
 	return p
+end
+
+local XMAS_COLORS = {
+	Color3.fromRGB(255, 78, 92),
+	Color3.fromRGB(255, 214, 86),
+	Color3.fromRGB(82, 232, 138),
+	Color3.fromRGB(115, 226, 255),
+}
+
+local function buildPierHolidayDecor(island: Instance?): (Model?, { BasePart }, { PointLight })
+	local pier = island and island:FindFirstChild("FishingPier")
+	if not pier then
+		return nil, {}, {}
+	end
+	local model = Instance.new("Model")
+	model.Name = "ChristmasPierDecor"
+	local bulbs: { BasePart } = {}
+	local lights: { PointLight } = {}
+	local colorIdx = 0
+
+	local function addGarlandSpan(a: Vector3, b: Vector3, addLight: boolean)
+		local diff = b - a
+		local dist = diff.Magnitude
+		if dist < 0.5 then
+			return
+		end
+		local mid = (a + b) / 2
+		local strand = makePart(
+			model,
+			"Garland",
+			Vector3.new(0.24, 0.24, dist),
+			CFrame.lookAt(mid, b),
+			Color3.fromRGB(38, 128, 68),
+			Enum.Material.Grass
+		)
+		strand.CastShadow = false
+		for i = 1, 3 do
+			colorIdx += 1
+			local alpha = i / 4
+			local pos = a:Lerp(b, alpha) - Vector3.new(0, 0.22, 0)
+			local c = XMAS_COLORS[(colorIdx - 1) % #XMAS_COLORS + 1]
+			local bulb = makePart(
+				model,
+				"HolidayBulb",
+				Vector3.new(0.32, 0.32, 0.32),
+				CFrame.new(pos),
+				c,
+				Enum.Material.Neon,
+				Enum.PartType.Ball
+			)
+			bulb.CastShadow = false
+			table.insert(bulbs, bulb)
+			if addLight and i == 2 then
+				local pl = Instance.new("PointLight")
+				pl.Color = c
+				pl.Brightness = 0.9
+				pl.Range = 10
+				pl.Parent = bulb
+				table.insert(lights, pl)
+			end
+		end
+	end
+
+	local leftPosts: { Vector3 } = {}
+	local rightPosts: { Vector3 } = {}
+	local archBeam: BasePart? = nil
+	for _, d in pier:GetDescendants() do
+		if d:IsA("BasePart") then
+			if d.Name == "PostCap" then
+				if d.Position.Z < 8 then
+					table.insert(leftPosts, d.Position - Vector3.new(0, 0.45, 0))
+				else
+					table.insert(rightPosts, d.Position - Vector3.new(0, 0.45, 0))
+				end
+			elseif d.Name == "ArchBeam" then
+				archBeam = d
+			end
+		end
+	end
+	local function sortByX(list: { Vector3 })
+		table.sort(list, function(p1, p2)
+			return p1.X < p2.X
+		end)
+	end
+	sortByX(leftPosts)
+	sortByX(rightPosts)
+	for i = 1, #leftPosts - 1 do
+		addGarlandSpan(leftPosts[i], leftPosts[i + 1], i % 3 == 1)
+	end
+	for i = 1, #rightPosts - 1 do
+		addGarlandSpan(rightPosts[i], rightPosts[i + 1], i % 3 == 2)
+	end
+	if archBeam then
+		local p = archBeam.Position
+		local span = archBeam.Size.Z * 0.42
+		addGarlandSpan(p - Vector3.new(0, 0.7, span), p - Vector3.new(0, 0.7, -span), true)
+	end
+
+	model.Parent = Workspace
+	return model, bulbs, lights
 end
 
 type AnimatedNpc = {
@@ -1014,6 +1115,63 @@ function LivingWorld.start()
 		end
 	end
 
+	local snowAnchor = Instance.new("Attachment")
+	snowAnchor.Name = "ChristmasSnowAnchor"
+	snowAnchor.Position = Vector3.new(0, 14, -14)
+	local snowEmitter = Instance.new("ParticleEmitter")
+	snowEmitter.Name = "ChristmasSnow"
+	snowEmitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
+	snowEmitter.Color = ColorSequence.new(Color3.fromRGB(238, 248, 255))
+	snowEmitter.Size = NumberSequence.new(0.16)
+	snowEmitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.2),
+		NumberSequenceKeypoint.new(0.85, 0.25),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	snowEmitter.LightEmission = 0.45
+	snowEmitter.Rate = 9
+	snowEmitter.Lifetime = NumberRange.new(2.8, 4.2)
+	snowEmitter.Speed = NumberRange.new(2.4, 4.2)
+	snowEmitter.Acceleration = Vector3.new(0.3, -2.2, 0)
+	snowEmitter.SpreadAngle = Vector2.new(85, 85)
+	snowEmitter.EmissionDirection = Enum.NormalId.Bottom
+	snowEmitter.Enabled = false
+	snowEmitter.Parent = snowAnchor
+
+	local xmasModel: Model? = nil
+	local xmasBulbs: { BasePart } = {}
+	local xmasLights: { PointLight } = {}
+
+	local function syncSeasonalDecor()
+		local xmasActive = SeasonsConfig.isActive("xmas", player, Workspace:GetServerTimeNow())
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		if xmasActive and not xmasModel then
+			xmasModel, xmasBulbs, xmasLights =
+				buildPierHolidayDecor(Workspace:FindFirstChild("Island"))
+		elseif not xmasActive and xmasModel then
+			xmasModel:Destroy()
+			xmasModel = nil
+			table.clear(xmasBulbs)
+			table.clear(xmasLights)
+		end
+		local showSnow = xmasActive and not reduced
+		snowEmitter.Enabled = showSnow
+		snowAnchor.Parent = if showSnow then Workspace.CurrentCamera else nil
+		if not showSnow then
+			snowEmitter:Clear()
+		end
+		for _, bulb in xmasBulbs do
+			if bulb.Parent then
+				bulb.Material = if reduced then Enum.Material.SmoothPlastic else Enum.Material.Neon
+			end
+		end
+		for _, pl in xmasLights do
+			if pl.Parent then
+				pl.Enabled = not reduced
+			end
+		end
+	end
+
 	local function syncReduceEffects()
 		local reduced = player:GetAttribute("ReduceEffects") == true
 		for _, em in campfireEmitters do
@@ -1030,10 +1188,13 @@ function LivingWorld.start()
 			end
 		end
 		applyLightingAndLanterns()
+		syncSeasonalDecor()
 	end
 
 	local heartbeatConn: RBXScriptConnection? = nil
 	local reduceConn = player:GetAttributeChangedSignal("ReduceEffects"):Connect(syncReduceEffects)
+	local seasonConn =
+		player:GetAttributeChangedSignal(SeasonsConfig.DEV_ATTRIBUTE):Connect(syncSeasonalDecor)
 	local eventConn = ReplicatedStorage:GetAttributeChangedSignal(EventsConfig.ACTIVE_ATTRIBUTE)
 		:Connect(applyLightingAndLanterns)
 
@@ -1046,6 +1207,7 @@ function LivingWorld.start()
 		if t - lastAtmUpdate >= (if reduced then 1.0 else 0.25) then
 			lastAtmUpdate = t
 			applyLightingAndLanterns()
+			syncSeasonalDecor()
 		end
 
 		if not reduced and t - lastNpcUpdate >= 0.033 then
@@ -1068,7 +1230,13 @@ function LivingWorld.start()
 			heartbeatConn = nil
 		end
 		reduceConn:Disconnect()
+		seasonConn:Disconnect()
 		eventConn:Disconnect()
+		snowAnchor:Destroy()
+		if xmasModel then
+			xmasModel:Destroy()
+			xmasModel = nil
+		end
 	end)
 end
 

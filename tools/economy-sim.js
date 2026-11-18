@@ -11,7 +11,7 @@ for (const b of creaturesSrc.split("\t{\n\t\tid = ").slice(1)) {
   const g = (k) => (b.match(new RegExp("\\t\\t" + k + ' = "?([^",\\n]+)')) || [])[1];
   const id = (b.match(/^"([^"]+)"/) || [])[1];
   if (!id) continue;
-  creatures.push({ id, rarity: g("rarity"), baseValue: +g("baseValue"), event: g("event") });
+  creatures.push({ id, rarity: g("rarity"), baseValue: +g("baseValue"), event: g("event"), season: g("season") });
 }
 const pi = creaturesSrc.indexOf("local PLANNED");
 const live = creatures.filter((c) => creaturesSrc.indexOf('"' + c.id + '"') < pi || pi < 0);
@@ -35,14 +35,18 @@ const VALUE_MULT = 0.75 + 0.5 * (1 / 2.8); // weight rolled as t^1.8 -> E[t] = 1
 const SHINY = 1 + (1 / 40) * (3 - 1);
 const COMBO = 1.15; // average combo bonus for an engaged player
 
-function row(rod, instinct, prestige) {
+function row(rod, instinct, prestige, zoneBoost = {}) {
   const eff = {};
   let total = 0;
   order.forEach((r, i) => {
     const rank = i + 1;
-    const pool = live.filter((c) => c.rarity === r && !c.event);
+    const pool = live.filter((c) => c.rarity === r && !c.event && !c.season);
     const w = pool.length
-      ? weights[r] * (1 + 0.01 * instinct * (rank - 1)) * (1 + rod.luck * (rank - 1)) * (1 + 0.04 * prestige * (rank - 1))
+      ? weights[r] *
+        (1 + 0.01 * instinct * (rank - 1)) *
+        (1 + rod.luck * (rank - 1)) *
+        (1 + 0.04 * prestige * (rank - 1)) *
+        (zoneBoost[r] || 1)
       : 0;
     eff[r] = { w, pool };
     total += w;
@@ -71,6 +75,32 @@ for (const [label, instinct, prestige] of [["no training, no prestige", 0, 0], [
       String(mins).padEnd(16), r.mystic ? Math.round(1 / r.mystic) : "never"
     );
   });
+}
+
+const zonesSrc = read("src/shared/Config/Zones.luau");
+const zones = [];
+for (const b of zonesSrc.split("\t{\n\t\tid = ").slice(1)) {
+  const id = (b.match(/^"([^"]+)"/) || [])[1];
+  const minLevel = +((b.match(/minLevel = (\d+)/) || [])[1] || 1);
+  const boostBlock = (b.match(/rarityBoost = \{([^}]*)\}/) || [])[1] || "";
+  const boost = {};
+  for (const m of boostBlock.matchAll(/(\w+)\s*=\s*([\d.]+)/g)) boost[m[1]] = +m[2];
+  if (id) zones.push({ id, minLevel, boost });
+}
+if (zones.length) {
+  console.log("\n== Zone comparison (Instinct 25, Astral / Abyss / Mystic rods) ==");
+  for (const rodId of ["coral", "astral", "abyss", "mystic"]) {
+    const rod = rods.find((r) => r.id === rodId);
+    if (!rod) continue;
+    for (const z of zones) {
+      const r = row(rod, 25, 0, z.boost);
+      console.log(
+        rod.id.padEnd(9), (z.id + " (Lv" + z.minLevel + ")").padEnd(16),
+        "coins/min=" + r.perMin.toFixed(0).padEnd(6),
+        "1 Mystic/" + (r.mystic ? Math.round(1 / r.mystic) : "never")
+      );
+    }
+  }
 }
 const counts = {};
 for (const c of live) counts[c.rarity] = (counts[c.rarity] || 0) + (c.event ? 0 : 1);

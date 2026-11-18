@@ -15,6 +15,7 @@ export type Creature = {
 	weightMax: number,
 	revealStyle: string,
 	event: string?, -- only rolls while that ocean event is active
+	season: string?, -- only rolls while that seasonal window is active
 }
 
 local LIST: { Creature } = {
@@ -928,6 +929,66 @@ local LIST: { Creature } = {
 		weightMax = 2400,
 		revealStyle = "frost",
 		event = "aurora",
+	},
+	{
+		id = "C101_Rena_do_Mar",
+		rarity = "Common",
+		tier = 1,
+		baseValue = 14,
+		weightMin = 1,
+		weightMax = 4,
+		revealStyle = "frost",
+		season = "xmas",
+	},
+	{
+		id = "C102_Peixe_Arvore_de_Natal",
+		rarity = "Uncommon",
+		tier = 2,
+		baseValue = 44,
+		weightMin = 4,
+		weightMax = 14,
+		revealStyle = "spark",
+		season = "xmas",
+	},
+	{
+		id = "C103_Boneco_de_Gelo_Marinho",
+		rarity = "Rare",
+		tier = 3,
+		baseValue = 155,
+		weightMin = 12,
+		weightMax = 40,
+		revealStyle = "frost",
+		season = "xmas",
+	},
+	{
+		id = "C104_Polvo_Presente",
+		rarity = "Epic",
+		tier = 4,
+		baseValue = 410,
+		weightMin = 30,
+		weightMax = 110,
+		revealStyle = "spark",
+		season = "xmas",
+	},
+	{
+		id = "C105_Estrela_do_Natal",
+		rarity = "Epic",
+		tier = 4,
+		baseValue = 435,
+		weightMin = 45,
+		weightMax = 150,
+		revealStyle = "prism",
+		season = "xmas",
+	},
+	{
+		id = "C106_Rei_do_Gelo_Natalino",
+		rarity = "Legendary",
+		tier = 5,
+		baseValue = 1920,
+		weightMin = 2500,
+		weightMax = 7500,
+		revealStyle = "frost",
+		season = "xmas",
 	},
 }
 
