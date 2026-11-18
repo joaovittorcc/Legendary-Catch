@@ -66,7 +66,7 @@ local LIST: { Rod } = {
 	{
 		id = "celestial",
 		order = 6,
-		price = 200000,
+		price = 150000,
 		controlBonus = 0.24,
 		luckBonus = 0.42,
 		color = Color3.fromRGB(150, 210, 255),
@@ -75,7 +75,7 @@ local LIST: { Rod } = {
 	{
 		id = "abyss",
 		order = 7,
-		price = 600000,
+		price = 400000,
 		controlBonus = 0.28,
 		luckBonus = 0.55,
 		color = Color3.fromRGB(20, 30, 70),
@@ -84,7 +84,7 @@ local LIST: { Rod } = {
 	{
 		id = "mystic",
 		order = 8,
-		price = 2000000,
+		price = 1000000,
 		controlBonus = 0.32,
 		luckBonus = 0.75,
 		color = Color3.fromRGB(120, 20, 70),

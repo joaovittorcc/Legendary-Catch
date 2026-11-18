@@ -33,8 +33,8 @@ Fishing.RARITY_WEIGHTS = {
 	Rare = 12,
 	Epic = 5,
 	Legendary = 1,
-	-- Mystic (above Legendary): the whole tier is about 1 in 2,500 casts before luck.
-	Mystic = 0.04,
+	-- Mystic (above Legendary): the whole tier is about 1 in 5,000 casts before luck.
+	Mystic = 0.02,
 } :: { [string]: number }
 
 Fishing.RARITY_COLORS = {
