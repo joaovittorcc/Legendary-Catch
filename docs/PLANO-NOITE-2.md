@@ -75,3 +75,58 @@ Antigravity faz modelos/mapa. Foco: **dopamina e retencao** (a pessoa quer ficar
 - **02:30-04:00** Codex: B (treino) + Mistica UI (17-18); Antigravity-1: raras; Antigravity-2: incomuns/comuns; Claude: 10, 15, 19.
 - **04:00-05:30** Claude libera criaturas no LIST e testa no Play (janela); Codex: polimento + mobile; Antigravity: mapa/oficina (49) + prints.
 - **05:30-07:00** QA geral, mural, resumo da manha em `docs/RESUMO-MANHA.md` e Obsidian.
+
+## F. "Cara de top 1 do Roblox" (pedido do Joao, 00:45) - itens 51-85
+O que os jogos top do Roblox tem em comum: primeiros 60 s irresistiveis, loop curto com recompensa constante, progressao visivel,
+meta diaria, social/competicao, evento rotativo, monetizacao justa e MUITO polimento (som, particulas, animacao, performance).
+
+**Primeiros 60 segundos (FTUE)** - Codex UI + Claude servidor
+51. Chegada na ilha ja com uma pesca guiada: 1o peixe garantido em <40 s, com revelacao e "NOVA DESCOBERTA".
+52. Seta/guia do tutorial bonita e minima; recompensa de moedas ao completar cada passo.
+53. Presente de boas-vindas (vara ou 500 moedas) e apresentacao do album ("Complete a colecao!").
+
+**Loop e dopamina** - Claude (sistemas) + Codex (visual)
+54. Combo de pesca (capturas seguidas sem escapar): bonus de moedas/sorte, contador na tela.
+55. Chances de bonus visiveis: "Cintilante" (shiny) com aviso, "peso recorde", "peixe gigante" com banner e som.
+56. Bau/"caixa surpresa" a cada N capturas (recompensa aleatoria, animacao de abrir).
+57. Nivel do jogador (XP por pesca) com recompensas em marcos; barra no topo.
+58. Modo AUTO-PESCA como Game Pass (um dos pilares de monetizacao dos top games).
+
+**Retencao** - Claude
+59. Streak diario de login (7 dias, presente crescente, penalidade suave) + notificacao "volte amanha".
+60. Missoes diarias (ja existem) + semanais + conquistas (50) com icones.
+61. Eventos do oceano com cronograma, criatura exclusiva e banner de contagem (existe base: OceanEvents).
+62. "Rebirth/Prestigio": reiniciar moedas por bonus permanente de sorte/valor (loop de longo prazo).
+63. Codigos promocionais (resgatar na tela de Ajustes) para o Joao divulgar.
+
+**Social e competicao** - Claude + Codex
+64. Leaderboard global (maior peso, mais raras, mais moedas) em placa no mapa e na UI (OrderedDataStore).
+65. Aviso global quando alguem pesca Lendaria/Mistica ("X pescou Y!").
+66. Ver o album de outro jogador (inspecionar) e emojis/reacoes simples; time de pesca com bonus de sorte para amigos no servidor.
+67. Fotos: botao Foto na revelacao (ja existe) + galeria e compartilhamento do melhor print.
+
+**Monetizacao justa** - Claude + Codex
+68. Game Passes: 2x moedas, auto-pesca, vara exclusiva, sorte +, VIP (ids reais so o Joao cria); loja Robux ja existe.
+69. Ofertas limitadas por tempo (cronometro na HUD) e "pacote inicial" 1x por conta.
+70. Nada de pay-to-win agressivo e sem dark patterns (publico infantil).
+
+**Polimento (o que mais separa um jogo bom de top 1)** - Codex + Antigravity
+71. Som: musica ambiente por area, stinger por raridade, ding de level-up, sons de UI, ondas/gaivotas (Antigravity busca/gera audio; Codex liga no codigo).
+72. Particulas em tudo que importa (moedas voando pro contador, brilho nas capturas), tremida e slow-motion curta na revelacao Lendaria/Mistica.
+73. Animacoes do personagem: arremesso, tensao, comemoracao, andar com a vara.
+74. Mundo vivo: NPCs com dialogo curto, fogueira, gaivotas, peixes pulando, ciclo dia/noite, clima.
+75. Transicoes de tela suaves, fade/bounce em todos os paineis, hover/press em todos os botoes.
+76. Icone e thumbnails do jogo (art/marketing/) + 5 screenshots + descricao e tags (o Joao sobe).
+77. Performance: 60 fps no celular fraco (ReduceEffects, instancias reaproveitadas, StreamingEnabled se preciso).
+78. Acessibilidade e idiomas (PT/EN ja existem; ES opcional), fonte legivel, daltonismo nas raridades (icones alem de cor).
+
+**Qualidade/seguranca** - Claude
+79. Revisao de seguranca: rate limit e validacao de todos os remotes, anti-exploit de captura/peso, DataStore (ProfileStore) com backup.
+80. Telemetria simples (funil: onde o jogador sai) para decidir ajustes depois (AnalyticsService existe).
+81. Testes de economia (simulador em node) apos cada nova raridade/criatura; ajustar odds e precos.
+82. Checklist de publicacao (docs/): API do Studio, nome, icone, ids de produtos, teste de 2 jogadores, celular real.
+83. Pagina do jogo: descricao com palavras-chave de pesca, bichinhos, colecao, lendarios (SEO do Roblox).
+84. Plano de updates semanais (novas criaturas, eventos, sazonais) para manter o jogo vivo.
+85. Resumo da manha (`docs/RESUMO-MANHA.md` + Obsidian) com o que foi feito e o que depende do Joao.
+
+Prioridade se faltar tempo: 51-53 (primeiros 60 s), 54-57, 59, 64-65, 71-72, 79. O resto vai pro backlog.
