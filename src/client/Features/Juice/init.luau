@@ -101,7 +101,7 @@ local function showReward(reward: Reward)
 			title ..= " · " .. string.format(Text.chestCoins, coins)
 		end
 		Hud.toast(title, Theme.gold)
-		Audio.play("level", 0.26, 1)
+		Audio.play("level")
 	elseif reward.kind == "chest" and coins > 0 then
 		local card = Ui.frame(
 			gui,
@@ -170,9 +170,11 @@ local function showReward(reward: Reward)
 					}):Play()
 					amount.Visible = true
 					Ui.bounce(amount)
-					Audio.play("coins", 0.3, 1.15)
+					Audio.play("chest")
 				end
 			end)
+		else
+			Audio.play("chest")
 		end
 		task.delay(2.4, function()
 			card:Destroy()

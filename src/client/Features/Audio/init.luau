@@ -1,5 +1,6 @@
 --!strict
 local CollectionService = game:GetService("CollectionService")
+local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local SoundService = game:GetService("SoundService")
@@ -10,17 +11,20 @@ local IDs = {
 	cast = 12222200, -- swoosh.wav
 	bite = 12221944, -- bass.wav
 	tension = 12221944,
-	hit = 12221990, -- electronicpingshort.wav
-	miss = 10066914500, -- RBLX UI Back
-	capture = 12221990,
 	legendary = 10128766965, -- RBLX UI Swipe
-	click = 10128760939, -- RBLX UI Select 01
 	panel = 10066968815, -- RBLX UI Select 02
-	coins = 10066947742, -- RBLX UI Purchase
-	level = 12221990,
-	water = 365551014, -- BathRunning
-	music = 130053244401794, -- TutorialMusic_01
 } :: { [string]: number }
+
+local Catalog = {
+	music = "Music_Island",
+	water = "Ambience_Waves",
+	level = "LevelUp",
+	coins = "Coin",
+	click = "UiClick",
+	hit = "HitGood",
+	miss = "HitMiss",
+	chest = "Chest",
+} :: { [string]: string }
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
@@ -47,42 +51,54 @@ local function get(cue: string): Sound?
 	if existing then
 		return existing
 	end
-	local id = IDs[cue]
-	if not id then
-		return nil
+	local sound: Sound
+	local name = Catalog[cue]
+	if name then
+		local folder = ReplicatedStorage:FindFirstChild("Audio")
+		local template = folder and folder:FindFirstChild(name)
+		if not template or not template:IsA("Sound") or template.SoundId == "" then
+			return nil
+		end
+		sound = template:Clone()
+	else
+		local id = IDs[cue]
+		if not id then
+			return nil
+		end
+		sound = Instance.new("Sound")
+		sound.SoundId = "rbxassetid://" .. id
 	end
-	local sound = Instance.new("Sound")
 	sound.Name = "Adventure_" .. cue
-	sound.SoundId = "rbxassetid://" .. id
 	sound.SoundGroup = Audio.group(if cue == "music" then "Music" else "Effects")
 	sound.Parent = SoundService
 	sounds[cue] = sound
 	return sound
 end
 
-function Audio.play(cue: string, volume: number, speed: number?): Sound?
+function Audio.play(cue: string, volume: number?, speed: number?): Sound?
 	local sound = get(cue)
-	if sound then
-		sound.Volume = volume
-		sound.PlaybackSpeed = speed or 1
-		sound:Stop()
-		sound:Play()
+	if not sound or not sound.IsLoaded then
+		return nil
 	end
+	if volume then
+		sound.Volume = volume
+	end
+	sound.PlaybackSpeed = speed or 1
+	sound:Stop()
+	sound:Play()
 	return sound
 end
 
+local activeStinger: Sound? = nil
+
 function Audio.capture(rarity: string, shiny: boolean)
-	local rank = table.find(Fishing.RARITY_ORDER, rarity) or 1
-	local pitch = 0.87 + rank * 0.085 + (if shiny then 0.18 else 0)
-	Audio.play("capture", 0.17 + rank * 0.035, pitch)
-	if rank >= 4 then
-		task.delay(0.13, function()
-			Audio.play("level", 0.19, pitch * 1.25)
-		end)
+	if activeStinger then
+		activeStinger:Stop()
 	end
+	activeStinger = Audio.play("stinger_" .. rarity, nil, if shiny then 1.12 else 1)
 end
 
-local function loop(cue: string, volume: number, speed: number): Sound?
+local function loop(cue: string, volume: number?, speed: number?): Sound?
 	local sound = get(cue)
 	if sound then
 		sound.Looped = true
@@ -91,9 +107,48 @@ local function loop(cue: string, volume: number, speed: number): Sound?
 	return sound
 end
 
+local function ambientLoop(cue: string, volume: number?)
+	local sound = get(cue)
+	if not sound then
+		return
+	end
+	if volume then
+		sound.Volume = volume
+	end
+	if sound.IsLoaded then
+		loop(cue)
+	else
+		sound.Loaded:Once(function()
+			loop(cue)
+		end)
+	end
+end
+
 function Audio.start()
-	loop("music", 0.19, 1)
-	local water = loop("water", 0, 0.85)
+	for _, rarity in Fishing.RARITY_ORDER do
+		Catalog["stinger_" .. rarity] = "Stinger_" .. rarity
+	end
+	ambientLoop("music")
+	local water = get("water")
+	local waterVolume = if water then water.Volume else 0
+	ambientLoop("water", 0)
+
+	for cue in Catalog do
+		get(cue)
+	end
+	for cue in IDs do
+		get(cue)
+	end
+	local assets: { Instance } = {}
+	for _, sound in sounds do
+		table.insert(assets, sound)
+	end
+	task.spawn(function()
+		pcall(function()
+			ContentProvider:PreloadAsync(assets)
+		end)
+	end)
+
 	local tension = get("tension")
 	local tensionFade: Tween? = nil
 	local function stopTension()
@@ -141,7 +196,7 @@ function Audio.start()
 	local function watchButton(obj: Instance)
 		if obj:IsA("GuiButton") then
 			obj.Activated:Connect(function()
-				Audio.play("click", 0.11)
+				Audio.play("click")
 			end)
 		end
 	end
@@ -159,7 +214,7 @@ function Audio.start()
 	player:GetAttributeChangedSignal("Coins"):Connect(function()
 		local amount = player:GetAttribute("Coins")
 		if typeof(last) == "number" and typeof(amount) == "number" and amount > last then
-			Audio.play("coins", 0.13, 1.14)
+			Audio.play("coins")
 		end
 		last = amount
 	end)
@@ -178,7 +233,7 @@ function Audio.start()
 					end
 				end
 			end
-			TweenService:Create(water, TweenInfo.new(0.45), { Volume = 0.14 * gain }):Play()
+			TweenService:Create(water, TweenInfo.new(0.45), { Volume = waterVolume * gain }):Play()
 			task.wait(0.5)
 		end
 	end)
