@@ -211,13 +211,13 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 		)
 	end
 	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then
-		card.Position = UDim2.new(0.5, 0, 1, -16)
+		card.Position = UDim2.new(0.5, 0, 1, -56)
 	else
 		card.Position = UDim2.fromScale(0.5, 1.34)
 		TweenService:Create(
 			card,
 			TweenInfo.new(0.45, Enum.EasingStyle.Back),
-			{ Position = UDim2.new(0.5, 0, 1, -16) }
+			{ Position = UDim2.new(0.5, 0, 1, -56) }
 		):Play()
 	end
 	return card
