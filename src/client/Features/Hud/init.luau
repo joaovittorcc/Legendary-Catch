@@ -407,6 +407,7 @@ function Hud.start()
 		{ id = "Shop", title = Text.shop, tint = Theme.gold, icon = "🎣" },
 		{ id = "Missions", title = Text.missions.nav, tint = Theme.rose, icon = "🏆" },
 		{ id = "Achievements", title = Text.achievementUi.title, tint = Theme.gold, icon = "🏅" },
+		{ id = "Prestige", title = Text.prestigeUi.nav, tint = Theme.rose, icon = "🌊" },
 		{ id = "Leaderboard", title = Text.leaderboard.title, tint = Theme.crystal, icon = "👑" },
 		{
 			id = "Settings",

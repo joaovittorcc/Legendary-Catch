@@ -246,6 +246,10 @@ local function giveRod(player: Player)
 	end
 end
 
+function Rod.refresh(player: Player)
+	giveRod(player)
+end
+
 local function reply(player: Player, result: Net.ShopResult)
 	shopResult:FireClient(player, result)
 end

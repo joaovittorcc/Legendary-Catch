@@ -36,7 +36,7 @@ export type LeaderboardResult = {
 
 -- Announcements that are not part of a fishing cast (level-ups, chests, tutorial gifts).
 export type AdventureReward = {
-	kind: string, -- "level" | "chest" | "tutorial" | "achievement" | "code" | "codeInvalid" | "codeUsed"
+	kind: string, -- "level" | "chest" | "tutorial" | "achievement" | "code" | "codeInvalid" | "codeUsed" | "prestige"
 	coins: number?,
 	level: number?,
 	id: string?, -- achievement id
@@ -80,6 +80,22 @@ local Net = {
 	SAVE_SETTINGS = "SaveSettings",
 	REPORT_PERFECT = "ReportPerfect",
 	CATCH_ANNOUNCE = "CatchAnnounce",
+	DO_PRESTIGE = "DoPrestige",
+	INSPECT_PLAYER = "InspectPlayer",
+	INSPECT_RESULT = "InspectResult",
+}
+
+export type InspectResult = {
+	userId: number,
+	displayName: string,
+	level: number,
+	prestige: number,
+	species: number,
+	catches: number,
+	shinies: number,
+	discovered: { string },
+	bestWeights: { [string]: number },
+	shinyCounts: { [string]: number },
 }
 
 -- Sent to every player when someone catches a Legendary (or a Shiny Epic+).

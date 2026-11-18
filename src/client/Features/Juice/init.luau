@@ -92,6 +92,11 @@ end
 
 type Reward = Net.AdventureReward
 
+local function formatNumber(n: number): string
+	local s = tostring(math.floor(n))
+	return s:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
+end
+
 local function showReward(reward: Reward)
 	local coins = reward.coins or 0
 	if reward.kind == "tutorial" and coins > 0 then
@@ -108,6 +113,53 @@ local function showReward(reward: Reward)
 		if copy then
 			Hud.toast(string.format(Labels.achievementUi.notice, copy.name, coins), Theme.ink)
 		end
+	elseif reward.kind == "prestige" and reward.level then
+		local banner = Ui.frame(
+			gui,
+			"PrestigeBanner",
+			UDim2.new(0.84, 0, 0, 102),
+			UDim2.fromScale(0.5, 0.42),
+			Theme.ink
+		)
+		banner.AnchorPoint = Vector2.new(0.5, 0.5)
+		Theme.surface(banner, Theme.rose, 20, Theme.gold)
+		local constraint = Instance.new("UISizeConstraint")
+		constraint.MaxSize = Vector2.new(340, 102)
+		constraint.Parent = banner
+		local title = Ui.label(
+			banner,
+			"Title",
+			UDim2.new(1, -24, 0, 34),
+			UDim2.fromOffset(12, 16),
+			string.format(Labels.prestigeUi.bannerTitle, reward.level),
+			Theme.gold
+		)
+		title.TextXAlignment = Enum.TextXAlignment.Center
+		local sub = Ui.label(
+			banner,
+			"Gift",
+			UDim2.new(1, -24, 0, 28),
+			UDim2.fromOffset(12, 54),
+			string.format(Text.chestCoins, coins),
+			Theme.cream
+		)
+		sub.TextXAlignment = Enum.TextXAlignment.Center
+		Hud.toast(
+			string.format(Labels.prestigeUi.toast, reward.level, formatNumber(coins)),
+			Theme.gold
+		)
+		Audio.play("level")
+		if coins > 0 then
+			Juice.flyCoins(coins)
+		end
+		if not Ui.reduced() then
+			Ui.bounce(banner)
+		end
+		task.delay(3.0, function()
+			if banner.Parent then
+				banner:Destroy()
+			end
+		end)
 	elseif reward.kind == "chest" and coins > 0 then
 		local card = Ui.frame(
 			gui,
@@ -249,6 +301,7 @@ function Juice.start()
 				and kind ~= "chest"
 				and kind ~= "tutorial"
 				and kind ~= "achievement"
+				and kind ~= "prestige"
 			then
 				return
 			end

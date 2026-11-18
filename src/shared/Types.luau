@@ -21,6 +21,7 @@ export type Stats = {
 	levelXp: number,
 	bestCombo: number,
 	trainDay: number, -- os.time() // 86400 of the last daily training bonus
+	suspicious: number?, -- count of suspicious catch submissions (anti-cheat telemetry)
 }
 
 export type Tutorial = {
@@ -73,6 +74,7 @@ export type Snapshot = {
 	daily: Daily,
 	achievements: { [string]: number }, -- id -> os.time() unlocked
 	redeemed: { [string]: boolean }, -- promo codes already used
+	prestige: number,
 }
 
 return {}

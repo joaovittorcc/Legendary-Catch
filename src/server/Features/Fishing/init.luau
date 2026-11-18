@@ -13,6 +13,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
+local PrestigeConfig = require(Shared:WaitForChild("Config"):WaitForChild("Prestige"))
 local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
@@ -22,6 +23,7 @@ local Analytics = require(Features:WaitForChild("Analytics"))
 local Monetization = require(Features:WaitForChild("Monetization"))
 local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
+local Prestige = require(Features:WaitForChild("Prestige"))
 local Journey = require(script.Parent:WaitForChild("Journey"))
 local Progress = require(Features:WaitForChild("Progress"))
 local Social = require(Features:WaitForChild("Social"))
@@ -34,6 +36,10 @@ type Session = {
 	castId: number,
 	lastCast: number,
 	fightStart: number,
+	lastCatchAt: number?, -- os.clock() of last paid catch (rate-limited to <= 1 per 3s)
+	wonCasts: { [number]: boolean }, -- castIds already rewarded (blocks duplicate wins)
+	suspectTimes: { number }, -- timestamps of suspicious submits in the 10-min window
+	penaltyUntil: number, -- os.clock() until which minimum fight time increases by 50%
 	kind: string,
 	creatureId: string,
 	castPos: Vector3, -- root position when the line was cast
@@ -43,6 +49,11 @@ local Fishing = {}
 Fishing.order = 50
 
 local MAX_FIGHT_DRIFT = 20 -- studs the player may move from the cast spot during a fight
+local CATCH_RATE_LIMIT = 3 -- minimum seconds between rewarded catches per player
+local SUSPICIOUS_WINDOW = 600 -- 10 minutes sliding window for anti-cheat telemetry
+local SUSPICIOUS_THRESHOLD = 20 -- > 20 suspicious submits in 10 min triggers penalty
+local PENALTY_DURATION = 600 -- 10 minutes of +50% minimum fight seconds
+local PENALTY_MULTIPLIER = 1.5
 
 local sessions: { [Player]: Session } = {}
 local rng = Random.new()
@@ -56,6 +67,10 @@ local function session(player: Player): Session
 			castId = 0,
 			lastCast = 0,
 			fightStart = 0,
+			lastCatchAt = nil,
+			wonCasts = {},
+			suspectTimes = {},
+			penaltyUntil = 0,
 			kind = "",
 			creatureId = "",
 			castPos = Vector3.zero,
@@ -63,6 +78,23 @@ local function session(player: Player): Session
 		sessions[player] = s
 	end
 	return s
+end
+
+local function recordSuspicious(player: Player, s: Session, now: number)
+	local kept: { number } = {}
+	for _, at in s.suspectTimes do
+		if now - at <= SUSPICIOUS_WINDOW then
+			table.insert(kept, at)
+		end
+	end
+	table.insert(kept, now)
+	s.suspectTimes = kept
+	if #kept > SUSPICIOUS_THRESHOLD then
+		s.penaltyUntil = math.max(s.penaltyUntil, now + PENALTY_DURATION)
+	end
+	PlayerData.update(player, function(p)
+		p.stats.suspicious = (p.stats.suspicious or 0) + 1
+	end)
 end
 
 local function send(player: Player, payload: Net.FishingUpdate)
@@ -137,6 +169,7 @@ end
 local function luckyWeights(player: Player): { [string]: number }
 	local instinct = Training.level(player, "Instinct")
 	local rod = equippedRod(player)
+	local prestige = Prestige.level(player)
 	local event = OceanEvents.current()
 	local boosted = Monetization.luckBoostActive(player)
 	local weights: { [string]: number } = {}
@@ -146,6 +179,7 @@ local function luckyWeights(player: Player): { [string]: number }
 		local w = (if released then FishingConfig.RARITY_WEIGHTS[rarity] or 0 else 0)
 			* TrainingConfig.luckMultiplier(instinct, rank)
 			* Rods.luckMultiplier(rod, rank)
+			* PrestigeConfig.luckMultiplier(prestige, rank)
 		if event then
 			w *= event.rarityBoost[rarity] or 1
 		end
@@ -231,6 +265,9 @@ local function onCast(player: Player)
 	s.lastCast = now
 	s.castPos = root.Position
 	s.castId += 1
+	if s.castId > 200 then
+		s.wonCasts[s.castId - 200] = nil
+	end
 	s.phase = "waiting"
 	local castId = s.castId
 	local profile = PlayerData.get(player)
@@ -307,6 +344,7 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 			* (if event then event.valueMultiplier else 1)
 			* (if shiny then FishingConfig.SHINY_VALUE_MULTIPLIER else 1)
 			* Monetization.coinMultiplier(player)
+			* PrestigeConfig.coinMultiplier(Prestige.level(player))
 			* (1 + comboBonus)
 	)
 	local isNew, count, isRecord, previousBest = false, 1, false, 0
@@ -364,27 +402,44 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 end
 
 local function onSubmit(player: Player, castId: unknown, success: unknown)
-	if typeof(castId) ~= "number" or typeof(success) ~= "boolean" then
+	if typeof(castId) ~= "number" or castId ~= castId or typeof(success) ~= "boolean" then
 		return
 	end
 	local s = sessions[player]
-	if not s or s.phase ~= "fighting" or s.castId ~= castId then
+	if not s then
 		return
 	end
-	local elapsed = os.clock() - s.fightStart
-	local minimum = FishingConfig.MIN_FIGHT_SECONDS[s.kind] or 1
+	local now = os.clock()
+	if success and s.wonCasts[castId] then
+		recordSuspicious(player, s, now)
+		return
+	end
+	if s.phase ~= "fighting" or s.castId ~= castId then
+		return
+	end
+	local elapsed = now - s.fightStart
+	local baseMinimum = FishingConfig.MIN_FIGHT_SECONDS[s.kind] or 1
+	local minimum = if now < s.penaltyUntil then baseMinimum * PENALTY_MULTIPLIER else baseMinimum
+	local rateLimited = s.lastCatchAt ~= nil and (now - s.lastCatchAt) < CATCH_RATE_LIMIT
 	local creature = Creatures.get(s.creatureId)
 	-- The fight happens where the line was cast: walking (or teleporting) away loses the
 	-- catch. Lenient radius so a small step near the zone edge never costs a real player.
 	local root = rootOf(player)
 	local stayed = root ~= nil and (root.Position - s.castPos).Magnitude <= MAX_FIGHT_DRIFT
 	reset(player, s)
-	if success and stayed and elapsed >= minimum and creature then
-		payCatch(player, creature, castId)
-	else
-		breakCombo(player)
-		send(player, { event = "escaped", castId = castId })
+	if success then
+		if elapsed < minimum or rateLimited then
+			recordSuspicious(player, s, now)
+		end
+		if stayed and elapsed >= minimum and not rateLimited and creature then
+			s.wonCasts[castId] = true
+			s.lastCatchAt = now
+			payCatch(player, creature, castId)
+			return
+		end
 	end
+	breakCombo(player)
+	send(player, { event = "escaped", castId = castId })
 end
 
 local function onCancel(player: Player)

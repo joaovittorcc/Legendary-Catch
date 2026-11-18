@@ -42,6 +42,7 @@ export type Profile = {
 	milestones: { [string]: boolean },
 	achievements: { [string]: number },
 	redeemed: { [string]: boolean },
+	prestige: number,
 	settings: Types.Settings,
 	purchases: { [string]: boolean }, -- Robux receipt ids already granted
 	purchaseOrder: { string }, -- same ids, oldest first (bounds the record)
@@ -101,6 +102,7 @@ local function template(): Profile
 		milestones = {},
 		achievements = {},
 		redeemed = {},
+		prestige = 0,
 		settings = { music = 0.6, sfx = 0.8, reduceEffects = false },
 		purchases = {},
 		purchaseOrder = {},
@@ -177,6 +179,7 @@ local function snapshot(profile: Profile): Types.Snapshot
 		milestones = table.clone(profile.milestones),
 		achievements = table.clone(profile.achievements),
 		redeemed = table.clone(profile.redeemed),
+		prestige = profile.prestige,
 		settings = table.clone(profile.settings),
 		daily = table.clone(profile.daily),
 	}
@@ -185,6 +188,7 @@ end
 local function mirrorAttributes(player: Player, profile: Profile)
 	player:SetAttribute("Coins", profile.coins)
 	player:SetAttribute("EquippedRod", profile.equippedRod)
+	player:SetAttribute("Prestige", profile.prestige)
 	for stat, t in profile.training do
 		player:SetAttribute(TrainingConfig.levelAttribute(stat), t.level)
 		player:SetAttribute(TrainingConfig.xpAttribute(stat), t.xp)
@@ -295,13 +299,36 @@ local function activate(player: Player, session: Session)
 	push(player)
 	loadedEvent:Fire(player)
 
-	-- Studio only: set the player's DevGrantCoins attribute to a number to receive coins.
+	-- Studio only: set DevGrantCoins / DevGrantSpecies attributes to test progression cleanly.
 	if RunService:IsStudio() then
 		player:GetAttributeChangedSignal("DevGrantCoins"):Connect(function()
 			local amount = player:GetAttribute("DevGrantCoins")
 			if typeof(amount) == "number" and amount > 0 then
 				player:SetAttribute("DevGrantCoins", 0)
 				PlayerData.addCoins(player, amount)
+			end
+		end)
+		player:GetAttributeChangedSignal("DevGrantSpecies"):Connect(function()
+			local targetCount = player:GetAttribute("DevGrantSpecies")
+			if typeof(targetCount) == "number" and targetCount > 0 then
+				player:SetAttribute("DevGrantSpecies", 0)
+				local creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+				PlayerData.update(player, function(p)
+					local total = 0
+					for _ in p.collection do
+						total += 1
+					end
+					for _, creature in creatures.LIST do
+						if total >= targetCount then
+							break
+						end
+						if not p.collection[creature.id] then
+							p.collection[creature.id] =
+								{ catches = 1, bestWeight = creature.baseWeight }
+							total += 1
+						end
+					end
+				end)
 			end
 		end)
 	end
