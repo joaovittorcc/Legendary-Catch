@@ -50,10 +50,6 @@ function Ui.frame(
 	return f
 end
 
-function Ui.gloss(target: Frame, color: Color3)
-	Theme.surface(target, color, 18)
-end
-
 function Ui.label(
 	parent: Instance,
 	name: string,

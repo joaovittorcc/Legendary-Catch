@@ -26,12 +26,6 @@ function Art.button(id: string): ImageButton
 	return button
 end
 
-function Art.slice(image: ImageLabel, center: Rect, scale: number)
-	image.ScaleType = Enum.ScaleType.Slice
-	image.SliceCenter = center
-	image.SliceScale = scale
-end
-
 function Art.panel(parent: GuiObject, accent: Color3)
 	parent.BackgroundColor3 = accent
 	parent.BackgroundTransparency = 0
