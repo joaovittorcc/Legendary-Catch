@@ -917,7 +917,7 @@ local LIST: { Creature } = {
 		weightMin = 4000,
 		weightMax = 12000,
 		revealStyle = "cloud",
-		event = "thunderStorm",
+		event = "fogBank",
 	},
 	{
 		id = "C100_Aurora_Boreal_Viva",
@@ -927,7 +927,7 @@ local LIST: { Creature } = {
 		weightMin = 600,
 		weightMax = 2400,
 		revealStyle = "frost",
-		event = "starTide",
+		event = "aurora",
 	},
 }
 

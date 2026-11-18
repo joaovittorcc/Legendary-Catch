@@ -31,13 +31,13 @@ function Robux.start()
 		name.Size = UDim2.fromScale(0.64, 0.34)
 		name.Position = UDim2.fromScale(0.025, 0.05)
 		name.TextStrokeTransparency = 1
-		local info = Panel.label(card, description, 13, Theme.ink)
+		local info = Panel.label(card, description, 14, Theme.ink)
 		info.TextStrokeTransparency = 1
 		info.Size = UDim2.fromScale(0.64, if duration then 0.37 else 0.53)
 		info.Position = UDim2.fromScale(0.025, if duration then 0.34 else 0.41)
 		local countdown: TextLabel? = nil
 		if duration then
-			local label = Panel.label(card, "", 13, Theme.wood)
+			local label = Panel.label(card, "", 14, Theme.wood)
 			label.Name = "OfferCountdown"
 			label.Size = UDim2.fromScale(0.60, 0.2)
 			label.Position = UDim2.fromScale(0.045, 0.74)
@@ -56,7 +56,7 @@ function Robux.start()
 		button.Size = UDim2.new(0.3, 0, 0, 44)
 		button.Position = UDim2.new(0.68, 0, 0.5, -22)
 		button.TextWrapped = true
-		button.TextSize = 13
+		button.TextSize = 14
 		button.Activated:Connect(function()
 			if duration and duration() <= 0 then
 				return

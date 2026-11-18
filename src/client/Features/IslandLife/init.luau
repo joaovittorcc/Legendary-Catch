@@ -359,19 +359,25 @@ function IslandLife.start()
 	table.insert(emitters, { emitter = lagoonFireflies, baseRate = 3 })
 
 	local player = Players.LocalPlayer
-	local reduceEffects = player:GetAttribute("ReduceEffects") == true
-	local function syncEffects()
-		reduceEffects = player:GetAttribute("ReduceEffects") == true
-		for _, item in emitters do
-			item.emitter.Rate = if reduceEffects then 0 else item.baseRate
+	local heartbeatConn: RBXScriptConnection? = nil
+	local island = Workspace:FindFirstChild("Island")
+	if island then
+		for _, desc in island:GetDescendants() do
+			if desc:IsA("ParticleEmitter") then
+				table.insert(emitters, { emitter = desc, baseRate = desc.Rate })
+			end
 		end
 	end
-	syncEffects()
-	player:GetAttributeChangedSignal("ReduceEffects"):Connect(syncEffects)
 
-	RunService.Heartbeat:Connect(function()
+	local function stepLife()
 		local t = os.clock()
+		local camera = Workspace.CurrentCamera
+		local camPos = if camera then camera.CFrame.Position else nil
+
 		for _, f in swimmers do
+			if camPos and (f.center - camPos).Magnitude > 145 then
+				continue
+			end
 			local angle = t * f.speed + f.phase
 			local x = f.center.X + math.cos(angle) * f.rx
 			local z = f.center.Z + math.sin(angle) * f.rz
@@ -382,7 +388,7 @@ function IslandLife.start()
 			local dur = f.jumpDuration
 			local h = f.jumpHeight
 			local sy = f.surfaceY
-			if not reduceEffects and period and dur and h and sy then
+			if period and dur and h and sy then
 				local cycle = (t + f.phase * 1.9) % period
 				if cycle < dur then
 					local u = cycle / dur
@@ -406,6 +412,9 @@ function IslandLife.start()
 		end
 
 		for _, g in gulls do
+			if camPos and (g.center - camPos).Magnitude > 210 then
+				continue
+			end
 			local angle = t * g.speed + g.phase
 			local x = g.center.X + math.cos(angle) * g.radius
 			local z = g.center.Z + math.sin(angle) * g.radius
@@ -421,7 +430,24 @@ function IslandLife.start()
 			g.leftWing.CFrame = cf * CFrame.new(-0.95, 0.12, 0) * CFrame.Angles(0, 0, -flap)
 			g.rightWing.CFrame = cf * CFrame.new(0.95, 0.12, 0) * CFrame.Angles(0, 0, flap)
 		end
-	end)
+	end
+
+	local function syncEffects()
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		for _, item in emitters do
+			item.emitter.Rate = if reduced then 0 else item.baseRate
+		end
+		if reduced then
+			if heartbeatConn then
+				heartbeatConn:Disconnect()
+				heartbeatConn = nil
+			end
+		elseif not heartbeatConn then
+			heartbeatConn = RunService.Heartbeat:Connect(stepLife)
+		end
+	end
+	syncEffects()
+	player:GetAttributeChangedSignal("ReduceEffects"):Connect(syncEffects)
 end
 
 return IslandLife

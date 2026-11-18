@@ -36,6 +36,18 @@ local LIST: { OceanEvent } = {
 		rarityBoost = { Uncommon = 1.8, Rare = 1.4 },
 		valueMultiplier = 1.3,
 	},
+	{
+		id = "fogBank",
+		durationSeconds = 150,
+		rarityBoost = { Epic = 1.8, Legendary = 2 },
+		valueMultiplier = 1.35,
+	},
+	{
+		id = "aurora",
+		durationSeconds = 180,
+		rarityBoost = { Legendary = 2.2, Mystic = 1.5 },
+		valueMultiplier = 1.5,
+	},
 }
 
 local byId: { [string]: OceanEvent } = {}

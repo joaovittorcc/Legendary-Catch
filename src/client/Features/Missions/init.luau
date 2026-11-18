@@ -141,7 +141,7 @@ function Missions.start()
 			title.Size = UDim2.new(0.63, -62, 0.52, 0)
 			title.Position = UDim2.fromOffset(56, 0)
 			title.TextStrokeTransparency = 1
-			local status = Panel.label(row, "", 13, Theme.wood)
+			local status = Panel.label(row, "", 14, Theme.wood)
 			status.Size = UDim2.new(0.63, -62, 0.23, 0)
 			status.Position = UDim2.new(0, 56, 0.51, 0)
 			status.TextStrokeTransparency = 1

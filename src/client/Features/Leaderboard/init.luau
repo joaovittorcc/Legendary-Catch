@@ -388,19 +388,23 @@ function Leaderboard.start()
 				icon.Parent = card
 				table.insert(albumThumbnails, { holder = icon, id = entry.id, hidden = not found })
 
-				local nameLabel = Panel.label(card, label, 13)
+				local nameLabel = Panel.label(card, label, 14)
 				nameLabel.TextStrokeTransparency = 1
-				nameLabel.Size = UDim2.fromScale(0.94, 0.25)
-				nameLabel.Position = UDim2.fromScale(0.03, 0.6)
+				nameLabel.Size = UDim2.fromScale(0.94, 0.24)
+				nameLabel.Position = UDim2.fromScale(0.03, 0.59)
 
 				local bestWeight = payload.bestWeights[entry.id]
+				local glyph = Theme.rarityGlyph(entry.rarity)
 				local footText = if found and typeof(bestWeight) == "number"
-					then string.format(Text.leaderboard.bestWeightShort, bestWeight)
+					then (if glyph ~= "" then glyph .. " " else "") .. string.format(
+						Text.leaderboard.bestWeightShort,
+						bestWeight
+					)
 					else Theme.rarityLabel(entry.rarity)
 				local foot = Panel.label(
 					card,
 					footText,
-					12,
+					14,
 					if found and typeof(bestWeight) == "number" then Theme.wood else Theme.ink
 				)
 				foot.Name = "Footer"

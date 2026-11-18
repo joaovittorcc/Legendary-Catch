@@ -891,7 +891,7 @@ function Hud.start()
 	perks.Size = UDim2.fromOffset(134, 28)
 	perks.TextColor3 = Theme.gold
 	perks.Font = Theme.font
-	perks.TextSize = 13
+	perks.TextSize = 14
 	perks.TextWrapped = true
 	Theme.surface(perks, Theme.gold, 8, Theme.ink)
 	perks.Parent = gui

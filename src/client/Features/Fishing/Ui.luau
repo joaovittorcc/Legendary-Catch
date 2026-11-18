@@ -5,6 +5,7 @@ local Players = game:GetService("Players")
 local TweenService = game:GetService("TweenService")
 
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
+local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
@@ -106,8 +107,23 @@ function Ui.screen(): ScreenGui
 	return gui
 end
 
+local function rarityFromColor(color: Color3): string
+	for _, rarity in FishingConfig.RARITY_ORDER do
+		local c = FishingConfig.RARITY_COLORS[rarity]
+		if
+			c
+			and math.abs(c.R - color.R) < 0.02
+			and math.abs(c.G - color.G) < 0.02
+			and math.abs(c.B - color.B) < 0.02
+		then
+			return rarity
+		end
+	end
+	return "Common"
+end
+
 -- Controller entry point. Minigames place their controls directly on this transparent canvas.
-function Ui.showPanel(_hintText: string, _color: Color3, _instructionText: string): Frame
+function Ui.showPanel(hintText: string, color: Color3, _instructionText: string): Frame
 	Ui.hidePanel()
 	if activeToast then
 		activeToast:Cancel()
@@ -116,6 +132,37 @@ function Ui.showPanel(_hintText: string, _color: Color3, _instructionText: strin
 	toastLabel.TextTransparency = 1
 	toastLabel.TextStrokeTransparency = 1
 	area.Visible = true
+	if hintText ~= "" then
+		local rarity = rarityFromColor(color)
+		local glyph = Theme.rarityGlyph(rarity)
+		local labelText = if glyph ~= "" then glyph .. "  " .. hintText else hintText
+		local pill = Ui.frame(
+			area,
+			"RarityHint",
+			UDim2.new(0.68, 0, 0, 32),
+			UDim2.fromScale(0.5, 0.04),
+			Theme.ink
+		)
+		pill.AnchorPoint = Vector2.new(0.5, 0)
+		pill.ZIndex = 3
+		Theme.surface(pill, color, 12, Theme.ink)
+		local cap = Instance.new("UISizeConstraint")
+		cap.MaxSize = Vector2.new(300, 32)
+		cap.Parent = pill
+		local txt = Ui.label(
+			pill,
+			"Label",
+			UDim2.new(1, -16, 1, -4),
+			UDim2.fromOffset(8, 2),
+			labelText,
+			color
+		)
+		txt.TextStrokeTransparency = 0.3
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MinTextSize = 14
+		limit.MaxTextSize = 16
+		limit.Parent = txt
+	end
 	return area
 end
 

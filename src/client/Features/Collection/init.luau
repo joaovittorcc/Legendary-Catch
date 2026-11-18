@@ -330,7 +330,7 @@ function Collection.start()
 		local albumCount = Panel.label(
 			album,
 			string.format(Text.adventure.albumProgress, totalFound, #Creatures.LIST),
-			13
+			14
 		)
 		albumCount.TextStrokeTransparency = 1
 		albumCount.Size = UDim2.new(1, -22, 0, 20)
@@ -412,20 +412,24 @@ function Collection.start()
 				icon.Size = UDim2.fromScale(1, if entry.event then 0.43 else 0.61)
 				if entry.event then
 					icon.Position = UDim2.fromScale(0, 0.18)
-					local event = Panel.label(card, Text.adventure.eventOnly, 11, Theme.ink)
+					local event = Panel.label(card, Text.adventure.eventOnly, 14, Theme.ink)
 					event.Name = "EventBadge"
-					event.Size = UDim2.new(0.86, 0, 0, 19)
+					event.Size = UDim2.new(0.86, 0, 0, 20)
 					event.Position = UDim2.new(0.07, 0, 0, 4)
+					event.TextScaled = true
 					event.TextStrokeTransparency = 1
+					local evLimit = Instance.new("UITextSizeConstraint")
+					evLimit.MaxTextSize = 14
+					evLimit.Parent = event
 					Theme.surface(event, Theme.crystal, 9, Theme.crystal:Lerp(Theme.cream, 0.55))
 				end
 				icon.Parent = card
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
-				local name = Panel.label(card, label, 13)
+				local name = Panel.label(card, label, 14)
 				name.TextStrokeTransparency = 1
-				name.Size = UDim2.fromScale(0.94, 0.27)
-				name.Position = UDim2.fromScale(0.03, 0.61)
-				local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 12)
+				name.Size = UDim2.fromScale(0.94, 0.25)
+				name.Position = UDim2.fromScale(0.03, 0.6)
+				local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 14)
 				rarityName.TextStrokeTransparency = 1
 				rarityName.Name = "Rarity"
 				rarityName.Size = UDim2.fromScale(1, 0.17)

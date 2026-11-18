@@ -54,8 +54,7 @@ function Announcements.start()
 		bounds.MaxSize = Vector2.new(452, 66)
 		bounds.Parent = card
 
-		local crest =
-			Panel.label(card, if catch.rarity == "Mystic" then "✺" else "★", 25, Theme.ink)
+		local crest = Panel.label(card, Theme.rarityGlyph(catch.rarity), 25, Theme.ink)
 		crest.Name = "CatchCrest"
 		crest.Size = UDim2.fromOffset(38, 38)
 		crest.Position = UDim2.fromOffset(11, 14)

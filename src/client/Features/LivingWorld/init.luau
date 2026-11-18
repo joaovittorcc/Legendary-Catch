@@ -836,6 +836,7 @@ function LivingWorld.start()
 	local lanterns: { LanternTarget } = {}
 	local seenLanterns: { [BasePart]: boolean } = {}
 	local campfireEmitters: { ParticleEmitter } = {}
+	local seenEmitters: { [ParticleEmitter]: boolean } = {}
 	local campfireMounted = false
 	local guideBound = false
 	local npcs: { AnimatedNpc } = {}
@@ -843,6 +844,14 @@ function LivingWorld.start()
 	local function scanIsland(islandInst: Instance?)
 		if not islandInst then
 			return
+		end
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		for _, desc in islandInst:GetDescendants() do
+			if desc:IsA("ParticleEmitter") and not seenEmitters[desc] then
+				seenEmitters[desc] = true
+				desc.Enabled = not reduced
+				table.insert(campfireEmitters, desc)
+			end
 		end
 		for _, item in collectLanterns(islandInst) do
 			if not seenLanterns[item.part] then
@@ -854,10 +863,12 @@ function LivingWorld.start()
 			local mounted = mountCampfireEmitters(islandInst)
 			if #mounted > 0 then
 				campfireMounted = true
-				local reduced = player:GetAttribute("ReduceEffects") == true
 				for _, em in mounted do
-					em.Enabled = not reduced
-					table.insert(campfireEmitters, em)
+					if not seenEmitters[em] then
+						seenEmitters[em] = true
+						em.Enabled = not reduced
+						table.insert(campfireEmitters, em)
+					end
 				end
 			end
 		end
@@ -882,6 +893,7 @@ function LivingWorld.start()
 				or desc.Name == "GuideNPC"
 				or desc.Name == "LightSource"
 				or desc.Name == "LanternLight"
+				or desc:IsA("ParticleEmitter")
 			then
 				task.defer(scanIsland, initialIsland)
 			end
@@ -944,20 +956,49 @@ function LivingWorld.start()
 		local clock = Lighting.ClockTime
 		local frame = sampleSky(clock)
 		local eventId = ReplicatedStorage:GetAttribute(EventsConfig.ACTIVE_ATTRIBUTE)
-		local isStorm = eventId == "thunderStorm"
-		local isGolden = eventId == "goldenHour"
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		local isStorm = eventId == "thunderStorm" and not reduced
+		local isGolden = eventId == "goldenHour" and not reduced
+		local isFog = eventId == "fogBank" and not reduced
+		local isAurora = eventId == "aurora" and not reduced
 
-		Lighting.Ambient = frame.ambient
-		Lighting.OutdoorAmbient = frame.outdoor
-		Lighting.ColorShift_Top = frame.shiftTop
-		Lighting.Brightness = frame.brightness * (if isStorm then 0.85 else 1.0)
+		Lighting.Ambient = if isFog
+			then frame.ambient:Lerp(Color3.fromRGB(165, 192, 215), 0.45)
+			else frame.ambient
+		Lighting.OutdoorAmbient = if isFog
+			then frame.outdoor:Lerp(Color3.fromRGB(175, 200, 222), 0.4)
+			else frame.outdoor
+		Lighting.ColorShift_Top = if isAurora
+			then frame.shiftTop:Lerp(Color3.fromRGB(110, 255, 218), 0.65)
+			else frame.shiftTop
+		Lighting.Brightness = frame.brightness
+			* (if isStorm then 0.85 elseif isFog then 0.92 else 1.0)
 
 		if atmosphere then
-			atmosphere.Color = frame.atmColor
-			atmosphere.Decay = frame.atmDecay
-			atmosphere.Density = frame.density + (if isStorm then 0.07 else 0)
-			atmosphere.Glare = frame.glare + (if isGolden then 0.16 else 0)
-			atmosphere.Haze = frame.haze
+			local atmColor = frame.atmColor
+			local atmDecay = frame.atmDecay
+			local density = frame.density
+			local glare = frame.glare
+			local haze = frame.haze
+			if isStorm then
+				density += 0.07
+			elseif isGolden then
+				glare += 0.16
+			elseif isFog then
+				atmColor = atmColor:Lerp(Color3.fromRGB(190, 218, 238), 0.72)
+				atmDecay = atmDecay:Lerp(Color3.fromRGB(140, 175, 205), 0.65)
+				density += 0.24
+				haze = math.min(10, haze + 4.5)
+			elseif isAurora then
+				atmColor = atmColor:Lerp(Color3.fromRGB(108, 245, 210), 0.55)
+				atmDecay = atmDecay:Lerp(Color3.fromRGB(150, 120, 245), 0.5)
+				glare += 0.2
+			end
+			atmosphere.Color = atmColor
+			atmosphere.Decay = atmDecay
+			atmosphere.Density = density
+			atmosphere.Glare = glare
+			atmosphere.Haze = haze
 		end
 
 		local nw = nightWeightFor(clock)
@@ -988,13 +1029,15 @@ function LivingWorld.start()
 				applyNpcRestPose(npc)
 			end
 		end
+		applyLightingAndLanterns()
 	end
 
 	local heartbeatConn: RBXScriptConnection? = nil
 	local reduceConn = player:GetAttributeChangedSignal("ReduceEffects"):Connect(syncReduceEffects)
+	local eventConn = ReplicatedStorage:GetAttributeChangedSignal(EventsConfig.ACTIVE_ATTRIBUTE)
+		:Connect(applyLightingAndLanterns)
 
 	syncReduceEffects()
-	applyLightingAndLanterns()
 
 	heartbeatConn = RunService.Heartbeat:Connect(function()
 		local t = os.clock()
@@ -1012,7 +1055,9 @@ function LivingWorld.start()
 			local root = char and char:FindFirstChild("HumanoidRootPart")
 			local playerPos = if root and root:IsA("BasePart") then root.Position else nil
 			for _, npc in npcs do
-				stepNpc(npc, t, dt, playerPos)
+				if not playerPos or (npc.torsoRoot.Position - playerPos).Magnitude <= 95 then
+					stepNpc(npc, t, dt, playerPos)
+				end
 			end
 		end
 	end)
@@ -1023,6 +1068,7 @@ function LivingWorld.start()
 			heartbeatConn = nil
 		end
 		reduceConn:Disconnect()
+		eventConn:Disconnect()
 	end)
 end
 

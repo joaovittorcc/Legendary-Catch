@@ -168,9 +168,10 @@ function Shop.start()
 			local model, pose, view = preview(row, rod)
 			table.insert(previews, { model = model, pose = pose, view = view })
 			model:PivotTo(CFrame.Angles(0, 0.25, -0.28) * pose)
-			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 22, rod.tipColor)
+			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 22, Theme.ink)
 			title.Position = UDim2.fromScale(0.39, 0.04)
 			title.Size = UDim2.fromScale(0.58, 0.22)
+			title.TextStrokeTransparency = 1
 			fitLabel(title, 22)
 			local bonus = Panel.label(
 				row,
@@ -190,10 +191,12 @@ function Shop.start()
 			local owned = table.find(snapshot.rodsOwned, rod.id) ~= nil
 			local equipped = snapshot.equippedRod == rod.id
 			local affordable = snapshot.coins >= rod.price
-			local seal = Panel.label(row, Theme.rarityLabel(rarity), 16, accent)
+			local seal = Panel.label(row, Theme.rarityLabel(rarity), 15, accent)
 			seal.Name = "RodRarity"
-			seal.Position = UDim2.fromScale(0.39, 0.47)
-			seal.Size = UDim2.fromScale(0.58, 0.16)
+			seal.Position = UDim2.fromScale(0.39, 0.46)
+			seal.Size = UDim2.fromScale(0.56, 0.17)
+			seal.TextStrokeTransparency = 1
+			Theme.surface(seal, accent, 9, Theme.ink)
 			local blocked = equipped or (not owned and not affordable)
 			local price = formatPrice(rod.price)
 			local button = Panel.button(
@@ -249,11 +252,17 @@ function Shop.start()
 			body:ClearAllChildren()
 		end
 	end)
+	local wasReduced = false
 	RunService.RenderStepped:Connect(function(dt: number)
 		if not gui.Enabled then
+			wasReduced = false
 			return
 		end
 		local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+		if reduced and wasReduced then
+			return
+		end
+		wasReduced = reduced
 		if not reduced then
 			rotation = (rotation + dt * 0.65) % (2 * math.pi)
 		end

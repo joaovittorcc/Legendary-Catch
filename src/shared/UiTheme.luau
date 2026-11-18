@@ -39,10 +39,14 @@ function Theme.rarityRank(rarity: string): number
 	return table.find(Fishing.RARITY_ORDER, rarity) or 0
 end
 
+function Theme.rarityGlyph(rarity: string): string
+	return raritySymbols[Theme.rarityRank(rarity)] or ""
+end
+
 function Theme.rarityLabel(rarity: string): string
 	local name = Strings.rarity[rarity] or rarity
-	local symbol = raritySymbols[Theme.rarityRank(rarity)]
-	return if symbol then symbol .. "  " .. name else name
+	local symbol = Theme.rarityGlyph(rarity)
+	return if symbol ~= "" then symbol .. "  " .. name else name
 end
 
 function Theme.corner(object: GuiObject, radius: number)

@@ -243,6 +243,8 @@ local PT = {
 		thunderStorm = "Tempestade de Trovões",
 		goldenHour = "Hora Dourada",
 		shimmerShoal = "Cardume Cintilante",
+		fogBank = "Banco de Nevoeiro",
+		aurora = "Aurora Boreal",
 	} :: { [string]: string },
 	instructions = {
 		reel = "Segure para manter o peixe na zona",
@@ -561,6 +563,8 @@ local EN: Strings = {
 		thunderStorm = "Thunder Storm",
 		goldenHour = "Golden Hour",
 		shimmerShoal = "Shimmer Shoal",
+		fogBank = "Fog Bank",
+		aurora = "Aurora Borealis",
 	},
 	instructions = {
 		reel = "Hold to keep the fish in the zone",
