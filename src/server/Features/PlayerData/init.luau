@@ -85,7 +85,7 @@ local function template(): Profile
 		rodsOwned = { STARTER_ROD },
 		collection = {},
 		training = training,
-		stats = { catches = 0, legendaries = 0 },
+		stats = { catches = 0, legendaries = 0, level = 1, levelXp = 0, bestCombo = 0 },
 		funnel = {},
 		tutorial = { step = "goToPier", done = false },
 		missions = { day = 0, list = {} },

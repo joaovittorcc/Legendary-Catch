@@ -22,6 +22,7 @@ local Analytics = require(Features:WaitForChild("Analytics"))
 local Monetization = require(Features:WaitForChild("Monetization"))
 local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
+local Journey = require(script.Parent:WaitForChild("Journey"))
 local Progress = require(Features:WaitForChild("Progress"))
 local Social = require(Features:WaitForChild("Social"))
 local Trophy = require(Features:WaitForChild("Trophy"))
@@ -182,6 +183,15 @@ local function rollWeight(creature: Creatures.Creature): number
 	return math.floor(kg * 100 + 0.5) / 100
 end
 
+local COMBO_STEP = 0.03 -- +3% coins per consecutive catch
+local COMBO_MAX_STEPS = 10 -- capped at +30%
+
+local function breakCombo(player: Player)
+	if (player:GetAttribute("FishingCombo") or 0) ~= 0 then
+		player:SetAttribute("FishingCombo", 0)
+	end
+end
+
 local function reset(player: Player, s: Session)
 	s.phase = "idle"
 	s.kind = ""
@@ -212,6 +222,9 @@ local function onCast(player: Player)
 	s.castId += 1
 	s.phase = "waiting"
 	local castId = s.castId
+	local profile = PlayerData.get(player)
+	-- The very first catch is quick and friendly: a bite in 2-3.5 s, an Uncommon, the easy reel.
+	local firstEver = profile ~= nil and profile.stats.catches == 0
 	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	local target = root.Position
 		+ (if flat.Magnitude > 0 then flat.Unit else Vector3.zAxis)
@@ -222,14 +235,22 @@ local function onCast(player: Player)
 	Progress.onCast(player)
 
 	task.delay(
-		rng:NextNumber(FishingConfig.BITE_DELAY_MIN, FishingConfig.BITE_DELAY_MAX),
+		if firstEver
+			then rng:NextNumber(2, 3.5)
+			else rng:NextNumber(FishingConfig.BITE_DELAY_MIN, FishingConfig.BITE_DELAY_MAX),
 		function()
 			if sessions[player] ~= s or s.castId ~= castId or s.phase ~= "waiting" then
 				return
 			end
 			local creature = rollCreature(player)
+			if firstEver then
+				local friendly = Creatures.ofRarity("Uncommon")
+				if #friendly > 0 then
+					creature = friendly[rng:NextInteger(1, #friendly)]
+				end
+			end
 			s.phase = "fighting"
-			s.kind = rollMinigame(player)
+			s.kind = if firstEver then "reel" else rollMinigame(player)
 			s.creatureId = creature.id
 			s.fightStart = os.clock()
 			local character = player.Character
@@ -252,6 +273,7 @@ local function onCast(player: Player)
 			task.delay(FishingConfig.FIGHT_TIMEOUT, function()
 				if sessions[player] == s and s.castId == castId and s.phase == "fighting" then
 					reset(player, s)
+					breakCombo(player)
 					send(player, { event = "escaped", castId = castId })
 				end
 			end)
@@ -261,6 +283,10 @@ end
 
 local function payCatch(player: Player, creature: Creatures.Creature, castId: number)
 	local weight = rollWeight(creature)
+	local isGiant = weight >= creature.weightMin + (creature.weightMax - creature.weightMin) * 0.85
+	local combo = (player:GetAttribute("FishingCombo") or 0) + 1
+	local comboBonus = math.min(combo - 1, COMBO_MAX_STEPS) * COMBO_STEP
+	player:SetAttribute("FishingCombo", combo)
 	local event = OceanEvents.current()
 	local forced = devOverride(player, "DevForceVariant")
 	local shiny = forced == "Shiny"
@@ -270,6 +296,7 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 			* (if event then event.valueMultiplier else 1)
 			* (if shiny then FishingConfig.SHINY_VALUE_MULTIPLIER else 1)
 			* Monetization.coinMultiplier(player)
+			* (1 + comboBonus)
 	)
 	local isNew, count, isRecord, previousBest = false, 1, false, 0
 	PlayerData.update(player, function(p)
@@ -292,8 +319,11 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 		count = entry.count
 		p.coins += value
 		p.stats.catches += 1
-		if creature.rarity == "Legendary" then
+		if creature.rarity == "Legendary" or creature.rarity == "Mystic" then
 			p.stats.legendaries += 1
+		end
+		if combo > p.stats.bestCombo then
+			p.stats.bestCombo = combo
 		end
 	end)
 	Analytics.coins(player, true, value, "Catch", creature.id)
@@ -312,7 +342,11 @@ local function payCatch(player: Player, creature: Creatures.Creature, castId: nu
 		variant = if shiny then "Shiny" else "",
 		isRecord = isRecord,
 		previousBest = if isRecord then previousBest else nil,
+		isGiant = isGiant,
+		combo = combo,
+		comboBonus = comboBonus,
 	})
+	Journey.onCatch(player, creature, isNew, isGiant)
 	Progress.onCatch(player, creature, value, castId)
 	Social.onCatch(player, creature, if shiny then "Shiny" else "")
 	Trophy.onCatch(player, creature, weight, shiny)
@@ -337,6 +371,7 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 	if success and stayed and elapsed >= minimum and creature then
 		payCatch(player, creature, castId)
 	else
+		breakCombo(player)
 		send(player, { event = "escaped", castId = castId })
 	end
 end
@@ -345,6 +380,7 @@ local function onCancel(player: Player)
 	local s = sessions[player]
 	if s and s.phase ~= "idle" then
 		reset(player, s)
+		breakCombo(player)
 		send(player, { event = "cancelled", castId = s.castId })
 	end
 end

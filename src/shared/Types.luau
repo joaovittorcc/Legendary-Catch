@@ -17,6 +17,9 @@ export type TrainingStat = {
 export type Stats = {
 	catches: number,
 	legendaries: number,
+	level: number,
+	levelXp: number,
+	bestCombo: number,
 }
 
 export type Tutorial = {

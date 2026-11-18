@@ -16,6 +16,16 @@ export type FishingUpdate = {
 	variant: string?, -- "" or "Shiny", on "caught"
 	isRecord: boolean?, -- heavier than this player's previous best of the species (not on first catch)
 	previousBest: number?, -- kg, the beaten record (only when isRecord)
+	isGiant: boolean?, -- weight in the top 15% of the species range
+	combo: number?, -- consecutive catches including this one
+	comboBonus: number?, -- coin multiplier bonus from the combo (0.09 = +9%)
+}
+
+-- Announcements that are not part of a fishing cast (level-ups, chests, tutorial gifts).
+export type AdventureReward = {
+	kind: string, -- "level" | "chest" | "tutorial"
+	coins: number?,
+	level: number?,
 }
 
 export type TrainingUpdate = {
@@ -33,6 +43,7 @@ local Net = {
 	CANCEL_FISHING = "CancelFishing",
 	SUBMIT_CATCH = "SubmitCatch",
 	FISHING_UPDATE = "FishingUpdate",
+	ADVENTURE_REWARD = "AdventureReward",
 	STOP_TRAINING = "StopTraining",
 	TRAINING_RING_RESULT = "TrainingRingResult",
 	TRAINING_UPDATE = "TrainingUpdate",
