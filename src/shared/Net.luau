@@ -23,9 +23,10 @@ export type FishingUpdate = {
 
 -- Announcements that are not part of a fishing cast (level-ups, chests, tutorial gifts).
 export type AdventureReward = {
-	kind: string, -- "level" | "chest" | "tutorial"
+	kind: string, -- "level" | "chest" | "tutorial" | "achievement" | "code" | "codeInvalid" | "codeUsed"
 	coins: number?,
 	level: number?,
+	id: string?, -- achievement id
 }
 
 export type TrainingUpdate = {
@@ -47,6 +48,7 @@ local Net = {
 	SUBMIT_CATCH = "SubmitCatch",
 	FISHING_UPDATE = "FishingUpdate",
 	ADVENTURE_REWARD = "AdventureReward",
+	REDEEM_CODE = "RedeemCode",
 	STOP_TRAINING = "StopTraining",
 	TRAINING_RING_RESULT = "TrainingRingResult",
 	TRAINING_UPDATE = "TrainingUpdate",

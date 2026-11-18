@@ -14,6 +14,7 @@ local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
+local Achievements = require(script.Parent:WaitForChild("Achievements"))
 local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Progress = require(script.Parent:WaitForChild("Progress"))
@@ -91,6 +92,9 @@ local function addXp(player: Player, stat: string, amount: number)
 	PlayerData.update(player, function(p)
 		p.training[stat] = { level = lvl, xp = total }
 	end)
+	if lvl > t.level then
+		Achievements.check(player)
+	end
 end
 
 local function start(player: Player, stat: string, spot: BasePart)

@@ -12,6 +12,7 @@ local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishin
 local Net = require(Shared:WaitForChild("Net"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 
+local Achievements = require(script.Parent:WaitForChild("Achievements"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
 
@@ -87,6 +88,7 @@ function Journey.onCatch(
 			{ kind = "chest", coins = coins, level = level } :: Net.AdventureReward
 		)
 	end
+	Achievements.check(player)
 	for _, g in gained do
 		reward:FireClient(
 			player,

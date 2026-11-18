@@ -40,6 +40,8 @@ export type Profile = {
 	tutorial: Types.Tutorial,
 	missions: Types.Missions,
 	milestones: { [string]: boolean },
+	achievements: { [string]: number },
+	redeemed: { [string]: boolean },
 	settings: Types.Settings,
 	purchases: { [string]: boolean }, -- Robux receipt ids already granted
 	purchaseOrder: { string }, -- same ids, oldest first (bounds the record)
@@ -97,6 +99,8 @@ local function template(): Profile
 		tutorial = { step = "goToPier", done = false },
 		missions = { day = 0, list = {} },
 		milestones = {},
+		achievements = {},
+		redeemed = {},
 		settings = { music = 0.6, sfx = 0.8, reduceEffects = false },
 		purchases = {},
 		purchaseOrder = {},
@@ -171,6 +175,8 @@ local function snapshot(profile: Profile): Types.Snapshot
 		tutorial = table.clone(profile.tutorial),
 		missions = { day = profile.missions.day, list = table.clone(profile.missions.list) },
 		milestones = table.clone(profile.milestones),
+		achievements = table.clone(profile.achievements),
+		redeemed = table.clone(profile.redeemed),
 		settings = table.clone(profile.settings),
 		daily = table.clone(profile.daily),
 	}

@@ -71,6 +71,8 @@ export type Snapshot = {
 	milestones: { [string]: boolean },
 	settings: Settings,
 	daily: Daily,
+	achievements: { [string]: number }, -- id -> os.time() unlocked
+	redeemed: { [string]: boolean }, -- promo codes already used
 }
 
 return {}
