@@ -114,7 +114,7 @@ function Collection.start()
 	local titleIconHolder = titleRibbon and titleRibbon:FindFirstChild("TitleIcon")
 	local titleIcon = titleIconHolder and titleIconHolder:FindFirstChildWhichIsA("TextLabel")
 	local function updateGrids()
-		local width = math.max(0, scroll.AbsoluteSize.X - 28)
+		local width = math.max(0, scroll.AbsoluteSize.X - 14)
 		local columns = math.clamp(math.floor((width + 10) / 138), 2, 4)
 		local cellWidth = math.floor((width - (columns - 1) * 10) / columns)
 		for _, grid in grids do
@@ -327,6 +327,7 @@ function Collection.start()
 			local grid = Instance.new("UIGridLayout")
 			grid.CellSize = UDim2.fromOffset(128, 128)
 			grid.CellPadding = UDim2.fromOffset(10, 10)
+			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
 			grid.Parent = group
 			table.insert(grids, grid)
 			for _, entry in Creatures.ofRarity(rarity) do

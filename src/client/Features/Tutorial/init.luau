@@ -58,7 +58,7 @@ function Tutorial.start()
 	card.Visible = false
 	Art.panel(card, Theme.crystal)
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(630, CARD_HEIGHT)
+	bounds.MaxSize = Vector2.new(500, CARD_HEIGHT)
 	bounds.Parent = card
 	local iconHolder = Instance.new("Frame")
 	iconHolder.Name = "StepIcon"
@@ -118,7 +118,7 @@ function Tutorial.start()
 	local function placeCard()
 		local viewport = gui.AbsoluteSize
 		local portrait = viewport.Y > viewport.X
-		card.Size = UDim2.new(if portrait then 0.92 else 0.78, 0, 0, CARD_HEIGHT)
+		card.Size = UDim2.new(if portrait then 0.92 else 0.5, 0, 0, CARD_HEIGHT)
 		card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
 		publishLayout()
 	end
