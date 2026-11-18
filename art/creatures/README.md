@@ -1,7 +1,6 @@
 # Catálogo das Criaturas (64/64)
 
-Capturas em `3/4` de frente sobre fundo neutro (`art/creatures/Cxx-nome.jpg`).
-> Nota (Lote 3 `C35`–`C64`): Os 5 Lendários (`C60`–`C64`) têm capturas atualizadas dos modelos definitivos. Os modelos `C35`–`C59` estão todos instalados e validados por auditoria de partes, dimensões, orientação `+Z` e `PreloadAsync` em Edit (`screen_capture` em Edit deu timeout após a transição de Play das 19:43, ficando os prints de `C35`–`C59` pendentes de captura em sessão limpa do Studio).
+Capturas em `3/4` de frente (`+Z`) sobre fundo neutro (`art/creatures/Cxx-nome.jpg`). Todas as 64 espécies possuem print conferido do modelo atual em `ReplicatedStorage.Creatures`.
 
 | ID | Nome | Raridade | Sobre o modelo atual |
 | :--- | :--- | :--- | :--- |
@@ -39,31 +38,31 @@ Capturas em `3/4` de frente sobre fundo neutro (`art/creatures/Cxx-nome.jpg`).
 | `C32` | [Espadarte Relâmpago](C32-espadarte-relampago.jpg) | Raro | Espadarte prateado-índigo veloz com espada dourada longa e grande vela dorsal recortada em raio amarelo. |
 | `C33` | [Orca Aurora](C33-orca-aurora.jpg) | Épico | Orca azul-noite e branca de porte arredondado com manchas bioluminescentes de aurora verde-menta, rosa e violeta. |
 | `C34` | [Serpente Arco-Íris](C34-serpente-arco-iris.jpg) | Lendário | Serpente marinha sem patas em espiral erguida com chifres e crista em leque dourado e escamas em espectro completo de arco-íris. |
-| `C35` | Bagre Bigodudo | Comum | Bagre rechonchudo verde-água/ardósia com bigodes longos (`Body, Head, FinL, FinR, Tail, Extra`). *Print pendente.* |
-| `C36` | Peixe-Bolha Rosa | Comum | Peixinho redondo rosa-chiclete com cauda em coração (`Body, FinL, FinR, Tail`). *Print pendente.* |
-| `C37` | Caramujo Doce | Comum | Caramujo marinho de concha listrada menta/creme/rosa (`Body, Head, Shell`). *Print pendente.* |
-| `C38` | Estrela Sonolenta | Comum | Estrela-do-mar fofa com touquinha estrelada (`Body, Head, Extra`). *Print pendente.* |
-| `C39` | Lambari Prata | Comum | Peixinho prateado esguio com faixa ciano (`Body, FinL, FinR, Fins, Tail`). *Print pendente.* |
-| `C40` | Caranguejo Bolacha | Comum | Caranguejo com carapaça de biscoito e gotas de chocolate (`Body, Shell, Claws, Legs`). *Print pendente.* |
-| `C41` | Palhaço Neon | Comum | Peixe-palhaço laranja com listras ciano luminosas (`Body, FinL, FinR, Fins, Tail`). *Print pendente.* |
-| `C42` | Lulinha Gota | Comum | Lulinha em forma de gota d'água (`Body, Head, Fins, Tentacles`). *Print pendente.* |
-| `C43` | Baiacu Algodão-Doce | Incomum | Baiacu fofo azul-celeste e rosa pastel (`Body, FinL, FinR, Tail`). *Print pendente.* |
-| `C44` | Arraia Pintada | Incomum | Arraia azul-oceano com bolinhas multicoloridas (`Body, Head, FinL, FinR, Tail`). *Print pendente.* |
-| `C45` | Tartaruguinha Coral | Incomum | Tartaruga bebê turquesa com coral colorido no casco (`Body, Head, Shell, FinL, FinR, Extra`). *Print pendente.* |
-| `C46` | Peixe-Leque | Incomum | Peixe tropical com grandes nadadeiras plissadas em leque (`Body, FinL, FinR, Fins, Tail`). *Print pendente.* |
-| `C47` | Medusa Lanterna | Incomum | Água-viva lanterna japonesa com núcleo `Neon` âmbar (`Body, Tentacles, Extra`). *Print pendente.* |
-| `C48` | Peixe-Anjo Real | Incomum | Peixe-anjo azul-royal e ouro com coroa (`Body, FinL, FinR, Fins, Tail, Extra`). *Print pendente.* |
-| `C49` | Polvo de Bolinhas | Incomum | Polvo azul-lavanda de bolinhas coloridas e 8 tentáculos (`Body, Head, Tentacles`). *Print pendente.* |
-| `C50` | Tubarão-Baleia Estrelado | Raro | Tubarão-baleia índigo com constelações douradas (`Body, Head, FinL, FinR, Fins, Tail`). *Print pendente.* |
-| `C51` | Lanterna Abissal | Raro | Peixe-lanterna roxo abissal com isca luminosa (`Body, Head, FinL, FinR, Tail, Extra`). *Print pendente.* |
-| `C52` | Cavalo-Marinho Real | Raro | Cavalo-marinho violeta-perolado com coroa ametista (`Body, Head, Fins, Tail, Extra`). *Print pendente.* |
-| `C53` | Moreia Voltaica | Raro | Moreia elétrica roxa com crista de raios amarelos (`Body, Head, Fins, Tail`). *Print pendente.* |
-| `C54` | Peixe-Vela Solar | Raro | Peixe-vela crepúsculo com enorme vela laranja-ouro (`Body, Head, FinL, FinR, Fins, Tail`). *Print pendente.* |
-| `C55` | Caranguejo-Rei do Gelo | Raro | Caranguejo de gelo cristalino com garras translúcidas (`Body, Shell, Claws, Legs, Extra`). *Print pendente.* |
-| `C56` | Dragão de Coral | Épico | Dragão marinho turquesa/magenta coberto de corais (`Body, Head, Wings, Legs, Tail, Extra`). *Print pendente.* |
-| `C57` | Manta Galáctica | Épico | Jamanta cósmica com asas em nebulosa magenta-ciano (`Body, Head, Wings, Tail, Extra`). *Print pendente.* |
-| `C58` | Tubarão Fantasma | Épico | Tubarão espectral ciano-violeta com barbatanas em véu (`Body, Head, FinL, FinR, Fins, Tail`). *Print pendente.* |
-| `C59` | Narval Unicórnio | Épico | Narval perolado-magenta com chifre espiral cristalino (`Body, Head, FinL, FinR, Tail, Extra`). *Print pendente.* |
+| `C35` | [Bagre Bigodudo](C35-bagre-bigodudo.jpg) | Comum | Bagre rechonchudo azul-turquesa com bigodinhos creme (`Body, Head, FinL, FinR, Tail, Extra`). |
+| `C36` | [Peixe-Bolha Rosa](C36-peixe-bolha-rosa.jpg) | Comum | Peixinho redondo rosa-chiclete com bochechas rosadas e nadadeiras azuis (`Body, FinL, FinR, Tail`). |
+| `C37` | [Caramujo Doce](C37-caramujo-doce.jpg) | Comum | Caramujo marinho de concha espiral listrada turquesa/creme/roxo e olhinhos em hastes (`Body, Head, Shell`). |
+| `C38` | [Estrela Sonolenta](C38-estrela-sonolenta.jpg) | Comum | Estrela-do-mar fofa bocejando com touquinha estrelada azul (`Body, Head, Extra`). |
+| `C39` | [Lambari Prata](C39-lambari-prata.jpg) | Comum | Peixinho esguio prateado com dorso ciano e cauda bifurcada (`Body, FinL, FinR, Fins, Tail`). |
+| `C40` | [Caranguejo Bolacha](C40-caranguejo-bolacha.jpg) | Comum | Caranguejo com carapaça de biscoito e gotas de chocolate, garras erguidas (`Body, Shell, Claws, Legs`). |
+| `C41` | [Palhaço Neon](C41-palhaco-neon.jpg) | Comum | Peixe-palhaço laranja com listras azul-ciano luminosas e sorriso simpático (`Body, FinL, FinR, Fins, Tail`). |
+| `C42` | [Lulinha Gota](C42-lulinha-gota.jpg) | Comum | Lulinha azul-gota com tentáculos curvos e rostinho corajoso (`Body, Head, Fins, Tentacles`). |
+| `C43` | [Baiacu Algodão-Doce](C43-baiacu-algodao-doce.jpg) | Incomum | Baiacu fofo em nuvens rosa e azul-celeste pastel (`Body, FinL, FinR, Tail`). |
+| `C44` | [Arraia Pintada](C44-arraia-pintada.jpg) | Incomum | Arraia azul-oceano com bolinhas multicoloridas e sorriso largo (`Body, Head, FinL, FinR, Tail`). |
+| `C45` | [Tartaruguinha Coral](C45-tartaruguinha-coral.jpg) | Incomum | Tartaruga bebê turquesa com coral rosa e laranja no topo do casco (`Body, Head, Shell, FinL, FinR, Extra`). |
+| `C46` | [Peixe-Leque](C46-peixe-leque.jpg) | Incomum | Peixe tropical azul-royal e dourado com grandes nadadeiras em leque (`Body, FinL, FinR, Fins, Tail`). |
+| `C47` | [Medusa Lanterna](C47-medusa-lanterna.jpg) | Incomum | Água-viva translúcida com núcleo `Neon` âmbar interno e tentáculos ondulados (`Body, Tentacles, Extra`). |
+| `C48` | [Peixe-Anjo Real](C48-peixe-anjo-real.jpg) | Incomum | Peixe-anjo azul-royal e ouro com coroa real dourada na cabeça (`Body, FinL, FinR, Fins, Tail, Extra`). |
+| `C49` | [Polvo de Bolinhas](C49-polvo-bolinhas.jpg) | Incomum | Polvo azul-lavanda de bolinhas coloridas e 8 tentáculos curvos (`Body, Head, Tentacles`). |
+| `C50` | [Tubarão-Baleia Estrelado](C50-tubarao-baleia-estrelado.jpg) | Raro | Tubarão-baleia índigo/roxo com estrelas douradas no dorso (`Body, Head, FinL, FinR, Fins, Tail`). |
+| `C51` | [Lanterna Abissal](C51-lanterna-abissal.jpg) | Raro | Peixe abissal roxo sorridente com duas antenas luminosas (`Body, Head, FinL, FinR, Tail, Extra`). |
+| `C52` | [Cavalo-Marinho Real](C52-cavalo-marinho-real.jpg) | Raro | Cavalo-marinho violeta com armadura dourada e coroa ametista (`Body, Head, Fins, Tail, Extra`). |
+| `C53` | [Moreia Voltaica](C53-moreia-voltaica.jpg) | Raro | Moreia elétrica roxa em S com crista amarela e cauda em faísca (`Body, Head, Fins, Tail`). |
+| `C54` | [Peixe-Vela Solar](C54-peixe-vela-solar.jpg) | Raro | Peixe-vela azul-safira com grande vela dorsal laranja-ouro (`Body, Head, FinL, FinR, Fins, Tail`). |
+| `C55` | [Caranguejo-Rei do Gelo](C55-caranguejo-rei-gelo.jpg) | Raro | Caranguejo cristalino roxo/glacial com coroa de gelo e garras grandes (`Body, Shell, Claws, Legs, Extra`). |
+| `C56` | [Dragão de Coral](C56-dragao-de-coral.jpg) | Épico | Dragão marinho turquesa e magenta coberto por placas de coral vivo (`Body, Head, Wings, Legs, Tail, Extra`). |
+| `C57` | [Manta Galáctica](C57-manta-galactica.jpg) | Épico | Jamanta cósmica com asas em nebulosa azul e rosa-magenta (`Body, Head, Wings, Tail, Extra`). |
+| `C58` | [Tubarão Fantasma](C58-tubarao-fantasma.jpg) | Épico | Tubarão espectral ciano-magenta com olhos brilhantes e sorriso largo (`Body, Head, FinL, FinR, Fins, Tail`). |
+| `C59` | [Narval Unicórnio](C59-narval-unicornio.jpg) | Épico | Narval perolado-rosa com chifre espiral arco-íris (`Body, Head, FinL, FinR, Tail, Extra`). |
 | `C60` | [Hidra das Profundezas](C60-hidra-das-profundezas.jpg) | Lendário | Hidra abissal de 3 cabeças coroadas, asas turquesa-ouro e anel rúnico com gemas `Neon` (`Body, Head, Tail, FinL, FinR, Extra`). |
 | `C61` | [Baleia Celestial](C61-baleia-celestial.jpg) | Lendário | Baleia cósmica violeta-azul com anel planetário dourado, asas estelares e estrelas `Neon` (`Body, Head, Tail, FinL, FinR, Extra`). |
 | `C62` | [Dragão Dourado da Tempestade](C62-dragao-dourado.jpg) | Lendário | Dragão em ouro puro com asas de tempestade cobalto, garras, cauda em lança de raio e núcleos `Neon` (`Body, Head, Wings, Claws, Tail, Extra`). |
