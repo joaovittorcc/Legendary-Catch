@@ -32,6 +32,9 @@ local PT = {
 		level = "NÍVEL %d",
 		progress = "%d / %d XP",
 		levelUp = "NÍVEL %d!",
+		combo = "Sequência ×%d",
+		daily = "Bônus diário · +%d XP",
+		milestoneReward = "Marco do treino · +%d moedas",
 		titles = {
 			"Pescador Aprendiz",
 			"Pescador Experiente",
@@ -193,6 +196,9 @@ local EN = {
 		level = "LEVEL %d",
 		progress = "%d / %d XP",
 		levelUp = "LEVEL %d!",
+		combo = "Streak ×%d",
+		daily = "Daily bonus · +%d XP",
+		milestoneReward = "Training milestone · +%d coins",
 		titles = {
 			"Fishing Apprentice",
 			"Seasoned Angler",
