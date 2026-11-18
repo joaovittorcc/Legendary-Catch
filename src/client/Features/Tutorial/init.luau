@@ -45,6 +45,26 @@ local icons: { [string]: string } = {
 	training = "✨",
 }
 
+local function findGuideTarget(tag: string): BasePart?
+	local tagged = CollectionService:GetTagged(tag)
+	if tag == "FishingZone" then
+		for _, item in tagged do
+			if item:IsA("BasePart") then
+				local zoneId = item:GetAttribute("ZoneId")
+				if zoneId == nil or zoneId == "" or zoneId == "lagoon" then
+					return item
+				end
+			end
+		end
+	end
+	for _, item in tagged do
+		if item:IsA("BasePart") then
+			return item
+		end
+	end
+	return nil
+end
+
 local function spawnConfetti(parent: Instance, card: Frame)
 	if player:GetAttribute("ReduceEffects") == true then
 		return
@@ -321,9 +341,13 @@ function Tutorial.start()
 		local tag = if step == "workshop" and not affordable
 			then "FishingZone"
 			else destinations[step]
-		local target = tag and CollectionService:GetTagged(tag)[1]
+		local target = if tag then findGuideTarget(tag) else nil
 		local showGuide = showCard and target ~= nil and not (step == "goToPier" and atPier)
-		guide.Adornee = if target and target:IsA("BasePart") then target else nil
+		if target then
+			guide.Adornee = target
+		else
+			guide.Adornee = nil :: any
+		end
 		guide.Enabled = showGuide
 		setArrowVisible(showGuide)
 		arrow.Text = (if tag then Text.destinations[tag] or "" else "") .. "\n▼"
@@ -426,7 +450,7 @@ function Tutorial.start()
 			if step == "goToPier" then
 				local character = player.Character
 				local root = character and character:FindFirstChild("HumanoidRootPart")
-				local zone = CollectionService:GetTagged("FishingZone")[1]
+				local zone = findGuideTarget("FishingZone")
 				local inside = false
 				if root and root:IsA("BasePart") and zone and zone:IsA("BasePart") then
 					local position = zone.CFrame:PointToObjectSpace(root.Position)

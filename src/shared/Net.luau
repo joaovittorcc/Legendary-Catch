@@ -20,6 +20,8 @@ export type FishingUpdate = {
 	combo: number?, -- consecutive catches including this one
 	comboBonus: number?, -- coin multiplier bonus from the combo (0.09 = +9%)
 	auto: boolean?, -- true when resolved by the server Auto-Fish loop
+	zoneId: string?, -- fishing zone id ("lagoon" | "coral" | "abyss")
+	minLevel: number?, -- minimum PlayerLevel required by the zone (when reason = "levelLocked")
 }
 
 export type LeaderboardEntry = {

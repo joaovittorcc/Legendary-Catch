@@ -226,10 +226,11 @@ function Audio.start()
 			local gain = 0
 			if root and root:IsA("BasePart") then
 				for _, tag in { "FishingZone", "TrainingSpot" } do
-					local spot = CollectionService:GetTagged(tag)[1]
-					if spot and spot:IsA("BasePart") then
-						local distance = (root.Position - spot.Position).Magnitude
-						gain = math.max(gain, 1 - distance / 62)
+					for _, spot in CollectionService:GetTagged(tag) do
+						if spot:IsA("BasePart") then
+							local distance = (root.Position - spot.Position).Magnitude
+							gain = math.max(gain, 1 - distance / 62)
+						end
 					end
 				end
 			end

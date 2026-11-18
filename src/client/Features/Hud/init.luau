@@ -17,6 +17,7 @@ local Art = require(script:WaitForChild("Art"))
 local Assets = require(script:WaitForChild("Assets"))
 local Motion = require(script:WaitForChild("Motion"))
 local RodHotbar = require(script:WaitForChild("RodHotbar"))
+local ZoneHud = require(script:WaitForChild("ZoneHud"))
 local StarterOffer = require(script.Parent.Shop:WaitForChild("StarterOffer"))
 
 -- Width / height of the uploaded HUD art (art/hud-v2): containers must keep these.
@@ -978,6 +979,16 @@ function Hud.start()
 	task.spawn(
 		RodHotbar.mount,
 		gui,
+		Hud.panelChanged,
+		Hud.panel,
+		Hud.bindFishingVisibility,
+		Hud.toast
+	)
+	task.spawn(
+		ZoneHud.mount,
+		gui,
+		bar,
+		levelChip,
 		Hud.panelChanged,
 		Hud.panel,
 		Hud.bindFishingVisibility,

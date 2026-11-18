@@ -4,7 +4,6 @@
 -- On a catch it rolls the weight, pays coins and records the collection entry.
 -- Other players see the line through Character attributes (FishingState/Target/Rarity).
 
-local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -16,7 +15,9 @@ local Net = require(Shared:WaitForChild("Net"))
 local PrestigeConfig = require(Shared:WaitForChild("Config"):WaitForChild("Prestige"))
 local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
+local SeasonsConfig = require(Shared:WaitForChild("Config"):WaitForChild("Seasons"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
+local Zones = require(Shared:WaitForChild("Config"):WaitForChild("Zones"))
 
 local Features = script.Parent
 local Analytics = require(Features:WaitForChild("Analytics"))
@@ -42,6 +43,7 @@ type Session = {
 	penaltyUntil: number, -- os.clock() until which minimum fight time increases by 50%
 	kind: string,
 	creatureId: string,
+	zoneId: string,
 	castPos: Vector3, -- root position when the line was cast
 	isAuto: boolean, -- current cast is running on the server Auto-Fish loop
 	autoEnabled: boolean,
@@ -84,6 +86,7 @@ local function session(player: Player): Session
 			penaltyUntil = 0,
 			kind = "",
 			creatureId = "",
+			zoneId = "",
 			castPos = Vector3.zero,
 			isAuto = false,
 			autoEnabled = false,
@@ -134,21 +137,27 @@ local function publish(player: Player, state: string, target: Vector3?, rarity: 
 	character:SetAttribute("FishingRarity", rarity or "")
 end
 
-local function inFishingZone(root: BasePart): boolean
-	for _, zone in CollectionService:GetTagged(FishingConfig.ZONE_TAG) do
-		if zone:IsA("BasePart") then
-			local localPos = zone.CFrame:PointToObjectSpace(root.Position)
-			local half = zone.Size / 2
-			if
-				math.abs(localPos.X) <= half.X
-				and math.abs(localPos.Y) <= half.Y
-				and math.abs(localPos.Z) <= half.Z
-			then
-				return true
-			end
-		end
+local function inFishingZone(root: BasePart): string?
+	local zone = Zones.findAt(root.Position)
+	return if zone then zone.id else nil
+end
+
+local function playerLevel(player: Player): number
+	local profile = PlayerData.get(player)
+	if profile then
+		return profile.stats.level
 	end
-	return false
+	local attr = player:GetAttribute("PlayerLevel")
+	return if typeof(attr) == "number" then attr else 1
+end
+
+local function syncPlayerZone(player: Player): string
+	local root = rootOf(player)
+	local zoneId = if root then inFishingZone(root) or "" else ""
+	if player:GetAttribute(Zones.PLAYER_ATTRIBUTE) ~= zoneId then
+		player:SetAttribute(Zones.PLAYER_ATTRIBUTE, zoneId)
+	end
+	return zoneId
 end
 
 local function weightedPick(weights: { [string]: number }, order: { string }): string
@@ -180,14 +189,18 @@ local function equippedRod(player: Player): Rods.Rod?
 	return if profile then Rods.get(profile.equippedRod) else nil
 end
 
--- Instinct training, the equipped rod and the active ocean event all tilt the odds
+-- Instinct training, the equipped rod, zone, prestige and ocean event all tilt the odds
 -- toward rarer creatures (each capped in its own config).
-local function luckyWeights(player: Player): { [string]: number }
+local function luckyWeights(player: Player, zoneId: string?): { [string]: number }
 	local instinct = Training.level(player, "Instinct")
 	local rod = equippedRod(player)
 	local prestige = Prestige.level(player)
 	local event = OceanEvents.current()
 	local boosted = Monetization.luckBoostActive(player)
+	local activeZoneId = zoneId or player:GetAttribute(Zones.PLAYER_ATTRIBUTE)
+	local zone = if typeof(activeZoneId) == "string" and activeZoneId ~= ""
+		then Zones.get(activeZoneId)
+		else nil
 	local weights: { [string]: number } = {}
 	for rank, rarity in FishingConfig.RARITY_ORDER do
 		-- A rarity with no creatures released yet never rolls (Mystic stays dormant until then).
@@ -199,6 +212,9 @@ local function luckyWeights(player: Player): { [string]: number }
 		if event then
 			w *= event.rarityBoost[rarity] or 1
 		end
+		if zone then
+			w *= zone.rarityBoost[rarity] or 1
+		end
 		-- Paid luck boost only lifts Rare and above; it never guarantees anything.
 		if boosted and rank >= 3 then
 			w *= Products.LUCK_BOOST_MULTIPLIER
@@ -208,8 +224,10 @@ local function luckyWeights(player: Player): { [string]: number }
 	return weights
 end
 
-local function rollCreature(player: Player, maxRank: number?): Creatures.Creature
-	local weights = luckyWeights(player)
+local function rollCreature(player: Player, maxRank: number?, zoneId: string?): Creatures.Creature
+	local s = sessions[player]
+	local effectiveZone = zoneId or (if s and s.zoneId ~= "" then s.zoneId else nil)
+	local weights = luckyWeights(player, effectiveZone)
 	local rarity = devOverride(player, "DevForceRarity")
 		or weightedPick(weights, FishingConfig.RARITY_ORDER)
 	local rank = table.find(FishingConfig.RARITY_ORDER, rarity) or 1
@@ -220,16 +238,24 @@ local function rollCreature(player: Player, maxRank: number?): Creatures.Creatur
 		end
 		rarity = weightedPick(weights, cappedOrder)
 	end
-	-- Event-exclusive creatures join the pool (3x weight) only while their ocean event is on.
+	-- Event and seasonal creatures join the pool (3x weight) only while active.
 	local current = OceanEvents.current()
 	local pool = {}
 	for _, c in Creatures.ofRarity(rarity) do
-		if not c.event then
-			table.insert(pool, c)
-		elseif current and current.id == c.event then
-			for _ = 1, 3 do
-				table.insert(pool, c)
+		if c.event then
+			if current and current.id == c.event then
+				for _ = 1, 3 do
+					table.insert(pool, c)
+				end
 			end
+		elseif c.season then
+			if SeasonsConfig.isActive(c.season, player) then
+				for _ = 1, 3 do
+					table.insert(pool, c)
+				end
+			end
+		else
+			table.insert(pool, c)
 		end
 	end
 	if #pool == 0 then
@@ -267,6 +293,7 @@ local function reset(player: Player, s: Session)
 	s.isAuto = false
 	s.kind = ""
 	s.creatureId = ""
+	s.zoneId = ""
 	publish(player, "", nil, nil)
 end
 
@@ -284,18 +311,31 @@ local function onCast(player: Player)
 		send(player, { event = "rejected", reason = "loading" })
 		return
 	end
-	if not inFishingZone(root) then
+	local zoneId = syncPlayerZone(player)
+	if zoneId == "" then
 		send(player, { event = "rejected", reason = "notInZone" })
+		return
+	end
+	local zone = Zones.get(zoneId)
+	if zone and playerLevel(player) < zone.minLevel then
+		send(player, {
+			event = "rejected",
+			reason = "levelLocked",
+			zoneId = zone.id,
+			minLevel = zone.minLevel,
+		})
 		return
 	end
 	s.lastCast = now
 	s.castPos = root.Position
+	s.zoneId = zoneId
 	s.castId += 1
 	if s.castId > 200 then
 		s.wonCasts[s.castId - 200] = nil
 	end
 	s.phase = "waiting"
 	local castId = s.castId
+	local castZone = zoneId
 	local profile = PlayerData.get(player)
 	-- The very first catch is quick and friendly: a bite in 2-3.5 s, an Uncommon, the easy reel.
 	local firstEver = profile ~= nil and profile.stats.catches == 0
@@ -316,7 +356,7 @@ local function onCast(player: Player)
 			if sessions[player] ~= s or s.castId ~= castId or s.phase ~= "waiting" then
 				return
 			end
-			local creature = rollCreature(player)
+			local creature = rollCreature(player, nil, castZone)
 			if firstEver then
 				local friendly = Creatures.ofRarity("Uncommon")
 				if #friendly > 0 then
@@ -491,7 +531,7 @@ local function onCancel(player: Player)
 	end
 end
 
-local function stopAuto(player: Player, s: Session, reason: string?)
+local function stopAuto(player: Player, s: Session, reason: string?, lockedZone: Zones.FishingZone?)
 	local wasEnabled = s.autoEnabled
 	s.autoEnabled = false
 	s.autoToken += 1
@@ -500,43 +540,54 @@ local function stopAuto(player: Player, s: Session, reason: string?)
 		reset(player, s)
 	end
 	if wasEnabled and reason then
-		send(player, { event = "rejected", reason = reason, auto = true })
+		send(player, {
+			event = "rejected",
+			reason = reason,
+			auto = true,
+			zoneId = if lockedZone then lockedZone.id else nil,
+			minLevel = if lockedZone then lockedZone.minLevel else nil,
+		})
 	end
 end
 
-local function autoCanRun(player: Player, s: Session): (boolean, string?)
+local function autoCanRun(player: Player, s: Session): (boolean, string?, Zones.FishingZone?)
 	if not Monetization.ownsAutoFish(player) then
-		return false, nil
+		return false, nil, nil
 	end
 	if not PlayerData.get(player) then
-		return false, "loading"
+		return false, "loading", nil
 	end
 	local character = player.Character
 	local root = rootOf(player)
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
 	if not (character and root and humanoid and humanoid.Health > 0) then
-		return false, nil
+		return false, nil, nil
 	end
 	if (player:GetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE) or "") ~= "" then
-		return false, "training"
+		return false, "training", nil
 	end
-	if not inFishingZone(root) then
-		return false, "notInZone"
+	local zoneId = syncPlayerZone(player)
+	if zoneId == "" then
+		return false, "notInZone", nil
+	end
+	local zone = Zones.get(zoneId)
+	if zone and playerLevel(player) < zone.minLevel then
+		return false, "levelLocked", zone
 	end
 	local rodTool = character:FindFirstChild("Rod")
 	if not (rodTool and rodTool:IsA("Tool")) then
-		return false, nil
+		return false, nil, nil
 	end
 	local currentRodId = (player:GetAttribute("EquippedRod") :: string?) or ""
 	if s.autoRodId ~= "" and currentRodId ~= s.autoRodId then
-		return false, nil
+		return false, nil, nil
 	end
 	local vel = root.AssemblyLinearVelocity
 	local horizSpeed = Vector3.new(vel.X, 0, vel.Z).Magnitude
 	if horizSpeed > AUTO_MAX_SPEED or (s.autoAnchor - root.Position).Magnitude > AUTO_MAX_DRIFT then
-		return false, "moved"
+		return false, "moved", nil
 	end
-	return true, nil
+	return true, nil, zone
 end
 
 local function waitAutoSlice(player: Player, s: Session, token: number, duration: number): boolean
@@ -545,9 +596,9 @@ local function waitAutoSlice(player: Player, s: Session, token: number, duration
 		if sessions[player] ~= s or not s.autoEnabled or s.autoToken ~= token then
 			return false
 		end
-		local ok, reason = autoCanRun(player, s)
+		local ok, reason, lockedZone = autoCanRun(player, s)
 		if not ok then
-			stopAuto(player, s, reason)
+			stopAuto(player, s, reason, lockedZone)
 			return false
 		end
 		task.wait(math.min(0.2, math.max(0.05, finish - os.clock())))
@@ -555,9 +606,9 @@ local function waitAutoSlice(player: Player, s: Session, token: number, duration
 	if sessions[player] ~= s or not s.autoEnabled or s.autoToken ~= token then
 		return false
 	end
-	local ok, reason = autoCanRun(player, s)
+	local ok, reason, lockedZone = autoCanRun(player, s)
 	if not ok then
-		stopAuto(player, s, reason)
+		stopAuto(player, s, reason, lockedZone)
 		return false
 	end
 	return true
@@ -565,9 +616,9 @@ end
 
 local function runAutoLoop(player: Player, s: Session, token: number)
 	while sessions[player] == s and s.autoEnabled and s.autoToken == token do
-		local ok, reason = autoCanRun(player, s)
+		local ok, reason, zone = autoCanRun(player, s)
 		if not ok then
-			stopAuto(player, s, reason)
+			stopAuto(player, s, reason, zone)
 			break
 		end
 		local root = rootOf(player)
@@ -578,11 +629,13 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 
 		s.lastCast = os.clock()
 		s.castPos = root.Position
+		s.zoneId = if zone then zone.id else Zones.DEFAULT_ID
 		s.castId += 1
 		if s.castId > 200 then
 			s.wonCasts[s.castId - 200] = nil
 		end
 		local castId = s.castId
+		local castZone = s.zoneId
 		s.phase = "waiting"
 		s.isAuto = true
 
@@ -601,7 +654,7 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 			break
 		end
 
-		local creature = rollCreature(player, AUTO_MAX_RARITY_RANK)
+		local creature = rollCreature(player, AUTO_MAX_RARITY_RANK, castZone)
 		local kind = rollMinigame(player)
 		s.phase = "fighting"
 		s.kind = kind
@@ -662,8 +715,20 @@ local function onSetAutoFish(player: Player, enabled: unknown)
 		send(player, { event = "rejected", reason = "training", auto = true })
 		return
 	end
-	if not inFishingZone(root) then
+	local zoneId = syncPlayerZone(player)
+	if zoneId == "" then
 		send(player, { event = "rejected", reason = "notInZone", auto = true })
+		return
+	end
+	local zone = Zones.get(zoneId)
+	if zone and playerLevel(player) < zone.minLevel then
+		send(player, {
+			event = "rejected",
+			reason = "levelLocked",
+			zoneId = zone.id,
+			minLevel = zone.minLevel,
+			auto = true,
+		})
 		return
 	end
 	local vel = root.AssemblyLinearVelocity
@@ -731,6 +796,7 @@ function Fishing.start()
 	end
 	local function watch(player: Player)
 		player:SetAttribute(Products.AUTO_FISH_ACTIVE_ATTRIBUTE, false)
+		player:SetAttribute(Zones.PLAYER_ATTRIBUTE, "")
 		player:GetAttributeChangedSignal("EquippedRod"):Connect(function()
 			local s = sessions[player]
 			if s and s.autoEnabled then
@@ -779,6 +845,14 @@ function Fishing.start()
 	end
 	Players.PlayerRemoving:Connect(function(player)
 		sessions[player] = nil
+	end)
+	task.spawn(function()
+		while true do
+			for _, player in Players:GetPlayers() do
+				syncPlayerZone(player)
+			end
+			task.wait(0.25)
+		end
 	end)
 end
 

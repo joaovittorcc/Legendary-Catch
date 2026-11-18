@@ -258,6 +258,10 @@ local function onUpdate(update: Net.FishingUpdate)
 			local message = if update.reason == "training"
 				then StringsUi.autoFish.trainingStop
 				elseif update.reason == "moved" then StringsUi.autoFish.movedStop
+				elseif update.reason == "levelLocked" then string.format(
+					Strings.zoneRequiredLevel,
+					update.minLevel or 1
+				)
 				elseif update.reason == "notInZone" then Strings.notInZone
 				else Strings.loading
 			Ui.toast(message, Color3.fromRGB(255, 220, 120))
@@ -266,7 +270,13 @@ local function onUpdate(update: Net.FishingUpdate)
 	end
 	if update.event == "rejected" then
 		state = "idle"
-		local message = if update.reason == "loading" then Strings.loading else Strings.notInZone
+		local message = if update.reason == "loading"
+			then Strings.loading
+			elseif update.reason == "levelLocked" then string.format(
+				Strings.zoneRequiredLevel,
+				update.minLevel or 1
+			)
+			else Strings.notInZone
 		Ui.toast(message, Color3.fromRGB(255, 220, 120))
 	elseif update.event == "cast" and state == "casting" then
 		startCast(update.castId or 0)
