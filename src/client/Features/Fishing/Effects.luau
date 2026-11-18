@@ -217,7 +217,7 @@ function Effects.shake(duration: number, magnitude: number)
 	local start = os.clock()
 	RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 1, function()
 		local t = os.clock() - start
-		if t >= duration then
+		if t >= duration or reduced() then
 			RunService:UnbindFromRenderStep(name)
 			return
 		end

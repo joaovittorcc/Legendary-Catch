@@ -110,8 +110,9 @@ function Reel.run(
 		Theme.sand
 	)
 	local risk =
-		Ui.frame(dock, "FailBack", UDim2.fromOffset(50, 5), UDim2.new(0, 65, 0.5, 36), Theme.track)
+		Ui.frame(dock, "FailBack", UDim2.fromOffset(50, 7), UDim2.new(0, 65, 0.5, 36), Theme.ink)
 	Ui.corner(risk, 0.5)
+	Ui.stroke(risk, Theme.rose, 1)
 	local riskFill = Ui.frame(
 		risk,
 		"FailFill",
@@ -134,6 +135,9 @@ function Reel.run(
 	local elapsed = 0
 	local finished = false
 	local everOutside = false
+	local lastInside: boolean? = nil
+	local lit = 0
+	local percent = -1
 	local pending: thread? = nil
 	local step: RBXScriptConnection
 
@@ -203,16 +207,26 @@ function Reel.run(
 			everOutside = true
 		end
 		zone.Position = UDim2.fromScale(0, 1 - pos)
-		zone.BackgroundTransparency = if inside then 0.08 else 0.35
+		if inside ~= lastInside then
+			lastInside = inside
+			zone.BackgroundTransparency = if inside then 0.08 else 0.35
+			eye.BackgroundColor3 = if inside then Theme.ink else Theme.wood
+		end
 		fish.Position = UDim2.fromScale(0.5, 1 - fishPos)
 		local ratio = math.clamp(progress, 0, 1)
-		for index, segment in segments do
-			segment.BackgroundColor3 = if index <= math.floor(ratio * #segments)
-				then color
-				else Theme.muted
+		local nextLit = math.floor(ratio * #segments)
+		if nextLit ~= lit then
+			for index = math.min(lit, nextLit) + 1, math.max(lit, nextLit) do
+				segments[index].BackgroundColor3 = if index <= nextLit then color else Theme.muted
+			end
+			lit = nextLit
 		end
 		riskFill.Size = UDim2.fromScale(math.clamp(fail, 0, 1), 1)
-		status.Text = string.format("%d%%", math.floor(ratio * 100))
+		local nextPercent = math.floor(ratio * 100)
+		if nextPercent ~= percent then
+			percent = nextPercent
+			status.Text = string.format("%d%%", percent)
+		end
 		if progress >= 1 or fail >= 1 then
 			finish(progress >= 1)
 		end

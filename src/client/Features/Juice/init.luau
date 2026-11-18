@@ -10,7 +10,6 @@ local Net = require(Shared:WaitForChild("Net"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi")).adventure
 
-local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Ui = require(script.Parent.Fishing:WaitForChild("Ui"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
@@ -21,15 +20,8 @@ local player = Players.LocalPlayer
 local gui: ScreenGui
 local lastCoins: number? = nil
 
-local function reduceEffects(): boolean
-	local snapshot = Data.get()
-	return player:GetAttribute("ReduceEffects") == true
-		or (
-			snapshot ~= nil
-			and snapshot.settings ~= nil
-			and snapshot.settings.reduceEffects == true
-		)
-end
+type Coin = { image: TextLabel, tween: Tween? }
+local coinPool: { Coin } = {}
 
 local function coinLabel(): GuiObject?
 	local hud = player.PlayerGui:FindFirstChild("AdventureHud")
@@ -51,42 +43,43 @@ local function pulse(target: GuiObject)
 end
 
 function Juice.flyCoins(amount: number, origin: Vector2?)
-	if not gui or reduceEffects() then
+	if not gui or Ui.reduced() then
 		return
 	end
 	local target = coinLabel()
 	if not target then
 		return
 	end
-	local goal = target.AbsolutePosition + target.AbsoluteSize / 2
+	local inset = gui.AbsolutePosition
+	local goal = target.AbsolutePosition + target.AbsoluteSize / 2 - inset
 	local view = gui.AbsoluteSize
-	local source = origin or Vector2.new(view.X * 0.5, view.Y * 0.55)
+	local source = if origin then origin - inset else Vector2.new(view.X * 0.5, view.Y * 0.55)
 	local count = math.clamp(math.floor(math.log10(math.max(amount, 1)) * 3), 3, 10)
 	for i = 1, count do
-		local coin = Instance.new("TextLabel")
-		coin.Name = "FlyingCoin"
-		coin.AnchorPoint = Vector2.new(0.5, 0.5)
-		coin.Size = UDim2.fromOffset(26, 26)
-		coin.BackgroundTransparency = 1
-		coin.Text = "◆"
-		coin.TextScaled = true
-		coin.Font = Theme.font
-		coin.TextColor3 = Theme.gold
-		coin.TextStrokeTransparency = 0.3
+		local slot = coinPool[i]
+		if slot.tween then
+			continue
+		end
+		local coin = slot.image
 		local start = source + Vector2.new(math.random(-20, 20), math.random(-12, 12))
 		coin.Position = UDim2.fromOffset(start.X, start.Y)
-		coin.Parent = gui
+		coin.Rotation = math.random(-50, 50)
+		coin.Visible = true
 		local delay = (i - 1) * 0.05
 		local tween = TweenService:Create(
 			coin,
 			TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, delay),
-			{ Position = UDim2.fromOffset(goal.X, goal.Y), TextTransparency = 0.2 }
+			{ Position = UDim2.fromOffset(goal.X, goal.Y), Rotation = 0 }
 		)
-		tween.Completed:Once(function()
-			coin:Destroy()
+		slot.tween = tween
+		tween.Completed:Once(function(state)
+			slot.tween = nil
+			coin.Visible = false
 			if
-				target.Parent
-				and not reduceEffects()
+				state == Enum.PlaybackState.Completed
+				and i == 1
+				and target.Parent
+				and not Ui.reduced()
 				and not target:FindFirstChild("MotionScale")
 			then
 				pulse(target)
@@ -166,7 +159,7 @@ local function showReward(reward: Reward)
 			string.format(Text.chestCoins, coins),
 			Theme.gold
 		)
-		if not reduceEffects() then
+		if not Ui.reduced() then
 			amount.Visible = false
 			Ui.bounce(card)
 			task.delay(0.36, function()
@@ -178,7 +171,6 @@ local function showReward(reward: Reward)
 					amount.Visible = true
 					Ui.bounce(amount)
 					Audio.play("coins", 0.3, 1.15)
-					Juice.flyCoins(coins, icon.AbsolutePosition + icon.AbsoluteSize / 2)
 				end
 			end)
 		end
@@ -197,6 +189,29 @@ function Juice.start()
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
+	for _ = 1, 10 do
+		local coin = Instance.new("TextLabel")
+		coin.Name = "FlyingCoin"
+		coin.AnchorPoint = Vector2.new(0.5, 0.5)
+		coin.Size = UDim2.fromOffset(24, 24)
+		coin.Font = Theme.font
+		coin.Text = "✦"
+		coin.TextSize = 16
+		coin.TextColor3 = Theme.wood
+		Theme.surface(coin, Theme.gold, 12, Theme.gold)
+		coin.Visible = false
+		coin.Parent = gui
+		table.insert(coinPool, { image = coin })
+	end
+	player:GetAttributeChangedSignal("ReduceEffects"):Connect(function()
+		if Ui.reduced() then
+			for _, slot in coinPool do
+				if slot.tween then
+					slot.tween:Cancel()
+				end
+			end
+		end
+	end)
 
 	player:GetAttributeChangedSignal("Coins"):Connect(function()
 		local coins = player:GetAttribute("Coins")

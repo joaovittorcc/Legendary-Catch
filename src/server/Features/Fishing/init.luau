@@ -161,7 +161,18 @@ end
 local function rollCreature(player: Player): Creatures.Creature
 	local rarity = devOverride(player, "DevForceRarity")
 		or weightedPick(luckyWeights(player), FishingConfig.RARITY_ORDER)
-	local pool = Creatures.ofRarity(rarity)
+	-- Event-exclusive creatures join the pool (3x weight) only while their ocean event is on.
+	local current = OceanEvents.current()
+	local pool = {}
+	for _, c in Creatures.ofRarity(rarity) do
+		if not c.event then
+			table.insert(pool, c)
+		elseif current and current.id == c.event then
+			for _ = 1, 3 do
+				table.insert(pool, c)
+			end
+		end
+	end
 	if #pool == 0 then
 		pool = Creatures.LIST
 	end

@@ -59,7 +59,6 @@ function Precision.run(
 		Theme.sand
 	)
 	local trail: { Frame } = {}
-	local history: { number } = {}
 	for index = 1, 5 do
 		local ghost = Ui.frame(
 			bar,
@@ -70,9 +69,9 @@ function Precision.run(
 			0.18 + index * 0.13
 		)
 		ghost.AnchorPoint = Vector2.new(0.5, 0.5)
+		ghost.Visible = false
 		Ui.corner(ghost, 0.5)
 		table.insert(trail, ghost)
-		table.insert(history, 0.08)
 	end
 	local sampleTime = 0
 	local zone =
@@ -136,6 +135,7 @@ function Precision.run(
 			Theme.outline
 		)
 		Ui.corner(light, 0.5)
+		Ui.stroke(light, Theme.rose, 1)
 		table.insert(lives, light)
 	end
 	local pos, direction = 0.08, 1
@@ -143,6 +143,9 @@ function Precision.run(
 	local feint = 0
 	local hits, misses = 0, 0
 	local remaining = cfg.decisionSeconds
+	local lastTenth = -1
+	local timeWarning = false
+	local trailVisible = false
 	local cooldown = 0
 	local combo = 0
 	local finished = false
@@ -173,11 +176,14 @@ function Precision.run(
 	end
 	local function miss(timedOut: boolean)
 		misses += 1
-		lives[misses].BackgroundColor3 = Color3.fromRGB(255, 83, 118)
+		local life = lives[misses]
+		life.BackgroundColor3 = Color3.fromRGB(255, 83, 118)
+		Ui.exitPulse(life, Theme.rose)
 		combo = 0
 		Ui.feedback(dock, UDim2.fromScale(0.5, -0.20), color, false)
 		if timedOut then
 			timer.Text = Text.timeUp
+			lastTenth = -1
 		end
 		remaining = cfg.decisionSeconds
 		cooldown = 0.18
@@ -228,11 +234,17 @@ function Precision.run(
 		end
 		cooldown = math.max(0, cooldown - dt)
 		remaining -= dt
-		timer.Text = string.format(Text.seconds, math.max(0, remaining))
+		local tenth = math.max(0, math.ceil(remaining * 10))
+		if tenth ~= lastTenth and cooldown <= 0 then
+			lastTenth = tenth
+			timer.Text = string.format(Text.seconds, tenth / 10)
+		end
 		timeFill.Size = UDim2.fromScale(math.max(0, remaining / cfg.decisionSeconds), 1)
-		timeFill.BackgroundColor3 = if remaining < 1.2
-			then Color3.fromRGB(255, 96, 127)
-			else Theme.gold
+		local warning = remaining < 1.2
+		if warning ~= timeWarning then
+			timeWarning = warning
+			timeFill.BackgroundColor3 = if warning then Theme.rose else Theme.gold
+		end
 		if remaining <= 0 then
 			miss(true)
 			if finished then
@@ -261,15 +273,23 @@ function Precision.run(
 			pos, direction = 0, 1
 		end
 		marker.Position = UDim2.fromScale(pos, 0.5)
-		sampleTime += dt
-		if sampleTime >= 0.024 then
-			sampleTime = 0
-			table.insert(history, 1, pos)
-			table.remove(history)
+		local showTrail = not Ui.reduced()
+		if showTrail ~= trailVisible then
+			trailVisible = showTrail
+			for _, ghost in trail do
+				ghost.Visible = showTrail
+				ghost.Position = marker.Position
+			end
 		end
-		for index, ghost in trail do
-			ghost.Visible = not Ui.reduced()
-			ghost.Position = UDim2.fromScale(history[index], 0.5)
+		if showTrail then
+			sampleTime += dt
+			if sampleTime >= 1 / 30 then
+				sampleTime %= 1 / 30
+				for index = #trail, 2, -1 do
+					trail[index].Position = trail[index - 1].Position
+				end
+				trail[1].Position = marker.Position
+			end
 		end
 	end)
 	return function()

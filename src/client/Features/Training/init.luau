@@ -24,6 +24,7 @@ local PressInput = require(FishingFolder:WaitForChild("PressInput"))
 local Rhythm = require(FishingFolder:WaitForChild("Minigames"):WaitForChild("Rhythm"))
 local Ui = require(FishingFolder:WaitForChild("Ui"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
+local Audio = require(script.Parent:WaitForChild("Audio"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
@@ -491,9 +492,6 @@ local function onRing(update: Net.TrainingUpdate)
 			PressInput.disable()
 			Ui.hidePanel()
 			ringRemote:FireServer(ringId, success)
-			if success then
-				Ui.toast(Strings.ringBonus, color)
-			end
 		end,
 		update.rings or 1,
 		function(point)
@@ -514,15 +512,15 @@ local function onRing(update: Net.TrainingUpdate)
 end
 
 local function onUpdate(update: Net.TrainingUpdate)
-	local payload = update :: Net.TrainingUpdate & { bonusXp: number?, rewardCoins: number? }
-	if payload.event == "dailyBonus" then
-		local xp = payload.bonusXp
+	if update.event == "dailyBonus" then
+		local xp = update.bonusXp
 		if xp and xp > 0 then
 			Ui.toast(string.format(Text.daily, xp), Theme.gold)
+			Audio.play("level", 0.2, 1.15)
 		end
-	elseif payload.event == "ring" then
+	elseif update.event == "ring" then
 		onRing(update)
-	elseif payload.event == "levelUp" then
+	elseif update.event == "levelUp" then
 		local stat, level = update.stat or "", update.level or 0
 		if stat ~= activeStat or level <= lastCelebrated then
 			return
@@ -541,7 +539,7 @@ local function onUpdate(update: Net.TrainingUpdate)
 			Theme.sand
 		)
 		banner.AnchorPoint = Vector2.new(0.5, 0.5)
-		local reward = payload.rewardCoins
+		local reward = update.rewardCoins
 		if reward and reward > 0 then
 			banner.Text ..= "\n" .. string.format(Text.milestoneReward, reward)
 		end
@@ -553,6 +551,7 @@ local function onUpdate(update: Net.TrainingUpdate)
 		cap.Parent = banner
 		levelBanner = banner
 		Ui.bounce(banner)
+		Audio.play("level", 0.22, if reward and reward > 0 then 1.1 else 1)
 		task.delay(1.75, function()
 			if levelBanner == banner then
 				levelBanner = nil

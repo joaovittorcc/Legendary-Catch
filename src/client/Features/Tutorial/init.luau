@@ -7,7 +7,8 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
-local Text = require(Shared:WaitForChild("StringsUi")).tutorial
+local StringsUi = require(Shared:WaitForChild("StringsUi"))
+local Text = StringsUi.tutorial
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
@@ -100,6 +101,15 @@ function Tutorial.start()
 	skip.Size = UDim2.fromOffset(88, 44)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
 	skip.Position = UDim2.new(1, -17, 0.5, 0)
+	local openAlbum = Panel.button(card, StringsUi.adventure.openAlbum, Theme.crystal)
+	openAlbum.Name = "OpenAlbum"
+	openAlbum.Size = UDim2.new(1, -176, 0, 44)
+	openAlbum.Position = UDim2.fromOffset(62, 10)
+	openAlbum.TextSize = 14
+	openAlbum.Visible = false
+	openAlbum.Activated:Connect(function()
+		Hud.showPanel("Collection")
+	end)
 	card.Parent = gui
 	local setCardVisible = Hud.bindFishingVisibility(card, false)
 
@@ -162,6 +172,8 @@ function Tutorial.start()
 			and player:GetAttribute("CatchRevealActive") ~= true
 		setCardVisible(showCard)
 		message.Text = hint or ""
+		openAlbum.Visible = step == "collection"
+		message.Visible = not openAlbum.Visible
 		stepIcon.Text = icons[if step == "goToPier" and atPier then "cast" else step] or "🧭"
 		iconHolder.Interactable = step == "collection"
 		iconHolder.Selectable = iconHolder.Interactable

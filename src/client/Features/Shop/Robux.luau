@@ -27,19 +27,22 @@ function Robux.start()
 		duration: (() -> number)?
 	): TextLabel?
 		local card = Panel.card(body, Theme.gold, if duration then 114 else 94)
-		local name = Panel.label(card, title, 17, Theme.gold)
+		local name = Panel.label(card, title, 17, Theme.ink)
 		name.Size = UDim2.fromScale(0.64, 0.34)
 		name.Position = UDim2.fromScale(0.025, 0.05)
+		name.TextStrokeTransparency = 1
 		local info = Panel.label(card, description, 13, Theme.ink)
 		info.TextStrokeTransparency = 1
 		info.Size = UDim2.fromScale(0.64, if duration then 0.37 else 0.53)
 		info.Position = UDim2.fromScale(0.025, if duration then 0.34 else 0.41)
 		local countdown: TextLabel? = nil
 		if duration then
-			local label = Panel.label(card, "", 13)
+			local label = Panel.label(card, "", 13, Theme.wood)
 			label.Name = "OfferCountdown"
-			label.Size = UDim2.fromScale(0.64, 0.2)
-			label.Position = UDim2.fromScale(0.025, 0.74)
+			label.Size = UDim2.fromScale(0.60, 0.2)
+			label.Position = UDim2.fromScale(0.045, 0.74)
+			label.TextStrokeTransparency = 1
+			Theme.surface(label, Theme.gold, 10, Theme.gold:Lerp(Theme.cream, 0.6))
 			countdown = label
 		end
 		if id == 0 or reason then

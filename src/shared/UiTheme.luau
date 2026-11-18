@@ -3,6 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Fishing = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Strings = require(Shared:WaitForChild("Strings"))
+local raritySymbols = { "●", "▲", "◆", "✦", "★", "✺" }
 
 local Theme = {
 	ink = Color3.fromRGB(21, 16, 36),
@@ -40,8 +41,8 @@ end
 
 function Theme.rarityLabel(rarity: string): string
 	local name = Strings.rarity[rarity] or rarity
-	local rank = Theme.rarityRank(rarity)
-	return if rank > 0 then string.rep("★", rank) .. "  " .. name else name
+	local symbol = raritySymbols[Theme.rarityRank(rarity)]
+	return if symbol then symbol .. "  " .. name else name
 end
 
 function Theme.corner(object: GuiObject, radius: number)

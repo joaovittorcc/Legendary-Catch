@@ -129,8 +129,8 @@ function Panel.card(parent: Instance, accent: Color3, height: number): Frame
 	stroke.Parent = card
 	local shade = Instance.new("Frame")
 	shade.Name = "CardShadow"
-	shade.Position = UDim2.fromOffset(0, 4)
-	shade.Size = UDim2.fromScale(1, 1)
+	shade.Position = UDim2.new(0.04, 0, 1, -1)
+	shade.Size = UDim2.new(0.92, 0, 0, 5)
 	shade.BackgroundColor3 = Theme.outline
 	shade.BackgroundTransparency = 0.82
 	shade.BorderSizePixel = 0

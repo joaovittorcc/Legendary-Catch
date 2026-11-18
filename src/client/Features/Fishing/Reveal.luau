@@ -117,41 +117,40 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	local gui = Ui.screen()
 	local badges: { string } = {}
 	if info then
+		if info.isNew then
+			table.insert(badges, Text.discovery)
+		end
 		if info.variant == "Shiny" then
 			table.insert(badges, "✦ " .. Text.shiny)
 		end
 		if info.isGiant then
-			table.insert(badges, Text.adventure.giant)
+			table.insert(badges, "▲ " .. Text.adventure.giant)
 		end
-		if info.isNew then
-			table.insert(badges, Text.discovery)
+		if info.isRecord and not info.previousBest then
+			table.insert(badges, "↑ " .. Text.adventure.catchRecord)
 		end
 	end
-	local hasDiscovery = #badges > 0
+	local hasBadges = #badges > 0
 	local hasRecord = info ~= nil and info.isRecord == true and info.previousBest ~= nil
+	local ribbonY = if hasBadges then 0.23 else 0.13
 	local card = Ui.frame(
 		gui,
 		"RevealCard",
-		UDim2.fromScale(0.62, 0.2),
+		UDim2.new(0.88, 0, 0, if hasRecord then 132 else 115),
 		UDim2.fromScale(0.5, 0.12),
 		Theme.ink,
 		0.08
 	)
 	Art.panel(card, if rarity == "Common" then Theme.crystal else color)
 	card.AnchorPoint = Vector2.new(0.5, 1)
-	local aspect = Instance.new("UIAspectRatioConstraint")
-	aspect.AspectRatio = 3.1
-	aspect.DominantAxis = Enum.DominantAxis.Width
-	aspect.Parent = card
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MinSize = Vector2.new(0, 96)
-	bounds.MaxSize = Vector2.new(560, 132)
+	bounds.MaxSize = Vector2.new(405, 132)
 	bounds.Parent = card
 	local ribbon = Ui.frame(
 		card,
 		"RevealRibbon",
-		UDim2.new(0.68, 0, 0, 34),
-		UDim2.fromScale(0.16, if hasDiscovery then 0.2 else 0.12),
+		UDim2.fromScale(0.87, 0.22),
+		UDim2.fromScale(0.065, ribbonY),
 		if rarity == "Common" then Theme.crystal else color
 	)
 	Theme.corner(ribbon, 15)
@@ -166,33 +165,34 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 	local title = Ui.label(
 		card,
 		"Name",
-		UDim2.new(0.64, 0, 0, 30),
-		UDim2.fromScale(0.18, if hasDiscovery then 0.2 else 0.12),
+		UDim2.fromScale(0.82, 0.20),
+		UDim2.fromScale(0.09, ribbonY + 0.01),
 		name,
 		Theme.ink
 	)
-	title.TextStrokeTransparency = 0
-	title.TextScaled = true
+	title.TextStrokeTransparency = 1
 	title.ZIndex = 4
+	local titleLimit = Instance.new("UITextSizeConstraint")
+	titleLimit.MaxTextSize = 24
+	titleLimit.Parent = title
 	local badge, rarityLabel = Art.rarity(card)
-	badge.AnchorPoint = Vector2.new(0.5, 0)
-	badge.Position = UDim2.fromScale(0.5, if hasRecord then 0.45 else 0.54)
-	badge.Size = UDim2.fromScale(0.44, 0.17)
+	badge.AnchorPoint = Vector2.new(0.5, 0.5)
+	badge.Position =
+		UDim2.fromScale(0.5, if hasRecord then 0.56 elseif hasBadges then 0.61 else 0.52)
+	badge.Size = UDim2.fromOffset(99, 33)
 	Art.setRarity(badge, rarityLabel, rarity)
-	if info and hasDiscovery then
+	if hasBadges then
 		local discovery = Ui.label(
 			card,
 			"Discovery",
-			UDim2.fromScale(0.88, 0.13),
-			UDim2.fromScale(0.06, 0.035),
+			UDim2.fromScale(0.92, 0.16),
+			UDim2.fromScale(0.04, 0.045),
 			table.concat(badges, " · "),
 			Theme.ink
 		)
-		discovery.TextStrokeTransparency = 0.5
-		discovery.TextWrapped = true
+		discovery.TextStrokeTransparency = 1
 		local discoveryLimit = Instance.new("UITextSizeConstraint")
-		discoveryLimit.MinTextSize = 11
-		discoveryLimit.MaxTextSize = 15
+		discoveryLimit.MaxTextSize = 14
 		discoveryLimit.Parent = discovery
 	end
 	if info and info.weight and info.value then
@@ -205,8 +205,8 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 				reward ..= "   ·   " .. string.format(Strings.odds, (digits:gsub("^%.", "")))
 			end
 		end
-		local rewardY = 0.755
-		if info and info.isRecord and info.previousBest then
+		local rewardY = 0.79
+		if info.isRecord and info.previousBest then
 			local record = string.format(Text.newRecord, info.previousBest, info.weight)
 			local recordLabel = Ui.label(
 				card,
@@ -214,19 +214,20 @@ local function nameCard(name: string, rarity: string, color: Color3, info: Catch
 				UDim2.fromScale(0.88, 0.13),
 				UDim2.fromScale(0.06, 0.69),
 				record,
-				if Theme.rarityRank(rarity) >= 4 then Theme.gold else Theme.ink
+				Theme.wood
 			)
-			recordLabel.TextStrokeTransparency = 0.1
+			recordLabel.TextStrokeTransparency = 1
 			rewardY = 0.82
 		end
-		Ui.label(
+		local summary = Ui.label(
 			card,
 			"Reward",
 			UDim2.fromScale(0.88, 0.16),
 			UDim2.fromScale(0.06, rewardY),
 			reward,
-			if Theme.rarityRank(rarity) >= 5 then Theme.gold else Theme.ink
+			Theme.ink
 		)
+		summary.TextStrokeTransparency = 1
 	end
 	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then
 		card.Position = UDim2.new(0.5, 0, 1, -56)
@@ -433,7 +434,7 @@ function Reveal.play(
 	Effects.splash(origin, accent, if reduced then 8 else 10 + level * 6)
 	Effects.ripple(origin, color, 4 + level * 2, 0.8)
 	if level >= 5 and not reduced then
-		Effects.shake(0.5, 2)
+		Effects.shake(0.27, if level == 6 then 1.55 else 1.15)
 	end
 
 	-- Fly from the water to a spot in front of the player, spinning.

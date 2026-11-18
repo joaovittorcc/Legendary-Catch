@@ -12,6 +12,7 @@ local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
+local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local RunService = game:GetService("RunService")
 
@@ -144,6 +145,10 @@ function Collection.start()
 				view:Destroy()
 			end
 		end
+	end
+	local previewsDirty = false
+	local function queuePreviews()
+		previewsDirty = true
 	end
 
 	local function render()
@@ -306,9 +311,28 @@ function Collection.start()
 			end
 			return
 		end
-		local album =
-			Panel.label(body, string.format(Text.adventure.album, totalFound, #Creatures.LIST), 17)
+		local album = Panel.card(body, Theme.crystal, 65)
+		album.Name = "AlbumIntro"
 		album.LayoutOrder = -3
+		local title = Panel.label(album, Text.adventure.album, 19)
+		title.TextStrokeTransparency = 1
+		title.Size = UDim2.new(1, -22, 0, 25)
+		title.Position = UDim2.fromOffset(11, 4)
+		local albumCount = Panel.label(
+			album,
+			string.format(Text.adventure.albumProgress, totalFound, #Creatures.LIST),
+			13
+		)
+		albumCount.TextStrokeTransparency = 1
+		albumCount.Size = UDim2.new(1, -22, 0, 20)
+		albumCount.Position = UDim2.fromOffset(11, 28)
+		local albumTrack = Instance.new("Frame")
+		albumTrack.Name = "AlbumTrack"
+		albumTrack.Size = UDim2.new(1, -22, 0, 8)
+		albumTrack.Position = UDim2.fromOffset(11, 52)
+		albumTrack.BackgroundTransparency = 1
+		progressBar(albumTrack, totalFound, #Creatures.LIST, Theme.crystal)
+		albumTrack.Parent = album
 		local shinyChance = Panel.label(
 			body,
 			string.format(Text.adventure.shinyChance, Fishing.SHINY_CHANCE * 100),
@@ -358,23 +382,17 @@ function Collection.start()
 				if typeof(shiny) == "number" and shiny > 0 then
 					label = "✦ " .. label
 				end
-				local card = Panel.button(group, "", color)
+				local card = Instance.new("TextButton")
+				card.Name = entry.id
+				card.Text = ""
+				card.AutoButtonColor = false
+				card.BorderSizePixel = 0
 				card.BackgroundColor3 = Theme.cream
-				local cardGradient = card:FindFirstChildWhichIsA("UIGradient")
-				if cardGradient then
-					cardGradient:Destroy()
-				end
-				card.Position = UDim2.new(0, 0, 0, 0)
-				for _, decorationName in { "CandyLip", "CandyShine" } do
-					local decoration = card:FindFirstChild(decorationName)
-					if decoration then
-						decoration:Destroy()
-					end
-				end
-				local outline = card:FindFirstChildWhichIsA("UIStroke")
-				if outline then
-					outline.Color = color
-				end
+				Theme.corner(card, 14)
+				local outline = Instance.new("UIStroke")
+				outline.Color = color
+				outline.Thickness = 3
+				outline.Parent = card
 				if mystic then
 					Theme.iridescent(card)
 				end
@@ -384,9 +402,11 @@ function Collection.start()
 				icon.Parent = card
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
 				local name = Panel.label(card, label, 13)
+				name.TextStrokeTransparency = 1
 				name.Size = UDim2.fromScale(0.94, 0.27)
 				name.Position = UDim2.fromScale(0.03, 0.61)
 				local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 12)
+				rarityName.TextStrokeTransparency = 1
 				rarityName.Name = "Rarity"
 				rarityName.Size = UDim2.fromScale(1, 0.17)
 				rarityName.Position = UDim2.fromScale(0, 0.82)
@@ -395,16 +415,21 @@ function Collection.start()
 					scroll.CanvasPosition = Vector2.zero
 					render()
 				end)
+				Motion.mount(card)
+				card.Parent = group
 			end
 			group.Parent = body
 		end
 		updateGrids()
-		task.defer(refreshPreviews)
+		queuePreviews()
 	end
 
-	scroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(updateGrids)
-	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(refreshPreviews)
-	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(refreshPreviews)
+	scroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		updateGrids()
+		queuePreviews()
+	end)
+	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(queuePreviews)
+	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(queuePreviews)
 	local result = remotes:FindFirstChild(Net.CLAIM_RESULT)
 	if result and result:IsA("RemoteEvent") then
 		result.OnClientEvent:Connect(function(payload: Net.ClaimResult)
@@ -432,6 +457,10 @@ function Collection.start()
 					return
 				end
 				elapsed = 0
+				if previewsDirty then
+					previewsDirty = false
+					refreshPreviews()
+				end
 				local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 				if reduced and wasReduced then
 					return

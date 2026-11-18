@@ -1,7 +1,6 @@
 --!strict
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local shared = ReplicatedStorage:WaitForChild("Shared")
-local Strings = require(shared:WaitForChild("Strings"))
 local Theme = require(shared:WaitForChild("UiTheme"))
 local Assets = require(script.Parent:WaitForChild("Assets"))
 
@@ -94,7 +93,7 @@ local function updateRarityLabel(badge: ImageLabel, label: TextLabel, rarity: st
 	end
 	label.Position = if fallback then UDim2.fromScale(0.04, 0.17) else UDim2.fromScale(0.44, 0.17)
 	label.Size = if fallback then UDim2.fromScale(0.92, 0.66) else UDim2.fromScale(0.51, 0.66)
-	label.Text = if fallback then Theme.rarityLabel(rarity) else Strings.rarity[rarity] or rarity
+	label.Text = Theme.rarityLabel(rarity)
 end
 
 function Art.rarity(parent: GuiObject): (ImageLabel, TextLabel)

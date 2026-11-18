@@ -13,6 +13,8 @@ local gui: ScreenGui
 local area: Frame
 local toastLabel: TextLabel
 local activeToast: Tween? = nil
+type Feedback = { badge: TextLabel, sparks: { Frame }, tweens: { Tween }, sequence: number }
+local feedbackByTarget: { [Frame]: Feedback } = {}
 
 function Ui.corner(target: GuiObject, scale: number?)
 	local c = Instance.new("UICorner")
@@ -171,53 +173,91 @@ function Ui.feedback(
 	local text = Text.minigames
 	local message = if perfect then text.perfect elseif success then text.good else text.miss
 	local accent = if success then color:Lerp(Theme.sand, 0.28) else Color3.fromRGB(255, 125, 148)
-	local badge = Ui.label(
-		target,
-		"TimingFeedback",
-		UDim2.fromOffset(156, 26),
-		at,
-		string.upper(message) .. (if streak > 1 then string.format(text.combo, streak) else ""),
-		accent
-	)
-	badge.AnchorPoint = Vector2.new(0.5, 0.5)
-	badge.ZIndex = 7
+	local state = feedbackByTarget[target]
+	if not state or not state.badge.Parent then
+		local badge = Ui.label(target, "TimingFeedback", UDim2.fromOffset(156, 26), at, "", accent)
+		badge.AnchorPoint = Vector2.new(0.5, 0.5)
+		badge.ZIndex = 7
+		local mounted: Feedback = { badge = badge, sparks = {}, tweens = {}, sequence = 0 }
+		feedbackByTarget[target] = mounted
+		state = mounted
+		badge.Destroying:Once(function()
+			local current = feedbackByTarget[target]
+			if current and current.badge == badge then
+				feedbackByTarget[target] = nil
+			end
+		end)
+	end
+	for _, tween in state.tweens do
+		tween:Cancel()
+	end
+	table.clear(state.tweens)
+	for _, spark in state.sparks do
+		spark.Visible = false
+	end
+	local badge = state.badge
+	badge.Text = string.upper(message)
+		.. (if streak > 1 then string.format(text.combo, streak) else "")
+	badge.TextColor3 = accent
+	badge.Position = at
+	badge.Rotation = 0
+	badge.TextTransparency = 0
+	badge.TextStrokeTransparency = 0.2
+	badge.Visible = true
+	state.sequence += 1
+	local sequence = state.sequence
 	if not reduced then
 		local tween = TweenInfo.new(0.32, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-		TweenService
-			:Create(badge, tween, {
-				Position = at
-					+ (if success then UDim2.fromOffset(0, -14) else UDim2.fromOffset(7, 0)),
-				TextTransparency = 1,
-				TextStrokeTransparency = 1,
-			})
-			:Play()
+		local labelTween = TweenService:Create(badge, tween, {
+			Position = at + (if success then UDim2.fromOffset(0, -14) else UDim2.fromOffset(7, 0)),
+			TextTransparency = 1,
+			TextStrokeTransparency = 1,
+		})
+		table.insert(state.tweens, labelTween)
+		labelTween:Play()
 		if success then
-			for index = 1, 6 do
+			if #state.sparks == 0 then
+				for _ = 1, 6 do
+					local particle = Ui.frame(target, "Spark", UDim2.fromOffset(6, 6), at, accent)
+					particle.AnchorPoint = Vector2.new(0.5, 0.5)
+					particle.Rotation = 45
+					particle.ZIndex = 6
+					table.insert(state.sparks, particle)
+				end
+			end
+			for index, spark in state.sparks do
 				local angle = index * math.pi / 3
-				local spark = Ui.frame(target, "Spark", UDim2.fromOffset(6, 6), at, accent)
-				spark.AnchorPoint = Vector2.new(0.5, 0.5)
-				spark.Rotation = 45
-				spark.ZIndex = 6
-				TweenService
-					:Create(spark, tween, {
-						Position = at
-							+ UDim2.fromOffset(math.cos(angle) * 43, math.sin(angle) * 27),
-						BackgroundTransparency = 1,
-					})
-					:Play()
-				task.delay(0.34, function()
-					spark:Destroy()
-				end)
+				spark.Position = at
+				spark.BackgroundColor3 = accent
+				spark.BackgroundTransparency = 0
+				spark.Visible = true
+				local sparkTween = TweenService:Create(spark, tween, {
+					Position = at + UDim2.fromOffset(math.cos(angle) * 43, math.sin(angle) * 27),
+					BackgroundTransparency = 1,
+				})
+				table.insert(state.tweens, sparkTween)
+				sparkTween:Play()
 			end
 		else
 			badge.Rotation = -5
-			TweenService
-				:Create(badge, TweenInfo.new(0.14, Enum.EasingStyle.Elastic), { Rotation = 0 })
-				:Play()
+			local tilt = TweenService:Create(
+				badge,
+				TweenInfo.new(0.14, Enum.EasingStyle.Elastic),
+				{ Rotation = 0 }
+			)
+			table.insert(state.tweens, tilt)
+			tilt:Play()
 		end
 	end
 	task.delay(0.34, function()
-		badge:Destroy()
+		local current = feedbackByTarget[target]
+		if current and current.badge == badge and current.sequence == sequence then
+			badge.Visible = false
+			for _, spark in current.sparks do
+				spark.Visible = false
+			end
+			table.clear(current.tweens)
+		end
 	end)
 end
 

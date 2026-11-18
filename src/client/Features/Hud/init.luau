@@ -432,7 +432,6 @@ function Hud.start()
 		badge.Parent = button
 		return badge
 	end
-	local levelConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 	local levelChip = Instance.new("Frame")
 	levelChip.Name = "FishingLevel"
 	levelChip.AnchorPoint = Vector2.new(0, 0.5)
@@ -448,14 +447,14 @@ function Hud.start()
 	levelIcon.Size = UDim2.fromScale(0.25, 0.76)
 	levelIcon.TextStrokeTransparency = 1
 	local levelLabel = Art.caption(levelChip, "LevelText", "", 18, Theme.ink)
-	levelLabel.Position = UDim2.fromScale(0.31, 0.14)
-	levelLabel.Size = UDim2.fromScale(0.66, 0.72)
+	levelLabel.Position = UDim2.fromScale(0.29, 0.05)
+	levelLabel.Size = UDim2.fromScale(0.67, 0.41)
 	levelLabel.TextStrokeTransparency = 1
 	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
 	local levelTrack = Instance.new("Frame")
 	levelTrack.Name = "LevelTrack"
-	levelTrack.Position = UDim2.fromScale(0.32, 0.8)
-	levelTrack.Size = UDim2.fromScale(0.58, 0.11)
+	levelTrack.Position = UDim2.fromScale(0.29, 0.84)
+	levelTrack.Size = UDim2.fromScale(0.63, 0.09)
 	levelTrack.BackgroundColor3 = Theme.track
 	levelTrack.BorderSizePixel = 0
 	Theme.corner(levelTrack, 5)
@@ -467,38 +466,51 @@ function Hud.start()
 	Theme.corner(levelFill, 5)
 	levelFill.Parent = levelTrack
 	levelTrack.Parent = levelChip
+	local xpLabel = Art.caption(levelChip, "LevelXP", "", 11, Theme.ink)
+	xpLabel.Position = UDim2.fromScale(0.29, 0.46)
+	xpLabel.Size = UDim2.fromScale(0.67, 0.34)
+	xpLabel.TextXAlignment = Enum.TextXAlignment.Left
+	xpLabel.TextStrokeTransparency = 1
 	levelChip.Parent = bar
+	local levelTween: Tween? = nil
 	local function updateLevel()
 		local level = player:GetAttribute("PlayerLevel")
 		local xp = player:GetAttribute("PlayerLevelXP")
 		local total = player:GetAttribute("PlayerLevelXPTotal")
-		local train = player:GetAttribute(levelConfig.levelAttribute("Control"))
 		local combo = player:GetAttribute("FishingCombo")
 		local streak = if typeof(combo) == "number" then combo else 0
 		local hasLevel = typeof(level) == "number"
-		levelTrack.Visible = hasLevel
-			and typeof(xp) == "number"
-			and typeof(total) == "number"
-			and total > 0
+		levelChip.Visible = hasLevel
+		levelTrack.Visible = typeof(xp) == "number" and typeof(total) == "number" and total > 0
 		if typeof(xp) == "number" and typeof(total) == "number" and total > 0 then
-			levelFill.Size = UDim2.fromScale(math.clamp(xp / total, 0, 1), 1)
+			local target = UDim2.fromScale(math.clamp(xp / total, 0, 1), 1)
+			if levelTween then
+				levelTween:Cancel()
+			end
+			if player:GetAttribute("ReduceEffects") == true then
+				levelFill.Size = target
+			else
+				local tween = TweenService:Create(levelFill, TweenInfo.new(0.2), { Size = target })
+				levelTween = tween
+				tween:Play()
+			end
+			xpLabel.Text = string.format("%d / %d XP", xp, total)
 		end
+		xpLabel.Visible = levelTrack.Visible
 		local title = if typeof(level) == "number"
 			then string.format(Text.adventure.level, level)
-			else `{Text.control} {if typeof(train) == "number" then math.floor(train) else 0}`
+			else ""
 		levelLabel.Text = if streak >= 2
-			then title .. "\n" .. string.format(Text.adventure.combo, streak)
+			then title .. " · " .. string.format(Text.adventure.combo, streak)
 			else title
-		levelLabel.Size = UDim2.fromScale(0.66, if levelTrack.Visible then 0.69 else 0.72)
-		levelLabel.Position = UDim2.fromScale(0.31, if levelTrack.Visible then 0.09 else 0.14)
 	end
 	for _, attribute in
 		{
-			levelConfig.levelAttribute("Control"),
 			"PlayerLevel",
 			"PlayerLevelXP",
 			"PlayerLevelXPTotal",
 			"FishingCombo",
+			"ReduceEffects",
 		}
 	do
 		player:GetAttributeChangedSignal(attribute):Connect(updateLevel)
@@ -558,6 +570,7 @@ function Hud.start()
 	menu.BorderSizePixel = 0
 	menu.Visible = false
 	Art.panel(menu, Theme.crystal)
+	local menuMotion = Motion.mount(menu)
 	menu.Parent = gui
 	local setMenuVisible = Hud.bindFishingVisibility(menu, false)
 	local menuOpen = false
@@ -591,6 +604,9 @@ function Hud.start()
 			menuChanged:Fire(menuOpen)
 		end
 		setMenuVisible(menuOpen and currentPanel == "")
+		if menuOpen and not wasOpen then
+			menuMotion.pulse(0.94)
+		end
 		local missionBadge = navBadges.Missions
 		if missionBadge then
 			missionBadge.Visible = menuOpen and readyMissionCount > 0

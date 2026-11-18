@@ -2,9 +2,9 @@
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
-local RunService = game:GetService("RunService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Strings = require(Shared:WaitForChild("Strings"))
+local Text = require(Shared:WaitForChild("StringsUi")).adventure
 local Config = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
@@ -21,11 +21,13 @@ local colors: { [string]: Color3 } = {
 	starTide = Theme.rose,
 	thunderStorm = Theme.crystal,
 	goldenHour = Theme.gold,
+	shimmerShoal = Color3.fromRGB(133, 255, 187),
 }
 local icons: { [string]: string } = {
 	starTide = "🌟",
 	thunderStorm = "⚡",
 	goldenHour = "☀️",
+	shimmerShoal = "🐟",
 }
 
 function Events.start()
@@ -89,7 +91,7 @@ function Events.start()
 
 	local timer = Panel.label(banner, "", 14, Theme.muted)
 	timer.Name = "EventTimer"
-	timer.Position = UDim2.fromOffset(54, 26)
+	timer.Position = UDim2.fromOffset(54, 24)
 	timer.Size = UDim2.new(1, -64, 0, 16)
 	timer.TextScaled = true
 	timer.TextStrokeTransparency = 1
@@ -98,7 +100,22 @@ function Events.start()
 	timerLimit.MaxTextSize = 14
 	timerLimit.Parent = timer
 
-	Motion.mount(banner, 0.75, 7)
+	local track = Instance.new("Frame")
+	track.Name = "EventTrack"
+	track.Size = UDim2.new(1, -66, 0, 4)
+	track.Position = UDim2.new(0, 54, 1, -11)
+	track.BackgroundColor3 = Theme.outline
+	track.BackgroundTransparency = 0.2
+	track.BorderSizePixel = 0
+	Theme.corner(track, 3)
+	local fill = Instance.new("Frame")
+	fill.Name = "Remaining"
+	fill.Size = UDim2.fromScale(1, 1)
+	fill.BorderSizePixel = 0
+	Theme.corner(fill, 3)
+	fill.Parent = track
+	track.Parent = banner
+	local motion = Motion.mount(banner)
 	banner.Parent = gui
 	local setBannerVisible = Hud.bindFishingVisibility(banner, false)
 	gui.Parent = player:WaitForChild("PlayerGui")
@@ -138,52 +155,75 @@ function Events.start()
 		iconHolder.Position = UDim2.fromOffset(8, height / 2)
 	end
 
+	local lastId = ""
+	local lastRemaining = -1
+	local wasActive = false
 	local function refresh()
 		local id = ReplicatedStorage:GetAttribute(Config.ACTIVE_ATTRIBUTE)
 		local ends = ReplicatedStorage:GetAttribute(Config.ENDS_AT_ATTRIBUTE)
 		local remaining = if typeof(ends) == "number"
 			then math.ceil(ends - workspace:GetServerTimeNow())
 			else 0
-		local active = typeof(id) == "string" and id ~= "" and remaining > 0
-		setBannerVisible(active)
+		local event = if typeof(id) == "string" then Config.get(id) else nil
+		local active = event ~= nil and remaining > 0
+		if active ~= wasActive then
+			wasActive = active
+			setBannerVisible(active)
+		end
 		local tint = if typeof(id) == "string" then colors[id] or Theme.crystal else Theme.crystal
 		local decorations = active and player:GetAttribute("ReduceEffects") ~= true
-		atmosphere.Enabled = decorations
-		if emitter.Enabled and not decorations then
-			emitter:Clear()
-		end
-		emitter.Enabled = decorations
-		if active and typeof(id) == "string" then
-			layout()
-			if rim then
-				rim.Color = tint
+		if atmosphere.Enabled ~= decorations then
+			atmosphere.Enabled = decorations
+			emitter.Enabled = decorations
+			if not decorations then
+				emitter:Clear()
 			end
-			banner.BackgroundColor3 = tint
-			icon.Text = icons[id] or "🌊"
-			title.Text = Strings.eventName[id] or id
-			timer.Text = string.format("%d:%02d", math.floor(remaining / 60), remaining % 60)
-			atmosphere.TintColor = Color3.new(1, 1, 1):Lerp(tint, 0.28)
-			atmosphere.Brightness = if id == "thunderStorm" then -0.11 else 0.025
-			emitter.Color = ColorSequence.new(tint)
-			anchor.Parent = workspace.CurrentCamera
-		elseif anchor.Parent then
-			emitter:Clear()
-			anchor.Parent = nil
+		end
+		if active and event then
+			layout()
+			if lastId ~= event.id then
+				lastId = event.id
+				lastRemaining = -1
+				if rim then
+					rim.Color = tint
+				end
+				icon.Text = icons[event.id] or "🌊"
+				title.Text = Strings.eventName[event.id] or event.id
+				fill.BackgroundColor3 = tint
+				atmosphere.TintColor = Color3.new(1, 1, 1):Lerp(tint, 0.28)
+				atmosphere.Brightness = if event.id == "thunderStorm" then -0.11 else 0.025
+				emitter.Color = ColorSequence.new(tint)
+				motion.pulse(0.94)
+			end
+			if lastRemaining ~= remaining then
+				lastRemaining = remaining
+				local clock = string.format("%d:%02d", math.floor(remaining / 60), remaining % 60)
+				timer.Text = string.format(Text.eventEnds, clock)
+				fill.Size = UDim2.fromScale(math.clamp(remaining / event.durationSeconds, 0, 1), 1)
+			end
+			anchor.Parent = if decorations then workspace.CurrentCamera else nil
+		else
+			lastId = ""
+			if anchor.Parent then
+				emitter:Clear()
+				anchor.Parent = nil
+			end
 		end
 	end
 
-	local elapsed = 0
-	local heartbeat = RunService.Heartbeat:Connect(function(dt)
-		elapsed += dt
-		if elapsed >= 0.25 then
-			elapsed = 0
+	task.spawn(function()
+		while gui.Parent do
+			task.wait(0.5)
+			if not gui.Parent then
+				break
+			end
 			refresh()
 		end
 	end)
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
 	Tutorial.layoutChanged:Connect(layout)
+	Hud.layoutChanged:Connect(layout)
 	gui.Destroying:Once(function()
-		heartbeat:Disconnect()
 		atmosphere:Destroy()
 		anchor:Destroy()
 	end)

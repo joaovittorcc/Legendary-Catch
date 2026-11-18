@@ -29,6 +29,7 @@ local LIST: { Milestone } = {
 	{ id = "species73", kind = "species", count = 73, reward = 60000 },
 	{ id = "species83", kind = "species", count = 83, reward = 80000 },
 	{ id = "species94", kind = "species", count = 94, reward = 150000 },
+	{ id = "species100", kind = "species", count = 100, reward = 250000 },
 	{ id = "allCommon", kind = "rarity", rarity = "Common", count = 0, reward = 150 },
 	{ id = "allUncommon", kind = "rarity", rarity = "Uncommon", count = 0, reward = 300 },
 	{ id = "allRare", kind = "rarity", rarity = "Rare", count = 0, reward = 600 },
