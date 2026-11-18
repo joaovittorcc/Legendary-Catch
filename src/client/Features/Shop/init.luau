@@ -18,6 +18,20 @@ local Robux = require(script:WaitForChild("Robux"))
 local Shop = {}
 local PREVIEWS = "RodPreviews"
 
+local function formatPrice(price: number): string
+	local digits = tostring(price)
+	local grouped = digits:reverse():gsub("(%d%d%d)", "%1" .. Text.thousandsSeparator):reverse()
+	return if #digits % 3 == 0 then grouped:sub(2) else grouped
+end
+
+local function fitLabel(label: TextLabel, maxSize: number)
+	label.TextScaled = true
+	label.TextWrapped = false
+	local limit = Instance.new("UITextSizeConstraint")
+	limit.MaxTextSize = maxSize
+	limit.Parent = label
+end
+
 local function cloneRod(id: string): Model?
 	local library = ReplicatedStorage:FindFirstChild(PREVIEWS)
 	local source = library and library:FindFirstChild(id)
@@ -146,7 +160,7 @@ function Shop.start()
 			return
 		end
 		for _, rod in Rods.LIST do
-			local rarity = Fishing.RARITY_ORDER[rod.order] or "Common"
+			local rarity = Fishing.RARITY_ORDER[math.min(rod.order, #Fishing.RARITY_ORDER)]
 			local accent = Theme.rarity[rarity] or rod.tipColor
 			local row = Panel.card(body, accent, 158)
 			row.Name = rod.id
@@ -157,19 +171,21 @@ function Shop.start()
 			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 22, rod.tipColor)
 			title.Position = UDim2.fromScale(0.39, 0.04)
 			title.Size = UDim2.fromScale(0.58, 0.22)
+			fitLabel(title, 22)
 			local bonus = Panel.label(
 				row,
 				string.format(
-					"%s +%.0f%%  ·  %s +%.0f%%",
+					"%s +%.0f%%\n%s +%.0f%%",
 					Text.control,
 					rod.controlBonus * 100,
 					Text.luck,
 					rod.luckBonus * 100
 				),
-				16
+				15
 			)
-			bonus.Position = UDim2.fromScale(0.39, 0.28)
-			bonus.Size = UDim2.fromScale(0.58, 0.18)
+			bonus.Position = UDim2.fromScale(0.39, 0.24)
+			bonus.Size = UDim2.new(0.58, 0, 0, 36)
+			bonus.TextStrokeTransparency = 1
 
 			local owned = table.find(snapshot.rodsOwned, rod.id) ~= nil
 			local equipped = snapshot.equippedRod == rod.id
@@ -179,19 +195,21 @@ function Shop.start()
 			seal.Position = UDim2.fromScale(0.39, 0.47)
 			seal.Size = UDim2.fromScale(0.58, 0.16)
 			local blocked = equipped or (not owned and not affordable)
+			local price = formatPrice(rod.price)
 			local button = Panel.button(
 				row,
 				if equipped
 					then Text.equipped
 					elseif owned then Text.equip
-					elseif affordable then string.format("%s  ·  %d ◆", Text.buy, rod.price)
-					else string.format(Text.rodUnaffordable, rod.price),
+					elseif affordable then string.format("%s  ·  %s ◆", Text.buy, price)
+					else string.format(Text.rodUnaffordable, price),
 				if blocked
 					then Theme.muted
 					elseif owned then Theme.crystal
 					else Color3.fromRGB(68, 194, 104)
 			)
 			button.Name = "RodAction"
+			button.TextSize = 16
 			button.AnchorPoint = Vector2.new(0.5, 0)
 			button.Position = UDim2.fromScale(0.65, 0.67)
 			button.Size = UDim2.new(0.56, 0, 0, 44)

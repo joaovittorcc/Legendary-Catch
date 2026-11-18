@@ -166,9 +166,12 @@ function Tutorial.start()
 		if step == "workshop" and not affordable then
 			hint = Text.earn
 		end
+		local training = player:GetAttribute("TrainingStat")
 		local showCard = hint ~= nil
 			and Hud.panel() == ""
+			and not Hud.isMenuOpen()
 			and not Hud.isFishingActive()
+			and (training == nil or training == "")
 			and player:GetAttribute("CatchRevealActive") ~= true
 		setCardVisible(showCard)
 		message.Text = hint or ""
@@ -224,6 +227,7 @@ function Tutorial.start()
 		refresh()
 	end)
 	Hud.fishingChanged:Connect(refresh)
+	Hud.menuChanged:Connect(refresh)
 	Data.changed:Connect(refresh)
 	player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh)
 	player:GetAttributeChangedSignal("Coins"):Connect(refresh)
@@ -234,8 +238,8 @@ function Tutorial.start()
 			and player:GetAttribute("TrainingStat") ~= ""
 		then
 			mock.done = true
-			refresh()
 		end
+		refresh()
 	end)
 	for _, tag in { "FishingZone", "TrainingSpot", "WorkshopSpot" } do
 		CollectionService:GetInstanceAddedSignal(tag):Connect(refresh)

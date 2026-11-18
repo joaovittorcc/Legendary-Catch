@@ -96,7 +96,8 @@ local PT = {
 			"Lenda da Lagoa",
 		},
 	},
-	rodUnaffordable = "Sem moedas · %d ◆",
+	rodUnaffordable = "Sem moedas · %s ◆",
+	thousandsSeparator = ".",
 	rodSlot = "Vara",
 	nextGoal = {
 		title = "Próxima meta",
@@ -345,7 +346,8 @@ local EN = {
 			"Lagoon Legend",
 		},
 	},
-	rodUnaffordable = "Need coins · %d ◆",
+	rodUnaffordable = "Need coins · %s ◆",
+	thousandsSeparator = ",",
 	rodSlot = "Rod",
 	nextGoal = {
 		title = "Next goal",

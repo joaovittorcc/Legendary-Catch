@@ -138,14 +138,16 @@ function Missions.start()
 			emblem.Parent = row
 			local outline = row:FindFirstChildWhichIsA("UIStroke")
 			local title = Panel.label(row, "", 15)
-			title.Size = UDim2.fromScale(0.49, 0.52)
-			title.Position = UDim2.fromScale(0.10, 0)
-			local status = Panel.label(row, "", 14, Theme.gold)
-			status.Size = UDim2.fromScale(0.49, 0.23)
-			status.Position = UDim2.fromScale(0.10, 0.51)
+			title.Size = UDim2.new(0.63, -62, 0.52, 0)
+			title.Position = UDim2.fromOffset(56, 0)
+			title.TextStrokeTransparency = 1
+			local status = Panel.label(row, "", 13, Theme.wood)
+			status.Size = UDim2.new(0.63, -62, 0.23, 0)
+			status.Position = UDim2.new(0, 56, 0.51, 0)
+			status.TextStrokeTransparency = 1
 			local bar = Instance.new("Frame")
-			bar.Size = UDim2.fromScale(0.46, 0.07)
-			bar.Position = UDim2.fromScale(0.115, 0.8)
+			bar.Size = UDim2.new(0.63, -62, 0.07, 0)
+			bar.Position = UDim2.new(0, 56, 0.8, 0)
 			bar.BackgroundColor3 = Color3.fromRGB(232, 219, 200)
 			Theme.corner(bar, 4)
 			local fill = Instance.new("Frame")
@@ -170,7 +172,7 @@ function Missions.start()
 					else "🐟"
 				title.Text = description(nextMission)
 				status.Text = string.format(
-					"%d / %d    ·    +%d ◆",
+					"%d / %d · +%d ◆",
 					math.min(nextMission.progress, nextMission.target),
 					nextMission.target,
 					nextMission.reward

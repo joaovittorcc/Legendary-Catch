@@ -75,7 +75,7 @@ end
 
 local function showXp(amount: number, color: Color3)
 	local frame = hud
-	if not frame or amount < 1 then
+	if not frame or amount < 1 or frame:FindFirstChild("DailyBonus") then
 		return
 	end
 	local pop = Ui.label(
@@ -514,15 +514,29 @@ end
 local function onUpdate(update: Net.TrainingUpdate)
 	if update.event == "dailyBonus" then
 		local xp = update.bonusXp
-		if xp and xp > 0 then
-			Ui.toast(string.format(Text.daily, xp), Theme.gold)
+		local frame = hud
+		if frame and xp and xp > 0 then
+			local bonus = Ui.label(
+				frame,
+				"DailyBonus",
+				UDim2.new(0.9, 0, 0, 22),
+				UDim2.new(0.5, 0, 1, 7),
+				string.format(Text.daily, xp),
+				Theme.gold
+			)
+			bonus.AnchorPoint = Vector2.new(0.5, 0)
+			bonus.ZIndex = 5
+			task.delay(2, function()
+				bonus:Destroy()
+			end)
 			Audio.play("level", 0.2, 1.15)
 		end
 	elseif update.event == "ring" then
 		onRing(update)
 	elseif update.event == "levelUp" then
 		local stat, level = update.stat or "", update.level or 0
-		if stat ~= activeStat or level <= lastCelebrated then
+		local frame = hud
+		if not frame or stat ~= activeStat or level <= lastCelebrated then
 			return
 		end
 		lastCelebrated = level
@@ -531,14 +545,14 @@ local function onUpdate(update: Net.TrainingUpdate)
 			levelBanner:Destroy()
 		end
 		local banner = Ui.label(
-			Ui.screen(),
+			frame,
 			"LevelUp",
-			UDim2.new(0.76, 0, 0, 52),
-			UDim2.fromScale(0.5, 0.52),
+			UDim2.new(0.86, 0, 0, 46),
+			UDim2.new(0.5, 0, 1, 31),
 			string.format(Text.levelUp, level),
 			Theme.sand
 		)
-		banner.AnchorPoint = Vector2.new(0.5, 0.5)
+		banner.AnchorPoint = Vector2.new(0.5, 0)
 		local reward = update.rewardCoins
 		if reward and reward > 0 then
 			banner.Text ..= "\n" .. string.format(Text.milestoneReward, reward)
@@ -547,7 +561,7 @@ local function onUpdate(update: Net.TrainingUpdate)
 		banner.ZIndex = 8
 		Theme.surface(banner, color, 20)
 		local cap = Instance.new("UISizeConstraint")
-		cap.MaxSize = Vector2.new(290, 52)
+		cap.MaxSize = Vector2.new(290, 46)
 		cap.Parent = banner
 		levelBanner = banner
 		Ui.bounce(banner)

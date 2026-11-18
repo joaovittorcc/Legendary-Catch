@@ -92,7 +92,7 @@ function Leaderboard.start()
 		end
 	end
 
-	local function buildRow(entry: Net.LeaderboardEntry, board: string, gen: number): Frame
+	local function buildRow(entry: Net.LeaderboardEntry, gen: number): Frame
 		local isSelf = entry.userId == localPlayer.UserId
 		local accent, baseBg = rankAccent(entry.rank)
 		local row = Panel.card(list, if isSelf then Theme.gold else accent, 58)
@@ -106,8 +106,8 @@ function Leaderboard.start()
 
 		local rankBadge = Panel.label(row, "#" .. tostring(entry.rank), 18, Theme.ink)
 		rankBadge.Name = "Rank"
-		rankBadge.Position = UDim2.fromOffset(10, 9)
-		rankBadge.Size = UDim2.fromOffset(40, 40)
+		rankBadge.Position = UDim2.fromOffset(8, 12)
+		rankBadge.Size = UDim2.fromOffset(34, 34)
 		rankBadge.BackgroundTransparency = 0
 		rankBadge.BackgroundColor3 = if entry.rank <= 3
 			then accent
@@ -117,8 +117,8 @@ function Leaderboard.start()
 
 		local avatar = Instance.new("ImageLabel")
 		avatar.Name = "Avatar"
-		avatar.Position = UDim2.fromOffset(58, 8)
-		avatar.Size = UDim2.fromOffset(42, 42)
+		avatar.Position = UDim2.fromOffset(48, 10)
+		avatar.Size = UDim2.fromOffset(38, 38)
 		avatar.BackgroundColor3 = Color3.fromRGB(220, 236, 248)
 		avatar.BorderSizePixel = 0
 		avatar.Image = ""
@@ -147,17 +147,19 @@ function Leaderboard.start()
 			else entry.name
 		local nameLabel = Panel.label(row, displayName, 16, Theme.ink)
 		nameLabel.Name = "PlayerName"
-		nameLabel.Position = UDim2.fromOffset(110, 0)
-		nameLabel.Size = UDim2.new(1, -248, 1, 0)
+		nameLabel.Position = UDim2.fromOffset(94, 0)
+		nameLabel.Size = UDim2.new(0.73, -100, 1, 0)
 		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
+		nameLabel.TextWrapped = false
 		nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 		nameLabel.TextStrokeTransparency = 1
 
-		local scoreLabel = Panel.label(row, formatScore(board, entry.score), 16, Theme.wood)
+		local scoreLabel =
+			Panel.label(row, string.format("%d", math.round(entry.score)), 16, Theme.wood)
 		scoreLabel.Name = "Score"
 		scoreLabel.AnchorPoint = Vector2.new(1, 0)
-		scoreLabel.Position = UDim2.new(1, -14, 0, 0)
-		scoreLabel.Size = UDim2.fromOffset(124, 58)
+		scoreLabel.Position = UDim2.new(1, -8, 0, 0)
+		scoreLabel.Size = UDim2.new(0.27, -8, 1, 0)
 		scoreLabel.TextXAlignment = Enum.TextXAlignment.Right
 		scoreLabel.TextStrokeTransparency = 1
 
@@ -188,24 +190,15 @@ function Leaderboard.start()
 			emptyCard.Name = "EmptyState"
 			emptyCard.BackgroundColor3 = ROW_BG
 			local emptyTitle = Panel.label(emptyCard, Text.leaderboard.empty, 20, Theme.wood)
-			emptyTitle.Position = UDim2.fromOffset(12, 10)
-			emptyTitle.Size = UDim2.new(1, -24, 0, 34)
 			emptyTitle.TextStrokeTransparency = 1
-			local emptySub = Panel.label(
-				emptyCard,
-				string.format(Text.leaderboard.yourScore, formatScore(board, payload.mine)),
-				16,
-				Theme.ink
-			)
-			emptySub.Position = UDim2.fromOffset(12, 44)
-			emptySub.Size = UDim2.new(1, -24, 0, 30)
-			emptySub.TextStrokeTransparency = 1
+			emptyTitle.Position = UDim2.fromOffset(12, 0)
+			emptyTitle.Size = UDim2.new(1, -24, 1, 0)
 			list.Size = UDim2.new(1, 0, 0, 88)
 			return
 		end
 
 		for _, entry in payload.entries do
-			buildRow(entry, board, gen)
+			buildRow(entry, gen)
 		end
 		list.Size = UDim2.new(1, 0, 0, #payload.entries * 66 - 8)
 	end

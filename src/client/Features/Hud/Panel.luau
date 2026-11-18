@@ -53,6 +53,7 @@ function Panel.button(parent: Instance, content: string, accent: Color3): TextBu
 	local stroke = button:FindFirstChildWhichIsA("UIStroke")
 	if stroke then
 		stroke.Thickness = 3
+		stroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
 	end
 	local lip = Instance.new("Frame")
 	lip.Name = "CandyLip"
@@ -128,6 +129,7 @@ function Panel.card(parent: Instance, accent: Color3, height: number): Frame
 	local stroke = Instance.new("UIStroke")
 	stroke.Color = accent
 	stroke.Thickness = 3
+	stroke.BorderStrokePosition = Enum.BorderStrokePosition.Inner
 	stroke.Parent = card
 	local shade = Instance.new("Frame")
 	shade.Name = "CardShadow"

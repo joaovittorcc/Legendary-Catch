@@ -402,13 +402,18 @@ function Hud.start()
 	player:GetAttributeChangedSignal("ReduceEffects"):Connect(updateCoins)
 	updateCoins()
 
-	local entries: { { id: string, title: string, tint: Color3, icon: string? } } = {
-		{ id = "Collection", title = Text.collection, tint = Theme.crystal },
-		{ id = "Shop", title = Text.shop, tint = Theme.gold },
-		{ id = "Missions", title = Text.missions.nav, tint = Theme.rose },
+	local entries = {
+		{ id = "Collection", title = Text.collection, tint = Theme.crystal, icon = "📖" },
+		{ id = "Shop", title = Text.shop, tint = Theme.gold, icon = "🎣" },
+		{ id = "Missions", title = Text.missions.nav, tint = Theme.rose, icon = "🏆" },
 		{ id = "Achievements", title = Text.achievementUi.title, tint = Theme.gold, icon = "🏅" },
 		{ id = "Leaderboard", title = Text.leaderboard.title, tint = Theme.crystal, icon = "👑" },
-		{ id = "Settings", title = Text.settings, tint = Color3.fromRGB(188, 151, 255) },
+		{
+			id = "Settings",
+			title = Text.settings,
+			tint = Color3.fromRGB(188, 151, 255),
+			icon = "⚙️",
+		},
 	}
 	local navBadges: { [string]: TextLabel } = {}
 	local function makeNavBadge(button: GuiButton, name: string, tint: Color3): TextLabel
@@ -639,24 +644,38 @@ function Hud.start()
 
 	for i, entry in entries do
 		local asset = Assets.navigation[entry.id]
-		local button: GuiButton
+		local button = Instance.new("TextButton")
+		button.BackgroundTransparency = 1
+		button.AutoButtonColor = false
+		button.Text = ""
+		local fallback = Instance.new("Frame")
+		fallback.Name = "Fallback"
+		fallback.Size = UDim2.fromScale(1, 1)
+		Theme.surface(fallback, entry.tint, 14)
+		local icon = Art.caption(fallback, "Icon", entry.icon, 42)
+		icon.Size = UDim2.fromScale(0.72, 0.58)
+		icon.Position = UDim2.fromScale(0.14, 0.08)
+		fallback.Parent = button
+		local art: ImageLabel? = nil
 		if asset then
-			button = Art.button(asset)
-		else
-			local native = Instance.new("TextButton")
-			native.Text = ""
-			native.AutoButtonColor = false
-			Theme.surface(native, entry.tint, 14)
-			local icon = Art.caption(native, "Icon", entry.icon or "🏅", 42)
-			icon.Size = UDim2.fromScale(0.72, 0.58)
-			icon.Position = UDim2.fromScale(0.14, 0.08)
-			button = native
+			art = Art.image(button, asset)
 		end
 		button.Name = entry.id
 		button.AnchorPoint = Vector2.new(0.5, 0.5)
 		local label = Art.caption(button, "Label", entry.title, 24)
-		label.Position = if asset then UDim2.fromScale(0.1, 0.731) else UDim2.fromScale(0.04, 0.68)
-		label.Size = if asset then UDim2.fromScale(0.8, 0.19) else UDim2.fromScale(0.92, 0.24)
+		label.ZIndex = 2
+		local function layoutArt()
+			local loaded = if art then art.IsLoaded else false
+			fallback.Visible = not loaded
+			label.Position = if loaded
+				then UDim2.fromScale(0.1, 0.731)
+				else UDim2.fromScale(0.04, 0.68)
+			label.Size = if loaded then UDim2.fromScale(0.8, 0.19) else UDim2.fromScale(0.92, 0.24)
+		end
+		if art then
+			art:GetPropertyChangedSignal("IsLoaded"):Connect(layoutArt)
+		end
+		layoutArt()
 		local badge = makeNavBadge(button, "NotificationBadge", entry.tint)
 		if entry.id == "Missions" then
 			navBadges.Missions = badge
@@ -668,8 +687,8 @@ function Hud.start()
 			local selected = name == entry.id
 				or (entry.id == "Collection" and name == "Milestones")
 				or (entry.id == "Shop" and name == "Robux")
-			if button:IsA("ImageButton") then
-				button.ImageColor3 = if selected
+			if art then
+				art.ImageColor3 = if selected
 					then Color3.fromRGB(235, 217, 255)
 					else Color3.new(1, 1, 1)
 			end
