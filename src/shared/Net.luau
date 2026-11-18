@@ -21,6 +21,19 @@ export type FishingUpdate = {
 	comboBonus: number?, -- coin multiplier bonus from the combo (0.09 = +9%)
 }
 
+export type LeaderboardEntry = {
+	rank: number,
+	userId: number,
+	name: string,
+	score: number,
+}
+
+export type LeaderboardResult = {
+	board: string, -- "Catches" | "Species" | "Level"
+	entries: { LeaderboardEntry },
+	mine: number, -- the requesting player's own score
+}
+
 -- Announcements that are not part of a fishing cast (level-ups, chests, tutorial gifts).
 export type AdventureReward = {
 	kind: string, -- "level" | "chest" | "tutorial" | "achievement" | "code" | "codeInvalid" | "codeUsed"
@@ -49,6 +62,8 @@ local Net = {
 	FISHING_UPDATE = "FishingUpdate",
 	ADVENTURE_REWARD = "AdventureReward",
 	REDEEM_CODE = "RedeemCode",
+	REQUEST_LEADERBOARD = "RequestLeaderboard",
+	LEADERBOARD_RESULT = "LeaderboardResult",
 	STOP_TRAINING = "StopTraining",
 	TRAINING_RING_RESULT = "TrainingRingResult",
 	TRAINING_UPDATE = "TrainingUpdate",
