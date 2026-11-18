@@ -461,6 +461,8 @@ local function buildIsland()
 	Terrain:FillBall(Vector3.new(18, 10, -50), 11, Enum.Material.Rock)
 	Terrain:FillBall(Vector3.new(-6, 24, -60), 10, Enum.Material.Grass)
 	Terrain:FillBall(Vector3.new(-28, 19, -56), 6, Enum.Material.Grass)
+	-- Keep the workshop interior clear of the rear rocky hill.
+	Terrain:FillBlock(CFrame.new(-6, 23, -36), Vector3.new(30, 17, 23), Enum.Material.Air)
 
 	-- Waterfall cliff behind the lagoon.
 	Terrain:FillBall(Vector3.new(-50, 12, -18), 10, Enum.Material.Rock)
@@ -1386,7 +1388,7 @@ local function buildWorkshop()
 		)
 	end
 	for _, x in { -15, 3 } do
-		lantern(g, Vector3.new(x, TERRACE_Y, front + 1), 6, false)
+		lantern(g, Vector3.new(x, TERRACE_Y, front - 0.6), 6, false)
 	end
 
 	placeMesh("Workshop", g, CFrame.new(-6, TERRACE_Y, -36), function()
@@ -1754,7 +1756,7 @@ local function buildPier()
 	-- Crate stacks neatly tucked next to the pier entrance.
 	for _, spot in
 		{
-			{ pos = Vector3.new(15, PLAZA_Y - 0.05, 17.5), yaw = 20 },
+			{ pos = Vector3.new(15, 8.55, 17.5), yaw = 20 },
 			{ pos = Vector3.new(15, PLAZA_Y - 0.05, -2.5), yaw = 160 },
 		}
 	do
@@ -1929,27 +1931,27 @@ local function buildDecor()
 		crystalCluster(g, Vector3.new(c[1], c[2], c[3]), c[4], c[5], c[6])
 	end
 
-	palm(g, Vector3.new(-26, TERRACE_Y - 2, -46), 1.45)
-	palm(g, Vector3.new(16, TERRACE_Y - 3, -40), 1.4)
-	palm(g, Vector3.new(-66, PLAZA_Y - 1, 20), 1.15)
+	palm(g, Vector3.new(-26, 22.3, -46), 1.45)
+	palm(g, Vector3.new(16, 16.4, -40), 1.4)
+	palm(g, Vector3.new(-66, 8.1, 20), 1.15)
 
 	for _, b in
 		{
-			{ -49, PLAZA_Y - 0.5, 24, 2.0 }, -- left of lagoon sign so text stays unobstructed
+			{ -49, 4.95, 24, 2.0 }, -- left of lagoon sign so text stays unobstructed
 			{ -30, PLAZA_Y - 0.5, 28, 2.2 },
 			{ -20, PLAZA_Y - 0.5, 30, 2.6 },
 			{ 6, PLAZA_Y - 0.5, 28, 2.6 },
-			{ 16, PLAZA_Y - 0.5, 22, 2.2 },
-			{ 18, PLAZA_Y - 0.5, -6, 2.4 },
+			{ 16, 8.3, 22, 2.2 },
+			{ 18, 6.7, -6, 2.4 },
 			{ -24, PLAZA_Y - 0.5, -14, 2.2 },
 			{ 8, PLAZA_Y - 0.5, -12, 2.0 },
 			{ -22, TERRACE_Y, -24, 2.0 },
 			{ 10, TERRACE_Y, -24, 2.0 },
 			{ -62, PLAZA_Y - 0.5, 4, 2.4 },
-			{ -60, PLAZA_Y - 0.5, 20, 2.2 },
-			{ -14, 20, -52, 2.6 },
-			{ -10, 24, -55, 2.2 }, -- greenery on upper peak behind workshop
-			{ 2, 23, -53, 2.0 },
+			{ -60, 7.95, 20, 2.2 },
+			{ -14, 30.0, -52, 2.6 },
+			{ -10, 32.9, -55, 2.2 }, -- greenery on upper peak behind workshop
+			{ 2, 30.55, -53, 2.0 },
 		}
 	do
 		flowerBush(g, Vector3.new(b[1], b[2], b[3]), b[4])
