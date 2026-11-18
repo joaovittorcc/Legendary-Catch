@@ -134,12 +134,17 @@ local function milestoneReady(profile: PlayerData.Profile, m: Milestones.Milesto
 		end
 		return species >= m.count
 	elseif m.kind == "rarity" then
+		-- An empty tier (no creature of that rarity released yet) is never "complete".
+		local any = false
 		for _, c in Creatures.LIST do
-			if c.rarity == m.rarity and not profile.collection[c.id] then
-				return false
+			if c.rarity == m.rarity then
+				any = true
+				if not profile.collection[c.id] then
+					return false
+				end
 			end
 		end
-		return true
+		return any
 	end
 	return false
 end

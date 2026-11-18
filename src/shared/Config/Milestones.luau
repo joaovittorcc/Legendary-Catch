@@ -30,6 +30,7 @@ local LIST: { Milestone } = {
 	{ id = "allRare", kind = "rarity", rarity = "Rare", count = 0, reward = 600 },
 	{ id = "allEpic", kind = "rarity", rarity = "Epic", count = 0, reward = 1200 },
 	{ id = "allLegendary", kind = "rarity", rarity = "Legendary", count = 0, reward = 5000 },
+	{ id = "allMystic", kind = "rarity", rarity = "Mystic", count = 0, reward = 25000 },
 }
 
 local byId: { [string]: Milestone } = {}

@@ -140,7 +140,9 @@ local function luckyWeights(player: Player): { [string]: number }
 	local boosted = Monetization.luckBoostActive(player)
 	local weights: { [string]: number } = {}
 	for rank, rarity in FishingConfig.RARITY_ORDER do
-		local w = (FishingConfig.RARITY_WEIGHTS[rarity] or 0)
+		-- A rarity with no creatures released yet never rolls (Mystic stays dormant until then).
+		local released = #Creatures.ofRarity(rarity) > 0
+		local w = (if released then FishingConfig.RARITY_WEIGHTS[rarity] or 0 else 0)
 			* TrainingConfig.luckMultiplier(instinct, rank)
 			* Rods.luckMultiplier(rod, rank)
 		if event then

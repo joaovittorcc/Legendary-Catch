@@ -14,6 +14,7 @@ local PT = {
 		Rare = "Raro",
 		Epic = "Épico",
 		Legendary = "Lendário",
+		Mystic = "Místico",
 	} :: { [string]: string },
 	hint = {
 		Common = "Fisgou algo...",
@@ -21,6 +22,7 @@ local PT = {
 		Rare = "Algo raro!",
 		Epic = "ALGO ÉPICO!",
 		Legendary = "LENDÁRIO...",
+		Mystic = "O IMPOSSÍVEL...",
 	} :: { [string]: string },
 	creatureName = {
 		C01_Bolhinha_Azul = "Bolhinha Azul",
@@ -237,6 +239,7 @@ local EN: Strings = {
 		Rare = "Rare",
 		Epic = "Epic",
 		Legendary = "Legendary",
+		Mystic = "Mystic",
 	},
 	hint = {
 		Common = "Something bit...",
@@ -244,6 +247,7 @@ local EN: Strings = {
 		Rare = "Something rare!",
 		Epic = "SOMETHING EPIC!",
 		Legendary = "LEGENDARY...",
+		Mystic = "THE IMPOSSIBLE...",
 	},
 	creatureName = {
 		C01_Bolhinha_Azul = "Bubbly Blue",
