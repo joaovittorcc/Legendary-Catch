@@ -1,11 +1,13 @@
 --!strict
--- Candy-styled SurfaceGuis mounted on the physical plaza LeaderboardBoard screens:
+-- Candy-styled SurfaceGuis mounted on the floating ocean LeaderboardBoard screens:
 --   LeaderboardScreen_Catches, LeaderboardScreen_Species, LeaderboardScreen_Level
--- Displays Top 5 entries + local player's own score, refreshing every ~60 s only when nearby.
+-- Displays Top 5 entries + local player's own score, refreshing every ~60 s when nearby,
+-- and gently bobs each floating unit locally via Heartbeat (respecting ReduceEffects).
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
@@ -17,9 +19,13 @@ LeaderboardBoard.order = 95
 
 local player = Players.LocalPlayer
 
-local NEAR_DISTANCE = 52
+local NEAR_DISTANCE = 135
+local ANIM_PAUSE_DISTANCE = 150
+local CANVAS_WIDTH_PX = 397
 local REFRESH_INTERVAL = 60
 local STAGGER_SECONDS = 1.18
+local DEFAULT_BOB_AMP = 0.6
+local DEFAULT_BOB_PERIOD = 4.5
 
 type ScreenSpec = {
 	board: string,
@@ -119,9 +125,9 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	gui.Name = "BoardSurfaceGui"
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 62 -- 6.4x4.5 studs -> ~397x279 px (legible at 15+ studs)
+	gui.PixelsPerStud = CANVAS_WIDTH_PX / math.max(screenPart.Size.X, 0.1)
 	gui.LightInfluence = 0
-	gui.Brightness = 0.92
+	gui.Brightness = 0.96
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	local root = Instance.new("Frame")
@@ -137,21 +143,27 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 
 	local header = Instance.new("Frame")
 	header.Name = "Header"
-	header.Position = UDim2.fromOffset(8, 8)
-	header.Size = UDim2.new(1, -16, 0, 38)
+	header.Position = UDim2.fromOffset(8, 6)
+	header.Size = UDim2.new(1, -16, 0, 46)
 	Theme.surface(header, spec.accent, 10)
 	header.Parent = root
 
 	local tabName = Text.leaderboard.tabs[spec.board] or spec.board
-	local title = makeLabel(header, spec.icon .. "  " .. tabName, 23, Theme.sand)
-	title.Size = UDim2.fromScale(1, 1)
+	local title = makeLabel(header, spec.icon .. "  " .. tabName, 28, Theme.sand)
+	title.Size = UDim2.new(1, -12, 1, -4)
+	title.Position = UDim2.fromOffset(6, 2)
+	title.TextScaled = true
 	title.TextStrokeColor3 = Theme.outline
-	title.TextStrokeTransparency = 0.15
+	title.TextStrokeTransparency = 0.05
+	local titleLimit = Instance.new("UITextSizeConstraint")
+	titleLimit.MaxTextSize = 28
+	titleLimit.MinTextSize = 18
+	titleLimit.Parent = title
 
 	local list = Instance.new("Frame")
 	list.Name = "TopRows"
-	list.Position = UDim2.fromOffset(10, 52)
-	list.Size = UDim2.new(1, -20, 1, -92)
+	list.Position = UDim2.fromOffset(8, 56)
+	list.Size = UDim2.new(1, -16, 1, -98)
 	list.BackgroundTransparency = 1
 	local listLayout = Instance.new("UIListLayout")
 	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -162,22 +174,29 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	local footer = Instance.new("Frame")
 	footer.Name = "Footer"
 	footer.AnchorPoint = Vector2.new(0, 1)
-	footer.Position = UDim2.new(0, 10, 1, -8)
-	footer.Size = UDim2.new(1, -20, 0, 28)
+	footer.Position = UDim2.new(0, 8, 1, -6)
+	footer.Size = UDim2.new(1, -16, 0, 34)
 	footer.BackgroundColor3 = Color3.fromRGB(34, 48, 78)
 	footer.BorderSizePixel = 0
 	Theme.corner(footer, 8)
 	local footStroke = Instance.new("UIStroke")
 	footStroke.Color = Theme.gold
-	footStroke.Thickness = 2
+	footStroke.Thickness = 2.5
 	footStroke.Parent = footer
 	footer.Parent = root
 
-	local mineLabel = makeLabel(footer, Text.leaderboard.loading, 16, Theme.gold)
+	local mineLabel = makeLabel(footer, Text.leaderboard.loading, 20, Theme.gold)
 	mineLabel.Name = "MineScore"
-	mineLabel.Size = UDim2.new(1, -12, 1, 0)
-	mineLabel.Position = UDim2.fromOffset(6, 0)
+	mineLabel.Size = UDim2.new(1, -12, 1, -4)
+	mineLabel.Position = UDim2.fromOffset(6, 2)
+	mineLabel.TextScaled = true
+	mineLabel.TextStrokeColor3 = Theme.outline
+	mineLabel.TextStrokeTransparency = 0.12
 	mineLabel.TextTruncate = Enum.TextTruncate.AtEnd
+	local mineLimit = Instance.new("UITextSizeConstraint")
+	mineLimit.MaxTextSize = 20
+	mineLimit.MinTextSize = 15
+	mineLimit.Parent = mineLabel
 
 	gui.Parent = screenPart
 	return {
@@ -219,8 +238,12 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		stroke.Parent = card
 		card.Parent = widget.list
 
-		local msg = makeLabel(card, Text.leaderboard.empty, 20, Theme.sand)
-		msg.Size = UDim2.fromScale(1, 1)
+		local msg = makeLabel(card, Text.leaderboard.empty, 28, Theme.sand)
+		msg.Position = UDim2.fromOffset(14, 10)
+		msg.Size = UDim2.new(1, -28, 1, -20)
+		msg.TextWrapped = true
+		msg.TextStrokeColor3 = Theme.outline
+		msg.TextStrokeTransparency = 0.1
 		return
 	end
 
@@ -232,7 +255,7 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		local row = Instance.new("Frame")
 		row.Name = "Row_" .. tostring(i)
 		row.LayoutOrder = i
-		row.Size = UDim2.new(1, 0, 0, 32)
+		row.Size = UDim2.new(1, 0, 0, 33)
 		row.BackgroundColor3 = rankBg(entry.rank, isSelf)
 		row.BorderSizePixel = 0
 		Theme.corner(row, 7)
@@ -242,9 +265,9 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		rStroke.Parent = row
 		row.Parent = widget.list
 
-		local badge = makeLabel(row, "#" .. tostring(entry.rank), 16, Theme.ink)
+		local badge = makeLabel(row, "#" .. tostring(entry.rank), 18, Theme.ink)
 		badge.Position = UDim2.fromOffset(4, 3)
-		badge.Size = UDim2.fromOffset(34, 26)
+		badge.Size = UDim2.fromOffset(38, 27)
 		badge.BackgroundTransparency = 0
 		badge.BackgroundColor3 = rankPill(entry.rank)
 		Theme.corner(badge, 6)
@@ -252,23 +275,47 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		local nameText = if isSelf
 			then string.format("%s (%s)", entry.name, Text.leaderboard.you)
 			else entry.name
-		local nameLbl = makeLabel(row, nameText, 16, Theme.sand, Enum.TextXAlignment.Left)
-		nameLbl.Position = UDim2.fromOffset(44, 0)
-		nameLbl.Size = UDim2.new(1, -158, 1, 0)
+		local nameLbl = makeLabel(row, nameText, 18, Theme.sand, Enum.TextXAlignment.Left)
+		nameLbl.Position = UDim2.fromOffset(48, 0)
+		nameLbl.Size = UDim2.new(1, -168, 1, 0)
+		nameLbl.TextStrokeColor3 = Theme.outline
+		nameLbl.TextStrokeTransparency = 0.25
 		nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
 
 		local scoreLbl = makeLabel(
 			row,
 			formatScore(widget.board, entry.score),
-			16,
+			18,
 			Theme.gold,
 			Enum.TextXAlignment.Right
 		)
 		scoreLbl.AnchorPoint = Vector2.new(1, 0)
 		scoreLbl.Position = UDim2.new(1, -8, 0, 0)
-		scoreLbl.Size = UDim2.fromOffset(106, 32)
+		scoreLbl.Size = UDim2.fromOffset(112, 33)
+		scoreLbl.TextStrokeColor3 = Theme.outline
+		scoreLbl.TextStrokeTransparency = 0.25
 		scoreLbl.TextTruncate = Enum.TextTruncate.AtEnd
 	end
+end
+
+type FloatingUnit = {
+	model: Model,
+	basePivot: CFrame,
+	phase: number,
+	speed: number,
+	amp: number,
+	displaced: boolean,
+}
+
+local function findUnitModel(boardModel: Instance, screenPart: BasePart): Model?
+	local current = screenPart.Parent
+	while current and current ~= boardModel do
+		if current:IsA("Model") then
+			return current
+		end
+		current = current.Parent
+	end
+	return nil
 end
 
 function LeaderboardBoard.start()
@@ -278,13 +325,112 @@ function LeaderboardBoard.start()
 
 	local widgetsByBoard: { [string]: BoardWidget } = {}
 	local cachedPayloads: { [string]: Net.LeaderboardResult } = {}
+	local floatingUnits: { FloatingUnit } = {}
+	local unitSet: { [Model]: boolean } = {}
 	local boardCenter: Vector3? = nil
 	local mountedBoard: Instance? = nil
+	local animConn: RBXScriptConnection? = nil
+	local cleanupConn: RBXScriptConnection? = nil
+
+	local function resetUnits()
+		for _, unit in floatingUnits do
+			if unit.displaced and unit.model.Parent then
+				unit.model:PivotTo(unit.basePivot)
+				unit.displaced = false
+			end
+		end
+	end
+
+	local function stopAnimation()
+		if animConn then
+			animConn:Disconnect()
+			animConn = nil
+		end
+		if cleanupConn then
+			cleanupConn:Disconnect()
+			cleanupConn = nil
+		end
+		resetUnits()
+		table.clear(floatingUnits)
+		table.clear(unitSet)
+	end
+
+	local function registerUnit(boardModel: Instance, screenPart: BasePart, fallbackIndex: number)
+		local unitModel = findUnitModel(boardModel, screenPart)
+		if not unitModel or unitSet[unitModel] then
+			return
+		end
+		unitSet[unitModel] = true
+		local rawPhase = unitModel:GetAttribute("BobPhase")
+		local rawPeriod = unitModel:GetAttribute("BobPeriod")
+		local rawAmp = unitModel:GetAttribute("BobAmp")
+		local phase = if typeof(rawPhase) == "number" then rawPhase else (fallbackIndex - 1) * 2.1
+		local period = if typeof(rawPeriod) == "number" and rawPeriod > 0.5
+			then rawPeriod
+			else DEFAULT_BOB_PERIOD
+		local amp = if typeof(rawAmp) == "number" then rawAmp else DEFAULT_BOB_AMP
+		table.insert(floatingUnits, {
+			model = unitModel,
+			basePivot = unitModel:GetPivot(),
+			phase = phase,
+			speed = (math.pi * 2) / period,
+			amp = amp,
+			displaced = false,
+		})
+	end
+
+	local function startAnimation(boardModel: Instance)
+		if animConn then
+			animConn:Disconnect()
+			animConn = nil
+		end
+		animConn = RunService.Heartbeat:Connect(function()
+			if #floatingUnits == 0 then
+				return
+			end
+			if player:GetAttribute("ReduceEffects") == true then
+				resetUnits()
+				return
+			end
+			local center = boardCenter
+			if center then
+				local char = player.Character
+				local root = char and char:FindFirstChild("HumanoidRootPart")
+				local refPos: Vector3? = nil
+				if root and root:IsA("BasePart") then
+					refPos = root.Position
+				else
+					local cam = workspace.CurrentCamera
+					if cam then
+						refPos = cam.CFrame.Position
+					end
+				end
+				if refPos and (refPos - center).Magnitude > ANIM_PAUSE_DISTANCE then
+					return
+				end
+			end
+			local now = os.clock()
+			for _, unit in floatingUnits do
+				if unit.model.Parent then
+					local offsetY = math.sin(now * unit.speed + unit.phase) * unit.amp
+					unit.model:PivotTo(unit.basePivot + Vector3.new(0, offsetY, 0))
+					unit.displaced = true
+				end
+			end
+		end)
+		cleanupConn = boardModel.AncestryChanged:Connect(function(_, parent)
+			if not parent and mountedBoard == boardModel then
+				stopAnimation()
+				mountedBoard = nil
+			end
+		end)
+	end
 
 	local function mountBoard(boardModel: Instance)
 		if mountedBoard == boardModel then
 			return
 		end
+		stopAnimation()
 		mountedBoard = boardModel
 		if boardModel:IsA("Model") then
 			local cf = boardModel:GetBoundingBox()
@@ -292,14 +438,16 @@ function LeaderboardBoard.start()
 				boardCenter = cf.Position
 			end
 		end
-		for _, spec in SPECS do
+		startAnimation(boardModel)
+		for index, spec in SPECS do
 			task.spawn(function()
 				local part = boardModel:FindFirstChild(spec.partName, true)
 					or boardModel:WaitForChild(spec.partName, 15)
-				if part and part:IsA("BasePart") then
+				if part and part:IsA("BasePart") and mountedBoard == boardModel then
 					if not boardCenter then
 						boardCenter = part.Position
 					end
+					registerUnit(boardModel, part, index)
 					local widget = buildWidget(part, spec)
 					widgetsByBoard[spec.board] = widget
 					renderWidget(widget, cachedPayloads[spec.board])
