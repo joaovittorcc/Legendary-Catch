@@ -119,9 +119,9 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	gui.Name = "BoardSurfaceGui"
 	gui.Face = Enum.NormalId.Front
 	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 50 -- 8x5 studs -> 400x250 px
+	gui.PixelsPerStud = 62 -- 6.4x4.5 studs -> ~397x279 px (legible at 15+ studs)
 	gui.LightInfluence = 0
-	gui.Brightness = 0.85
+	gui.Brightness = 0.92
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	local root = Instance.new("Frame")
@@ -143,7 +143,7 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	header.Parent = root
 
 	local tabName = Text.leaderboard.tabs[spec.board] or spec.board
-	local title = makeLabel(header, spec.icon .. "  " .. tabName, 21, Theme.sand)
+	local title = makeLabel(header, spec.icon .. "  " .. tabName, 23, Theme.sand)
 	title.Size = UDim2.fromScale(1, 1)
 	title.TextStrokeColor3 = Theme.outline
 	title.TextStrokeTransparency = 0.15
@@ -151,7 +151,7 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	local list = Instance.new("Frame")
 	list.Name = "TopRows"
 	list.Position = UDim2.fromOffset(10, 52)
-	list.Size = UDim2.new(1, -20, 1, -88)
+	list.Size = UDim2.new(1, -20, 1, -92)
 	list.BackgroundTransparency = 1
 	local listLayout = Instance.new("UIListLayout")
 	listLayout.SortOrder = Enum.SortOrder.LayoutOrder
@@ -163,7 +163,7 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	footer.Name = "Footer"
 	footer.AnchorPoint = Vector2.new(0, 1)
 	footer.Position = UDim2.new(0, 10, 1, -8)
-	footer.Size = UDim2.new(1, -20, 0, 24)
+	footer.Size = UDim2.new(1, -20, 0, 28)
 	footer.BackgroundColor3 = Color3.fromRGB(34, 48, 78)
 	footer.BorderSizePixel = 0
 	Theme.corner(footer, 8)
@@ -173,7 +173,7 @@ local function buildWidget(screenPart: BasePart, spec: ScreenSpec): BoardWidget
 	footStroke.Parent = footer
 	footer.Parent = root
 
-	local mineLabel = makeLabel(footer, Text.leaderboard.loading, 14, Theme.gold)
+	local mineLabel = makeLabel(footer, Text.leaderboard.loading, 16, Theme.gold)
 	mineLabel.Name = "MineScore"
 	mineLabel.Size = UDim2.new(1, -12, 1, 0)
 	mineLabel.Position = UDim2.fromOffset(6, 0)
@@ -232,7 +232,7 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		local row = Instance.new("Frame")
 		row.Name = "Row_" .. tostring(i)
 		row.LayoutOrder = i
-		row.Size = UDim2.new(1, 0, 0, 28)
+		row.Size = UDim2.new(1, 0, 0, 32)
 		row.BackgroundColor3 = rankBg(entry.rank, isSelf)
 		row.BorderSizePixel = 0
 		Theme.corner(row, 7)
@@ -242,9 +242,9 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		rStroke.Parent = row
 		row.Parent = widget.list
 
-		local badge = makeLabel(row, "#" .. tostring(entry.rank), 14, Theme.ink)
+		local badge = makeLabel(row, "#" .. tostring(entry.rank), 16, Theme.ink)
 		badge.Position = UDim2.fromOffset(4, 3)
-		badge.Size = UDim2.fromOffset(32, 22)
+		badge.Size = UDim2.fromOffset(34, 26)
 		badge.BackgroundTransparency = 0
 		badge.BackgroundColor3 = rankPill(entry.rank)
 		Theme.corner(badge, 6)
@@ -252,21 +252,21 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		local nameText = if isSelf
 			then string.format("%s (%s)", entry.name, Text.leaderboard.you)
 			else entry.name
-		local nameLbl = makeLabel(row, nameText, 14, Theme.sand, Enum.TextXAlignment.Left)
-		nameLbl.Position = UDim2.fromOffset(42, 0)
-		nameLbl.Size = UDim2.new(1, -156, 1, 0)
+		local nameLbl = makeLabel(row, nameText, 16, Theme.sand, Enum.TextXAlignment.Left)
+		nameLbl.Position = UDim2.fromOffset(44, 0)
+		nameLbl.Size = UDim2.new(1, -158, 1, 0)
 		nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
 
 		local scoreLbl = makeLabel(
 			row,
 			formatScore(widget.board, entry.score),
-			14,
+			16,
 			Theme.gold,
 			Enum.TextXAlignment.Right
 		)
 		scoreLbl.AnchorPoint = Vector2.new(1, 0)
 		scoreLbl.Position = UDim2.new(1, -8, 0, 0)
-		scoreLbl.Size = UDim2.fromOffset(104, 28)
+		scoreLbl.Size = UDim2.fromOffset(106, 32)
 		scoreLbl.TextTruncate = Enum.TextTruncate.AtEnd
 	end
 end

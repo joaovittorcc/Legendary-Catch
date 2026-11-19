@@ -211,6 +211,11 @@ function Training.level(player: Player, stat: string): number
 	return level(player, stat)
 end
 
+-- Used by portals: cleanly stops any active training session before teleporting.
+function Training.stopFor(player: Player, reason: string?)
+	stop(player, reason or "portal")
+end
+
 function Training.start()
 	update = Remotes.event(Net.TRAINING_UPDATE)
 	Remotes.onServerEvent(Net.STOP_TRAINING, 2, 3, function(player)

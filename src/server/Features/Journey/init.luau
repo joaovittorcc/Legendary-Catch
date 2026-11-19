@@ -6,6 +6,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
@@ -109,6 +110,19 @@ function Journey.start()
 		player:GetAttributeChangedSignal("DataLoaded"):Connect(function()
 			mirror(player)
 		end)
+		if RunService:IsStudio() then
+			player:GetAttributeChangedSignal("DevGrantLevel"):Connect(function()
+				local target = player:GetAttribute("DevGrantLevel")
+				if typeof(target) == "number" and target >= 1 then
+					player:SetAttribute("DevGrantLevel", 0)
+					PlayerData.update(player, function(p)
+						p.stats.level = math.clamp(math.floor(target), 1, MAX_LEVEL)
+						p.stats.levelXp = 0
+					end)
+					mirror(player)
+				end
+			end)
+		end
 	end
 	Players.PlayerAdded:Connect(watch)
 	for _, player in Players:GetPlayers() do

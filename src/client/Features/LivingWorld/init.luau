@@ -1010,7 +1010,7 @@ function LivingWorld.start()
 	-- 2 new stylized NPCs: Marina on the pier, Luna on the seaside FrontStairs landing
 	local vendorNpc = buildCustomNpc(npcFolder, {
 		name = "NPC_BaitVendor",
-		cf = CFrame.lookAt(Vector3.new(31, 10.15, 2.8), Vector3.new(31, 10.15, 10)),
+		cf = CFrame.lookAt(Vector3.new(34, 10.15, 3.2), Vector3.new(34, 10.15, 10)),
 		shirt = Color3.fromRGB(248, 240, 224),
 		vest = Theme.rose,
 		pants = Color3.fromRGB(48, 76, 114),

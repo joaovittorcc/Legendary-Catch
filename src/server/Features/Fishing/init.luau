@@ -755,6 +755,20 @@ local function onSetAutoFish(player: Player, enabled: unknown)
 	task.spawn(runAutoLoop, player, s, token)
 end
 
+-- Used by portals: cancels active manual or auto fishing cleanly before teleporting.
+function Fishing.cancelFor(player: Player)
+	local s = sessions[player]
+	if not s then
+		return
+	end
+	if s.autoEnabled then
+		stopAuto(player, s, nil)
+	elseif s.phase ~= "idle" then
+		reset(player, s)
+		send(player, { event = "cancelled", castId = s.castId })
+	end
+end
+
 function Fishing.start()
 	update = Remotes.event(Net.FISHING_UPDATE)
 	Remotes.onServerEvent(Net.CAST_LINE, 2, 3, onCast)
