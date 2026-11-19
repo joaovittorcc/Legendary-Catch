@@ -33,7 +33,8 @@ function Missions.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local gui, scroll = Panel.create("Missions", Text.missions.title, Theme.rose)
 	Panel.stack(scroll)
-	local clock = Panel.label(scroll, "", 15, Theme.gold)
+	local clock = Panel.label(scroll, "", 15, Theme.wood)
+	clock.TextStrokeTransparency = 1
 	local rows = Instance.new("Frame")
 	rows.LayoutOrder = 1
 	rows.Size = UDim2.fromScale(1, 0)

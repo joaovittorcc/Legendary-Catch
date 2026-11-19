@@ -84,26 +84,77 @@ local function cloneRod(id: string): Model?
 		* CFrame.lookAlong(Vector3.zero, axis, up):Inverse()
 	model:PivotTo(align * model:GetPivot())
 	local _, size = model:GetBoundingBox()
-	model:ScaleTo(model:GetScale() * 4.3 / math.max(size.X, size.Y, size.Z, 0.1))
+	model:ScaleTo(model:GetScale() * 5.2 / math.max(size.X, size.Y, size.Z, 0.1))
 	local bounds = select(1, model:GetBoundingBox())
 	model:PivotTo(CFrame.new(-bounds.Position) * model:GetPivot())
 	return model
 end
 
-local function preview(parent: Instance, rod: Rods.Rod): (Model, CFrame, ViewportFrame)
+local DIAG_TILT = -0.68
+
+local function rarityStars(rarity: string): string
+	local rank = Theme.rarityRank(rarity)
+	if rank >= 6 then
+		return "🌟"
+	end
+	return string.rep("★", math.clamp(rank, 1, 5))
+end
+
+local function preview(
+	parent: Instance,
+	rod: Rods.Rod,
+	accent: Color3
+): (Model, CFrame, ViewportFrame)
+	local showcase = Instance.new("Frame")
+	showcase.Name = "RodShowcase"
+	showcase.Size = UDim2.fromScale(0.36, 0.88)
+	showcase.Position = UDim2.fromScale(0.022, 0.06)
+	showcase.BackgroundColor3 = Color3.new(1, 1, 1)
+	showcase.BorderSizePixel = 0
+	showcase.ClipsDescendants = true
+	Theme.corner(showcase, 14)
+	local bgGrad = Instance.new("UIGradient")
+	bgGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, accent:Lerp(Color3.fromRGB(30, 54, 102), 0.68)),
+		ColorSequenceKeypoint.new(0.55, accent:Lerp(Color3.fromRGB(70, 128, 194), 0.56)),
+		ColorSequenceKeypoint.new(1, accent:Lerp(Color3.fromRGB(22, 34, 68), 0.78)),
+	})
+	bgGrad.Rotation = 135
+	bgGrad.Parent = showcase
+	local showcaseStroke = Instance.new("UIStroke")
+	showcaseStroke.Color = Theme.outline
+	showcaseStroke.Thickness = 2.5
+	showcaseStroke.Parent = showcase
+	local gloss = Instance.new("Frame")
+	gloss.Name = "TopSheen"
+	gloss.Position = UDim2.fromScale(0.08, 0.05)
+	gloss.Size = UDim2.fromScale(0.84, 0.22)
+	gloss.BackgroundColor3 = Color3.new(1, 1, 1)
+	gloss.BackgroundTransparency = 0.84
+	gloss.BorderSizePixel = 0
+	gloss.ZIndex = 1
+	Theme.corner(gloss, 10)
+	gloss.Parent = showcase
+	local pedestal = Instance.new("Frame")
+	pedestal.Name = "GlowFloor"
+	pedestal.AnchorPoint = Vector2.new(0.5, 1)
+	pedestal.Position = UDim2.fromScale(0.5, 0.96)
+	pedestal.Size = UDim2.fromScale(0.76, 0.14)
+	pedestal.BackgroundColor3 = accent:Lerp(Color3.new(1, 1, 1), 0.35)
+	pedestal.BackgroundTransparency = 0.72
+	pedestal.BorderSizePixel = 0
+	pedestal.ZIndex = 1
+	Theme.corner(pedestal, 99)
+	pedestal.Parent = showcase
+
 	local view = Instance.new("ViewportFrame")
 	view.Name = "RodPreview"
-	view.BackgroundColor3 = Theme.viewport
-	view.Ambient = Color3.fromRGB(165, 174, 197)
-	view.LightColor = Color3.fromRGB(255, 239, 217)
-	view.Size = UDim2.fromScale(0.34, 0.88)
-	view.Position = UDim2.fromScale(0.025, 0.06)
-	Theme.corner(view, 10)
-	local camera = Instance.new("Camera")
-	camera.FieldOfView = 25
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 0, 11.8), Vector3.zero)
-	camera.Parent = view
-	view.CurrentCamera = camera
+	view.BackgroundTransparency = 1
+	view.Ambient = Color3.fromRGB(190, 200, 224)
+	view.LightColor = Color3.fromRGB(255, 244, 224)
+	view.LightDirection = Vector3.new(-0.6, -0.7, -1)
+	view.Size = UDim2.fromScale(1, 1)
+	view.ZIndex = 2
 
 	local imported = cloneRod(rod.id)
 	local model = imported or Instance.new("Model")
@@ -117,17 +168,37 @@ local function preview(parent: Instance, rod: Rods.Rod): (Model, CFrame, Viewpor
 		piece.Parent = model
 	end
 	if not imported then
-		part("Handle", Vector3.new(0.35, 1.1, 0.35), Vector3.new(0, -1.55, 0), Theme.wood)
-		part("Blank", Vector3.new(0.19, 3.4, 0.19), Vector3.new(0, 0.61, 0), rod.color)
-		part("Reel", Vector3.new(0.48, 0.55, 0.46), Vector3.new(0.31, -0.91, 0), Theme.gold)
-		part("Tip", Vector3.new(0.24, 0.24, 0.24), Vector3.new(0, 2.3, 0), rod.tipColor)
+		part("Handle", Vector3.new(0.42, 1.3, 0.42), Vector3.new(0, -1.85, 0), Theme.wood)
+		part("Blank", Vector3.new(0.24, 4.0, 0.24), Vector3.new(0, 0.72, 0), rod.color)
+		part("Reel", Vector3.new(0.56, 0.64, 0.54), Vector3.new(0.36, -1.05, 0), Theme.gold)
+		part("Tip", Vector3.new(0.32, 0.32, 0.32), Vector3.new(0, 2.75, 0), rod.tipColor)
 		for n = 1, 3 do
-			part("Guide", Vector3.new(0.28, 0.08, 0.27), Vector3.new(0, n * 0.68, 0), Theme.gold)
+			part("Guide", Vector3.new(0.34, 0.1, 0.32), Vector3.new(0, n * 0.82, 0), Theme.gold)
 		end
 	end
 	local pose = model:GetPivot()
+	model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
+	local rotCf, rotSize = model:GetBoundingBox()
+	-- Recenter after diagonal tilt so the whole rod fills ~75% of the showcase cleanly.
+	pose = CFrame.new(-rotCf.Position) * pose
+	model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
+
+	local fov = 30
+	local halfTan = math.tan(math.rad(fov * 0.5))
+	local aspect = 1.45
+	local distY = (rotSize.Y * 0.5) / (halfTan * 0.72)
+	local distX = (rotSize.X * 0.5) / (halfTan * aspect * 0.72)
+	local dist = math.max(distY, distX, 4.2) + rotSize.Z * 0.5
+
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = fov
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 0.08, dist), Vector3.zero)
+	camera.Parent = view
+	view.CurrentCamera = camera
+
 	model.Parent = view
-	view.Parent = parent
+	view.Parent = showcase
+	showcase.Parent = parent
 	return model, pose, view
 end
 
@@ -162,41 +233,47 @@ function Shop.start()
 		for _, rod in Rods.LIST do
 			local rarity = Fishing.RARITY_ORDER[math.min(rod.order, #Fishing.RARITY_ORDER)]
 			local accent = Theme.rarity[rarity] or rod.tipColor
-			local row = Panel.card(body, accent, 158)
+			local row = Panel.card(body, accent, 168)
 			row.Name = rod.id
 			row.LayoutOrder = rod.order
-			local model, pose, view = preview(row, rod)
+			local model, pose, view = preview(row, rod, accent)
 			table.insert(previews, { model = model, pose = pose, view = view })
-			model:PivotTo(CFrame.Angles(0, 0.25, -0.28) * pose)
+			model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
 			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 22, Theme.ink)
-			title.Position = UDim2.fromScale(0.39, 0.04)
-			title.Size = UDim2.fromScale(0.58, 0.22)
+			title.Position = UDim2.fromScale(0.405, 0.04)
+			title.Size = UDim2.fromScale(0.565, 0.22)
 			title.TextStrokeTransparency = 1
 			fitLabel(title, 22)
 			local bonus = Panel.label(
 				row,
 				string.format(
-					"%s +%.0f%%\n%s +%.0f%%",
+					"%s +%.0f%%  ·  %s +%.0f%%",
 					Text.control,
 					rod.controlBonus * 100,
 					Text.luck,
 					rod.luckBonus * 100
 				),
-				15
+				15,
+				Theme.wood
 			)
-			bonus.Position = UDim2.fromScale(0.39, 0.24)
-			bonus.Size = UDim2.new(0.58, 0, 0, 36)
+			bonus.Position = UDim2.fromScale(0.405, 0.25)
+			bonus.Size = UDim2.new(0.565, 0, 0, 28)
 			bonus.TextStrokeTransparency = 1
+			fitLabel(bonus, 15)
 
 			local owned = table.find(snapshot.rodsOwned, rod.id) ~= nil
 			local equipped = snapshot.equippedRod == rod.id
 			local affordable = snapshot.coins >= rod.price
-			local seal = Panel.label(row, Theme.rarityLabel(rarity), 15, accent)
+			local rarityText =
+				string.format("%s  %s", rarityStars(rarity), Strings.rarity[rarity] or rarity)
+			local seal = Panel.label(row, rarityText, 15, accent:Lerp(Color3.new(1, 1, 1), 0.28))
 			seal.Name = "RodRarity"
-			seal.Position = UDim2.fromScale(0.39, 0.46)
-			seal.Size = UDim2.fromScale(0.56, 0.17)
+			seal.BackgroundTransparency = 0
+			seal.Position = UDim2.fromScale(0.405, 0.45)
+			seal.Size = UDim2.fromScale(0.555, 0.17)
 			seal.TextStrokeTransparency = 1
-			Theme.surface(seal, accent, 9, Theme.ink)
+			fitLabel(seal, 15)
+			Theme.surface(seal, accent, 10, Theme.ink)
 			local blocked = equipped or (not owned and not affordable)
 			local price = formatPrice(rod.price)
 			local button = Panel.button(
@@ -214,8 +291,8 @@ function Shop.start()
 			button.Name = "RodAction"
 			button.TextSize = 16
 			button.AnchorPoint = Vector2.new(0.5, 0)
-			button.Position = UDim2.fromScale(0.65, 0.67)
-			button.Size = UDim2.new(0.56, 0, 0, 44)
+			button.Position = UDim2.fromScale(0.68, 0.67)
+			button.Size = UDim2.new(0.555, 0, 0, 44)
 			button.Interactable = not blocked
 			if blocked then
 				Panel.tintButton(
@@ -268,7 +345,7 @@ function Shop.start()
 		end
 		local top = scroll.AbsolutePosition.Y
 		local bottom = top + scroll.AbsoluteWindowSize.Y
-		local pose = CFrame.Angles(0, if reduced then 0.25 else rotation, -0.28)
+		local pose = CFrame.Angles(0, if reduced then 0.35 else rotation, DIAG_TILT)
 		for _, entry in previews do
 			local y = entry.view.AbsolutePosition.Y
 			if y < bottom and y + entry.view.AbsoluteSize.Y > top then

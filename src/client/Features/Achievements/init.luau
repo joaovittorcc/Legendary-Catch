@@ -15,7 +15,7 @@ local Icons: { [string]: string } = {
 	catches = "🎣",
 	species = "📖",
 	legendaries = "⭐",
-	mystic = "✺",
+	mystic = "🌟",
 	level = "⚓",
 	combo = "⚡",
 	training = "💪",
@@ -51,15 +51,18 @@ local function leftLabel(
 	size: number,
 	y: number,
 	height: number,
-	indent: number
+	indent: number,
+	color: Color3?,
+	minSize: number?
 ): TextLabel
-	local label = Panel.label(parent, content, size)
+	local label = Panel.label(parent, content, size, color)
 	label.Name = name
 	label.Position = UDim2.fromOffset(indent, y)
 	label.Size = UDim2.new(1, -indent - 10, 0, height)
 	label.TextScaled = true
 	label.TextWrapped = true
 	local cap = Instance.new("UITextSizeConstraint")
+	cap.MinTextSize = minSize or 14
 	cap.MaxTextSize = size
 	cap.Parent = label
 	label.TextXAlignment = Enum.TextXAlignment.Left
@@ -76,39 +79,69 @@ local function card(
 	local frame = Instance.new("Frame")
 	frame.Name = achievement.id
 	frame.LayoutOrder = order
-	Theme.surface(frame, Theme.crystal, 12, Color3.fromRGB(250, 243, 227))
+	Theme.surface(frame, Theme.crystal, 14, Color3.fromRGB(252, 245, 228))
 	local stroke = frame:FindFirstChildOfClass("UIStroke")
 
-	local icon = Panel.label(frame, Icons[achievement.metric] or "🏅", 22)
+	local icon = Panel.label(frame, Icons[achievement.metric] or "🏅", 24)
 	icon.Name = "Icon"
-	icon.Position = UDim2.fromOffset(8, 8)
-	icon.Size = UDim2.fromOffset(34, 34)
+	icon.Position = UDim2.fromOffset(10, 10)
+	icon.Size = UDim2.fromOffset(40, 40)
 	icon.BackgroundTransparency = 0
-	icon.BackgroundColor3 = Color3.fromRGB(220, 239, 249)
+	icon.BackgroundColor3 = Color3.fromRGB(216, 238, 252)
 	icon.TextStrokeTransparency = 1
-	Theme.corner(icon, 11)
+	Theme.corner(icon, 12)
+	local iconStroke = Instance.new("UIStroke")
+	iconStroke.Color = Theme.outline
+	iconStroke.Thickness = 1.5
+	iconStroke.Parent = icon
 
-	leftLabel(frame, "Title", if copy then copy.name else achievement.id, 16, 4, 26, 48)
-	leftLabel(frame, "Description", if copy then copy.description else "", 14, 29, 28, 48)
-	local badge = leftLabel(frame, "Status", "", 14, 58, 19, 10)
-	local reward = Panel.label(frame, string.format("+%d ◆", achievement.reward), 14, Theme.wood)
+	leftLabel(
+		frame,
+		"Title",
+		if copy then copy.name else achievement.id,
+		17,
+		6,
+		26,
+		58,
+		Theme.ink,
+		14
+	)
+	leftLabel(
+		frame,
+		"Description",
+		if copy then copy.description else "",
+		15,
+		32,
+		38,
+		58,
+		Color3.fromRGB(74, 44, 34),
+		14
+	)
+	local badge = leftLabel(frame, "Status", "", 15, 74, 22, 12, Theme.ink, 14)
+	badge.Size = UDim2.new(0.56, -12, 0, 22)
+	local reward = Panel.label(
+		frame,
+		string.format("+%d ◆", achievement.reward),
+		15,
+		Color3.fromRGB(134, 66, 12)
+	)
 	reward.Name = "Reward"
-	reward.Position = UDim2.new(1, -85, 0, 58)
-	reward.Size = UDim2.fromOffset(75, 19)
+	reward.Position = UDim2.new(1, -94, 0, 74)
+	reward.Size = UDim2.fromOffset(82, 22)
 	reward.TextXAlignment = Enum.TextXAlignment.Right
 	reward.TextStrokeTransparency = 1
 
 	local track = Instance.new("Frame")
 	track.Name = "Progress"
-	track.BackgroundColor3 = Color3.fromRGB(211, 199, 194)
+	track.BackgroundColor3 = Color3.fromRGB(214, 200, 192)
 	track.BorderSizePixel = 0
-	track.Position = UDim2.fromOffset(10, 83)
-	track.Size = UDim2.new(1, -20, 0, 6)
-	Theme.corner(track, 3)
+	track.Position = UDim2.fromOffset(12, 100)
+	track.Size = UDim2.new(1, -24, 0, 8)
+	Theme.corner(track, 4)
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.BorderSizePixel = 0
-	Theme.corner(fill, 3)
+	Theme.corner(fill, 4)
 	fill.Parent = track
 	track.Parent = frame
 	frame.Parent = grid
@@ -121,11 +154,12 @@ local function card(
 		badge.Text = if unlocked
 			then "✓ " .. Text.achievementUi.unlocked
 			else string.format("%d / %d", progress, achievement.target)
-		icon.BackgroundColor3 = if unlocked then Theme.gold else Color3.fromRGB(220, 239, 249)
+		badge.TextColor3 = if unlocked then Color3.fromRGB(18, 108, 62) else Theme.ink
+		icon.BackgroundColor3 = if unlocked then Theme.gold else Color3.fromRGB(216, 238, 252)
 		fill.BackgroundColor3 = color
 		fill.Size = UDim2.fromScale(progress / achievement.target, 1)
 		if stroke then
-			stroke.Color = if unlocked then Theme.wood else Color3.fromRGB(182, 160, 153)
+			stroke.Color = if unlocked then Theme.wood else Color3.fromRGB(174, 152, 144)
 		end
 	end
 end
@@ -155,11 +189,11 @@ function Screen.start()
 
 	local function fit()
 		local width = math.max(1, body.AbsoluteWindowSize.X - 8)
-		local columns = if width >= 580 then 3 elseif width >= 400 then 2 else 1
+		local columns = if width >= 640 then 3 elseif width >= 420 then 2 else 1
 		local rows = math.ceil(#cards / columns)
 		layout.FillDirectionMaxCells = columns
-		layout.CellSize = UDim2.fromOffset(math.floor((width - 10 * (columns - 1)) / columns), 98)
-		grid.Size = UDim2.new(1, -8, 0, 108 * rows - 10)
+		layout.CellSize = UDim2.fromOffset(math.floor((width - 10 * (columns - 1)) / columns), 118)
+		grid.Size = UDim2.new(1, -8, 0, 128 * rows - 10)
 	end
 	body:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(fit)
 	fit()

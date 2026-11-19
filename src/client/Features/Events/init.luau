@@ -166,7 +166,7 @@ function Events.start()
 	title.TextStrokeTransparency = 1
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	local titleLimit = Instance.new("UITextSizeConstraint")
-	titleLimit.MinTextSize = 12
+	titleLimit.MinTextSize = 14
 	titleLimit.MaxTextSize = 17
 	titleLimit.Parent = title
 

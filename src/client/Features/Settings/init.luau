@@ -18,6 +18,12 @@ function Settings.start()
 	local settingsAccent = Color3.fromRGB(174, 116, 239)
 	local _, body = Panel.create("Settings", Text.settings, settingsAccent, 0.85, 490)
 	Panel.stack(body)
+	local topGap = Instance.new("Frame")
+	topGap.Name = "TopSpacer"
+	topGap.LayoutOrder = -1
+	topGap.Size = UDim2.new(1, 0, 0, 2)
+	topGap.BackgroundTransparency = 1
+	topGap.Parent = body
 	local music = Audio.group("Music")
 	local effects = Audio.group("Effects")
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
@@ -62,10 +68,18 @@ function Settings.start()
 		end
 		group:GetPropertyChangedSignal("Volume"):Connect(refresh)
 		refresh()
+		local hitArea = Instance.new("Frame")
+		hitArea.Name = "VolumeHitArea"
+		hitArea.Position = UDim2.fromOffset(12, 29)
+		hitArea.Size = UDim2.new(1, -24, 0, 44)
+		hitArea.BackgroundTransparency = 1
+		hitArea.Active = true
+		hitArea.Parent = row
 		local track = Instance.new("Frame")
 		track.Name = "VolumeTrack"
-		track.Position = UDim2.fromOffset(12, 43)
-		track.Size = UDim2.new(1, -24, 0, 16)
+		track.AnchorPoint = Vector2.new(0, 0.5)
+		track.Position = UDim2.fromScale(0, 0.5)
+		track.Size = UDim2.new(1, 0, 0, 16)
 		track.BackgroundColor3 = Color3.fromRGB(223, 207, 189)
 		track.BorderSizePixel = 0
 		track.Active = true
@@ -81,16 +95,16 @@ function Settings.start()
 		knob.Name = "Knob"
 		knob.AnchorPoint = Vector2.new(0.5, 0.5)
 		knob.Position = UDim2.fromScale(group.Volume, 0.5)
-		knob.Size = UDim2.fromOffset(30, 30)
+		knob.Size = UDim2.fromOffset(32, 32)
 		knob.BackgroundColor3 = Color3.new(1, 1, 1)
 		knob.BorderSizePixel = 0
-		Theme.corner(knob, 15)
+		Theme.corner(knob, 16)
 		local knobStroke = Instance.new("UIStroke")
 		knobStroke.Color = Theme.outline
 		knobStroke.Thickness = 3
 		knobStroke.Parent = knob
 		knob.Parent = track
-		track.Parent = row
+		track.Parent = hitArea
 		local dragging = false
 		local inputConnections: { RBXScriptConnection } = {}
 		local function setFromX(x: number)
@@ -103,7 +117,7 @@ function Settings.start()
 		end
 		table.insert(
 			inputConnections,
-			track.InputBegan:Connect(function(input)
+			hitArea.InputBegan:Connect(function(input)
 				if
 					input.UserInputType == Enum.UserInputType.MouseButton1
 					or input.UserInputType == Enum.UserInputType.Touch

@@ -28,13 +28,13 @@ local function makeBar(parent: Instance, order: number, accent: Color3): (TextLa
 	wrap.Name = "Requirement_" .. tostring(order)
 	wrap.LayoutOrder = order
 	wrap.BackgroundTransparency = 1
-	wrap.Size = UDim2.new(1, 0, 0, 38)
+	wrap.Size = UDim2.new(1, 0, 0, 42)
 	wrap.Parent = parent
 
-	local caption = Panel.label(wrap, "", 14, Theme.ink)
+	local caption = Panel.label(wrap, "", 15, Theme.ink)
 	caption.Name = "Caption"
 	caption.Position = UDim2.fromOffset(0, 0)
-	caption.Size = UDim2.new(1, 0, 0, 20)
+	caption.Size = UDim2.new(1, 0, 0, 22)
 	caption.TextXAlignment = Enum.TextXAlignment.Left
 	caption.TextStrokeTransparency = 1
 
@@ -42,16 +42,16 @@ local function makeBar(parent: Instance, order: number, accent: Color3): (TextLa
 	track.Name = "Track"
 	track.BackgroundColor3 = Color3.fromRGB(215, 204, 198)
 	track.BorderSizePixel = 0
-	track.Position = UDim2.fromOffset(0, 24)
-	track.Size = UDim2.new(1, 0, 0, 10)
-	Theme.corner(track, 5)
+	track.Position = UDim2.fromOffset(0, 26)
+	track.Size = UDim2.new(1, 0, 0, 12)
+	Theme.corner(track, 6)
 
 	local fill = Instance.new("Frame")
 	fill.Name = "Fill"
 	fill.BackgroundColor3 = accent
 	fill.BorderSizePixel = 0
 	fill.Size = UDim2.fromScale(0, 1)
-	Theme.corner(fill, 5)
+	Theme.corner(fill, 6)
 	fill.Parent = track
 	track.Parent = wrap
 
@@ -99,36 +99,55 @@ function Screen.start()
 
 	-- 1. Hero & Bonuses Card
 	local heroCard = paddedCard(body, Theme.rose, 1, 0)
-	local levelLabel = cardLine(heroCard, 1, 20, Theme.rose)
-	local bonusTitle = cardLine(heroCard, 2, 13, Theme.muted)
+	local levelLabel = cardLine(heroCard, 1, 22, Color3.fromRGB(154, 24, 92))
+	local bonusTitle = cardLine(heroCard, 2, 15, Theme.wood)
 	bonusTitle.Text = Labels.prestigeUi.bonusesTitle
-	local coinsBonusLabel = cardLine(heroCard, 3, 15, Theme.wood)
-	local luckBonusLabel = cardLine(heroCard, 4, 15, Theme.wood)
-	local nextBonusLabel = cardLine(heroCard, 5, 13, Theme.crystal)
+	local coinsBonusLabel = cardLine(heroCard, 3, 16, Theme.ink)
+	local luckBonusLabel = cardLine(heroCard, 4, 16, Theme.ink)
+	local nextBonusBox = Instance.new("Frame")
+	nextBonusBox.Name = "NextBonusCallout"
+	nextBonusBox.LayoutOrder = 5
+	nextBonusBox.Size = UDim2.new(1, 0, 0, 32)
+	nextBonusBox.AutomaticSize = Enum.AutomaticSize.Y
+	nextBonusBox.BackgroundColor3 = Color3.fromRGB(224, 246, 255)
+	nextBonusBox.BorderSizePixel = 0
+	Theme.corner(nextBonusBox, 10)
+	local nextStroke = Instance.new("UIStroke")
+	nextStroke.Color = Color3.fromRGB(58, 174, 214)
+	nextStroke.Thickness = 2
+	nextStroke.Parent = nextBonusBox
+	local nextPad = Instance.new("UIPadding")
+	nextPad.PaddingTop = UDim.new(0, 6)
+	nextPad.PaddingBottom = UDim.new(0, 6)
+	nextPad.PaddingLeft = UDim.new(0, 10)
+	nextPad.PaddingRight = UDim.new(0, 10)
+	nextPad.Parent = nextBonusBox
+	nextBonusBox.Parent = heroCard
+	local nextBonusLabel = cardLine(nextBonusBox, 1, 15, Color3.fromRGB(14, 86, 124))
 
 	-- 2. Requirements Card
 	local reqCard = paddedCard(body, Theme.crystal, 2, 0)
-	local reqTitle = cardLine(reqCard, 1, 15, Theme.ink)
+	local reqTitle = cardLine(reqCard, 1, 17, Theme.ink)
 	reqTitle.Text = Labels.prestigeUi.reqTitle
 	local coinsCaption, coinsFill = makeBar(reqCard, 2, Theme.gold)
 	local speciesCaption, speciesFill = makeBar(reqCard, 3, Theme.crystal)
 
 	-- 3. Reset vs Keep Card
 	local infoCard = paddedCard(body, Theme.gold, 3, 0)
-	local infoTitle = cardLine(infoCard, 1, 15, Theme.ink)
+	local infoTitle = cardLine(infoCard, 1, 17, Theme.ink)
 	infoTitle.Text = Labels.prestigeUi.summaryTitle
-	local resetsLabel = cardLine(infoCard, 2, 13, Color3.fromRGB(168, 56, 72))
-	resetsLabel.Size = UDim2.new(1, 0, 0, 30)
+	local resetsLabel = cardLine(infoCard, 2, 15, Color3.fromRGB(154, 26, 44))
+	resetsLabel.Size = UDim2.new(1, 0, 0, 24)
 	resetsLabel.Text = Labels.prestigeUi.resets
-	local keepsLabel = cardLine(infoCard, 3, 13, Color3.fromRGB(28, 130, 96))
-	keepsLabel.Size = UDim2.new(1, 0, 0, 30)
+	local keepsLabel = cardLine(infoCard, 3, 15, Color3.fromRGB(16, 108, 66))
+	keepsLabel.Size = UDim2.new(1, 0, 0, 24)
 	keepsLabel.Text = Labels.prestigeUi.keeps
 
 	-- 4. Two-step Confirm Action Button
 	local action = Panel.button(body, Labels.prestigeUi.locked, Theme.rose)
 	action.Name = "PrestigeAction"
 	action.LayoutOrder = 4
-	action.Size = UDim2.new(1, 0, 0, 50)
+	action.Size = UDim2.new(1, 0, 0, 52)
 
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local armed = false
@@ -188,7 +207,7 @@ function Screen.start()
 
 		if level < PrestigeConfig.MAX_LEVEL then
 			local nextLevel = level + 1
-			nextBonusLabel.Visible = true
+			nextBonusBox.Visible = true
 			nextBonusLabel.Text = string.format(
 				Labels.prestigeUi.nextBonus,
 				math.round(nextLevel * PrestigeConfig.COIN_BONUS_PER_LEVEL * 100),
@@ -196,7 +215,7 @@ function Screen.start()
 				formatNumber(PrestigeConfig.giftCoins(nextLevel))
 			)
 		else
-			nextBonusLabel.Visible = false
+			nextBonusBox.Visible = false
 		end
 
 		coinsCaption.Text = string.format(

@@ -463,41 +463,195 @@ function Hud.start()
 	levelChip.BackgroundColor3 = Theme.gold
 	levelChip.BorderSizePixel = 0
 	Theme.corner(levelChip, 16)
+	local levelGradient = Instance.new("UIGradient")
+	levelGradient.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 228, 108)),
+		ColorSequenceKeypoint.new(0.55, Color3.fromRGB(250, 192, 48)),
+		ColorSequenceKeypoint.new(1, Color3.fromRGB(224, 140, 22)),
+	})
+	levelGradient.Rotation = 90
+	levelGradient.Parent = levelChip
 	local levelStroke = Instance.new("UIStroke")
 	levelStroke.Color = Theme.outline
-	levelStroke.Thickness = 3
+	levelStroke.Thickness = 3.5
 	levelStroke.Parent = levelChip
-	local levelIcon = Art.caption(levelChip, "LevelIcon", "⭐", 22, Theme.ink)
-	levelIcon.Position = UDim2.fromScale(0.05, 0.12)
-	levelIcon.Size = UDim2.fromScale(0.25, 0.76)
-	levelIcon.TextStrokeTransparency = 1
-	local levelLabel = Art.caption(levelChip, "LevelText", "", 18, Theme.ink)
-	levelLabel.Position = UDim2.fromScale(0.29, 0.05)
-	levelLabel.Size = UDim2.fromScale(0.67, 0.41)
-	levelLabel.TextStrokeTransparency = 1
+	local levelShadow = Instance.new("Frame")
+	levelShadow.Name = "SoftShadow"
+	levelShadow.Position = UDim2.fromOffset(0, 4)
+	levelShadow.Size = UDim2.fromScale(1, 1)
+	levelShadow.BackgroundColor3 = Theme.outline
+	levelShadow.BackgroundTransparency = 0.62
+	levelShadow.BorderSizePixel = 0
+	levelShadow.ZIndex = 0
+	Theme.corner(levelShadow, 16)
+	levelShadow.Parent = levelChip
+	local levelGloss = Instance.new("Frame")
+	levelGloss.Name = "TopGloss"
+	levelGloss.Position = UDim2.fromOffset(8, 3)
+	levelGloss.Size = UDim2.new(1, -16, 0.34, 0)
+	levelGloss.BackgroundColor3 = Color3.new(1, 1, 1)
+	levelGloss.BackgroundTransparency = 0.68
+	levelGloss.BorderSizePixel = 0
+	levelGloss.ZIndex = 1
+	Theme.corner(levelGloss, 10)
+	levelGloss.Parent = levelChip
+	local levelScale = Instance.new("UIScale")
+	levelScale.Scale = 1
+	levelScale.Parent = levelChip
+
+	local levelCrest = Instance.new("Frame")
+	levelCrest.Name = "LevelCrest"
+	levelCrest.AnchorPoint = Vector2.new(0, 0.5)
+	levelCrest.Position = UDim2.new(0, 6, 0.5, 0)
+	levelCrest.Size = UDim2.fromScale(0.24, 0.78)
+	levelCrest.BackgroundColor3 = Theme.ink
+	levelCrest.BorderSizePixel = 0
+	levelCrest.ZIndex = 2
+	Theme.corner(levelCrest, 99)
+	local crestRatio = Instance.new("UIAspectRatioConstraint")
+	crestRatio.AspectRatio = 1
+	crestRatio.Parent = levelCrest
+	local crestStroke = Instance.new("UIStroke")
+	crestStroke.Color = Color3.fromRGB(255, 232, 128)
+	crestStroke.Thickness = 2.5
+	crestStroke.Parent = levelCrest
+	local levelIcon = Art.caption(levelCrest, "LevelIcon", "★", 24, Color3.fromRGB(255, 214, 58))
+	levelIcon.Size = UDim2.fromScale(0.84, 0.84)
+	levelIcon.Position = UDim2.fromScale(0.08, 0.06)
+	levelIcon.TextStrokeColor3 = Theme.outline
+	levelIcon.TextStrokeTransparency = 0.08
+	levelIcon.ZIndex = 3
+	levelCrest.Parent = levelChip
+
+	local levelLabel = Art.caption(levelChip, "LevelText", "", 18, Color3.new(1, 1, 1))
+	levelLabel.Position = UDim2.fromScale(0.31, 0.06)
+	levelLabel.Size = UDim2.fromScale(0.65, 0.42)
+	levelLabel.TextStrokeColor3 = Theme.outline
+	levelLabel.TextStrokeTransparency = 0.06
 	levelLabel.TextXAlignment = Enum.TextXAlignment.Left
+	levelLabel.ZIndex = 3
+	local levelLabelLimit = levelLabel:FindFirstChildOfClass("UITextSizeConstraint")
+	if levelLabelLimit then
+		levelLabelLimit.MinTextSize = 14
+		levelLabelLimit.MaxTextSize = 18
+	end
+
+	local xpLabel = Art.caption(levelChip, "LevelXP", "", 14, Color3.fromRGB(58, 26, 12))
+	xpLabel.Position = UDim2.fromScale(0.31, 0.43)
+	xpLabel.Size = UDim2.fromScale(0.65, 0.30)
+	xpLabel.TextXAlignment = Enum.TextXAlignment.Left
+	xpLabel.TextStrokeTransparency = 1
+	xpLabel.ZIndex = 3
+	local xpLabelLimit = xpLabel:FindFirstChildOfClass("UITextSizeConstraint")
+	if xpLabelLimit then
+		xpLabelLimit.MinTextSize = 11
+		xpLabelLimit.MaxTextSize = 14
+	end
+
 	local levelTrack = Instance.new("Frame")
 	levelTrack.Name = "LevelTrack"
-	levelTrack.Position = UDim2.fromScale(0.29, 0.84)
-	levelTrack.Size = UDim2.fromScale(0.63, 0.09)
-	levelTrack.BackgroundColor3 = Theme.track
+	levelTrack.Position = UDim2.fromScale(0.31, 0.75)
+	levelTrack.Size = UDim2.fromScale(0.63, 0.17)
+	levelTrack.BackgroundColor3 = Color3.fromRGB(52, 24, 92)
 	levelTrack.BorderSizePixel = 0
-	Theme.corner(levelTrack, 5)
+	levelTrack.ClipsDescendants = true
+	levelTrack.ZIndex = 2
+	Theme.corner(levelTrack, 6)
+	local trackStroke = Instance.new("UIStroke")
+	trackStroke.Color = Theme.outline
+	trackStroke.Thickness = 1.5
+	trackStroke.Parent = levelTrack
 	local levelFill = Instance.new("Frame")
 	levelFill.Name = "LevelFill"
 	levelFill.Size = UDim2.fromScale(0, 1)
-	levelFill.BackgroundColor3 = Theme.crystal
+	levelFill.BackgroundColor3 = Color3.fromRGB(76, 224, 255)
 	levelFill.BorderSizePixel = 0
-	Theme.corner(levelFill, 5)
+	levelFill.ZIndex = 3
+	Theme.corner(levelFill, 6)
+	local fillGrad = Instance.new("UIGradient")
+	fillGrad.Color = ColorSequence.new(Color3.fromRGB(118, 246, 255), Color3.fromRGB(36, 178, 242))
+	fillGrad.Rotation = 90
+	fillGrad.Parent = levelFill
 	levelFill.Parent = levelTrack
 	levelTrack.Parent = levelChip
-	local xpLabel = Art.caption(levelChip, "LevelXP", "", 11, Theme.ink)
-	xpLabel.Position = UDim2.fromScale(0.29, 0.46)
-	xpLabel.Size = UDim2.fromScale(0.67, 0.34)
-	xpLabel.TextXAlignment = Enum.TextXAlignment.Left
-	xpLabel.TextStrokeTransparency = 1
+
+	local xpDeltaLabel = Art.caption(levelChip, "XpDelta", "", 18, Color3.fromRGB(122, 246, 255))
+	xpDeltaLabel.AnchorPoint = Vector2.new(0.5, 1)
+	xpDeltaLabel.Position = UDim2.fromScale(0.62, 0.08)
+	xpDeltaLabel.Size = UDim2.fromScale(0.64, 0.42)
+	xpDeltaLabel.TextStrokeColor3 = Theme.outline
+	xpDeltaLabel.TextStrokeTransparency = 0.05
+	xpDeltaLabel.ZIndex = 8
+	xpDeltaLabel.Visible = false
+	local xpDeltaStroke = Instance.new("UIStroke")
+	xpDeltaStroke.Color = Theme.outline
+	xpDeltaStroke.Thickness = 2
+	xpDeltaStroke.Parent = xpDeltaLabel
 	levelChip.Parent = bar
+
 	local levelTween: Tween? = nil
+	local levelPulseTween: Tween? = nil
+	local xpDeltaTween: Tween? = nil
+	local xpDeltaRev = 0
+	local lastLevelNum: number? = nil
+	local lastXpNum: number? = nil
+	local function pulseLevelChip(isLevelUp: boolean, gainedXp: number)
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		if gainedXp > 0 or isLevelUp then
+			xpDeltaRev += 1
+			local rev = xpDeltaRev
+			if xpDeltaTween then
+				xpDeltaTween:Cancel()
+			end
+			xpDeltaLabel.Text = if isLevelUp
+				then string.format(Text.adventure.levelUp, lastLevelNum or 1)
+				else `+{math.round(gainedXp)} XP`
+			xpDeltaLabel.TextColor3 = if isLevelUp
+				then Color3.fromRGB(255, 228, 86)
+				else Color3.fromRGB(122, 246, 255)
+			xpDeltaLabel.Position = UDim2.fromScale(0.62, 0.1)
+			xpDeltaLabel.TextTransparency = 0
+			xpDeltaStroke.Transparency = 0
+			xpDeltaLabel.Visible = true
+			if not reduced then
+				if levelPulseTween then
+					levelPulseTween:Cancel()
+				end
+				levelScale.Scale = if isLevelUp then 1.22 else 1.12
+				local back = TweenService:Create(
+					levelScale,
+					TweenInfo.new(0.32, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+					{ Scale = 1 }
+				)
+				levelPulseTween = back
+				back:Play()
+				local rise = TweenService:Create(
+					xpDeltaLabel,
+					TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Position = UDim2.fromScale(0.62, -0.26), TextTransparency = 1 }
+				)
+				local strokeOut = TweenService:Create(
+					xpDeltaStroke,
+					TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Transparency = 1 }
+				)
+				xpDeltaTween = rise
+				rise.Completed:Once(function()
+					if xpDeltaRev == rev then
+						xpDeltaLabel.Visible = false
+					end
+				end)
+				rise:Play()
+				strokeOut:Play()
+			else
+				task.delay(0.7, function()
+					if xpDeltaRev == rev then
+						xpDeltaLabel.Visible = false
+					end
+				end)
+			end
+		end
+	end
 	local function updateLevel()
 		local level = player:GetAttribute("PlayerLevel")
 		local xp = player:GetAttribute("PlayerLevelXP")
@@ -507,6 +661,19 @@ function Hud.start()
 		local hasLevel = typeof(level) == "number"
 		levelChip.Visible = hasLevel
 		levelTrack.Visible = typeof(xp) == "number" and typeof(total) == "number" and total > 0
+		if typeof(level) == "number" then
+			local prevL = lastLevelNum
+			local prevX = lastXpNum
+			lastLevelNum = level
+			if typeof(xp) == "number" then
+				lastXpNum = xp
+			end
+			if prevL and level > prevL then
+				pulseLevelChip(true, 0)
+			elseif prevX and typeof(xp) == "number" and xp > prevX then
+				pulseLevelChip(false, xp - prevX)
+			end
+		end
 		if typeof(xp) == "number" and typeof(total) == "number" and total > 0 then
 			local target = UDim2.fromScale(math.clamp(xp / total, 0, 1), 1)
 			if levelTween then
@@ -515,7 +682,11 @@ function Hud.start()
 			if player:GetAttribute("ReduceEffects") == true then
 				levelFill.Size = target
 			else
-				local tween = TweenService:Create(levelFill, TweenInfo.new(0.2), { Size = target })
+				local tween = TweenService:Create(
+					levelFill,
+					TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Size = target }
+				)
 				levelTween = tween
 				tween:Play()
 			end
@@ -669,9 +840,27 @@ function Hud.start()
 		local fallback = Instance.new("Frame")
 		fallback.Name = "Fallback"
 		fallback.Size = UDim2.fromScale(1, 1)
-		Theme.surface(fallback, entry.tint, 14)
+		Theme.surface(fallback, entry.tint, 18)
+		local fbGloss = Instance.new("Frame")
+		fbGloss.Name = "Gloss"
+		fbGloss.Position = UDim2.fromScale(0.08, 0.05)
+		fbGloss.Size = UDim2.fromScale(0.84, 0.24)
+		fbGloss.BackgroundColor3 = Color3.new(1, 1, 1)
+		fbGloss.BackgroundTransparency = 0.72
+		fbGloss.BorderSizePixel = 0
+		Theme.corner(fbGloss, 10)
+		fbGloss.Parent = fallback
+		local fbLip = Instance.new("Frame")
+		fbLip.Name = "Lip"
+		fbLip.Position = UDim2.fromScale(0.06, 0.68)
+		fbLip.Size = UDim2.fromScale(0.88, 0.26)
+		fbLip.BackgroundColor3 = Theme.outline
+		fbLip.BackgroundTransparency = 0.52
+		fbLip.BorderSizePixel = 0
+		Theme.corner(fbLip, 10)
+		fbLip.Parent = fallback
 		local icon = Art.caption(fallback, "Icon", entry.icon, 42)
-		icon.Size = UDim2.fromScale(0.72, 0.58)
+		icon.Size = UDim2.fromScale(0.72, 0.56)
 		icon.Position = UDim2.fromScale(0.14, 0.08)
 		fallback.Parent = button
 		local art: ImageLabel? = nil
@@ -788,9 +977,9 @@ function Hud.start()
 		coins.Size = UDim2.fromOffset(coinWidth, coinHeight)
 		coins.Position = UDim2.fromOffset(0, math.round(height * 0.08))
 		local levelWidth =
-			math.round(math.clamp(width * (if portrait then 0.34 else 0.14), 104, 150))
-		levelChip.Size = UDim2.fromOffset(levelWidth, math.round(height * 0.72))
-		levelChip.Position = UDim2.fromOffset(coinWidth + 8, height / 2)
+			math.round(math.clamp(width * (if portrait then 0.38 else 0.165), 132, 182))
+		levelChip.Size = UDim2.fromOffset(levelWidth, math.round(height * 0.8))
+		levelChip.Position = UDim2.fromOffset(coinWidth + 10, height / 2)
 		local menuSize = math.clamp(height * 0.82, 46, 60)
 		moreButton.Size = UDim2.fromOffset(menuSize, menuSize)
 		moreButton.Position = UDim2.fromScale(1, 0.5)
@@ -959,10 +1148,14 @@ function Hud.start()
 	toast.TextScaled = true
 	toast.TextWrapped = true
 	local toastTextSize = Instance.new("UITextSizeConstraint")
+	toastTextSize.MinTextSize = 14
 	toastTextSize.MaxTextSize = 18
 	toastTextSize.Parent = toast
+	local toastBounds = Instance.new("UISizeConstraint")
+	toastBounds.MaxSize = Vector2.new(520, 52)
+	toastBounds.Parent = toast
 	toast.Font = Theme.font
-	Theme.corner(toast, 10)
+	Theme.corner(toast, 14)
 	local outline = Instance.new("UIStroke")
 	outline.Color = Theme.outline
 	outline.Thickness = 3
@@ -971,6 +1164,8 @@ function Hud.start()
 	local notifications = Instance.new("ScreenGui")
 	notifications.Name = "AdventureNotifications"
 	notifications.ResetOnSpawn = false
+	notifications.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	notifications.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	notifications.DisplayOrder = 12
 	toast.Parent = notifications
 	toastLabel = toast

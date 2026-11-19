@@ -155,6 +155,18 @@ function Arrival.start()
 	local character = player.Character
 	local root = character and character:FindFirstChild("HumanoidRootPart")
 	local camera = workspace.CurrentCamera
+	local landingView: CFrame? = nil
+	if root and root:IsA("BasePart") then
+		-- Frame the player from behind looking across the plaza toward the Workshop (-Z)
+		-- so the initial camera never starts buried inside the entrance stairs or welcome arch.
+		local back = -root.CFrame.LookVector
+		local horizBack = Vector3.new(back.X, 0, back.Z)
+		local dir = if horizBack.Magnitude > 0.01 then horizBack.Unit else Vector3.new(0, 0, 1)
+		landingView = CFrame.lookAt(
+			root.Position + dir * 13.5 + Vector3.new(0, 5.2, 0),
+			root.Position - dir * 14 + Vector3.new(0, 2.2, 0)
+		)
+	end
 	local animate = firstTime
 		and camera
 		and camera.CameraType == Enum.CameraType.Custom
@@ -162,7 +174,7 @@ function Arrival.start()
 		and root:IsA("BasePart")
 		and player:GetAttribute("ReduceEffects") ~= true
 	if animate and camera and root and root:IsA("BasePart") then
-		local view = camera.CFrame
+		local view = landingView or camera.CFrame
 		local focus = root.Position + Vector3.new(0, 2, 0)
 		local high = focus + Vector3.new(-28, 22, 34)
 		local sweep = focus + Vector3.new(30, 14, 18)
@@ -206,6 +218,8 @@ function Arrival.start()
 			camera.CFrame = view
 			camera.CameraType = Enum.CameraType.Custom
 		end
+	elseif camera and landingView and camera.CameraType == Enum.CameraType.Custom then
+		camera.CFrame = landingView
 	end
 	gui:Destroy()
 end

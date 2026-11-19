@@ -1,4 +1,5 @@
 --!strict
+local GuiService = game:GetService("GuiService")
 local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -253,7 +254,8 @@ function Panel.create(
 	gui.Name = id .. "Screen"
 	gui.Enabled = false
 	gui.ResetOnSpawn = false
-	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	gui.ScreenInsets = Enum.ScreenInsets.None
+	gui.IgnoreGuiInset = true
 	gui.DisplayOrder = 8
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
@@ -263,6 +265,7 @@ function Panel.create(
 	backdrop.BackgroundColor3 = Theme.ink
 	backdrop.BackgroundTransparency = 1
 	backdrop.BorderSizePixel = 0
+	backdrop.Active = true
 	backdrop.Parent = gui
 	local shell = Instance.new("Frame")
 	shell.Name = "CandyPanel"
@@ -396,8 +399,11 @@ function Panel.create(
 		if size.X <= 0 or size.Y <= 0 then
 			return
 		end
+		local insetTop = GuiService:GetGuiInset()
+		local topSafe = math.max(math.round(insetTop.Y) + 18, 66)
+		local availHeight = math.max(240, size.Y - topSafe - 16)
 		local width = math.min(size.X * 0.91, 760)
-		local height = math.min(size.Y * (heightScale or 0.88), maxHeight or 570)
+		local height = math.min(availHeight * (heightScale or 0.92), maxHeight or 570)
 		local viewRatio = math.clamp(width / math.max(height, 1), 0.68, 2.8)
 		if width / math.max(height, 1) > viewRatio then
 			width = height * viewRatio
@@ -406,6 +412,7 @@ function Panel.create(
 		end
 		ratio.AspectRatio = viewRatio
 		shell.Size = UDim2.fromOffset(width, height)
+		shell.Position = UDim2.new(0.5, 0, 0, topSafe + math.floor((size.Y - topSafe) * 0.5))
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	shell.Parent = gui

@@ -40,13 +40,15 @@ local function makeLabel(
 	lbl.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MaxTextSize = size
-	limit.MinTextSize = 10
+	limit.MinTextSize = 13
 	limit.Parent = lbl
 	lbl.Parent = parent
 	return lbl
 end
 
 local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
+	gui.ScreenInsets = Enum.ScreenInsets.None
+	gui.IgnoreGuiInset = true
 	local reduced = player:GetAttribute("ReduceEffects") == true
 	local streak = math.max(1, gift.streak or gift.days or 1)
 	local currentSlot = Missions.streakDaySlot(streak)
@@ -189,7 +191,7 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 			then Text.streak.nextBadge .. "\n" .. tostring(reward)
 			elseif isDay7 then "🎁 " .. tostring(reward)
 			else tostring(reward)
-		local amtLbl = makeLabel(slot, footerText, 13, Theme.wood, 1)
+		local amtLbl = makeLabel(slot, footerText, 14, Theme.wood, 1)
 		amtLbl.Name = "Reward"
 		amtLbl.Position = UDim2.fromScale(0.05, 0.63)
 		amtLbl.Size = UDim2.fromScale(0.9, 0.33)

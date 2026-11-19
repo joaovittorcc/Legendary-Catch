@@ -464,10 +464,15 @@ function Leaderboard.start()
 			stroke.Thickness = if isSelf or entry.rank <= 3 then 3 else 2
 		end
 
-		local rankBadge = Panel.label(row, "#" .. tostring(entry.rank), 18, Theme.ink)
+		local medalText = if entry.rank == 1
+			then "🥇"
+			elseif entry.rank == 2 then "🥈"
+			elseif entry.rank == 3 then "🥉"
+			else "#" .. tostring(entry.rank)
+		local rankBadge = Panel.label(row, medalText, if entry.rank <= 3 then 22 else 17, Theme.ink)
 		rankBadge.Name = "Rank"
 		rankBadge.Position = UDim2.fromOffset(8, 12)
-		rankBadge.Size = UDim2.fromOffset(34, 34)
+		rankBadge.Size = UDim2.fromOffset(36, 36)
 		rankBadge.BackgroundTransparency = 0
 		rankBadge.BackgroundColor3 = if entry.rank <= 3
 			then accent
@@ -570,14 +575,98 @@ function Leaderboard.start()
 		mineLabel.Text = string.format(Text.leaderboard.yourScore, formatScore(board, payload.mine))
 
 		if #payload.entries == 0 then
-			local emptyCard = Panel.card(list, Theme.crystal, 88)
+			local emptyCard = Panel.card(list, Theme.gold, 232)
 			emptyCard.Name = "EmptyState"
-			emptyCard.BackgroundColor3 = ROW_BG
-			local emptyTitle = Panel.label(emptyCard, Text.leaderboard.empty, 20, Theme.wood)
+			emptyCard.BackgroundColor3 = Color3.fromRGB(255, 248, 226)
+
+			local crownBadge = Instance.new("Frame")
+			crownBadge.Name = "CrownEmblem"
+			crownBadge.AnchorPoint = Vector2.new(0.5, 0)
+			crownBadge.Position = UDim2.new(0.5, 0, 0, 12)
+			crownBadge.Size = UDim2.fromOffset(50, 50)
+			crownBadge.BackgroundColor3 = Theme.gold
+			crownBadge.BorderSizePixel = 0
+			Theme.corner(crownBadge, 25)
+			local crownStroke = Instance.new("UIStroke")
+			crownStroke.Color = Theme.outline
+			crownStroke.Thickness = 3
+			crownStroke.Parent = crownBadge
+			local crownIcon = Panel.label(crownBadge, "👑", 28, Theme.ink)
+			crownIcon.Size = UDim2.fromScale(1, 1)
+			crownIcon.TextStrokeTransparency = 1
+			crownBadge.Parent = emptyCard
+
+			local emptyTitle = Panel.label(emptyCard, Text.leaderboard.empty, 21, Theme.ink)
+			emptyTitle.Name = "EmptyTitle"
 			emptyTitle.TextStrokeTransparency = 1
-			emptyTitle.Position = UDim2.fromOffset(12, 0)
-			emptyTitle.Size = UDim2.new(1, -24, 1, 0)
-			list.Size = UDim2.new(1, 0, 0, 88)
+			emptyTitle.Position = UDim2.fromOffset(14, 66)
+			emptyTitle.Size = UDim2.new(1, -28, 0, 28)
+
+			local podium = Instance.new("Frame")
+			podium.Name = "PodiumIllustration"
+			podium.AnchorPoint = Vector2.new(0.5, 0)
+			podium.Position = UDim2.new(0.5, 0, 0, 100)
+			podium.Size = UDim2.fromOffset(234, 72)
+			podium.BackgroundTransparency = 1
+			podium.Parent = emptyCard
+
+			local steps = {
+				{
+					rank = "#2",
+					medal = "🥈",
+					x = 0,
+					y = 20,
+					h = 52,
+					bg = Color3.fromRGB(202, 214, 228),
+				},
+				{
+					rank = "#1",
+					medal = "🥇",
+					x = 80,
+					y = 4,
+					h = 68,
+					bg = Color3.fromRGB(255, 206, 76),
+				},
+				{
+					rank = "#3",
+					medal = "🥉",
+					x = 160,
+					y = 28,
+					h = 44,
+					bg = Color3.fromRGB(234, 166, 108),
+				},
+			}
+			for _, stepInfo in steps do
+				local block = Instance.new("Frame")
+				block.Name = "Step" .. stepInfo.rank
+				block.Position = UDim2.fromOffset(stepInfo.x, stepInfo.y)
+				block.Size = UDim2.fromOffset(74, stepInfo.h)
+				block.BackgroundColor3 = stepInfo.bg
+				block.BorderSizePixel = 0
+				Theme.corner(block, 12)
+				local blockStroke = Instance.new("UIStroke")
+				blockStroke.Color = Theme.outline
+				blockStroke.Thickness = 2.5
+				blockStroke.Parent = block
+				local medal = Panel.label(block, stepInfo.medal, 22, Theme.ink)
+				medal.Size = UDim2.new(1, 0, 0, 24)
+				medal.Position = UDim2.fromOffset(0, 4)
+				medal.TextStrokeTransparency = 1
+				local rankTxt = Panel.label(block, stepInfo.rank, 14, Theme.ink)
+				rankTxt.Size = UDim2.new(1, 0, 0, 18)
+				rankTxt.Position = UDim2.new(0, 0, 1, -20)
+				rankTxt.TextStrokeTransparency = 1
+				block.Parent = podium
+			end
+
+			local emptySub = Panel.label(emptyCard, Text.leaderboard.emptySubtitle, 15, Theme.wood)
+			emptySub.Name = "EmptySubtitle"
+			emptySub.TextStrokeTransparency = 1
+			emptySub.TextWrapped = true
+			emptySub.Position = UDim2.fromOffset(18, 178)
+			emptySub.Size = UDim2.new(1, -36, 0, 44)
+
+			list.Size = UDim2.new(1, 0, 0, 232)
 			return
 		end
 

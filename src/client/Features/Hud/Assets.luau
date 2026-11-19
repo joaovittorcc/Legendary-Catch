@@ -11,6 +11,9 @@ return {
 		Collection = "rbxassetid://101833560701410",
 		Shop = "rbxassetid://82809934642642",
 		Missions = "rbxassetid://128671791707576",
+		Achievements = "rbxassetid://96908080698179",
+		Prestige = "rbxassetid://79184483677272",
+		Leaderboard = "rbxassetid://83034467342671",
 		Settings = "rbxassetid://106598839342643",
 	} :: { [string]: string },
 	rarity = {

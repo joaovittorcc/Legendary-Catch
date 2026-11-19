@@ -11,6 +11,9 @@ accepts http/https URLs: the files were served from a temporary local server on
 | botao-oficina.png | rbxassetid://82809934642642 |
 | botao-desafios.png | rbxassetid://128671791707576 |
 | botao-ajustes.png | rbxassetid://106598839342643 |
+| botao-conquistas.png | rbxassetid://96908080698179 |
+| botao-mare-nova.png | rbxassetid://79184483677272 |
+| botao-placar.png | rbxassetid://83034467342671 |
 | presente.png | rbxassetid://76418145335534 |
 | proxima-meta.png | rbxassetid://122723017351153 |
 | barra-progresso.png | rbxassetid://84428877571766 |

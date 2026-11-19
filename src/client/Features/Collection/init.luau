@@ -198,7 +198,13 @@ function Collection.start()
 			if record then
 				local shiny = record.shiny
 				if typeof(shiny) == "number" and shiny > 0 then
-					Panel.label(body, string.format(Text.shinyCount, shiny), 15, Theme.gold)
+					local shinyLbl = Panel.label(
+						body,
+						string.format(Text.shinyCount, shiny),
+						15,
+						Color3.fromRGB(142, 74, 12)
+					)
+					shinyLbl.TextStrokeTransparency = 1
 				end
 				Panel.label(
 					body,
@@ -213,7 +219,9 @@ function Collection.start()
 				)
 				local lore = Strings.creatureLore[creature.id]
 				if lore then
-					Panel.label(body, lore, 15, Theme.muted).Size = UDim2.new(1, 0, 0, 66)
+					local loreLbl = Panel.label(body, lore, 15, Theme.wood)
+					loreLbl.TextStrokeTransparency = 1
+					loreLbl.Size = UDim2.new(1, 0, 0, 66)
 				end
 			end
 			Panel.button(body, Text.collection, Theme.crystal).Activated:Connect(function()

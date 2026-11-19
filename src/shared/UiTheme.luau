@@ -3,7 +3,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Fishing = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Strings = require(Shared:WaitForChild("Strings"))
-local raritySymbols = { "●", "▲", "◆", "✦", "★", "✺" }
+local raritySymbols = { "●", "▲", "◆", "✦", "★", "🌟" }
 
 local Theme = {
 	ink = Color3.fromRGB(21, 16, 36),

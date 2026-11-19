@@ -19,8 +19,8 @@ local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
-local CARD_HEIGHT = 64
-local CELEBRATE_HEIGHT = 96
+local CARD_HEIGHT = 54
+local CELEBRATE_HEIGHT = 92
 local layout = Instance.new("BindableEvent")
 local visibleBottom = 0
 Tutorial.layoutChanged = layout.Event
@@ -165,17 +165,18 @@ function Tutorial.start()
 	gui.Name = "TutorialGuide"
 	gui.DisplayOrder = 3
 	gui.ResetOnSpawn = false
+	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
 	local card = Instance.new("Frame")
 	card.Name = "TutorialCard"
 	card.AnchorPoint = Vector2.new(0.5, 0)
-	card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
+	card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 6)
 	card.Size = UDim2.new(0.92, 0, 0, CARD_HEIGHT)
 	card.Visible = false
 	Art.panel(card, Theme.crystal)
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(500, CELEBRATE_HEIGHT)
+	bounds.MaxSize = Vector2.new(412, CELEBRATE_HEIGHT)
 	bounds.Parent = card
 	local iconHolder = Instance.new("TextButton")
 	iconHolder.Name = "StepIcon"
@@ -183,16 +184,16 @@ function Tutorial.start()
 	iconHolder.AutoButtonColor = false
 	iconHolder.AnchorPoint = Vector2.new(0, 0.5)
 	iconHolder.Position = UDim2.fromOffset(10, CARD_HEIGHT / 2)
-	iconHolder.Size = UDim2.fromOffset(44, 44)
+	iconHolder.Size = UDim2.fromOffset(40, 40)
 	iconHolder.BackgroundColor3 = Theme.cream
 	iconHolder.BorderSizePixel = 0
 	iconHolder.ZIndex = 3
-	Theme.corner(iconHolder, 21)
+	Theme.corner(iconHolder, 20)
 	local iconStroke = Instance.new("UIStroke")
 	iconStroke.Color = Theme.outline
 	iconStroke.Thickness = 2
 	iconStroke.Parent = iconHolder
-	local stepIcon = Panel.label(iconHolder, "🧭", 26)
+	local stepIcon = Panel.label(iconHolder, "🧭", 24)
 	stepIcon.Size = UDim2.fromScale(1, 1)
 	stepIcon.TextScaled = true
 	stepIcon.TextStrokeTransparency = 1
@@ -204,28 +205,30 @@ function Tutorial.start()
 			Hud.showPanel("Collection")
 		end
 	end)
-	local message = Panel.label(card, "", 14)
-	message.Size = UDim2.new(1, -176, 1, -12)
+	local message = Panel.label(card, "", 15)
+	message.Size = UDim2.new(1, -156, 1, -12)
 	message.TextScaled = true
+	message.TextXAlignment = Enum.TextXAlignment.Left
 	local textLimit = Instance.new("UITextSizeConstraint")
-	textLimit.MaxTextSize = 20
+	textLimit.MinTextSize = 14
+	textLimit.MaxTextSize = 17
 	textLimit.Parent = message
-	message.Position = UDim2.fromOffset(62, 6)
+	message.Position = UDim2.fromOffset(58, 6)
 	local celebrateTitle = Panel.label(card, Text.firstCatchBanner, 16, Theme.wood)
 	celebrateTitle.Name = "CelebrateTitle"
-	celebrateTitle.Position = UDim2.fromOffset(62, 8)
-	celebrateTitle.Size = UDim2.new(1, -176, 0, 26)
+	celebrateTitle.Position = UDim2.fromOffset(58, 8)
+	celebrateTitle.Size = UDim2.new(1, -156, 0, 26)
 	celebrateTitle.TextStrokeTransparency = 1
 	celebrateTitle.TextXAlignment = Enum.TextXAlignment.Left
 	celebrateTitle.Visible = false
 	local skip = Panel.button(card, Text.skip, Theme.gold)
-	skip.Size = UDim2.fromOffset(88, 44)
+	skip.Size = UDim2.fromOffset(78, 44)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
-	skip.Position = UDim2.new(1, -17, 0.5, 0)
+	skip.Position = UDim2.new(1, -12, 0.5, 0)
 	local openAlbum = Panel.button(card, StringsUi.adventure.openAlbum, Theme.crystal)
 	openAlbum.Name = "OpenAlbum"
-	openAlbum.Size = UDim2.new(1, -176, 0, 44)
-	openAlbum.Position = UDim2.fromOffset(62, 42)
+	openAlbum.Size = UDim2.new(1, -156, 0, 44)
+	openAlbum.Position = UDim2.fromOffset(58, 40)
 	openAlbum.TextSize = 15
 	openAlbum.Visible = false
 	openAlbum.Activated:Connect(function()
@@ -276,8 +279,15 @@ function Tutorial.start()
 	local function placeCard()
 		local viewport = gui.AbsoluteSize
 		local portrait = viewport.Y > viewport.X
-		card.Size = UDim2.new(if portrait then 0.92 else 0.5, 0, 0, cardHeight)
-		card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 8)
+		local tuckInTopBar = not portrait and viewport.X >= 900 and cardHeight == CARD_HEIGHT
+		if tuckInTopBar then
+			local pillWidth = math.min(396, math.floor(viewport.X * 0.34))
+			card.Size = UDim2.fromOffset(pillWidth, cardHeight)
+			card.Position = UDim2.new(0.5, 0, 0, 10)
+		else
+			card.Size = UDim2.new(if portrait then 0.92 else 0.5, 0, 0, cardHeight)
+			card.Position = UDim2.new(0.5, 0, 0, Hud.navBottom() + 6)
+		end
 		iconHolder.Position = UDim2.fromOffset(10, cardHeight / 2)
 		publishLayout()
 	end

@@ -178,7 +178,8 @@ function RodHotbar.mount(
 			and not minigame.Visible
 			and player:GetAttribute("CatchRevealActive") ~= true
 		setFishingVisible(visible)
-		setAutoVisible(visible)
+		local autoOwned = player:GetAttribute(Products.AUTO_FISH_OWNED_ATTRIBUTE) == true
+		setAutoVisible(visible and autoOwned)
 		refreshAutoVisual()
 		slot.ImageColor3 = if current and current.Parent == character
 			then Color3.new(1, 1, 1)
@@ -280,9 +281,7 @@ function RodHotbar.mount(
 		player.ChildAdded:Connect(syncBackpack),
 		player.ChildRemoved:Connect(syncBackpack),
 		player:GetAttributeChangedSignal("CatchRevealActive"):Connect(schedule),
-		player
-			:GetAttributeChangedSignal(Products.AUTO_FISH_OWNED_ATTRIBUTE)
-			:Connect(refreshAutoVisual),
+		player:GetAttributeChangedSignal(Products.AUTO_FISH_OWNED_ATTRIBUTE):Connect(schedule),
 		player
 			:GetAttributeChangedSignal(Products.AUTO_FISH_ACTIVE_ATTRIBUTE)
 			:Connect(refreshAutoVisual),
