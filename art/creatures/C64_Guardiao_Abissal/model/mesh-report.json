@@ -1,0 +1,26 @@
+{
+  "id": "C64_Guardiao_Abissal",
+  "rarity": "Legendary",
+  "roblox_xyz_studs": [
+    2.335,
+    3.48,
+    1.776
+  ],
+  "head_minus_tail_z": 0.589,
+  "atlas_px": [
+    1024,
+    1024
+  ],
+  "triangles": 4824,
+  "parts": {
+    "Body": 1372,
+    "Head": 916,
+    "Tail": 152,
+    "Claws": 816,
+    "Tentacles": 240,
+    "Shell": 876,
+    "Extra": 164,
+    "Extra.001": 192,
+    "Extra.002": 96
+  }
+}

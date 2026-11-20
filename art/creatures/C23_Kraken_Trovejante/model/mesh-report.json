@@ -1,0 +1,23 @@
+{
+  "id": "C23_Kraken_Trovejante",
+  "rarity": "Legendary",
+  "roblox_xyz_studs": [
+    3.118,
+    2.765,
+    3.48
+  ],
+  "head_minus_tail_z": 1.356,
+  "atlas_px": [
+    1024,
+    1024
+  ],
+  "triangles": 3778,
+  "parts": {
+    "Body": 646,
+    "Head": 1252,
+    "Tail": 92,
+    "Tentacles": 1472,
+    "Extra": 160,
+    "Extra.001": 156
+  }
+}

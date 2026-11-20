@@ -1,0 +1,24 @@
+{
+  "id": "C100_Aurora_Boreal_Viva",
+  "rarity": "Legendary",
+  "roblox_xyz_studs": [
+    3.48,
+    3.248,
+    2.839
+  ],
+  "head_minus_tail_z": 1.503,
+  "atlas_px": [
+    1024,
+    1024
+  ],
+  "triangles": 4928,
+  "parts": {
+    "Body": 1056,
+    "Head": 1476,
+    "Tail": 724,
+    "Fins": 292,
+    "Wings": 1224,
+    "Extra": 78,
+    "Extra.001": 78
+  }
+}
