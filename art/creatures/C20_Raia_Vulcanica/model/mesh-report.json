@@ -1,0 +1,23 @@
+{
+  "id": "C20_Raia_Vulcanica",
+  "rarity": "Epic",
+  "roblox_xyz_studs": [
+    3.14,
+    0.624,
+    2.782
+  ],
+  "head_minus_tail_z": 1.829,
+  "atlas_px": [
+    512,
+    512
+  ],
+  "triangles": 2052,
+  "parts": {
+    "Body": 252,
+    "Head": 736,
+    "Wings": 348,
+    "Tail": 160,
+    "Extra": 192,
+    "Extra.001": 364
+  }
+}

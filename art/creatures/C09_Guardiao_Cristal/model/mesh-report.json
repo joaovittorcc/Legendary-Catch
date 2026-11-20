@@ -1,0 +1,25 @@
+{
+  "id": "C09_Guardiao_Cristal",
+  "rarity": "Epic",
+  "roblox_xyz_studs": [
+    3.14,
+    1.769,
+    2.63
+  ],
+  "head_minus_tail_z": 1.868,
+  "atlas_px": [
+    512,
+    512
+  ],
+  "triangles": 2396,
+  "parts": {
+    "Body": 420,
+    "Head": 684,
+    "Shell": 492,
+    "FinL": 138,
+    "FinR": 138,
+    "Tail": 92,
+    "Extra": 224,
+    "Extra.001": 208
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "id": "C84_Tubarao_Martelo_de_Cristal",
+  "rarity": "Epic",
+  "roblox_xyz_studs": [
+    2.721,
+    1.869,
+    3.14
+  ],
+  "head_minus_tail_z": 2.285,
+  "atlas_px": [
+    512,
+    512
+  ],
+  "triangles": 1770,
+  "parts": {
+    "Body": 276,
+    "Head": 796,
+    "FinL": 86,
+    "FinR": 86,
+    "Fins": 92,
+    "Tail": 130,
+    "Extra": 252,
+    "Extra.001": 52
+  }
+}
