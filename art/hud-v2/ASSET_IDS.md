@@ -26,4 +26,12 @@ accepts http/https URLs: the files were served from a temporary local server on
 | raridade-lendario.png | rbxassetid://116077682585545 |
 | raridade-mistico.png | rbxassetid://70598046192474 |
 
+## Criatura C93 — Ouroboros Cósmico (Skinned Rig 20 ossos + Atlas 512 px)
+
+| Asset / Parte | Tipo | Asset id |
+|---|---|---|
+| `c93-ouroboros-rig.fbx` (`Body`, 5.350 tris, skinned) | Mesh | rbxassetid://129677852347647 |
+| `c93-ouroboros-rig.fbx` (`Core`, 640 tris, skinned) | Mesh | rbxassetid://113296381631147 |
+| `c93-color-atlas.png` (512 × 512 px base color atlas) | Image | rbxassetid://88238031398008 |
+
 New uploads can take a moment to pass moderation before they show in game.

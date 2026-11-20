@@ -191,7 +191,8 @@ function Cinematics.play(
 				hero.Size = UDim2.fromScale(region.Width, region.Height)
 				if size ~= previousSize then
 					previousSize = size
-					fit = Framing.camera(bounds, base, AXES, Vector3.zero, area, FOV, FULL, 1.02)
+					local padding = if id == "C93_Ouroboros_Cosmico" then 1.24 else 1.02
+					fit = Framing.camera(bounds, base, AXES, Vector3.zero, area, FOV, FULL, padding)
 				end
 			end
 			local shade = if reduced

@@ -9,6 +9,7 @@ local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent.Parent.Hud:WaitForChild("Panel"))
+local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local Framing = require(script.Parent:WaitForChild("RevealFraming"))
 
 local RevealCard = {}
@@ -114,6 +115,7 @@ function RevealCard.open(
 	preview.CurrentCamera = camera
 	local world = Instance.new("WorldModel")
 	local bounds = Framing.measure(model)
+	local previewMotion = CreatureMotion.bind(model)
 	model.Parent = world
 	world.Parent = preview
 	local aspect = Instance.new("UIAspectRatioConstraint")
@@ -244,6 +246,9 @@ function RevealCard.open(
 		local turn = math.rad(-48) + (if reduced then 0 else elapsed * PREVIEW_SPEED)
 		local pose = Framing.pose(bounds, Vector3.zero, viewer, turn)
 		model:PivotTo(pose)
+		if not reduced then
+			CreatureMotion.poseBones(previewMotion, elapsed)
+		end
 		local viewport = preview.AbsoluteSize
 		if viewport.X > 0 and viewport.Y > 0 then
 			camera.CFrame = Framing.camera(

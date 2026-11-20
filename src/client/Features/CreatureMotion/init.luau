@@ -18,6 +18,8 @@ export type Motion = {
 	tempo: number,
 	neon: { { part: BasePart, color: Color3 } },
 	limbs: { Limb },
+	spineBones: { Bone },
+	orbitCore: Bone?,
 }
 
 -- Part names produced by the segmentation pass (docs/NOITE.md, "Pedido do João ~12:10").
@@ -219,6 +221,16 @@ function CreatureMotion.bind(model: Model, style: string?): Motion
 		end
 	end
 
+	local spineBones: { Bone } = {}
+	for index = 1, 18 do
+		local boneInst = model:FindFirstChild(string.format("Spine%02d", index), true)
+		if boneInst and boneInst:IsA("Bone") then
+			table.insert(spineBones, boneInst)
+		end
+	end
+	local orbitInst = model:FindFirstChild("OrbitCore", true)
+	local orbitCore = if orbitInst and orbitInst:IsA("Bone") then orbitInst else nil
+
 	-- Epic/Legendary aura (skips ViewportFrames by itself). Deferred so callers can parent
 	-- the model right after binding.
 	task.defer(CreatureAura.attach, model)
@@ -229,7 +241,47 @@ function CreatureMotion.bind(model: Model, style: string?): Motion
 		tempo = TEMPO[style or ""] or 1,
 		neon = neon,
 		limbs = limbs,
+		spineBones = spineBones,
+		orbitCore = orbitCore,
 	}
+end
+
+local SWIM_CYCLE = 8.0
+
+local function poseSkinnedRig(motion: Motion, elapsed: number)
+	local count = #motion.spineBones
+	if count == 0 and not motion.orbitCore then
+		return
+	end
+	local cyclePhase = (elapsed % SWIM_CYCLE) / SWIM_CYCLE
+	local uncoil = math.sin(cyclePhase * math.pi) ^ 2
+	local wave = elapsed * math.pi * 2 * 0.55
+	for index, bone in motion.spineBones do
+		if index == 1 then
+			bone.Transform = CFrame.Angles(
+				math.sin(wave) * (0.07 + 0.09 * uncoil),
+				math.cos(wave * 0.5) * 0.05,
+				math.sin(wave * 0.5) * 0.05 - uncoil * 0.14
+			)
+		else
+			local t = (index - 1) / math.max(count - 1, 1)
+			local travel = wave - index * 0.42
+			local lateral = math.sin(travel) * (0.045 + 0.085 * uncoil) * (0.35 + 0.65 * t)
+			local twist = math.cos(travel) * 0.022 * uncoil
+			local uncoilCurl = uncoil * 0.115 * (1 - 0.35 * t)
+				+ math.sin(wave - index * 0.36) * (0.022 + 0.045 * uncoil)
+			bone.Transform = CFrame.Angles(lateral, twist, uncoilCurl)
+		end
+	end
+	local core = motion.orbitCore
+	if core then
+		core.Transform = CFrame.new(0, math.sin(wave) * 0.055, 0)
+			* CFrame.Angles(elapsed * 0.65, elapsed * 1.25, math.sin(elapsed * 0.9) * 0.22)
+	end
+end
+
+function CreatureMotion.poseBones(motion: Motion, elapsed: number)
+	poseSkinnedRig(motion, elapsed)
 end
 
 -- Moves each segmented limb around its hinge (call after the model is pivoted).
@@ -251,6 +303,12 @@ function CreatureMotion.reset(motion: Motion, base: CFrame)
 	for _, limb in motion.limbs do
 		limb.part.CFrame = pivot * limb.rest
 	end
+	for _, bone in motion.spineBones do
+		bone.Transform = CFrame.identity
+	end
+	if motion.orbitCore then
+		motion.orbitCore.Transform = CFrame.identity
+	end
 	for _, item in motion.neon do
 		item.part.Color = item.color
 	end
@@ -266,6 +324,7 @@ function CreatureMotion.pose(motion: Motion, base: CFrame, elapsed: number, show
 	local center = CFrame.new(motion.center)
 	motion.model:PivotTo(CFrame.new(offset) * base * center * rotation * center:Inverse())
 	poseLimbs(motion, phase)
+	poseSkinnedRig(motion, elapsed)
 	local glow = 0.15 + math.sin(phase * 0.42) * 0.11
 	for _, item in motion.neon do
 		item.part.Color = item.color:Lerp(Color3.new(1, 1, 1), glow)

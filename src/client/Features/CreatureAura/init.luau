@@ -13,8 +13,11 @@ local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+local CosmicOrbit = require(script:WaitForChild("CosmicOrbit"))
 
-local CreatureAura = {}
+local CreatureAura = {
+	attachOrbit = CosmicOrbit.attach,
+}
 
 local SPARKLE = "rbxasset://textures/particles/sparkles_main.dds"
 local FIRE = "rbxasset://textures/particles/fire_main.dds"
@@ -305,6 +308,18 @@ end
 -- Adds the aura to a creature model named by its id. Ignores creatures below Epic and
 -- models inside ViewportFrames (particles and lights don't show there).
 function CreatureAura.attach(model: Model)
+	if not model.Parent or model:GetAttribute("HasAura") then
+		return
+	end
+	local viewport = model:FindFirstAncestorWhichIsA("ViewportFrame")
+	if model.Name == "C93_Ouroboros_Cosmico" then
+		if viewport and viewport.Name ~= "ForegroundCreature" then
+			return
+		end
+		model:SetAttribute("HasAura", true)
+		CosmicOrbit.attach(model, player:GetAttribute("ReduceEffects") == true)
+		return
+	end
 	local creature = Creatures.get(model.Name)
 	if
 		not creature
@@ -316,11 +331,7 @@ function CreatureAura.attach(model: Model)
 	then
 		return
 	end
-	if
-		not model.Parent
-		or model:FindFirstAncestorWhichIsA("ViewportFrame")
-		or model:GetAttribute("HasAura")
-	then
+	if viewport then
 		return
 	end
 	model:SetAttribute("HasAura", true)

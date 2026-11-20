@@ -6,7 +6,6 @@ local MIN_AXIS_ALIGNMENT = 0.42
 local FACE_YAW: { [string]: number } = {
 	-- The visible face differs from the axis between the mesh parts.
 	C12_Camarao_Confete = math.rad(-45),
-	C93_Ouroboros_Cosmico = math.pi,
 }
 
 export type Bounds = { center: Vector3, corners: { Vector3 }, forward: Vector3 }

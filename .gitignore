@@ -8,6 +8,7 @@ sourcemap.json
 *.rbxl.lock
 *.rbxlx.lock
 *.tmp
+*.fbm/
 backups/
 # Flattened copy of the old game's vault (reference only, not part of this repo)
 VAULT-roblox.md
