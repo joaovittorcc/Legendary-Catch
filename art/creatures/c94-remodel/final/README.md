@@ -24,6 +24,8 @@ O ciclo tem 5 segundos a 24 fps na fonte. O cavaleiro ergue a guarda com as duas
 
 Reimportei os três FBXs no Blender. Confirmei UV única, atlas embutido, peças, contagem de triângulos e escala. No FBX animado, comparei as poses inicial, intermediária e final para confirmar a elevação da guarda, o movimento das asas e o retorno à pose. Importei o FBX rígido com espada em um place local e confirmei nove MeshParts com textura, frente +Z, altura e pivô. StyLua e Selene passaram com zero erros.
 
-A publicação está pendente. Ainda faltam reprodução da faixa no Roblox, captura da C94 no jogo, card e Coleção em sessão real, ReduceEffects e desempenho mobile. O place principal estava em Play e o ambiente não tinha chave Open Cloud disponível.
+A versão com espada foi instalada no pool do place principal e a antiga foi movida para o backup. O Studio salvou a versão 63 na nuvem e confirmou a publicação do place. Os nove MeshParts e o atlas carregaram no teste. Em Play no PC, a chamada direta à cinemática mostrou a C94 de frente, com espada, asas e halo na cena e no card 3D. A versão publicada usa o `CreatureMotion` do jogo. A faixa de 5 segundos do Blender segue no FBX.
 
-[Seis ângulos](../../../screens/c94-modelo/final-views.png) · [Comparativo](../../../screens/c94-modelo/final-comparison.png) · [Captura da importação local](../../../screens/c94-modelo/studio-armed.jpg)
+Ficaram sem teste a pesca completa, a Coleção, ReduceEffects, mobile, multiplayer e uma sessão no cliente publicado.
+
+[Seis ângulos](../../../screens/c94-modelo/final-views.png) · [Comparativo](../../../screens/c94-modelo/final-comparison.png) · [Revelação no Studio](../../../screens/c94-modelo/studio-live.jpg) · [IDs dos assets](ASSET_IDS.md)
