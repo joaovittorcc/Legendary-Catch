@@ -110,9 +110,9 @@ def export():
     settings = dict(
         use_selection=True,
         object_types={"ARMATURE", "MESH"},
-        global_scale=0.01,
+        global_scale=float(rig.get("RobloxExportScale", 0.01)),
         apply_scale_options="FBX_SCALE_UNITS",
-        axis_forward="-Z",
+        axis_forward=str(rig.get("RobloxExportForward", "-Z")),
         axis_up="Y",
         add_leaf_bones=False,
         use_mesh_modifiers=False,
