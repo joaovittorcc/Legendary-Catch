@@ -32,6 +32,7 @@ local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 local Framing = require(script.Parent:WaitForChild("RevealFraming"))
 local RevealCard = require(script.Parent:WaitForChild("RevealCard"))
+local Cinematics = require(script.Parent:WaitForChild("Cinematics"))
 
 type CatchInfo = RevealCard.CatchInfo
 
@@ -238,6 +239,28 @@ function Reveal.play(
 	local shiny = info ~= nil and info.variant == "Shiny"
 	local creature = Creatures.get(creatureId)
 	local motif = if creature then creature.revealStyle else "splash"
+	local recipe = Cinematics.recipes[creatureId]
+	if recipe then
+		local repeatView = seen[creatureId] == true or (info ~= nil and info.isNew == false)
+		if
+			Cinematics.play(
+				recipe,
+				creatureId,
+				Strings.creatureName[creatureId] or creatureId,
+				rarity,
+				color,
+				motif,
+				origin,
+				root,
+				info,
+				repeatView,
+				cloneCreature
+			)
+		then
+			seen[creatureId] = true
+		end
+		return
+	end
 	local accent = if level == 6 then Theme.crystal else RevealStyles.tint(motif)
 	local skipped = false
 	local skipButton: TextButton? = nil
