@@ -6,6 +6,8 @@
 --   Epic             + light pillar from the bobber before the jump
 --   Legendary        + world darkens, lightning strikes, white flash, slow spin, big banner
 
+local GuiService = game:GetService("GuiService")
+local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
@@ -16,19 +18,9 @@ local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Strings = require(Shared:WaitForChild("Strings"))
 
-local Players = game:GetService("Players")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 
-type CatchInfo = {
-	weight: number?,
-	value: number?,
-	isNew: boolean?,
-	variant: string?,
-	isRecord: boolean?,
-	isGiant: boolean?,
-	previousBest: number?,
-}
 local seen: { [string]: boolean } = {}
 local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local stylesModule = script.Parent.Parent:WaitForChild("RevealStyles")
@@ -38,21 +30,30 @@ local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
-local Art = require(script.Parent.Parent:WaitForChild("Hud"):WaitForChild("Art"))
-local Motion = require(script.Parent.Parent.Hud:WaitForChild("Motion"))
+local Framing = require(script.Parent:WaitForChild("RevealFraming"))
+local RevealCard = require(script.Parent:WaitForChild("RevealCard"))
+
+type CatchInfo = RevealCard.CatchInfo
 
 local Reveal = {}
 
 type Style = { size: number, apex: number, flight: number, hold: number }
 
 local STYLES: { [string]: Style } = {
-	Common = { size = 3.5, apex = 6, flight = 0.65, hold = 1 },
-	Uncommon = { size = 4, apex = 7, flight = 0.9, hold = 2 },
-	Rare = { size = 5, apex = 9, flight = 1, hold = 2.4 },
-	Epic = { size = 6, apex = 11, flight = 1.1, hold = 2.8 },
-	Legendary = { size = 8, apex = 14, flight = 1.4, hold = 3.6 },
-	Mystic = { size = 9, apex = 16, flight = 1.7, hold = 4.6 },
+	Common = { size = 3.5, apex = 6, flight = 0.65, hold = 2.2 },
+	Uncommon = { size = 4, apex = 7, flight = 0.9, hold = 3.2 },
+	Rare = { size = 5, apex = 9, flight = 1, hold = 3.8 },
+	Epic = { size = 6, apex = 11, flight = 1.1, hold = 4.5 },
+	Legendary = { size = 8, apex = 14, flight = 1.4, hold = 5.5 },
+	Mystic = { size = 9, apex = 16, flight = 1.7, hold = 6.6 },
 }
+
+local SHOT_FOV = 42
+local SHOT_BLEND = 0.22
+local EXIT_SECONDS = 0.30
+local REDUCED_FLIGHT_MAX = 0.85
+local REDUCED_MYSTIC_HOLD = 4.4
+local SHOT_BINDING = "CatchRevealCamera"
 
 local function cloneCreature(id: string): Model
 	local folder = ReplicatedStorage:FindFirstChild(Creatures.MODELS_FOLDER)
@@ -83,10 +84,11 @@ local function cloneCreature(id: string): Model
 end
 
 local function sparkles(model: Model, color: Color3, shiny: boolean)
-	local _, size = model:GetBoundingBox()
+	local box, size = model:GetBoundingBox()
 	local holder = Instance.new("Part")
 	holder.Name = "SparkleHolder"
 	holder.Size = size
+	holder.CFrame = box
 	holder.Transparency = 1
 	holder.Anchored = true
 	holder.CanCollide = false
@@ -113,133 +115,22 @@ local function sparkles(model: Model, color: Color3, shiny: boolean)
 	e.Parent = holder
 end
 
-local function nameCard(name: string, rarity: string, color: Color3, info: CatchInfo?): Frame
-	local gui = Ui.screen()
-	local badges: { string } = {}
-	if info then
-		if info.isNew then
-			table.insert(badges, Text.discovery)
-		end
-		if info.variant == "Shiny" then
-			table.insert(badges, "✦ " .. Text.shiny)
-		end
-		if info.isGiant then
-			table.insert(badges, "▲ " .. Text.adventure.giant)
-		end
-		if info.isRecord and not info.previousBest then
-			table.insert(badges, "↑ " .. Text.adventure.catchRecord)
-		end
-	end
-	local hasBadges = #badges > 0
-	local hasRecord = info ~= nil and info.isRecord == true and info.previousBest ~= nil
-	local ribbonY = if hasBadges then 0.23 else 0.13
-	local card = Ui.frame(
-		gui,
-		"RevealCard",
-		UDim2.new(0.88, 0, 0, if hasRecord then 132 else 115),
-		UDim2.fromScale(0.5, 0.12),
-		Theme.ink,
-		0.08
-	)
-	Art.panel(card, if rarity == "Common" then Theme.crystal else color)
-	card.AnchorPoint = Vector2.new(0.5, 1)
-	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(405, 132)
-	bounds.Parent = card
-	local ribbon = Ui.frame(
-		card,
-		"RevealRibbon",
-		UDim2.fromScale(0.87, 0.22),
-		UDim2.fromScale(0.065, ribbonY),
-		if rarity == "Common" then Theme.crystal else color
-	)
-	Theme.corner(ribbon, 15)
-	if Theme.rarityRank(rarity) == 6 then
-		Theme.iridescent(card)
-		Theme.iridescent(ribbon)
-	end
-	local ribbonStroke = Instance.new("UIStroke")
-	ribbonStroke.Color = Theme.outline
-	ribbonStroke.Thickness = 3
-	ribbonStroke.Parent = ribbon
-	local title = Ui.label(
-		card,
-		"Name",
-		UDim2.fromScale(0.82, 0.20),
-		UDim2.fromScale(0.09, ribbonY + 0.01),
-		name,
-		Theme.ink
-	)
-	title.TextStrokeTransparency = 1
-	title.ZIndex = 4
-	local titleLimit = Instance.new("UITextSizeConstraint")
-	titleLimit.MaxTextSize = 24
-	titleLimit.Parent = title
-	local badge, rarityLabel = Art.rarity(card)
-	badge.AnchorPoint = Vector2.new(0.5, 0.5)
-	badge.Position =
-		UDim2.fromScale(0.5, if hasRecord then 0.56 elseif hasBadges then 0.61 else 0.52)
-	badge.Size = UDim2.fromOffset(99, 33)
-	Art.setRarity(badge, rarityLabel, rarity)
-	if hasBadges then
-		local discovery = Ui.label(
-			card,
-			"Discovery",
-			UDim2.fromScale(0.92, 0.16),
-			UDim2.fromScale(0.04, 0.045),
-			table.concat(badges, " · "),
-			Theme.ink
-		)
-		discovery.TextStrokeTransparency = 1
-		local discoveryLimit = Instance.new("UITextSizeConstraint")
-		discoveryLimit.MaxTextSize = 14
-		discoveryLimit.Parent = discovery
-	end
-	if info and info.weight and info.value then
-		local reward = string.format(Text.captureReward, info.weight, info.value)
-		-- Epic and Legendary also show how rare this exact creature is ("1 in 300").
-		if Theme.rarityRank(rarity) >= 4 then
-			local odds = FishingConfig.baseOdds(rarity, #Creatures.ofRarity(rarity))
-			if odds > 0 then
-				local digits = tostring(odds):reverse():gsub("(%d%d%d)", "%1."):reverse()
-				reward ..= "   ·   " .. string.format(Strings.odds, (digits:gsub("^%.", "")))
+local function clearForeground(root: BasePart): () -> ()
+	local character = root.Parent
+	local hidden: { [BasePart]: number } = {}
+	if character then
+		for _, part in character:GetDescendants() do
+			if part:IsA("BasePart") then
+				hidden[part] = part.LocalTransparencyModifier
+				part.LocalTransparencyModifier = 1
 			end
 		end
-		local rewardY = 0.79
-		if info.isRecord and info.previousBest then
-			local record = string.format(Text.newRecord, info.previousBest, info.weight)
-			local recordLabel = Ui.label(
-				card,
-				"Record",
-				UDim2.fromScale(0.88, 0.13),
-				UDim2.fromScale(0.06, 0.69),
-				record,
-				Theme.wood
-			)
-			recordLabel.TextStrokeTransparency = 1
-			rewardY = 0.82
+	end
+	return function()
+		for part, transparency in hidden do
+			part.LocalTransparencyModifier = transparency
 		end
-		local summary = Ui.label(
-			card,
-			"Reward",
-			UDim2.fromScale(0.88, 0.16),
-			UDim2.fromScale(0.06, rewardY),
-			reward,
-			Theme.ink
-		)
-		summary.TextStrokeTransparency = 1
 	end
-	if Players.LocalPlayer:GetAttribute("ReduceEffects") == true then
-		card.Position = UDim2.new(0.5, 0, 1, -56)
-	else
-		card.Position = UDim2.fromScale(0.5, 1.34)
-		TweenService:Create(
-			card,
-			TweenInfo.new(0.45, Enum.EasingStyle.Back),
-			{ Position = UDim2.new(0.5, 0, 1, -56) }
-		):Play()
-	end
-	return card
 end
 
 local function tunnel(color: Color3)
@@ -351,22 +242,11 @@ function Reveal.play(
 	local skipped = false
 	local skipButton: TextButton? = nil
 	if level >= 5 and (seen[creatureId] or (info and info.isNew == false)) then
-		local button = Instance.new("TextButton")
-		button.Name = "SkipReveal"
-		button.AnchorPoint = Vector2.new(0.5, 1)
-		button.Position = UDim2.fromScale(0.5, 0.72)
-		button.Size = UDim2.fromOffset(116, 48)
-		button.Text = Text.skip
-		button.TextColor3 = Theme.sand
-		button.Font = Theme.font
-		button.TextSize = 19
-		Theme.surface(button, color, 12)
-		Motion.mount(button)
+		local button = RevealCard.action(Ui.screen(), "SkipReveal", Text.skip, color)
 		button.Activated:Connect(function()
 			skipped = true
 			button:Destroy()
 		end)
-		button.Parent = Ui.screen()
 		skipButton = button
 	end
 	local function cancelled(): boolean
@@ -403,7 +283,9 @@ function Reveal.play(
 	local _, size = model:GetBoundingBox()
 	local biggest = math.max(size.X, size.Y, size.Z, 0.1)
 	model:ScaleTo(model:GetScale() * style.size / biggest)
+	local bounds = Framing.measure(model)
 	local motion = CreatureMotion.bind(model, motif)
+	local preview = cloneCreature(creatureId)
 	if (level >= 3 or shiny) and not reduced then
 		sparkles(model, color, shiny)
 	end
@@ -437,79 +319,128 @@ function Reveal.play(
 		Effects.shake(0.27, if level == 6 then 1.55 else 1.15)
 	end
 
-	-- Fly from the water to a spot in front of the player, spinning.
-	local look = root.CFrame.LookVector * Vector3.new(1, 0, 1)
-	local display = root.Position + look.Unit * 7 + Vector3.new(0, 3, 0)
+	-- The flight can turn. The final pose stays within a small sway of the viewer.
+	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	local forward = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
+	local display = root.Position + forward * 10 + Vector3.new(0, 3.2, 0)
 	local from = origin - Vector3.new(0, 1, 0)
 	local apex = (from + display) / 2 + Vector3.new(0, style.apex, 0)
-	local facing =
-		CFrame.lookAt(display, root.Position * Vector3.new(1, 0, 1) + Vector3.new(0, display.Y, 0))
-
+	local viewer = -forward + forward:Cross(Vector3.yAxis) * 0.32 + Vector3.new(0, 0.08, 0)
 	local start = os.clock()
-	local flight = if reduced and level >= 5 then 0.85 else style.flight
+	local flight = if reduced then math.min(REDUCED_FLIGHT_MAX, style.flight) else style.flight
 	while not cancelled() do
 		local a = math.min((os.clock() - start) / flight, 1)
 		if level >= 5 and not reduced then
 			a = TweenService:GetValue(a, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 		end
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
-		local spin = if reduced
-			then CFrame.identity
-			else CFrame.Angles(0, (1 - a) * math.pi * 4, (1 - a) * math.pi)
-		model:PivotTo(CFrame.new(p) * facing.Rotation * spin)
+		local turn = if reduced then 0 else (1 - a) ^ 2 * math.pi * 2
+		model:PivotTo(Framing.pose(bounds, p, viewer, turn))
 		if a >= 1 then
 			break
 		end
 		RunService.RenderStepped:Wait()
 	end
 
+	local name = Strings.creatureName[creatureId] or creatureId
+	local card: RevealCard.Card? = nil
+	local takePhoto = false
+	local photoButton: TextButton? = nil
+	local holdStart = os.clock()
+	local base = Framing.pose(bounds, display, viewer)
+	local camera = Workspace.CurrentCamera
+	local restoreCamera: (() -> ())? = nil
+	local restoreForeground: (() -> ())? = nil
+	local touchControls = GuiService.TouchControlsEnabled
+
 	if not cancelled() then
+		if restore then
+			restore()
+			restore = nil
+		end
 		Audio.capture(rarity, shiny)
 		if info and (info.isRecord or info.isGiant) then
 			Audio.play("level", 0.23, if info.isGiant then 0.9 else 1.12)
 		end
-	end
-	if skipButton and level == 5 then
-		skipButton:Destroy()
-		skipButton = nil
-	end
-	local name = Strings.creatureName[creatureId] or creatureId
-	local card = if cancelled() then nil else nameCard(name, rarity, color, info)
-	if card then
+		local activeCard =
+			RevealCard.open(Ui.screen(), preview, creatureId, name, rarity, color, info, reduced)
+		card = activeCard
+		restoreForeground = clearForeground(root)
+		GuiService.TouchControlsEnabled = false
 		Players.LocalPlayer:SetAttribute("CatchRevealActive", true)
-	end
-
-	local takePhoto = false
-	local photoButton: TextButton? = nil
-	if card and level >= 4 then
-		local button = Instance.new("TextButton")
-		button.Name = "TakePhoto"
-		button.AnchorPoint = Vector2.new(0.5, 1)
-		button.Position = UDim2.new(0.5, 0, 0, -8)
-		button.Size = UDim2.fromOffset(106, 44)
-		button.Font = Theme.font
-		button.TextSize = 19
-		button.Text = Text.photo
-		button.TextColor3 = Theme.sand
-		Theme.surface(button, Theme.crystal, 20)
-		Motion.mount(button)
-		button.TextStrokeTransparency = 0.15
-		button.TextStrokeColor3 = Theme.ink
-		button.Activated:Connect(function()
-			takePhoto = true
-		end)
-		button.Parent = card
-		photoButton = button
-	end
-
-	local holdStart = os.clock()
-	local base = CFrame.new(display) * facing.Rotation
-	local hold = if reduced and level == 6 then 2.4 else style.hold
-	while not cancelled() and not takePhoto and os.clock() - holdStart < hold do
-		if not reduced then
-			CreatureMotion.pose(motion, base, os.clock() - holdStart, true)
+		if level >= 4 then
+			local button = RevealCard.action(Ui.screen(), "TakePhoto", Text.photo, Theme.crystal)
+			photoButton = button
+			button.Activated:Connect(function()
+				takePhoto = true
+			end)
 		end
+		if camera then
+			local oldType, oldCFrame, oldFocus, oldFov =
+				camera.CameraType, camera.CFrame, camera.Focus, camera.FieldOfView
+			local axes = CFrame.lookAt(Vector3.zero, -viewer)
+			camera.CameraType = Enum.CameraType.Scriptable
+			local lastViewport = Vector2.zero
+			local shot = oldCFrame
+			RunService:BindToRenderStep(SHOT_BINDING, Enum.RenderPriority.Last.Value, function()
+				local viewport = camera.ViewportSize
+				if viewport ~= lastViewport and viewport.X > 0 and viewport.Y > 0 then
+					lastViewport = viewport
+					local region = RevealCard.subjectRegion(viewport)
+					shot = Framing.camera(
+						bounds,
+						base,
+						axes,
+						display,
+						viewport,
+						SHOT_FOV,
+						region,
+						1.25
+					)
+					base = Framing.pose(bounds, display, shot.Position - display)
+					shot = Framing.camera(
+						bounds,
+						base,
+						axes,
+						display,
+						viewport,
+						SHOT_FOV,
+						region,
+						1.25
+					)
+				end
+				local elapsed = os.clock() - holdStart
+				local blend = if reduced then 1 else math.min(elapsed / SHOT_BLEND, 1)
+				local eased =
+					TweenService:GetValue(blend, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+				camera.CFrame = oldCFrame:Lerp(shot, eased)
+				camera.FieldOfView = oldFov + (SHOT_FOV - oldFov) * eased
+				camera.Focus = CFrame.new(display)
+				if not reduced then
+					CreatureMotion.pose(motion, base, elapsed, false)
+					activeCard.preview(elapsed)
+				else
+					model:PivotTo(base)
+				end
+			end)
+			restoreCamera = function()
+				RunService:UnbindFromRenderStep(SHOT_BINDING)
+				camera.FieldOfView = oldFov
+				camera.CFrame = oldCFrame
+				camera.Focus = oldFocus
+				camera.CameraType = oldType
+			end
+		end
+	else
+		preview:Destroy()
+	end
+
+	local hold = if reduced and level == 6 then REDUCED_MYSTIC_HOLD else style.hold
+	while card and not cancelled() and not takePhoto and os.clock() - holdStart < hold do
 		RunService.RenderStepped:Wait()
+	end
+	if restoreCamera then
+		restoreCamera()
 	end
 	if skipButton then
 		skipButton:Destroy()
@@ -517,50 +448,40 @@ function Reveal.play(
 	if photoButton then
 		photoButton:Destroy()
 	end
-	if not takePhoto then
-		CreatureMotion.reset(motion, base)
-	end
+	CreatureMotion.reset(motion, base)
 	if signature then
 		signature:Destroy()
 	end
-
 	if restore then
 		restore()
 	end
-	if card and (takePhoto or skipped or reduced) then
-		card:Destroy()
-	elseif card then
-		TweenService:Create(card, TweenInfo.new(0.3), { Position = UDim2.fromScale(0.5, -0.25) })
-			:Play()
-		task.delay(0.35, function()
-			card:Destroy()
-		end)
+	if card then
+		card.close(takePhoto or cancelled())
 	end
 	if not cancelled() then
 		seen[creatureId] = true
 	end
-
 	if takePhoto and not cancelled() then
-		PhotoMode.show(model, root, name, rarity, color)
-		Players.LocalPlayer:SetAttribute("CatchRevealActive", false)
-		model:Destroy()
-		return
-	end
-
-	-- Shrink into the player.
-	local outStart = os.clock()
-	local baseScale = model:GetScale()
-	while not cancelled() do
-		local a = math.min((os.clock() - outStart) / 0.35, 1)
-		model:ScaleTo(math.max(baseScale * (1 - a), 0.01))
-		model:PivotTo(CFrame.new(display:Lerp(root.Position, a)) * facing.Rotation)
-		if a >= 1 then
-			break
+		PhotoMode.show(model, root, name, rarity, color, base:VectorToWorldSpace(bounds.forward))
+	elseif not reduced and not cancelled() then
+		local outStart = os.clock()
+		local baseScale = model:GetScale()
+		while not cancelled() do
+			local a = math.min((os.clock() - outStart) / EXIT_SECONDS, 1)
+			model:ScaleTo(math.max(baseScale * (1 - a), 0.01))
+			model:PivotTo(CFrame.new((root.Position - display) * a) * base)
+			if a >= 1 then
+				break
+			end
+			RunService.RenderStepped:Wait()
 		end
-		RunService.RenderStepped:Wait()
 	end
 	model:Destroy()
+	if restoreForeground then
+		restoreForeground()
+	end
 	if card then
+		GuiService.TouchControlsEnabled = touchControls
 		Players.LocalPlayer:SetAttribute("CatchRevealActive", false)
 	end
 end

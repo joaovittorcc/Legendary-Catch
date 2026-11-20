@@ -97,7 +97,14 @@ local function hideInterface(playerGui: PlayerGui): () -> ()
 	end
 end
 
-function PhotoMode.show(model: Model, root: BasePart, name: string, rarity: string, color: Color3)
+function PhotoMode.show(
+	model: Model,
+	root: BasePart,
+	name: string,
+	rarity: string,
+	color: Color3,
+	front: Vector3
+)
 	local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
 	local camera = Workspace.CurrentCamera
 	if not playerGui or not camera then
@@ -111,8 +118,7 @@ function PhotoMode.show(model: Model, root: BasePart, name: string, rarity: stri
 	end
 	local bounds, size = model:GetBoundingBox()
 	local target = bounds.Position
-	local front = model:GetPivot().LookVector
-	local yaw = math.atan2(front.X, front.Z) - 0.72
+	local yaw = math.atan2(front.X, front.Z) - 0.42
 	local pitch = 0.16
 	local halfFov = math.rad(FIELD_OF_VIEW / 2)
 	local oldType, oldCFrame, oldFocus, oldFov =
