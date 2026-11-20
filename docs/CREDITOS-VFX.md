@@ -1,5 +1,7 @@
 # Créditos de referências visuais
 
+- **fwjelaa (FWJ STUDIOS)**, vault `fwjelaa`, *fwjelaa-blender-modeling*, *make-model* e *fwjelaa-asset-import*. No kit das Lendárias, apliquei revisão por silhueta, blocos de forma, uma UV e um atlas por criatura, pivô e verificação de escala e orçamento por reimportação. Modelos e pintura são originais do projeto.
+
 - **fwjelaa**, vault `fwjelaa`, nota *Posing and Silhouettes*. Usei a checagem da silhueta pela câmera de jogo, a assimetria no descanso e o espaço entre a vara e o corpo nas poses do Vô Anzol.
 - **fwjelaa**, vault `fwjelaa`, *Rubric: VFX*. Usei a leitura por contraste e forma à distância para manter o brilho ciano do broche contido e o rosto legível.
 - **fwjelaa**, vault `fwjelaa`, *Posing and Silhouettes*, *Glossy Icon Style: Owner Reference* e *Rubric: VFX*. Na Lucy, apliquei poses assimétricas, leitura da silhueta, brilhos curtos no ícone da barraca e luz localizada dentro dos potes.
