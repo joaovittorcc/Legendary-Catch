@@ -98,7 +98,7 @@ function Collection.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local body = Instance.new("Frame")
 	body.BackgroundTransparency = 1
-	body.Size = UDim2.fromScale(1, 0)
+	body.Size = UDim2.new(1, -10, 0, 0)
 	body.AutomaticSize = Enum.AutomaticSize.Y
 	body.Parent = scroll
 

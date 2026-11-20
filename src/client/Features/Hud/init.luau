@@ -475,20 +475,10 @@ function Hud.start()
 	levelStroke.Color = Theme.outline
 	levelStroke.Thickness = 3.5
 	levelStroke.Parent = levelChip
-	local levelShadow = Instance.new("Frame")
-	levelShadow.Name = "SoftShadow"
-	levelShadow.Position = UDim2.fromOffset(0, 4)
-	levelShadow.Size = UDim2.fromScale(1, 1)
-	levelShadow.BackgroundColor3 = Theme.outline
-	levelShadow.BackgroundTransparency = 0.62
-	levelShadow.BorderSizePixel = 0
-	levelShadow.ZIndex = 0
-	Theme.corner(levelShadow, 16)
-	levelShadow.Parent = levelChip
 	local levelGloss = Instance.new("Frame")
 	levelGloss.Name = "TopGloss"
 	levelGloss.Position = UDim2.fromOffset(8, 3)
-	levelGloss.Size = UDim2.new(1, -16, 0.34, 0)
+	levelGloss.Size = UDim2.new(1, -16, 0.32, 0)
 	levelGloss.BackgroundColor3 = Color3.new(1, 1, 1)
 	levelGloss.BackgroundTransparency = 0.68
 	levelGloss.BorderSizePixel = 0
@@ -661,6 +651,7 @@ function Hud.start()
 		local hasLevel = typeof(level) == "number"
 		levelChip.Visible = hasLevel
 		levelTrack.Visible = typeof(xp) == "number" and typeof(total) == "number" and total > 0
+		local leveledUp = false
 		if typeof(level) == "number" then
 			local prevL = lastLevelNum
 			local prevX = lastXpNum
@@ -669,6 +660,7 @@ function Hud.start()
 				lastXpNum = xp
 			end
 			if prevL and level > prevL then
+				leveledUp = true
 				pulseLevelChip(true, 0)
 			elseif prevX and typeof(xp) == "number" and xp > prevX then
 				pulseLevelChip(false, xp - prevX)
@@ -682,6 +674,9 @@ function Hud.start()
 			if player:GetAttribute("ReduceEffects") == true then
 				levelFill.Size = target
 			else
+				if leveledUp then
+					levelFill.Size = UDim2.fromScale(0, 1)
+				end
 				local tween = TweenService:Create(
 					levelFill,
 					TweenInfo.new(0.24, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
@@ -700,6 +695,19 @@ function Hud.start()
 			then title .. " · " .. string.format(Text.adventure.combo, streak)
 			else title
 	end
+	local levelQueued = false
+	local function scheduleLevelUpdate()
+		if levelQueued then
+			return
+		end
+		levelQueued = true
+		task.defer(function()
+			levelQueued = false
+			if gui.Parent then
+				updateLevel()
+			end
+		end)
+	end
 	for _, attribute in
 		{
 			"PlayerLevel",
@@ -709,7 +717,7 @@ function Hud.start()
 			"ReduceEffects",
 		}
 	do
-		player:GetAttributeChangedSignal(attribute):Connect(updateLevel)
+		player:GetAttributeChangedSignal(attribute):Connect(scheduleLevelUpdate)
 	end
 	updateLevel()
 

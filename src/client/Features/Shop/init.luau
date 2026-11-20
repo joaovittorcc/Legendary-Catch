@@ -24,11 +24,12 @@ local function formatPrice(price: number): string
 	return if #digits % 3 == 0 then grouped:sub(2) else grouped
 end
 
-local function fitLabel(label: TextLabel, maxSize: number)
+local function fitLabel(label: TextLabel, maxSize: number, minSize: number?)
 	label.TextScaled = true
-	label.TextWrapped = false
+	label.TextWrapped = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MaxTextSize = maxSize
+	limit.MinTextSize = minSize or 11
 	limit.Parent = label
 end
 
@@ -100,15 +101,111 @@ local function rarityStars(rarity: string): string
 	return string.rep("★", math.clamp(rank, 1, 5))
 end
 
-local function preview(
-	parent: Instance,
+local function worldExtents(cf: CFrame, size: Vector3): (Vector3, Vector3)
+	local half = size * 0.5
+	local minV = Vector3.new(math.huge, math.huge, math.huge)
+	local maxV = Vector3.new(-math.huge, -math.huge, -math.huge)
+	for _, sx in { -1, 1 } do
+		for _, sy in { -1, 1 } do
+			for _, sz in { -1, 1 } do
+				local pt = (cf * CFrame.new(sx * half.X, sy * half.Y, sz * half.Z)).Position
+				minV = Vector3.new(
+					math.min(minV.X, pt.X),
+					math.min(minV.Y, pt.Y),
+					math.min(minV.Z, pt.Z)
+				)
+				maxV = Vector3.new(
+					math.max(maxV.X, pt.X),
+					math.max(maxV.Y, pt.Y),
+					math.max(maxV.Z, pt.Z)
+				)
+			end
+		end
+	end
+	return (minV + maxV) * 0.5, maxV - minV
+end
+
+type ShowcaseSlot = {
+	holder: Frame,
 	rod: Rods.Rod,
-	accent: Color3
-): (Model, CFrame, ViewportFrame)
+	view: ViewportFrame?,
+	model: Model?,
+	pose: CFrame?,
+}
+
+local function mountRodViewport(slot: ShowcaseSlot)
+	if slot.view and slot.view.Parent then
+		return
+	end
+	local rod = slot.rod
+	local view = Instance.new("ViewportFrame")
+	view.Name = "RodPreview"
+	view.BackgroundTransparency = 1
+	view.Ambient = Color3.fromRGB(190, 200, 224)
+	view.LightColor = Color3.fromRGB(255, 244, 224)
+	view.LightDirection = Vector3.new(-0.6, -0.7, -1)
+	view.Size = UDim2.fromScale(1, 1)
+	view.ZIndex = 2
+
+	local imported = cloneRod(rod.id)
+	local model = imported or Instance.new("Model")
+	local function part(name: string, size: Vector3, position: Vector3, tint: Color3)
+		local piece = Instance.new("Part")
+		piece.Name = name
+		piece.Size = size
+		piece.Color = tint
+		piece.CFrame = CFrame.new(position)
+		piece.Anchored = true
+		piece.Parent = model
+	end
+	if not imported then
+		part("Handle", Vector3.new(0.42, 1.3, 0.42), Vector3.new(0, -1.85, 0), Theme.wood)
+		part("Blank", Vector3.new(0.24, 4.0, 0.24), Vector3.new(0, 0.72, 0), rod.color)
+		part("Reel", Vector3.new(0.56, 0.64, 0.54), Vector3.new(0.36, -1.05, 0), Theme.gold)
+		part("Tip", Vector3.new(0.32, 0.32, 0.32), Vector3.new(0, 2.75, 0), rod.tipColor)
+		for n = 1, 3 do
+			part("Guide", Vector3.new(0.34, 0.1, 0.32), Vector3.new(0, n * 0.82, 0), Theme.gold)
+		end
+	end
+	local pose = model:GetPivot()
+	model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
+	local rotCf, rotSize = model:GetBoundingBox()
+	local worldCenter, worldSpan = worldExtents(rotCf, rotSize)
+	-- Recenter by true world AABB and frame using rotated world-space extents so even the
+	-- longest rods (Celestial, Abyss, Mystic) stay 100% inside the showcase on PC and mobile.
+	pose = CFrame.new(-worldCenter) * pose
+	model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
+
+	-- Use worst-case horizontal radius over a full Y spin so spinning never clips the edges.
+	local spinRadiusXZ = math.sqrt((worldSpan.X * 0.5) ^ 2 + (worldSpan.Z * 0.5) ^ 2)
+	local fov = 30
+	local halfTan = math.tan(math.rad(fov * 0.5))
+	local vpSize = slot.holder.AbsoluteSize
+	local aspect = if vpSize.X > 10 and vpSize.Y > 10
+		then math.clamp(vpSize.X / vpSize.Y, 0.75, 1.65)
+		else 1.05
+	local distY = (worldSpan.Y * 0.5) / (halfTan * 0.80)
+	local distX = spinRadiusXZ / (halfTan * aspect * 0.82)
+	local dist = math.max(distY, distX, 5.4) + spinRadiusXZ
+
+	local camera = Instance.new("Camera")
+	camera.FieldOfView = fov
+	camera.CFrame = CFrame.lookAt(Vector3.new(0, 0, dist), Vector3.zero)
+	camera.Parent = view
+	view.CurrentCamera = camera
+
+	model.Parent = view
+	view.Parent = slot.holder
+	slot.view = view
+	slot.model = model
+	slot.pose = pose
+end
+
+local function createShowcase(parent: Instance, rod: Rods.Rod, accent: Color3): ShowcaseSlot
 	local showcase = Instance.new("Frame")
 	showcase.Name = "RodShowcase"
-	showcase.Size = UDim2.fromScale(0.36, 0.88)
-	showcase.Position = UDim2.fromScale(0.022, 0.06)
+	showcase.Size = UDim2.fromScale(0.355, 0.88)
+	showcase.Position = UDim2.fromScale(0.02, 0.06)
 	showcase.BackgroundColor3 = Color3.new(1, 1, 1)
 	showcase.BorderSizePixel = 0
 	showcase.ClipsDescendants = true
@@ -146,60 +243,14 @@ local function preview(
 	pedestal.ZIndex = 1
 	Theme.corner(pedestal, 99)
 	pedestal.Parent = showcase
-
-	local view = Instance.new("ViewportFrame")
-	view.Name = "RodPreview"
-	view.BackgroundTransparency = 1
-	view.Ambient = Color3.fromRGB(190, 200, 224)
-	view.LightColor = Color3.fromRGB(255, 244, 224)
-	view.LightDirection = Vector3.new(-0.6, -0.7, -1)
-	view.Size = UDim2.fromScale(1, 1)
-	view.ZIndex = 2
-
-	local imported = cloneRod(rod.id)
-	local model = imported or Instance.new("Model")
-	local function part(name: string, size: Vector3, position: Vector3, tint: Color3)
-		local piece = Instance.new("Part")
-		piece.Name = name
-		piece.Size = size
-		piece.Color = tint
-		piece.CFrame = CFrame.new(position)
-		piece.Anchored = true
-		piece.Parent = model
-	end
-	if not imported then
-		part("Handle", Vector3.new(0.42, 1.3, 0.42), Vector3.new(0, -1.85, 0), Theme.wood)
-		part("Blank", Vector3.new(0.24, 4.0, 0.24), Vector3.new(0, 0.72, 0), rod.color)
-		part("Reel", Vector3.new(0.56, 0.64, 0.54), Vector3.new(0.36, -1.05, 0), Theme.gold)
-		part("Tip", Vector3.new(0.32, 0.32, 0.32), Vector3.new(0, 2.75, 0), rod.tipColor)
-		for n = 1, 3 do
-			part("Guide", Vector3.new(0.34, 0.1, 0.32), Vector3.new(0, n * 0.82, 0), Theme.gold)
-		end
-	end
-	local pose = model:GetPivot()
-	model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
-	local rotCf, rotSize = model:GetBoundingBox()
-	-- Recenter after diagonal tilt so the whole rod fills ~75% of the showcase cleanly.
-	pose = CFrame.new(-rotCf.Position) * pose
-	model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
-
-	local fov = 30
-	local halfTan = math.tan(math.rad(fov * 0.5))
-	local aspect = 1.45
-	local distY = (rotSize.Y * 0.5) / (halfTan * 0.72)
-	local distX = (rotSize.X * 0.5) / (halfTan * aspect * 0.72)
-	local dist = math.max(distY, distX, 4.2) + rotSize.Z * 0.5
-
-	local camera = Instance.new("Camera")
-	camera.FieldOfView = fov
-	camera.CFrame = CFrame.lookAt(Vector3.new(0, 0.08, dist), Vector3.zero)
-	camera.Parent = view
-	view.CurrentCamera = camera
-
-	model.Parent = view
-	view.Parent = showcase
 	showcase.Parent = parent
-	return model, pose, view
+	return {
+		holder = showcase,
+		rod = rod,
+		view = nil,
+		model = nil,
+		pose = nil,
+	}
 end
 
 function Shop.start()
@@ -208,15 +259,38 @@ function Shop.start()
 	local gui, scroll = Panel.create("Shop", Text.shop, shopAccent)
 	local body = Instance.new("Frame")
 	body.AutomaticSize = Enum.AutomaticSize.Y
-	body.Size = UDim2.fromScale(1, 0)
+	body.Size = UDim2.new(1, -10, 0, 0)
 	body.BackgroundTransparency = 1
 	body.Parent = scroll
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local pending = ""
-	local previews: { { model: Model, pose: CFrame, view: ViewportFrame } } = {}
+	local slots: { ShowcaseSlot } = {}
+	local previewsDirty = false
 	local rotation = 0
+
+	local function refreshVisibleViewports()
+		if not gui.Enabled then
+			return
+		end
+		local top = scroll.AbsolutePosition.Y - 40
+		local bottom = scroll.AbsolutePosition.Y + scroll.AbsoluteWindowSize.Y + 40
+		for _, slot in slots do
+			local holder = slot.holder
+			local y, h = holder.AbsolutePosition.Y, holder.AbsoluteSize.Y
+			local visible = h > 0 and y + h >= top and y <= bottom
+			if visible then
+				mountRodViewport(slot)
+			elseif slot.view then
+				slot.view:Destroy()
+				slot.view = nil
+				slot.model = nil
+				slot.pose = nil
+			end
+		end
+	end
+
 	local function render()
-		table.clear(previews)
+		table.clear(slots)
 		body:ClearAllChildren()
 		Panel.stack(body)
 		local robuxButton = Panel.button(body, Text.robux.title, Theme.gold)
@@ -236,18 +310,16 @@ function Shop.start()
 			local row = Panel.card(body, accent, 168)
 			row.Name = rod.id
 			row.LayoutOrder = rod.order
-			local model, pose, view = preview(row, rod, accent)
-			table.insert(previews, { model = model, pose = pose, view = view })
-			model:PivotTo(CFrame.Angles(0, 0.35, DIAG_TILT) * pose)
+			table.insert(slots, createShowcase(row, rod, accent))
 			local title = Panel.label(row, Strings.rodName[rod.id] or rod.id, 22, Theme.ink)
-			title.Position = UDim2.fromScale(0.405, 0.04)
-			title.Size = UDim2.fromScale(0.565, 0.22)
+			title.Position = UDim2.fromScale(0.395, 0.04)
+			title.Size = UDim2.fromScale(0.585, 0.22)
 			title.TextStrokeTransparency = 1
-			fitLabel(title, 22)
+			fitLabel(title, 22, 12)
 			local bonus = Panel.label(
 				row,
 				string.format(
-					"%s +%.0f%%  ·  %s +%.0f%%",
+					"%s +%.0f%% · %s +%.0f%%",
 					Text.control,
 					rod.controlBonus * 100,
 					Text.luck,
@@ -256,10 +328,10 @@ function Shop.start()
 				15,
 				Theme.wood
 			)
-			bonus.Position = UDim2.fromScale(0.405, 0.25)
-			bonus.Size = UDim2.new(0.565, 0, 0, 28)
+			bonus.Position = UDim2.fromScale(0.395, 0.25)
+			bonus.Size = UDim2.new(0.585, 0, 0, 28)
 			bonus.TextStrokeTransparency = 1
-			fitLabel(bonus, 15)
+			fitLabel(bonus, 15, 11)
 
 			local owned = table.find(snapshot.rodsOwned, rod.id) ~= nil
 			local equipped = snapshot.equippedRod == rod.id
@@ -269,10 +341,10 @@ function Shop.start()
 			local seal = Panel.label(row, rarityText, 15, accent:Lerp(Color3.new(1, 1, 1), 0.28))
 			seal.Name = "RodRarity"
 			seal.BackgroundTransparency = 0
-			seal.Position = UDim2.fromScale(0.405, 0.45)
-			seal.Size = UDim2.fromScale(0.555, 0.17)
+			seal.Position = UDim2.fromScale(0.395, 0.45)
+			seal.Size = UDim2.fromScale(0.575, 0.17)
 			seal.TextStrokeTransparency = 1
-			fitLabel(seal, 15)
+			fitLabel(seal, 15, 12)
 			Theme.surface(seal, accent, 10, Theme.ink)
 			local blocked = equipped or (not owned and not affordable)
 			local price = formatPrice(rod.price)
@@ -291,8 +363,8 @@ function Shop.start()
 			button.Name = "RodAction"
 			button.TextSize = 16
 			button.AnchorPoint = Vector2.new(0.5, 0)
-			button.Position = UDim2.fromScale(0.68, 0.67)
-			button.Size = UDim2.new(0.555, 0, 0, 44)
+			button.Position = UDim2.fromScale(0.682, 0.67)
+			button.Size = UDim2.new(0.575, 0, 0, 44)
 			button.Interactable = not blocked
 			if blocked then
 				Panel.tintButton(
@@ -318,14 +390,23 @@ function Shop.start()
 				end)
 			end)
 		end
+		previewsDirty = true
+		task.defer(refreshVisibleViewports)
 	end
+
+	scroll:GetPropertyChangedSignal("CanvasPosition"):Connect(function()
+		previewsDirty = true
+	end)
+	scroll:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(function()
+		previewsDirty = true
+	end)
 
 	Hud.panelChanged:Connect(function(name: string)
 		gui.Enabled = name == "Shop"
 		if gui.Enabled then
 			render()
 		else
-			table.clear(previews)
+			table.clear(slots)
 			body:ClearAllChildren()
 		end
 	end)
@@ -335,6 +416,10 @@ function Shop.start()
 			wasReduced = false
 			return
 		end
+		if previewsDirty then
+			previewsDirty = false
+			refreshVisibleViewports()
+		end
 		local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 		if reduced and wasReduced then
 			return
@@ -343,13 +428,10 @@ function Shop.start()
 		if not reduced then
 			rotation = (rotation + dt * 0.65) % (2 * math.pi)
 		end
-		local top = scroll.AbsolutePosition.Y
-		local bottom = top + scroll.AbsoluteWindowSize.Y
 		local pose = CFrame.Angles(0, if reduced then 0.35 else rotation, DIAG_TILT)
-		for _, entry in previews do
-			local y = entry.view.AbsolutePosition.Y
-			if y < bottom and y + entry.view.AbsoluteSize.Y > top then
-				entry.model:PivotTo(pose * entry.pose)
+		for _, slot in slots do
+			if slot.model and slot.pose and slot.view and slot.view.Parent then
+				slot.model:PivotTo(pose * slot.pose)
 			end
 		end
 	end)

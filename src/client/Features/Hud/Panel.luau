@@ -310,18 +310,6 @@ function Panel.create(
 	bounds.MinSize = Vector2.new(300, 250)
 	bounds.MaxSize = Vector2.new(760, maxHeight or 570)
 	bounds.Parent = shell
-	local heading = Panel.label(shell, title, 26, Theme.sand)
-	heading.Name = "PanelTitle"
-	heading.AnchorPoint = Vector2.new(0.5, 0.5)
-	heading.Position = UDim2.new(0.56, 0, 0, 3)
-	heading.Size = UDim2.new(0.58, 0, 0, 44)
-	heading.TextScaled = true
-	heading.TextStrokeTransparency = 0.05
-	heading.ZIndex = 5
-	local headingSize = Instance.new("UITextSizeConstraint")
-	headingSize.MaxTextSize = 26
-	headingSize.MinTextSize = 15
-	headingSize.Parent = heading
 	local tab = Instance.new("Frame")
 	tab.Name = "TitleRibbon"
 	tab.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -338,25 +326,38 @@ function Panel.create(
 	local iconHolder = Instance.new("Frame")
 	iconHolder.Name = "TitleIcon"
 	iconHolder.AnchorPoint = Vector2.new(0, 0.5)
-	iconHolder.Position = UDim2.new(0, 13, 0.5, 0)
-	iconHolder.Size = UDim2.fromOffset(43, 43)
+	iconHolder.Position = UDim2.new(0, 10, 0.5, 0)
+	iconHolder.Size = UDim2.fromOffset(40, 40)
 	iconHolder.BackgroundColor3 = Theme.cream
 	iconHolder.BorderSizePixel = 0
 	iconHolder.ZIndex = 6
-	Theme.corner(iconHolder, 22)
+	Theme.corner(iconHolder, 20)
 	local iconStroke = Instance.new("UIStroke")
 	iconStroke.Color = Theme.outline
 	iconStroke.Thickness = 3
 	iconStroke.Parent = iconHolder
-	buttonIcon(iconHolder, ICONS[id] or "✨", 29, Theme.ink).ZIndex = 7
+	buttonIcon(iconHolder, ICONS[id] or "✨", 26, Theme.ink).ZIndex = 7
 	iconHolder.Parent = tab
+	local heading = Panel.label(tab, title, 26, Theme.sand)
+	heading.Name = "PanelTitle"
+	heading.AnchorPoint = Vector2.new(0, 0.5)
+	heading.Position = UDim2.new(0, 54, 0.5, -1)
+	heading.Size = UDim2.new(1, -60, 0, 38)
+	heading.TextWrapped = true
+	heading.TextScaled = true
+	heading.TextStrokeTransparency = 0.05
+	heading.ZIndex = 5
+	local headingSize = Instance.new("UITextSizeConstraint")
+	headingSize.MaxTextSize = 26
+	headingSize.MinTextSize = 11
+	headingSize.Parent = heading
 	tab.Parent = shell
 
 	local close = Instance.new("TextButton")
 	close.Name = "CloseButton"
 	close.AnchorPoint = Vector2.new(1, 0)
-	close.Position = UDim2.new(1, 5, 0, -12)
-	close.Size = UDim2.fromOffset(48, 48)
+	close.Position = UDim2.new(1, -4, 0, -8)
+	close.Size = UDim2.fromOffset(46, 46)
 	close.Text = "×"
 	close.TextSize = 36
 	close.Font = Theme.font
@@ -366,7 +367,7 @@ function Panel.create(
 	close.BackgroundColor3 = Color3.fromRGB(247, 75, 91)
 	close.AutoButtonColor = false
 	close.ZIndex = 8
-	Theme.corner(close, 24)
+	Theme.corner(close, 23)
 	local closeStroke = Instance.new("UIStroke")
 	closeStroke.Color = Theme.outline
 	closeStroke.Thickness = 4
@@ -383,8 +384,8 @@ function Panel.create(
 	scroll.BorderSizePixel = 0
 	-- Margins live in Position/Size, not in a UIPadding: scale-sized children of a ScrollingFrame
 	-- ignore its padding and ended up wider than the visible area (cut at the right edge).
-	scroll.Position = UDim2.fromOffset(32, 66)
-	scroll.Size = UDim2.new(1, -64, 1, -84)
+	scroll.Position = UDim2.fromOffset(28, 64)
+	scroll.Size = UDim2.new(1, -56, 1, -80)
 	scroll.ZIndex = 2
 	scroll.ScrollBarThickness = 6
 	scroll.VerticalScrollBarInset = Enum.ScrollBarInset.Always
@@ -402,7 +403,7 @@ function Panel.create(
 		local insetTop = GuiService:GetGuiInset()
 		local topSafe = math.max(math.round(insetTop.Y) + 18, 66)
 		local availHeight = math.max(240, size.Y - topSafe - 16)
-		local width = math.min(size.X * 0.91, 760)
+		local width = math.min(size.X * 0.88, 760)
 		local height = math.min(availHeight * (heightScale or 0.92), maxHeight or 570)
 		local viewRatio = math.clamp(width / math.max(height, 1), 0.68, 2.8)
 		if width / math.max(height, 1) > viewRatio then
@@ -413,6 +414,12 @@ function Panel.create(
 		ratio.AspectRatio = viewRatio
 		shell.Size = UDim2.fromOffset(width, height)
 		shell.Position = UDim2.new(0.5, 0, 0, topSafe + math.floor((size.Y - topSafe) * 0.5))
+		local narrow = width <= 420
+		tab.Size = UDim2.new(if narrow then 0.80 else 0.69, 0, 0, 48)
+		tab.Position = UDim2.new(if narrow then 0.44 else 0.5, 0, 0, 7)
+		local sidePad = if narrow then 16 else 28
+		scroll.Position = UDim2.fromOffset(sidePad, 64)
+		scroll.Size = UDim2.new(1, -(sidePad * 2), 1, -80)
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	shell.Parent = gui

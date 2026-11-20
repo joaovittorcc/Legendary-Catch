@@ -123,7 +123,7 @@ function Leaderboard.start()
 	local boardView = Instance.new("Frame")
 	boardView.Name = "BoardView"
 	boardView.BackgroundTransparency = 1
-	boardView.Size = UDim2.fromScale(1, 0)
+	boardView.Size = UDim2.new(1, -10, 0, 0)
 	boardView.AutomaticSize = Enum.AutomaticSize.Y
 	Panel.stack(boardView)
 	boardView.Parent = scroll
@@ -131,7 +131,7 @@ function Leaderboard.start()
 	local albumView = Instance.new("Frame")
 	albumView.Name = "AlbumView"
 	albumView.BackgroundTransparency = 1
-	albumView.Size = UDim2.fromScale(1, 0)
+	albumView.Size = UDim2.new(1, -10, 0, 0)
 	albumView.AutomaticSize = Enum.AutomaticSize.Y
 	albumView.Visible = false
 	Panel.stack(albumView)
@@ -513,11 +513,15 @@ function Leaderboard.start()
 		local nameLabel = Panel.label(row, displayName, 16, Theme.ink)
 		nameLabel.Name = "PlayerName"
 		nameLabel.Position = UDim2.fromOffset(94, 0)
-		nameLabel.Size = UDim2.new(if inServer then 0.65 else 0.73, -100, 1, 0)
+		nameLabel.Size = UDim2.new(if inServer then 0.72 else 0.75, -100, 1, 0)
 		nameLabel.TextXAlignment = Enum.TextXAlignment.Left
-		nameLabel.TextWrapped = false
+		nameLabel.TextScaled = true
 		nameLabel.TextTruncate = Enum.TextTruncate.AtEnd
 		nameLabel.TextStrokeTransparency = 1
+		local nameLimit = Instance.new("UITextSizeConstraint")
+		nameLimit.MinTextSize = 11
+		nameLimit.MaxTextSize = 16
+		nameLimit.Parent = nameLabel
 
 		local scoreLabel =
 			Panel.label(row, string.format("%d", math.round(entry.score)), 16, Theme.wood)
