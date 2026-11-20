@@ -242,13 +242,7 @@ function RevealCard.open(
 	local cameraAxes = CFrame.lookAt(Vector3.zero, -viewer)
 	local region = Rect.new(0.06, 0.07, 0.94, 0.93)
 
-	local function rotate(elapsed: number)
-		local turn = math.rad(-48) + (if reduced then 0 else elapsed * PREVIEW_SPEED)
-		local pose = Framing.pose(bounds, Vector3.zero, viewer, turn)
-		model:PivotTo(pose)
-		if not reduced then
-			CreatureMotion.poseBones(previewMotion, elapsed)
-		end
+	local function framePreview(pose: CFrame)
 		local viewport = preview.AbsoluteSize
 		if viewport.X > 0 and viewport.Y > 0 then
 			camera.CFrame = Framing.camera(
@@ -263,11 +257,27 @@ function RevealCard.open(
 			)
 		end
 	end
+
+	local function rotate(elapsed: number)
+		local turn = math.rad(-48)
+			+ (if reduced or previewMotion.static then 0 else elapsed * PREVIEW_SPEED)
+		local pose = Framing.pose(bounds, Vector3.zero, viewer, turn)
+		model:PivotTo(pose)
+		if not reduced then
+			CreatureMotion.poseBones(previewMotion, elapsed)
+		end
+		framePreview(pose)
+	end
+
+	local previewResized = preview:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
+		framePreview(model:GetPivot())
+	end)
 	rotate(0)
 
 	return {
 		preview = rotate,
 		close = function(instant: boolean)
+			previewResized:Disconnect()
 			resized:Disconnect()
 			if enter then
 				enter:Cancel()

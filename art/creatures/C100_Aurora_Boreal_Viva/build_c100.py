@@ -69,7 +69,7 @@ def build():
                          ((side*1.05,.55,.69-i*.24),.042,.17),
                          ((side*reach,.70,.91-i*.30),.021,.09),
                          ((side*(reach+.07),.78,1.16-i*.35),.007,.013)],
-                        "aurora" if i!=1 else "ribbon",sides=8,reference=(0,1,.12),steps=3)
+                        ("aurora","ribbon","violet")[i],sides=8,reference=(0,1,.12),steps=3)
         glow = extra if side == -1 else right_glow
         for j in range(3):
             x, y, z = side*(.293+.037*j), -.956+.06*j, 1.063+.02*j

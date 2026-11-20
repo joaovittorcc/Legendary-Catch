@@ -11,14 +11,14 @@
     1024,
     1024
   ],
-  "triangles": 4824,
+  "triangles": 5068,
   "parts": {
     "Body": 1372,
     "Head": 916,
     "Tail": 152,
     "Claws": 816,
     "Tentacles": 240,
-    "Shell": 876,
+    "Shell": 1120,
     "Extra": 164,
     "Extra.001": 192,
     "Extra.002": 96

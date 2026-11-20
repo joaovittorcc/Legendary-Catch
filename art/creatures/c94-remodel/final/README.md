@@ -24,7 +24,7 @@ O ciclo tem 5 segundos a 24 fps na fonte. O cavaleiro ergue a guarda com as duas
 
 Reimportei os três FBXs no Blender. Confirmei UV única, atlas embutido, peças, contagem de triângulos e escala. No FBX animado, comparei as poses inicial, intermediária e final para confirmar a elevação da guarda, o movimento das asas e o retorno à pose. Importei o FBX rígido com espada em um place local e confirmei nove MeshParts com textura, frente +Z, altura e pivô. StyLua e Selene passaram com zero erros.
 
-A versão com espada foi instalada no pool do place principal e a antiga foi movida para o backup. O Studio salvou a versão 63 na nuvem e confirmou a publicação do place. Os nove MeshParts e o atlas carregaram no teste. Em Play no PC, a chamada direta à cinemática mostrou a C94 de frente, com espada, asas e halo na cena e no card 3D. A versão publicada usa o `CreatureMotion` do jogo. A faixa de 5 segundos do Blender segue no FBX.
+A versão com espada foi instalada no pool do place principal e a antiga foi movida para o backup. Os nove MeshParts e o atlas carregaram no teste. Em Play no PC, a chamada direta à cinemática mostrou a C94 de frente, com espada, asas e halo na cena e no card 3D. A pedido do João, a C94 fica com pose fixa durante a revelação, no card 3D e na Coleção. A cinemática mantém a câmera e os efeitos. A faixa de 5 segundos segue no FBX editável.
 
 Ficaram sem teste a pesca completa, a Coleção, ReduceEffects, mobile, multiplayer e uma sessão no cliente publicado.
 

@@ -60,6 +60,10 @@ def build():
         crown.gem((x,-.059+.04*abs(j),.73),
                   (x*1.42,-.23+.10*abs(j),1.29-.095*abs(j)),
                   .133-.009*abs(j),"rim" if j%2 else "bolt",sides=6)
+    for side in (-1,1):
+        for j in range(3):
+            x, y, z = side*(.56-j*.056), .27+j*.12, .32+j*.117
+            body.gem((x,y,z),(x+side*.083,y+.035,z+.09),.044,"rim",sides=5)
 
     for i in range(8):
         angle = (i + .5) * math.tau / 8

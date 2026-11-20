@@ -13,6 +13,7 @@ type Limb = {
 
 export type Motion = {
 	model: Model,
+	static: boolean,
 	center: Vector3,
 	amplitude: number,
 	tempo: number,
@@ -236,6 +237,7 @@ function CreatureMotion.bind(model: Model, style: string?): Motion
 	task.defer(CreatureAura.attach, model)
 	return {
 		model = model,
+		static = model.Name == "C94_Mare_Primordial",
 		center = pivot:PointToObjectSpace(box.Position),
 		amplitude = math.clamp(math.max(size.X, size.Y, size.Z) * 0.075, 0.12, 0.55),
 		tempo = TEMPO[style or ""] or 1,
@@ -281,7 +283,9 @@ local function poseSkinnedRig(motion: Motion, elapsed: number)
 end
 
 function CreatureMotion.poseBones(motion: Motion, elapsed: number)
-	poseSkinnedRig(motion, elapsed)
+	if not motion.static then
+		poseSkinnedRig(motion, elapsed)
+	end
 end
 
 -- Moves each segmented limb around its hinge (call after the model is pivoted).
@@ -315,6 +319,10 @@ function CreatureMotion.reset(motion: Motion, base: CFrame)
 end
 
 function CreatureMotion.pose(motion: Motion, base: CFrame, elapsed: number, showTurn: boolean)
+	if motion.static then
+		motion.model:PivotTo(base)
+		return
+	end
 	local phase = elapsed * math.pi * 2 * motion.tempo
 	local sway = math.sin(phase * 0.55)
 	local wave = math.sin(phase)

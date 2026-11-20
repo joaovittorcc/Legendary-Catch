@@ -15,7 +15,7 @@ Blender 4.2 ou mais novo, executado em segundo plano. Os scripts usam o Python d
 ## Conferência no Studio depois da aprovação
 
 - Em um place de teste, use **File → Import 3D**, Scale Unit **Studs**, peças separadas em um único Model. Faça a primeira importação com upload desligado. Para a integração aprovada, selecione o dono do jogo e ligue o upload.
-- Execute o ModuleScript temporário `ImportCreature.luau` sobre a importação em Edit, passando modelo, ID, raridade e `true` opcional somente se todas as peças Extra devem ser Neon. O helper valida frente `+Z`, envergadura e nomes, posiciona o pivô do Body no centro e aplica as flags de colisão. Mantenha o MeshPart na orientação original da importação antes de chamar o helper.
+- Confira a orientação no Studio. O perfil padrão do importador trouxe os FBXs do piloto com frente `-Z`. Nesse caso, gire o Model inteiro 180° em Y antes de preparar. Execute o ModuleScript temporário `ImportCreature.luau` sobre a importação em Edit, passando modelo, ID, raridade e `true` opcional somente se todas as peças Extra devem ser Neon. O helper valida frente `+Z`, envergadura e nomes, posiciona o pivô do Body no centro e aplica as flags de colisão.
 - Só após a validação, mova o modelo antigo para `ReplicatedStorage.CreaturesOld.<id>`, ponha o novo em `ReplicatedStorage.Creatures.<id>` e registre os IDs de mesh e atlas. Confira revelação, card, Coleção, movimento, aura e ReduceEffects em Play e siga as regras de lock e save do projeto.
 
 Método de silhueta, blocos de forma, atlas e validação baseado no vault fwjelaa. Geometria e pintura do piloto são próprias.
