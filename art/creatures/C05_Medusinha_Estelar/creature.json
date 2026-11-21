@@ -1,0 +1,11 @@
+{
+  "id": "C05_Medusinha_Estelar",
+  "rarity": "Uncommon",
+  "family": "jelly",
+  "colors": {
+    "main": "414496/696DDD/AAA7FF",
+    "accent": "A16AC0/F39BCD"
+  },
+  "arms": 5,
+  "pattern": "star"
+}

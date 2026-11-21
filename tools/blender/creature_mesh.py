@@ -43,6 +43,8 @@ def atlas(path: Path, palette, size):
             detail -= 0.12 * np.exp(-(np.sin(4 * math.pi * v) / 0.13) ** 2)
         elif pattern == "vein":
             detail += 0.15 * np.exp(-(np.sin(3 * math.tau * u + 1.2 * np.sin(math.tau * v)) / 0.23) ** 2)
+        elif pattern == "bands":
+            detail += 0.12 * np.tanh(3 * np.cos(3 * math.tau * v))
         elif pattern == "star":
             stars = np.zeros_like(u)
             for _ in range(34):

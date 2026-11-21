@@ -1,0 +1,23 @@
+{
+  "id": "C06_Cavalo_Marinho_Coral",
+  "rarity": "Uncommon",
+  "roblox_xyz_studs": [
+    1.782,
+    2.86,
+    2.119
+  ],
+  "head_minus_tail_z": 0.996,
+  "atlas_px": [
+    256,
+    256
+  ],
+  "triangles": 722,
+  "parts": {
+    "Body": 116,
+    "Head": 282,
+    "Tail": 204,
+    "Fins": 44,
+    "FinL": 38,
+    "FinR": 38
+  }
+}

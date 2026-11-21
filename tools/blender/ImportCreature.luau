@@ -24,7 +24,8 @@ local function prepareCreature(
 	neonExtras: boolean?
 ): Vector3
 	assert(string.match(id, "^C%d+_[%w_]+$"), "Expected the exact creature ID from Config")
-	assert(rarity == "Epic" or rarity == "Legendary", "Unsupported creature budget")
+	local small = rarity == "Common" or rarity == "Uncommon"
+	assert(small or rarity == "Epic" or rarity == "Legendary", "Unsupported creature budget")
 
 	local parts: { MeshPart } = {}
 	local byName: { [string]: MeshPart } = {}
@@ -71,8 +72,8 @@ local function prepareCreature(
 	end
 	local size = high - low
 	local span = math.max(size.X, size.Y, size.Z)
-	local minSize = if rarity == "Epic" then 3.0 else 3.2
-	local maxSize = if rarity == "Epic" then 3.2 else 3.6
+	local minSize = if small then 2.7 elseif rarity == "Epic" then 3.0 else 3.2
+	local maxSize = if small then 2.95 elseif rarity == "Epic" then 3.2 else 3.6
 	assert(span >= minSize - 0.005 and span <= maxSize + 0.005, "Unexpected scale in studs")
 
 	for _, part in parts do

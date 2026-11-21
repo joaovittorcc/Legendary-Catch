@@ -12,7 +12,12 @@ from mathutils import Vector
 
 PARTS = {"Body", "Head", "Tail", "FinL", "FinR", "Fins", "Wings", "Tentacles", "Legs", "Claws", "Shell", "Extra"}
 REQUIRED = {"Body", "Head", "Tail"}
-BUDGETS = {"Epic": (2500, 800, 512, 3.0, 3.2), "Legendary": (6000, 1500, 1024, 3.2, 3.6)}
+BUDGETS = {
+    "Common": (600, 200, 256, 2.7, 2.95),
+    "Uncommon": (900, 300, 256, 2.7, 2.95),
+    "Epic": (2500, 800, 512, 3.0, 3.2),
+    "Legendary": (6000, 1500, 1024, 3.2, 3.6),
+}
 
 
 def mesh_objects():

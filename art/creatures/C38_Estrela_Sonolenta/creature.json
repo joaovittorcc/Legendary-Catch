@@ -1,0 +1,10 @@
+{
+  "id": "C38_Estrela_Sonolenta",
+  "rarity": "Common",
+  "family": "star",
+  "colors": {
+    "main": "BA617E/EC8E9E/FFBEA2",
+    "accent": "CA6C8F/EFA8B3"
+  },
+  "sleepy": true
+}

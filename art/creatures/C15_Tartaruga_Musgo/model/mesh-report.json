@@ -1,0 +1,24 @@
+{
+  "id": "C15_Tartaruga_Musgo",
+  "rarity": "Uncommon",
+  "roblox_xyz_studs": [
+    2.676,
+    1.317,
+    2.86
+  ],
+  "head_minus_tail_z": 2.043,
+  "atlas_px": [
+    256,
+    256
+  ],
+  "triangles": 634,
+  "parts": {
+    "Body": 96,
+    "Head": 244,
+    "Tail": 38,
+    "Shell": 116,
+    "Legs": 64,
+    "FinL": 38,
+    "FinR": 38
+  }
+}

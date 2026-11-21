@@ -12,6 +12,14 @@ Blender 4.2 ou mais novo, executado em segundo plano. Os scripts usam o Python d
 
 `export_creature.py` também exporta um `.blend` já pronto. `preview_creature.py` gera as vistas de um `.blend` em uma pasta de escolha. Ambos aceitam argumentos após `--`. `check_creature.py` valida `.blend` ou FBX, com opção `--report <arquivo.json>`. Ele verifica malhas diretas, frente, nomes, escala, UV, atlas, rig e triângulos. O orçamento é de 2.500/800 triângulos para Épica e 6.000/1.500 para Lendária (total/peça).
 
+## Comuns e Incomuns
+
+Passe os arquivos `art/creatures/<ID>/creature.json` ao script de lote. Cada ficha define ID, raridade, família e cores. `lib_creatures.py` reaproveita olhos, curvas, nadadeiras e silhuetas das famílias, com ajustes como `width`, `height`, `arms` ou `sleepy` conforme a anatomia. O lote gera fonte, FBX, atlas de 256 px, seis vistas e relatório por ID. O limite é 600/200 triângulos para Comum e 900/300 para Incomum (total/peça).
+
+```powershell
+& $blender -b --factory-startup --python-exit-code 1 -P tools/blender/build_creatures.py -- art/creatures/C02_Sardinha_Solar/creature.json art/creatures/C05_Medusinha_Estelar/creature.json
+```
+
 ## Conferência no Studio depois da aprovação
 
 - Em um place de teste, use **File → Import 3D**, Scale Unit **Studs**, peças separadas em um único Model. Faça a primeira importação com upload desligado. Para a integração aprovada, selecione o dono do jogo e ligue o upload.

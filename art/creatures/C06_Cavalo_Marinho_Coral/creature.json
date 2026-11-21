@@ -1,0 +1,10 @@
+{
+  "id": "C06_Cavalo_Marinho_Coral",
+  "rarity": "Uncommon",
+  "family": "seahorse",
+  "colors": {
+    "main": "C75683/EE7FA5/FFBC9F",
+    "accent": "F19B44/FFCC75"
+  },
+  "pattern": "bands"
+}

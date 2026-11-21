@@ -1,0 +1,23 @@
+{
+  "id": "C12_Camarao_Confete",
+  "rarity": "Common",
+  "roblox_xyz_studs": [
+    1.623,
+    2.323,
+    2.86
+  ],
+  "head_minus_tail_z": 1.979,
+  "atlas_px": [
+    256,
+    256
+  ],
+  "triangles": 596,
+  "parts": {
+    "Body": 96,
+    "Head": 200,
+    "Tail": 64,
+    "Legs": 120,
+    "Claws": 64,
+    "Fins": 52
+  }
+}

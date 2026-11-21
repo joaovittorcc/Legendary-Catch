@@ -1,0 +1,20 @@
+{
+  "id": "C38_Estrela_Sonolenta",
+  "rarity": "Common",
+  "roblox_xyz_studs": [
+    2.86,
+    2.82,
+    1.29
+  ],
+  "head_minus_tail_z": 0.658,
+  "atlas_px": [
+    256,
+    256
+  ],
+  "triangles": 380,
+  "parts": {
+    "Body": 180,
+    "Head": 148,
+    "Tail": 52
+  }
+}

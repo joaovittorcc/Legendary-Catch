@@ -38,7 +38,8 @@ def pack(creature_id, rarity, build, palette, out, atlas_size, render=False):
     bpy.context.view_layer.update()
     low, high = bounds(objects)
     center = (low + high) / 2
-    scale = (3.48 if rarity == "Legendary" else 3.14) / max(high - low)
+    target_size = {"Epic": 3.14, "Legendary": 3.48}.get(rarity, 2.86)
+    scale = target_size / max(high - low)
     for obj in objects:
         obj.location = (obj.location - center) * scale
         for v in obj.data.vertices:

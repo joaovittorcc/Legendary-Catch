@@ -1,0 +1,11 @@
+{
+  "id": "C02_Sardinha_Solar",
+  "rarity": "Common",
+  "family": "fish",
+  "colors": {
+    "main": "D46131/FFAA37/FFD96B",
+    "accent": "459CAF/7CDEDB"
+  },
+  "width": 0.39,
+  "height": 0.48
+}

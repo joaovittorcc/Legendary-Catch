@@ -1,0 +1,3339 @@
+[
+  {
+    "id": "C01_Bolhinha_Azul",
+    "primary": "Body",
+    "size": [
+      2.44,
+      2.473,
+      3
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.735,
+          2.29,
+          1.869
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.003,
+          -0.823,
+          0.362
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.593,
+          1.011,
+          2.44
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.27,
+          -1.35
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.565,
+          1.139,
+          1.496
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C02_Sardinha_Solar",
+    "primary": "Body",
+    "size": [
+      1.823,
+      1.91,
+      3
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.492,
+          1.496,
+          2.326
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.008,
+          0.123,
+          -0.317
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.823,
+          1.91,
+          1.444
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.01,
+          0.068,
+          -1.478
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.328,
+          1.159,
+          0.719
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C03_Siri_Pipoca",
+    "primary": "Body",
+    "size": [
+      3,
+      1.791,
+      1.77
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.165,
+          1.517,
+          1.701
+        ]
+      },
+      {
+        "name": "Claws",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.571,
+          -0.019
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          3,
+          0.923,
+          0.714
+        ]
+      },
+      {
+        "name": "Legs",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          -0.447,
+          -0.013
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.245,
+          0.469,
+          1.77
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C04_Baiacu_Nuvem",
+    "primary": "Body",
+    "size": [
+      2.498,
+      2.213,
+      2.075
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.198,
+          2.213,
+          2.075
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.004,
+          0.221,
+          0.474
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.205,
+          1.255,
+          0.635
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.948,
+          -0.124,
+          -0.633
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.596,
+          0.804,
+          0.504
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.949,
+          -0.124,
+          -0.63
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.606,
+          0.807,
+          0.516
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C05_Medusinha_Estelar",
+    "primary": "Body",
+    "size": [
+      2.07,
+      3,
+      2.063
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.07,
+          3,
+          2.063
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          -0.46,
+          -0.003
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.393,
+          1.757,
+          1.381
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C06_Cavalo_Marinho_Coral",
+    "primary": "Body",
+    "size": [
+      1.3,
+      3,
+      1.724
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.93,
+          1.312,
+          1.312
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.007,
+          1.208,
+          0.042
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.998,
+          1.336,
+          1.724
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.01,
+          0.197,
+          -0.04
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.3,
+          0.311,
+          0.268
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.005,
+          -0.816,
+          -0.162
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.351,
+          0.615,
+          0.684
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C11_Pingo_Lanterna",
+    "primary": "Body",
+    "size": [
+      2.105,
+      3,
+      2.385
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.075,
+          2.464,
+          2.385
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          -0.143,
+          -0.12
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.862,
+          0.551,
+          0.713
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.329,
+          0.441,
+          0.301
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.477,
+          2.655,
+          1.381
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C12_Camarao_Confete",
+    "primary": "Body",
+    "size": [
+      1.709,
+      3,
+      2.639
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.447,
+          1.998,
+          1.551
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.079,
+          1.312,
+          0.319
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.709,
+          1.378,
+          1.794
+        ]
+      },
+      {
+        "name": "Legs",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.078,
+          -0.443,
+          1.49
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.822,
+          0.714,
+          0.748
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.075,
+          -0.504,
+          1.199
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.674,
+          0.981,
+          1.229
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C13_Linguado_Sonolento",
+    "primary": "Body",
+    "size": [
+      1.926,
+      2.1,
+      3
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.926,
+          2.1,
+          2.319
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.201,
+          0.67
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.35,
+          0.289,
+          0.258
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          -0.234,
+          -1.431
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.402,
+          1.02,
+          0.818
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C14_Polvinho_Aquarela",
+    "primary": "Body",
+    "size": [
+      2.7,
+      2.058,
+      2.698
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.768,
+          2.044,
+          1.63
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          0.061,
+          0.559
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.838,
+          0.199,
+          0.169
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.575,
+          0.081
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.7,
+          0.923,
+          2.698
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C15_Tartaruga_Musgo",
+    "primary": "Body",
+    "size": [
+      2.077,
+      2.2,
+      2.516
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.016,
+          1.585,
+          2.061
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.06,
+          0.981
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.95,
+          0.773,
+          0.82
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          0.32,
+          -0.118
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.874,
+          0.997,
+          2.013
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.664,
+          -0.419,
+          0.594
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.752,
+          0.736,
+          0.522
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.667,
+          -0.422,
+          0.594
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.74,
+          0.737,
+          0.521
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          1.067,
+          0.015
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.451,
+          0.68,
+          1.439
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C16_Voador_Brisa",
+    "primary": "Body",
+    "size": [
+      3,
+      2.392,
+      2.829
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.113,
+          1.289,
+          1.777
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.003,
+          -0.092,
+          1.17
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.074,
+          1.096,
+          0.651
+        ]
+      },
+      {
+        "name": "Wings",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          0.912,
+          -0.132
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          3,
+          1.523,
+          1.56
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          -0.163,
+          -1.078
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.615,
+          0.822,
+          0.512
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.455,
+          0.485
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.612,
+          0.525,
+          0.69
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C25_Ourico_Gelatina",
+    "primary": "Body",
+    "size": [
+      2.973,
+      1.929,
+      2.97
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.646,
+          1.694,
+          2.643
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.139,
+          0.647,
+          0.198
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.145,
+          0.87,
+          0.947
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C26_Peixe_Pipa",
+    "primary": "Body",
+    "size": [
+      2.95,
+      2.185,
+      2.072
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.866,
+          1.66,
+          1.753
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.931,
+          0.159,
+          0.102
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.091,
+          0.795,
+          0.82
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.93,
+          0.159,
+          0.1
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.088,
+          0.794,
+          0.823
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.134,
+          -0.1,
+          -0.491
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.561,
+          2.185,
+          1.409
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C27_Ermitao_Cristal",
+    "primary": "Body",
+    "size": [
+      2.401,
+      2.308,
+      3.093
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.4,
+          1.031,
+          1.138
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.134,
+          0.41,
+          -0.767
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.006,
+          2.157,
+          2.343
+        ]
+      },
+      {
+        "name": "Claws",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.119,
+          -0.43,
+          0.462
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.897,
+          0.674,
+          0.898
+        ]
+      },
+      {
+        "name": "Legs",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.052,
+          -0.493,
+          -0.339
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.116,
+          0.653,
+          1.246
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C31_Carpa_Celeste",
+    "primary": "Body",
+    "size": [
+      2.058,
+      1.831,
+      2.957
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.425,
+          1.476,
+          2.041
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.04,
+          0.225,
+          -0.333
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.856,
+          1.735,
+          1.572
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.401,
+          0.198,
+          -1.305
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.234,
+          1.269,
+          0.937
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C35_Bagre_Bigodudo",
+    "primary": "Body",
+    "size": [
+      2.449,
+      2.745,
+      2.8
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.849,
+          2.383,
+          2.752
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.003,
+          0.77,
+          0.77
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.782,
+          1.095,
+          1.054
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.818,
+          -0.3,
+          -0.637
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.808,
+          1.014,
+          0.372
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.821,
+          -0.298,
+          -0.638
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.812,
+          1.016,
+          0.372
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.755,
+          -0.688
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.214,
+          0.559,
+          1.014
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.541,
+          -0.252
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.962,
+          2.025,
+          2.344
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C36_Peixe_Bolha_Rosa",
+    "primary": "Body",
+    "size": [
+      2.1,
+      2.073,
+      2.4
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.734,
+          1.99,
+          2.194
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.612,
+          -0.554,
+          0.178
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.874,
+          1.049,
+          0.878
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.615,
+          -0.553,
+          0.175
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.872,
+          1.046,
+          0.879
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          -0.242,
+          -0.81
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.717,
+          0.925,
+          0.986
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C37_Caramujo_Doce",
+    "primary": "Body",
+    "size": [
+      1.774,
+      2.189,
+      2.5
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.088,
+          1.064,
+          2.5
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.004,
+          0.67,
+          -0.145
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.774,
+          0.28,
+          0.308
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.004,
+          0.707,
+          -0.143
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.659,
+          1.901,
+          2.066
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C38_Estrela_Sonolenta",
+    "primary": "Body",
+    "size": [
+      2.392,
+      2.55,
+      1.163
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.392,
+          2.165,
+          1.163
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.109,
+          1.149,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.02,
+          0.637,
+          0.865
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.005,
+          0.328,
+          0.477
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.644,
+          0.071,
+          0.08
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C39_Lambari_Prata",
+    "primary": "Body",
+    "size": [
+      0.978,
+      1.372,
+      2.75
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.663,
+          0.894,
+          2.298
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.352,
+          -0.193,
+          0.154
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.277,
+          0.278,
+          0.555
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.335,
+          -0.093,
+          0.406
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.303,
+          0.478,
+          1.059
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0.058,
+          -0.356
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.574,
+          1.372,
+          1.086
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.003,
+          0.056,
+          -1.297
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.1,
+          0.823,
+          0.608
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C40_Caranguejo_Bolacha",
+    "primary": "Body",
+    "size": [
+      2.65,
+      1.425,
+      2.573
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.803,
+          0.568,
+          1.727
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.435,
+          -0.003
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.004,
+          0.694,
+          1.917
+        ]
+      },
+      {
+        "name": "Claws",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.003,
+          -0.224,
+          1.018
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.947,
+          0.675,
+          1.187
+        ]
+      },
+      {
+        "name": "Legs",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.263,
+          0.279
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.65,
+          0.76,
+          0.957
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C41_Palhaco_Neon",
+    "primary": "Body",
+    "size": [
+      2.181,
+      1.94,
+      2.6
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.415,
+          1.911,
+          2.329
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.769,
+          -0.258,
+          0.306
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.638,
+          0.415,
+          0.297
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.771,
+          -0.257,
+          0.306
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.644,
+          0.418,
+          0.298
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.777,
+          0.267
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.115,
+          0.414,
+          0.29
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          -0.279,
+          -1.191
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.061,
+          1.021,
+          0.488
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C42_Lulinha_Gota",
+    "primary": "Body",
+    "size": [
+      1.731,
+      2.45,
+      1.711
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.775,
+          0.916,
+          0.778
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          1.138,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.449,
+          1.708,
+          1.448
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          1.28,
+          -0.001
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.46,
+          0.622,
+          0.266
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          -0.097,
+          -0.001
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.731,
+          0.688,
+          1.711
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C43_Baiacu_Algodao_Doce",
+    "primary": "Body",
+    "size": [
+      2.6,
+      2.279,
+      2.507
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.333,
+          2.092,
+          2.507
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          1.078,
+          0.067,
+          -0.623
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.446,
+          0.724,
+          0.457
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -1.076,
+          0.066,
+          -0.626
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.445,
+          0.727,
+          0.456
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          0.956,
+          -0.414
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.461,
+          0.555,
+          1.018
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C44_Arraia_Pintada",
+    "primary": "Body",
+    "size": [
+      2.95,
+      1.41,
+      2.359
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.95,
+          1.41,
+          2.359
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.003,
+          -0.186,
+          0.796
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.701,
+          0.177,
+          0.268
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -1.085,
+          -0.489,
+          -0.792
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.768,
+          0.348,
+          0.688
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          1.091,
+          -0.489,
+          -0.792
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.767,
+          0.348,
+          0.686
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.004,
+          0.126,
+          -0.599
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.291,
+          1.152,
+          1.155
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C45_Tartaruguinha_Coral",
+    "primary": "Body",
+    "size": [
+      2.053,
+      2.21,
+      2.75
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.871,
+          0.787,
+          1.888
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          1.052,
+          1.032
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.258,
+          1.196,
+          0.971
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.003,
+          0.586,
+          -0.064
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.053,
+          1.662,
+          2.336
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.292,
+          1.192,
+          -1.008
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.658,
+          1.226,
+          0.175
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.336,
+          1.197,
+          -1.01
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.755,
+          1.235,
+          0.175
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.004,
+          1.341,
+          -1.009
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.425,
+          0.95,
+          0.177
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C46_Peixe_Leque",
+    "primary": "Body",
+    "size": [
+      1.04,
+      2.85,
+      2.77
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.04,
+          1.257,
+          1.963
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.26,
+          -0.767,
+          0.032
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.307,
+          0.527,
+          0.483
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.262,
+          -0.767,
+          0.032
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.309,
+          0.527,
+          0.485
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          -0.767,
+          0.077
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.785,
+          0.525,
+          0.398
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          -0.045,
+          -0.719
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.218,
+          2.85,
+          2.138
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C47_Medusa_Lanterna",
+    "primary": "Body",
+    "size": [
+      1.612,
+      2.9,
+      1.62
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.612,
+          2.9,
+          1.62
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.005,
+          -0.319,
+          0.008
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.379,
+          1.892,
+          1.356
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.664,
+          0.131,
+          0.002
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.107,
+          0.105,
+          0.083
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#FFC34B",
+        "pivotPosition": [
+          0,
+          0.25,
+          0
+        ],
+        "class": "Part",
+        "material": "Neon",
+        "size": [
+          0.32,
+          0.36,
+          0.32
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C48_Peixe_Anjo_Real",
+    "primary": "Body",
+    "size": [
+      2.305,
+      2.664,
+      2.85
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.554,
+          1.905,
+          2.266
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.801,
+          -0.337,
+          0.14
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.705,
+          0.442,
+          0.664
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.798,
+          -0.34,
+          0.14
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.706,
+          0.444,
+          0.669
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.003,
+          -1.078,
+          0.038
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.053,
+          0.508,
+          0.564
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          -0.055,
+          -1.307
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.578,
+          1.19,
+          0.819
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          -0.012,
+          -0.383
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.244,
+          2.664,
+          1.4
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C49_Polvo_Bolinhas",
+    "primary": "Body",
+    "size": [
+      2.8,
+      2.541,
+      2.695
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.792,
+          0.933,
+          2.689
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.01,
+          1.094,
+          -0.138
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.033,
+          1.962,
+          2.079
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          -0.03,
+          0.001
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.8,
+          0.872,
+          2.695
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C65_Tilapia_Moranguinho",
+    "primary": "Body",
+    "size": [
+      2.75,
+      2.624,
+      2.163
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.099,
+          2.233,
+          2.162
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          0.153,
+          0.743
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.002,
+          1.003,
+          0.62
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -1.065,
+          -0.088,
+          -0.249
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.621,
+          0.909,
+          0.435
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          1.059,
+          -0.09,
+          -0.249
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.629,
+          0.92,
+          0.436
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          1.109,
+          -0.415
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.193,
+          0.271,
+          0.758
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.003,
+          1.242,
+          -0.001
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.537,
+          0.531,
+          1.57
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C66_Ourico_Pompom",
+    "primary": "Body",
+    "size": [
+      2.65,
+      1.695,
+      2.62
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.955,
+          1.695,
+          1.85
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.016,
+          0.1,
+          0.023
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.523,
+          1.141,
+          1.35
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C67_Lesma_do_Mar_Arco_iris",
+    "primary": "Body",
+    "size": [
+      1.704,
+      2.073,
+      2.75
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.702,
+          1.655,
+          2.722
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.216,
+          1.032
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.702,
+          0.275,
+          0.251
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          0.85,
+          0.735
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.229,
+          0.791,
+          0.314
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.171,
+          -1.076
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.45,
+          0.733,
+          0.622
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C68_Peixe_Biscoito",
+    "primary": "Body",
+    "size": [
+      2.7,
+      2.221,
+      2.601
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.699,
+          2.221,
+          2.332
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0.011,
+          0.826
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.308,
+          0.858,
+          0.432
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.462,
+          -0.014,
+          -0.57
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.652,
+          2.173,
+          0.732
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.469,
+          -0.016,
+          -0.57
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.664,
+          2.18,
+          0.726
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          -0.03,
+          -1.05
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.231,
+          0.966,
+          0.767
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C69_Ermitao_Xicara",
+    "primary": "Body",
+    "size": [
+      2.639,
+      2.26,
+      2.75
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.111,
+          1.722,
+          1.768
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.087,
+          -0.295,
+          0.14
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.814,
+          0.972,
+          1.797
+        ]
+      },
+      {
+        "name": "Claws",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.079,
+          0.901,
+          0.127
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.243,
+          0.996,
+          0.563
+        ]
+      },
+      {
+        "name": "Legs",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.192,
+          0.23,
+          0.291
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.932,
+          0.332,
+          0.327
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C70_Agua_viva_Lanterna",
+    "primary": "Body",
+    "size": [
+      2.044,
+      2.85,
+      2.018
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.511,
+          2.438,
+          1.422
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.003,
+          0.078,
+          0.001
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.492,
+          2.26,
+          1.362
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          1.393,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.591,
+          0.476,
+          0.596
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C71_Peixe_Espada_Neon",
+    "primary": "Body",
+    "size": [
+      2.082,
+      1.717,
+      2.753
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.171,
+          1.18,
+          2.139
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0.03,
+          0.842
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.082,
+          0.328,
+          0.527
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.724,
+          -0.429,
+          0.304
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.637,
+          0.459,
+          0.315
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.722,
+          -0.43,
+          0.304
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.635,
+          0.462,
+          0.315
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.169,
+          -0.335
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.314,
+          1.717,
+          1.725
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          0.051,
+          1.22
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.684,
+          0.373,
+          0.67
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C72_Tartaruga_Pergaminho",
+    "primary": "Body",
+    "size": [
+      1.996,
+      1.885,
+      2.569
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.586,
+          1.352,
+          2.004
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.002,
+          0.702,
+          0.948
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.927,
+          0.847,
+          0.918
+        ]
+      },
+      {
+        "name": "Shell",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.004,
+          0.276,
+          -0.198
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.694,
+          1.077,
+          1.894
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.676,
+          -0.343,
+          0.763
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.639,
+          0.832,
+          0.473
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.682,
+          -0.343,
+          0.763
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.636,
+          0.831,
+          0.475
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.001,
+          -0.22,
+          -1.078
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.283,
+          0.198,
+          0.168
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C73_Polvo_Origami",
+    "primary": "Body",
+    "size": [
+      2.01,
+      2.031,
+      2.101
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.002,
+          1.894,
+          2.094
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          -0.028,
+          0.874
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.926,
+          0.283,
+          0.265
+        ]
+      },
+      {
+        "name": "Tentacles",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.005,
+          -0.784,
+          -0.547
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.454,
+          0.601,
+          0.602
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C74_Baiacu_Balao_de_Festa",
+    "primary": "Body",
+    "size": [
+      2.263,
+      2.53,
+      2.301
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          0,
+          0
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.712,
+          1.744,
+          1.886
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          0.145,
+          0.606
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          2.111,
+          0.702,
+          0.88
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.897,
+          -0.03,
+          -0.393
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.467,
+          0.615,
+          0.298
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.898,
+          -0.031,
+          -0.393
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.468,
+          0.624,
+          0.296
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.001,
+          0.065,
+          -0.889
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.266,
+          1.413,
+          0.732
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.002,
+          0.385,
+          -0.296
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.251,
+          2.53,
+          0.837
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C101_Rena_do_Mar",
+    "primary": "Body",
+    "size": [
+      2.553,
+      2.541,
+      3.078
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.048,
+          -0.305,
+          0.243
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.35,
+          1.932,
+          1.506
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.298,
+          0.443,
+          0.729
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.722,
+          1.653,
+          0.93
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.479,
+          -0.302,
+          -0.771
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.23,
+          1.122,
+          1.091
+        ]
+      },
+      {
+        "name": "FinL",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.843,
+          -0.423,
+          0.124
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.502,
+          0.44,
+          0.338
+        ]
+      },
+      {
+        "name": "FinR",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.504,
+          -0.422,
+          0.825
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.503,
+          0.441,
+          0.335
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.138,
+          0.797,
+          0.417
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.641,
+          0.946,
+          0.229
+        ]
+      }
+    ]
+  },
+  {
+    "id": "C102_Peixe_Arvore_de_Natal",
+    "primary": "Body",
+    "size": [
+      2.449,
+      2.618,
+      2.906
+    ],
+    "parts": [
+      {
+        "name": "Body",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0,
+          -0.208,
+          0.088
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.604,
+          2.201,
+          2.223
+        ]
+      },
+      {
+        "name": "Head",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.355,
+          -0.501,
+          0.775
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.09,
+          0.837,
+          0.961
+        ]
+      },
+      {
+        "name": "Tail",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.524,
+          -0.544,
+          -0.907
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.129,
+          1.067,
+          0.643
+        ]
+      },
+      {
+        "name": "Fins",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          0.204,
+          -0.748,
+          0.481
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          1.83,
+          0.441,
+          0.557
+        ]
+      },
+      {
+        "name": "Extra",
+        "color": "#A3A2A5",
+        "pivotPosition": [
+          -0.138,
+          0.015,
+          -0.168
+        ],
+        "class": "MeshPart",
+        "material": "Plastic",
+        "size": [
+          0.586,
+          2.587,
+          1.178
+        ]
+      }
+    ]
+  }
+]
