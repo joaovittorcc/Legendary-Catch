@@ -2,9 +2,30 @@
   "id": "C06_Cavalo_Marinho_Coral",
   "rarity": "Uncommon",
   "family": "seahorse",
-  "colors": {
-    "main": "C75683/EE7FA5/FFBC9F",
-    "accent": "F19B44/FFCC75"
-  },
-  "pattern": "bands"
+  "finish": {
+    "face": [
+      "BD3B63/E9839A/FFD4B0",
+      "face/coral"
+    ],
+    "skin": [
+      "A52F58/DE6581/FFC19E",
+      "bands"
+    ],
+    "fin": [
+      "158979/2FB9A8/94DFB4",
+      "fin"
+    ],
+    "cap": [
+      "D57924/F7B748/FFEAA3",
+      "plain"
+    ],
+    "tail": [
+      "AE4168/D96281/F5A4A3",
+      "plain"
+    ],
+    "cream": [
+      "CA6B4C/FFB578/FFEAB9",
+      "plain"
+    ]
+  }
 }

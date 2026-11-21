@@ -12,6 +12,8 @@ import bpy
 import numpy as np
 from mathutils import Vector
 
+from creature_paint import paint_face, paint_pattern
+
 
 def rgb(hex_color):
     return np.array([int(hex_color[i:i + 2], 16) / 255 for i in (0, 2, 4)])
@@ -25,10 +27,21 @@ def atlas(path: Path, palette, size):
     pixels = np.ones((size, size, 4), dtype=np.float32)
     uv_cells = {}
     rng = np.random.default_rng(791)
-    u, v = np.meshgrid(np.linspace(0, 1, cell), np.linspace(0, 1, cell))
-    grain = rng.random((cell, cell)) - 0.5
-    for index, (name, (colors, pattern)) in enumerate(palette.items()):
+    small_grain = rng.random((cell, cell)) - 0.5
+    large = [name for name, (_, pattern) in palette.items() if pattern.startswith("face/")]
+    if len(large) > 1 or (large and len(palette) > 13):
+        raise ValueError("One face swatch can share the atlas with up to 12 regular swatches")
+    reserved = {0, 1, 4, 5} if large else set()
+    regular = iter(index for index in range(16) if index not in reserved)
+    for name, (colors, pattern) in palette.items():
+        is_face = name in large
+        index = 0 if is_face else next(regular)
+        tile = cell * (2 if is_face else 1)
         x, y = (index % columns) * cell, (index // columns) * cell
+        pad = max(4, tile // 16)
+        coords = (np.arange(tile) - pad) / (tile - 2*pad) if is_face else np.linspace(0, 1, tile)
+        u, v = np.meshgrid(coords, coords)
+        grain = np.random.default_rng(791).random((tile, tile)) - 0.5 if is_face else small_grain
         stops = np.array([rgb(color) for color in colors.split("/")])
         t = np.clip(0.1 + 0.73 * v + 0.14 * np.cos(math.tau * u), 0, 1)
         paint = np.stack([np.interp(t, np.linspace(0, 1, len(stops)), stops[:, i]) for i in range(3)], axis=-1)
@@ -52,9 +65,13 @@ def atlas(path: Path, palette, size):
                 radius = rng.uniform(0.003, 0.014)
                 stars += rng.uniform(0.16, 0.85) * np.exp(-((u - sx)**2 + (v - sy)**2) / radius**2)
             detail += stars
-        pixels[y:y + cell, x:x + cell, :3] = np.clip(paint + detail[:, :, None], 0, 1)
-        pad = max(4, cell // 16)
-        uv_cells[name] = ((x + pad) / size, (y + pad) / size, (cell - 2 * pad) / size)
+        paint += detail[:, :, None]
+        if is_face:
+            paint_face(paint, 0.5 + u * 0.5, v, pattern.split("/")[1])
+        else:
+            paint_pattern(paint, u, v, pattern)
+        pixels[y:y + tile, x:x + tile, :3] = np.clip(paint, 0, 1)
+        uv_cells[name] = ((x + pad) / size, (y + pad) / size, (tile - 2 * pad) / size)
 
     image = bpy.data.images.new(path.name, width=size, height=size, alpha=False)
     image.pixels.foreach_set(pixels.ravel())
@@ -81,7 +98,7 @@ class Piece:
         self.faces = []
         self.paint = []
 
-    def _rings(self, rings, swatch, smooth=True, v_range=(0, 1)):
+    def _rings(self, rings, swatch, smooth=True, v_range=(0, 1), caps=None, face_front=False):
         count = len(rings[0])
         start = len(self.vertices)
         self.vertices.extend(v for ring in rings for v in ring)
@@ -92,13 +109,18 @@ class Piece:
             for i in range(count):
                 a, b = i, (i + 1) % count
                 self.faces.append((start+j*count+a, start+j*count+b, start+(j+1)*count+b, start+(j+1)*count+a))
-                self.paint.append((swatch, ((i/count,v1),((i+1)/count,v1),((i+1)/count,v2),(i/count,v2)),smooth))
+                front = face_front and i * 2 >= count
+                name = (caps or swatch) if face_front and not front else swatch
+                u1,u2 = i/count,(i+1)/count
+                if front:
+                    u1,u2 = u1*2-1,u2*2-1
+                self.paint.append((name, ((u1,v1),(u2,v1),(u2,v2),(u1,v2)),smooth))
         for j, reverse in ((0, True), (height, False)):
             order = list(range(count))
             if reverse:
                 order.reverse()
             self.faces.append(tuple(start+j*count+i for i in order))
-            self.paint.append((swatch, tuple((0.5+0.45*math.cos(math.tau*i/count),0.5+0.45*math.sin(math.tau*i/count)) for i in order),False))
+            self.paint.append((caps or swatch, tuple((0.5+0.45*math.cos(math.tau*i/count),0.5+0.45*math.sin(math.tau*i/count)) for i in order),False))
 
     def sweep(self, stations, swatch, sides=10, reference=(1, 0, 0), smooth=True, steps=1, v_range=(0, 1)):
         """Sweep elliptical sections. Each station is (center, width radius, depth radius)."""
@@ -126,7 +148,7 @@ class Piece:
             rings.append([Vector(center) + side * width * math.cos(a) + up * depth * math.sin(a) for a in angles])
         self._rings(rings, swatch, smooth, v_range)
 
-    def oval(self, center, radii, swatch, sides=12, levels=7, tilt=0):
+    def oval(self, center, radii, swatch, sides=12, levels=7, tilt=0, caps=None, face_front=False):
         cx, cy, cz = center
         rx, ry, rz = radii
         rings = []
@@ -138,7 +160,7 @@ class Piece:
                 x, y, z = rx * math.cos(p) * math.cos(a), ry * math.cos(p) * math.sin(a), rz * math.sin(p)
                 ring.append((cx+x*math.cos(tilt)+z*math.sin(tilt),cy+y,cz-x*math.sin(tilt)+z*math.cos(tilt)))
             rings.append(ring)
-        self._rings(rings, swatch)
+        self._rings(rings, swatch, caps=caps, face_front=face_front)
 
     def gem(self, base, point, width, swatch, sides=6):
         a, b = Vector(base), Vector(point)

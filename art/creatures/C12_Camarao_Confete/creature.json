@@ -2,8 +2,18 @@
   "id": "C12_Camarao_Confete",
   "rarity": "Common",
   "family": "shrimp",
-  "colors": {
-    "main": "D55271/F39191/FFD2A5",
-    "accent": "E95B64/F48980"
+  "finish": {
+    "face": [
+      "BB3455/F36F77/FFC59F",
+      "face/coral"
+    ],
+    "skin": [
+      "B82855/F26C68/FFB789",
+      "confetti"
+    ],
+    "fin": [
+      "9F274F/DF515B/FC916A",
+      "fin"
+    ]
   }
 }

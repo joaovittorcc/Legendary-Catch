@@ -16,6 +16,8 @@ Blender 4.2 ou mais novo, executado em segundo plano. Os scripts usam o Python d
 
 Passe os arquivos `art/creatures/<ID>/creature.json` ao script de lote. Cada ficha define ID, raridade, família e cores. `lib_creatures.py` reaproveita olhos, curvas, nadadeiras e silhuetas das famílias, com ajustes como `width`, `height`, `arms` ou `sleepy` conforme a anatomia. O lote gera fonte, FBX, atlas de 256 px, seis vistas e relatório por ID. O limite é 600/200 triângulos para Comum e 900/300 para Incomum (total/peça).
 
+As fichas revisadas do piloto trazem `finish` com os tons e padrões para peixe, camarão, estrela, medusa, cavalo-marinho ou tartaruga. Uma área maior do atlas recebe os olhos e a expressão na metade frontal da cabeça.
+
 ```powershell
 & $blender -b --factory-startup --python-exit-code 1 -P tools/blender/build_creatures.py -- art/creatures/C02_Sardinha_Solar/creature.json art/creatures/C05_Medusinha_Estelar/creature.json
 ```

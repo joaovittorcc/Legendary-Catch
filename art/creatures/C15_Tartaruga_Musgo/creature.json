@@ -2,8 +2,30 @@
   "id": "C15_Tartaruga_Musgo",
   "rarity": "Uncommon",
   "family": "turtle",
-  "colors": {
-    "main": "30736E/54AB76/B9E181",
-    "accent": "526237/83A955/C7DF72"
+  "finish": {
+    "face": [
+      "26806B/61B875/B9E8A0",
+      "face/sea"
+    ],
+    "skin": [
+      "1F8066/64B978/C0E4A0",
+      "plain"
+    ],
+    "shell": [
+      "315943/588D43/9EB55A",
+      "moss"
+    ],
+    "fin": [
+      "15776C/54AD7B/A9D389",
+      "fin"
+    ],
+    "cream": [
+      "A88037/D1AB61/FFE6A8",
+      "plain"
+    ],
+    "petal": [
+      "AE4278/F4869A/FFD1BD",
+      "plain"
+    ]
   }
 }

@@ -2,10 +2,23 @@
   "id": "C05_Medusinha_Estelar",
   "rarity": "Uncommon",
   "family": "jelly",
-  "colors": {
-    "main": "414496/696DDD/AAA7FF",
-    "accent": "A16AC0/F39BCD"
-  },
   "arms": 5,
-  "pattern": "star"
+  "finish": {
+    "face": [
+      "413E89/837BCE/C7D9FF",
+      "face/sea"
+    ],
+    "skin": [
+      "3D4EAA/768BE2/99DDEC",
+      "star"
+    ],
+    "fin": [
+      "7550B7/B897E7/E9D4FF",
+      "fin"
+    ],
+    "tendril": [
+      "8045B1/CD79CF/E598D7",
+      "star"
+    ]
+  }
 }

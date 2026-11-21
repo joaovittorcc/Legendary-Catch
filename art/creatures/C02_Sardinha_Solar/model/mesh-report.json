@@ -2,22 +2,22 @@
   "id": "C02_Sardinha_Solar",
   "rarity": "Common",
   "roblox_xyz_studs": [
-    1.577,
-    1.295,
+    1.593,
+    1.446,
     2.86
   ],
-  "head_minus_tail_z": 1.896,
+  "head_minus_tail_z": 1.978,
   "atlas_px": [
     256,
     256
   ],
-  "triangles": 492,
+  "triangles": 564,
   "parts": {
-    "Body": 96,
-    "Head": 200,
-    "Tail": 88,
-    "Fins": 32,
-    "FinL": 38,
-    "FinR": 38
+    "Body": 164,
+    "Head": 164,
+    "Tail": 104,
+    "Fins": 44,
+    "FinL": 44,
+    "FinR": 44
   }
 }

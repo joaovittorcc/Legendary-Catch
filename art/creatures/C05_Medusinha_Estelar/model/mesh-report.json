@@ -2,20 +2,21 @@
   "id": "C05_Medusinha_Estelar",
   "rarity": "Uncommon",
   "roblox_xyz_studs": [
-    2.569,
+    2.665,
     2.86,
-    2.505
+    2.417
   ],
-  "head_minus_tail_z": 1.4,
+  "head_minus_tail_z": 1.395,
   "atlas_px": [
     256,
     256
   ],
-  "triangles": 592,
+  "triangles": 782,
   "parts": {
-    "Body": 116,
-    "Head": 244,
-    "Tail": 52,
-    "Tentacles": 180
+    "Body": 192,
+    "Head": 164,
+    "Tail": 66,
+    "Tentacles": 280,
+    "Fins": 80
   }
 }

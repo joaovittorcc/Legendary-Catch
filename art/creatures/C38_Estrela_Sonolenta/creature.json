@@ -2,9 +2,22 @@
   "id": "C38_Estrela_Sonolenta",
   "rarity": "Common",
   "family": "star",
-  "colors": {
-    "main": "BA617E/EC8E9E/FFBEA2",
-    "accent": "CA6C8F/EFA8B3"
-  },
-  "sleepy": true
+  "finish": {
+    "face": [
+      "3684A6/7BC7C7/FBE1AF",
+      "face/sleepy"
+    ],
+    "skin": [
+      "297BA6/64BECB/FBE1AB",
+      "plain"
+    ],
+    "cap": [
+      "292B65/4E519C/8186BD",
+      "cap"
+    ],
+    "cream": [
+      "CEAD75/FFF0BD",
+      "plain"
+    ]
+  }
 }

@@ -3,18 +3,19 @@
   "rarity": "Common",
   "roblox_xyz_studs": [
     2.86,
-    2.82,
-    1.29
+    2.822,
+    0.862
   ],
-  "head_minus_tail_z": 0.658,
+  "head_minus_tail_z": 0.452,
   "atlas_px": [
     256,
     256
   ],
-  "triangles": 380,
+  "triangles": 508,
   "parts": {
-    "Body": 180,
-    "Head": 148,
-    "Tail": 52
+    "Body": 196,
+    "Head": 140,
+    "Tail": 52,
+    "Extra": 120
   }
 }

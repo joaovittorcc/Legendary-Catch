@@ -41,6 +41,12 @@ def face(center, radii, detail=False, eye_scale=1.0, sleepy=False, compact=False
     return head
 
 
+def painted_head(center, radii, sides=14, levels=6):
+    head = Piece("Head")
+    head.oval(center,radii,"face",sides=sides,levels=levels,caps="skin",face_front=True)
+    return head
+
+
 def flippers(x, y, z, reach, swatch="accent"):
     result = []
     for name, sign in (("FinL", 1), ("FinR", -1)):
@@ -211,6 +217,10 @@ def recipe(spec):
     rarity = spec["rarity"]
     if rarity not in {"Common", "Uncommon"}:
         raise ValueError(f"Unsupported small creature rarity: {rarity}")
+    if "finish" in spec:
+        from polished_creatures import BUILDERS
+        palette = {name: (value[0], value[1]) for name,value in spec["finish"].items()}
+        return lambda: BUILDERS[spec["family"]](spec), palette
     palette = {k: (v, spec.get("pattern", "plain") if k == "main" else "plain")
                for k, v in spec["colors"].items()}
     palette.update({"ink": ("15203B/252E44", "plain"), "cream": ("EFF5EE/FFFFFF", "plain")})
