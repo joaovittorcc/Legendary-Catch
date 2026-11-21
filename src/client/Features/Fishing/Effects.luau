@@ -15,6 +15,8 @@ local Workspace = game:GetService("Workspace")
 
 local Effects = {}
 local activeBursts = 0
+local flashTimes: { number } = {}
+local MAX_FLASHES_PER_SEC = 3
 
 local function fx(
 	name: string,
@@ -42,55 +44,147 @@ local function fx(
 	return p
 end
 
--- Flat neon ring that grows and fades on the water.
+-- Layered neon wave rings (contrast halo + rarity wave + white-hot core) that expand on water.
 function Effects.ripple(center: Vector3, color: Color3, radius: number, duration: number)
+	local baseCf = CFrame.new(center + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	local ring = fx(
 		"Ripple",
-		Vector3.new(0.08, 1, 1),
-		CFrame.new(center + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Vector3.new(0.08, 0.9, 0.9),
+		baseCf,
 		color,
 		Enum.Material.Neon,
 		Enum.PartType.Cylinder
 	)
 	ring.Transparency = 0.2
-	local tween = TweenService:Create(
-		ring,
-		TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-		{
+	TweenService
+		:Create(ring, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			Size = Vector3.new(0.08, radius * 2, radius * 2),
 			Transparency = 1,
-		}
-	)
-	tween:Play()
+		})
+		:Play()
 	Debris:AddItem(ring, duration + 0.1)
+
+	if reduced() then
+		return
+	end
+
+	-- Deep navy contrast layer underneath so bright ripples read clearly on sunlit water.
+	local shade = fx(
+		"RippleShade",
+		Vector3.new(0.05, 1.1, 1.1),
+		CFrame.new(center + Vector3.new(0, 0.02, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.fromRGB(16, 36, 78),
+		Enum.Material.SmoothPlastic,
+		Enum.PartType.Cylinder
+	)
+	shade.Transparency = 0.52
+	TweenService
+		:Create(
+			shade,
+			TweenInfo.new(duration * 0.9, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+			{
+				Size = Vector3.new(0.05, radius * 2.15, radius * 2.15),
+				Transparency = 1,
+			}
+		)
+		:Play()
+	Debris:AddItem(shade, duration)
+
+	-- Crisp white-hot foam core that snaps outward slightly faster.
+	local coreDur = duration * 0.72
+	local core = fx(
+		"RippleCore",
+		Vector3.new(0.1, 0.6, 0.6),
+		CFrame.new(center + Vector3.new(0, 0.07, 0)) * CFrame.Angles(0, 0, math.rad(90)),
+		Color3.new(1, 1, 1):Lerp(color, 0.25),
+		Enum.Material.Neon,
+		Enum.PartType.Cylinder
+	)
+	core.Transparency = 0.1
+	TweenService
+		:Create(core, TweenInfo.new(coreDur, Enum.EasingStyle.Quint, Enum.EasingDirection.Out), {
+			Size = Vector3.new(0.1, radius * 1.42, radius * 1.42),
+			Transparency = 1,
+		})
+		:Play()
+	Debris:AddItem(core, coreDur + 0.1)
 end
 
 function Effects.splash(center: Vector3, color: Color3, count: number)
-	local limit = if reduced() then 1 else 3
+	local isReduced = reduced()
+	local limit = if isReduced then 1 else 3
 	if activeBursts >= limit then
 		return
 	end
 	activeBursts += 1
-	task.delay(1.5, function()
-		activeBursts -= 1
+	task.delay(1.3, function()
+		activeBursts = math.max(0, activeBursts - 1)
 	end)
 	local anchor = fx("Splash", Vector3.new(1, 1, 1), CFrame.new(center), color, Enum.Material.Air)
 	anchor.Transparency = 1
+
+	-- Primary sparkling droplets with velocity stretch, air drag and white-core gradient.
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Texture = "rbxasset://textures/particles/sparkles_main.dds"
-	emitter.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
+	emitter.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, Color3.new(1, 1, 1)),
+		ColorSequenceKeypoint.new(0.35, color:Lerp(Color3.new(1, 1, 1), 0.25)),
+		ColorSequenceKeypoint.new(1, color),
+	})
 	emitter.LightEmission = 1
-	emitter.Size =
-		NumberSequence.new({ NumberSequenceKeypoint.new(0, 0.6), NumberSequenceKeypoint.new(1, 0) })
-	emitter.Lifetime = NumberRange.new(0.6, 1.1)
-	emitter.Speed = NumberRange.new(8, 16)
-	emitter.SpreadAngle = Vector2.new(35, 35)
-	emitter.Acceleration = Vector3.new(0, -30, 0)
+	emitter.Size = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.22),
+		NumberSequenceKeypoint.new(0.22, 0.68),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	emitter.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.1),
+		NumberSequenceKeypoint.new(0.65, 0.25),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	emitter.Squash = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.35),
+		NumberSequenceKeypoint.new(1, -0.15),
+	})
+	emitter.Drag = 3.2
+	emitter.Lifetime = NumberRange.new(0.55, 1.0)
+	emitter.Speed = NumberRange.new(10, 19)
+	emitter.SpreadAngle = Vector2.new(38, 38)
+	emitter.Acceleration = Vector3.new(0, -34, 0)
 	emitter.EmissionDirection = Enum.NormalId.Top
 	emitter.Rate = 0
 	emitter.Parent = anchor
-	emitter:Emit(if reduced() then math.min(count, 4) else math.min(count, 28))
-	Debris:AddItem(anchor, 1.5)
+	emitter:Emit(if isReduced then math.min(count, 4) else math.min(count, 22))
+
+	if not isReduced then
+		-- Secondary fine foam mist rising softly above the impact.
+		local mist = Instance.new("ParticleEmitter")
+		mist.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		mist.Color =
+			ColorSequence.new(Color3.fromRGB(235, 250, 255), color:Lerp(Color3.new(1, 1, 1), 0.55))
+		mist.LightEmission = 0.35
+		mist.Size = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.45),
+			NumberSequenceKeypoint.new(0.5, 1.35),
+			NumberSequenceKeypoint.new(1, 1.8),
+		})
+		mist.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 0.55),
+			NumberSequenceKeypoint.new(0.4, 0.72),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		mist.Drag = 4.5
+		mist.Lifetime = NumberRange.new(0.35, 0.65)
+		mist.Speed = NumberRange.new(4, 9)
+		mist.SpreadAngle = Vector2.new(55, 55)
+		mist.Acceleration = Vector3.new(0, 2, 0)
+		mist.EmissionDirection = Enum.NormalId.Top
+		mist.Rate = 0
+		mist.Parent = anchor
+		mist:Emit(math.min(math.ceil(count * 0.4), 8))
+	end
+
+	Debris:AddItem(anchor, 1.4)
 end
 
 -- Bright column rising from the water (the "geyser" moment before rare reveals).
@@ -165,13 +259,24 @@ function Effects.flash(gui: ScreenGui, color: Color3, duration: number)
 	if reduced() then
 		return
 	end
+	-- Comfort cap: at most 3 full-screen flashes per rolling second.
+	local now = os.clock()
+	for i = #flashTimes, 1, -1 do
+		if now - flashTimes[i] > 1 then
+			table.remove(flashTimes, i)
+		end
+	end
+	if #flashTimes >= MAX_FLASHES_PER_SEC then
+		return
+	end
+	table.insert(flashTimes, now)
 	local f = Instance.new("Frame")
 	f.Name = "Flash"
 	f.Size = UDim2.fromScale(1, 1)
 	f.BackgroundColor3 = color
 	f.BorderSizePixel = 0
 	f.ZIndex = 50
-	f.BackgroundTransparency = 0.65
+	f.BackgroundTransparency = 0.68
 	f.Parent = gui
 	TweenService
 		:Create(f, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
@@ -213,20 +318,26 @@ function Effects.shake(duration: number, magnitude: number)
 		return
 	end
 	-- Runs right after the default camera so its offset isn't overwritten.
+	-- Uses squared trauma envelope + Nyquist-safe smooth noise (no jitter on 30 fps phones).
 	local name = "FishingShake" .. tostring(os.clock())
 	local start = os.clock()
-	RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 1, function()
+	local seed = (start * 17.3) % 100
+	local smoothedFps = 60
+	RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 1, function(dt: number)
 		local t = os.clock() - start
 		if t >= duration or reduced() then
 			RunService:UnbindFromRenderStep(name)
 			return
 		end
-		local m = magnitude * (1 - t / duration)
-		camera.CFrame *= CFrame.Angles(
-			math.rad(math.random(-10, 10) / 10 * m),
-			math.rad(math.random(-10, 10) / 10 * m),
-			0
-		)
+		if dt > 0.001 then
+			smoothedFps += (math.clamp(1 / dt, 15, 240) - smoothedFps) * 0.15
+		end
+		local freq = math.min(12, 0.4 * smoothedFps)
+		local decay = 1 - t / duration
+		local amp = magnitude * decay * decay
+		local rx = math.noise(t * freq, seed) * 2 * amp
+		local ry = math.noise(seed + 13.7, t * freq) * 2 * amp
+		camera.CFrame *= CFrame.Angles(math.rad(rx), math.rad(ry), 0)
 	end)
 end
 

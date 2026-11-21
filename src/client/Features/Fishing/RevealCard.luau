@@ -85,8 +85,9 @@ function RevealCard.open(
 	card.AnchorPoint = Vector2.new(0, 0.5)
 	Theme.corner(card, 17)
 	local outline = Instance.new("UIStroke")
-	outline.Color = Theme.outline
-	outline.Thickness = 3
+	local rank = math.max(1, Theme.rarityRank(rarity))
+	outline.Color = if rank >= 4 then Theme.outline:Lerp(color, 0.45) else Theme.outline
+	outline.Thickness = if rank >= 5 then 3.5 else 3
 	outline.Parent = card
 
 	local preview = Instance.new("ViewportFrame")
@@ -105,9 +106,36 @@ function RevealCard.open(
 	backdrop.Name = "PreviewBackdrop"
 	backdrop.BackgroundColor3 = Color3.new(1, 1, 1)
 	backdrop.BorderSizePixel = 0
+	backdrop.ClipsDescendants = true
 	Theme.corner(backdrop, 11)
 	gradient.Parent = backdrop
 	preview.BackgroundTransparency = 1
+
+	-- Collectible foil sheen that sweeps diagonally across Rare+ cards.
+	local foilGradient: UIGradient? = nil
+	if not reduced and rank >= 3 then
+		local foil = Instance.new("Frame")
+		foil.Name = "FoilSheen"
+		foil.Size = UDim2.fromScale(1, 1)
+		foil.BackgroundColor3 = Color3.new(1, 1, 1)
+		foil.BackgroundTransparency = 0.56
+		foil.BorderSizePixel = 0
+		foil.ZIndex = 3
+		local fg = Instance.new("UIGradient")
+		fg.Rotation = 25
+		fg.Color = ColorSequence.new(Color3.new(1, 1, 1), color:Lerp(Color3.new(1, 1, 1), 0.65))
+		fg.Transparency = NumberSequence.new({
+			NumberSequenceKeypoint.new(0, 1),
+			NumberSequenceKeypoint.new(0.42, 1),
+			NumberSequenceKeypoint.new(0.5, 0.28),
+			NumberSequenceKeypoint.new(0.58, 1),
+			NumberSequenceKeypoint.new(1, 1),
+		})
+		fg.Offset = Vector2.new(-1.2, 0)
+		fg.Parent = foil
+		foil.Parent = backdrop
+		foilGradient = fg
+	end
 
 	local camera = Instance.new("Camera")
 	camera.FieldOfView = PREVIEW_FOV
@@ -141,7 +169,6 @@ function RevealCard.open(
 	end
 
 	row("CreatureName", name, 18, 24)
-	local rank = math.max(1, Theme.rarityRank(rarity))
 	local tag = row(
 		"Rarity",
 		Theme.rarityLabel(rarity) .. "  " .. string.rep("★", rank),
@@ -152,8 +179,16 @@ function RevealCard.open(
 	tag.BackgroundTransparency = 0
 	tag.BackgroundColor3 = Theme.ink:Lerp(color, 0.23)
 	Theme.corner(tag, 8)
+	local rewardLabel: TextLabel? = nil
+	local rewardWeight: number? = nil
+	local rewardTarget: number? = nil
+	local rewardPopped = false
 	if info and info.weight and info.value then
-		row("Reward", string.format(Text.captureReward, info.weight, info.value), 15, 19)
+		local initialVal = if reduced then info.value else 0
+		rewardLabel =
+			row("Reward", string.format(Text.captureReward, info.weight, initialVal), 15, 19)
+		rewardWeight = info.weight
+		rewardTarget = info.value
 	end
 	local badges = {}
 	if info then
@@ -265,6 +300,31 @@ function RevealCard.open(
 		model:PivotTo(pose)
 		if not reduced then
 			CreatureMotion.poseBones(previewMotion, elapsed)
+			if foilGradient then
+				local cycle = elapsed % 2.6
+				if cycle < 0.72 then
+					foilGradient.Offset = Vector2.new(-1.1 + (cycle / 0.72) * 2.2, 0)
+				else
+					foilGradient.Offset = Vector2.new(-1.2, 0)
+				end
+			end
+			if rewardLabel and rewardWeight and rewardTarget and not rewardPopped then
+				local progress = math.clamp(elapsed / 0.55, 0, 1)
+				local eased = 1 - (1 - progress) * (1 - progress)
+				local shown = math.floor(rewardTarget * eased + 0.5)
+				rewardLabel.Text = string.format(Text.captureReward, rewardWeight, shown)
+				if progress >= 1 then
+					rewardPopped = true
+					local pop = Instance.new("UIScale")
+					pop.Scale = 1.16
+					pop.Parent = rewardLabel
+					TweenService:Create(
+						pop,
+						TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+						{ Scale = 1 }
+					):Play()
+				end
+			end
 		end
 		framePreview(pose)
 	end

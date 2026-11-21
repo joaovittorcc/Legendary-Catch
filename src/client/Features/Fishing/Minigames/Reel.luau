@@ -2,12 +2,14 @@
 -- Vertical, directly draggable control zone with responsive hold/release and keyboard input.
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi")).minigames
+local Audio = require(script.Parent.Parent.Parent:WaitForChild("Audio"))
 local Control = require(script.Parent.Parent:WaitForChild("Control"))
 local Ui = require(script.Parent.Parent:WaitForChild("Ui"))
 local Input = require(script.Parent:WaitForChild("Input"))
@@ -138,8 +140,26 @@ function Reel.run(
 	local lastInside: boolean? = nil
 	local lit = 0
 	local percent = -1
+	local hit50 = false
+	local hit80 = false
+	local zoneStroke = zone:FindFirstChildOfClass("UIStroke")
+	local meterScale = Instance.new("UIScale")
+	meterScale.Parent = meter
+	local riskBasePos = risk.Position
 	local pending: thread? = nil
 	local step: RBXScriptConnection
+
+	local function popMeter(pitch: number)
+		Audio.play("hit", 0.14, pitch)
+		if not Ui.reduced() then
+			meterScale.Scale = 1.18
+			TweenService:Create(
+				meterScale,
+				TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1 }
+			):Play()
+		end
+	end
 
 	local function stop()
 		controls.stop()
@@ -196,7 +216,9 @@ function Reel.run(
 			fishTarget = rng:NextNumber(0.08, 0.92)
 			nextTarget = elapsed + retarget
 		end
+		local prevFish = fishPos
 		fishPos += math.clamp(fishTarget - fishPos, -fishSpeed * movementDt, fishSpeed * movementDt)
+		local fishVel = (fishPos - prevFish) / math.max(movementDt, 0.001)
 		local inside = math.abs(fishPos - pos) <= half
 		if inside then
 			progress += gain * dt
@@ -209,11 +231,30 @@ function Reel.run(
 		zone.Position = UDim2.fromScale(0, 1 - pos)
 		if inside ~= lastInside then
 			lastInside = inside
-			zone.BackgroundTransparency = if inside then 0.08 else 0.35
+			zone.BackgroundTransparency = if inside then 0.06 else 0.35
 			eye.BackgroundColor3 = if inside then Theme.ink else Theme.wood
+			if zoneStroke then
+				zoneStroke.Thickness = if inside then 3 else 1.5
+				zoneStroke.Color = if inside
+					then Color3.new(1, 1, 1)
+					else color:Lerp(Theme.sand, 0.45)
+			end
 		end
 		fish.Position = UDim2.fromScale(0.5, 1 - fishPos)
+		if not Ui.reduced() then
+			-- Alive swimming tilt + tail flutter as the fish darts up and down.
+			local tilt = math.clamp(-fishVel * 18, -22, 22) + math.sin(elapsed * 14) * 5
+			fish.Rotation = tilt
+			tail.Rotation = 45 + math.sin(elapsed * 22) * 14
+		end
 		local ratio = math.clamp(progress, 0, 1)
+		if not hit50 and ratio >= 0.5 then
+			hit50 = true
+			popMeter(1.08)
+		elseif not hit80 and ratio >= 0.8 then
+			hit80 = true
+			popMeter(1.22)
+		end
 		local nextLit = math.floor(ratio * #segments)
 		if nextLit ~= lit then
 			for index = math.min(lit, nextLit) + 1, math.max(lit, nextLit) do
@@ -221,7 +262,13 @@ function Reel.run(
 			end
 			lit = nextLit
 		end
-		riskFill.Size = UDim2.fromScale(math.clamp(fail, 0, 1), 1)
+		local failClamped = math.clamp(fail, 0, 1)
+		riskFill.Size = UDim2.fromScale(failClamped, 1)
+		if failClamped > 0.65 and not Ui.reduced() then
+			risk.Position = riskBasePos + UDim2.fromOffset(math.sin(elapsed * 42) * 2.5, 0)
+		else
+			risk.Position = riskBasePos
+		end
 		local nextPercent = math.floor(ratio * 100)
 		if nextPercent ~= percent then
 			percent = nextPercent

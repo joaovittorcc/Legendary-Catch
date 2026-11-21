@@ -9,12 +9,24 @@ local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishin
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
+local FishingCamera = require(script.Parent:WaitForChild("Camera"))
 local Ui = {}
 local gui: ScreenGui
 local area: Frame
 local toastLabel: TextLabel
 local activeToast: Tween? = nil
-type Feedback = { badge: TextLabel, sparks: { Frame }, tweens: { Tween }, sequence: number }
+local edgeBars: { Frame } = {}
+local edgeTweens: { Tween } = {}
+local edgePulseTimes: { number } = {}
+type Feedback = {
+	badge: TextLabel,
+	badgeScale: UIScale,
+	ring: Frame,
+	ringStroke: UIStroke,
+	sparks: { Frame },
+	tweens: { Tween },
+	sequence: number,
+}
 local feedbackByTarget: { [Frame]: Feedback } = {}
 
 function Ui.corner(target: GuiObject, scale: number?)
@@ -158,6 +170,9 @@ function Ui.showPanel(hintText: string, color: Color3, _instructionText: string)
 		limit.MinTextSize = 14
 		limit.MaxTextSize = 16
 		limit.Parent = txt
+		if Theme.rarityRank(rarity) >= 4 then
+			Ui.edgeGlow(color, 0.55)
+		end
 	end
 	return area
 end
@@ -171,14 +186,100 @@ function Ui.reduced(): boolean
 	return Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 end
 
+-- Subtle rarity screen-edge glow (4 soft gradient strips, 3/sec comfort cap, no full-screen flash).
+function Ui.edgeGlow(color: Color3, duration: number?)
+	if not gui or Ui.reduced() then
+		return
+	end
+	local now = os.clock()
+	for i = #edgePulseTimes, 1, -1 do
+		if now - edgePulseTimes[i] > 1 then
+			table.remove(edgePulseTimes, i)
+		end
+	end
+	if #edgePulseTimes >= 3 then
+		return
+	end
+	table.insert(edgePulseTimes, now)
+
+	if #edgeBars == 0 then
+		local specs = {
+			{
+				name = "EdgeTop",
+				size = UDim2.new(1, 0, 0, 26),
+				pos = UDim2.fromScale(0, 0),
+				rot = 90,
+			},
+			{
+				name = "EdgeBottom",
+				size = UDim2.new(1, 0, 0, 26),
+				pos = UDim2.new(0, 0, 1, -26),
+				rot = -90,
+			},
+			{
+				name = "EdgeLeft",
+				size = UDim2.new(0, 26, 1, 0),
+				pos = UDim2.fromScale(0, 0),
+				rot = 0,
+			},
+			{
+				name = "EdgeRight",
+				size = UDim2.new(0, 26, 1, 0),
+				pos = UDim2.new(1, -26, 0, 0),
+				rot = 180,
+			},
+		}
+		for _, spec in specs do
+			local bar = Instance.new("Frame")
+			bar.Name = spec.name
+			bar.Size = spec.size
+			bar.Position = spec.pos
+			bar.BackgroundColor3 = color
+			bar.BackgroundTransparency = 1
+			bar.BorderSizePixel = 0
+			bar.ZIndex = 4
+			local grad = Instance.new("UIGradient")
+			grad.Rotation = spec.rot
+			grad.Transparency = NumberSequence.new({
+				NumberSequenceKeypoint.new(0, 0.35),
+				NumberSequenceKeypoint.new(1, 1),
+			})
+			grad.Parent = bar
+			bar.Parent = gui
+			table.insert(edgeBars, bar)
+		end
+	end
+
+	for _, t in edgeTweens do
+		t:Cancel()
+	end
+	table.clear(edgeTweens)
+
+	local len = duration or 0.42
+	local info = TweenInfo.new(len, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+	for _, bar in edgeBars do
+		bar.BackgroundColor3 = color
+		bar.BackgroundTransparency = 0.25
+		local tw = TweenService:Create(bar, info, { BackgroundTransparency = 1 })
+		table.insert(edgeTweens, tw)
+		tw:Play()
+	end
+end
+
 function Ui.bounce(target: GuiObject)
 	if Ui.reduced() then
 		return
 	end
-	local scale = Instance.new("UIScale")
-	scale.Scale = 0.94
-	scale.Parent = target
-	TweenService:Create(scale, TweenInfo.new(0.22, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	local scale = target:FindFirstChild("BounceScale")
+	if not scale then
+		local created = Instance.new("UIScale")
+		created.Name = "BounceScale"
+		created.Parent = target
+		scale = created
+	end
+	local s = scale :: UIScale
+	s.Scale = 0.9
+	TweenService:Create(s, TweenInfo.new(0.24, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 end
 
 function Ui.exitPulse(target: GuiObject, color: Color3)
@@ -215,13 +316,37 @@ function Ui.feedback(
 	)
 	local text = Text.minigames
 	local message = if perfect then text.perfect elseif success then text.good else text.miss
-	local accent = if success then color:Lerp(Theme.sand, 0.28) else Color3.fromRGB(255, 125, 148)
+	local accent = if perfect
+		then Theme.gold:Lerp(Color3.new(1, 1, 1), 0.22)
+		elseif success then color:Lerp(Theme.sand, 0.28)
+		else Color3.fromRGB(255, 125, 148)
 	local state = feedbackByTarget[target]
 	if not state or not state.badge.Parent then
-		local badge = Ui.label(target, "TimingFeedback", UDim2.fromOffset(156, 26), at, "", accent)
+		local badge = Ui.label(target, "TimingFeedback", UDim2.fromOffset(168, 28), at, "", accent)
 		badge.AnchorPoint = Vector2.new(0.5, 0.5)
 		badge.ZIndex = 7
-		local mounted: Feedback = { badge = badge, sparks = {}, tweens = {}, sequence = 0 }
+		local badgeScale = Instance.new("UIScale")
+		badgeScale.Parent = badge
+
+		local ring = Ui.frame(target, "ImpactRing", UDim2.fromOffset(26, 26), at, accent, 1)
+		ring.AnchorPoint = Vector2.new(0.5, 0.5)
+		ring.ZIndex = 5
+		ring.Visible = false
+		Ui.corner(ring, 0.5)
+		local ringStroke = Instance.new("UIStroke")
+		ringStroke.Color = accent
+		ringStroke.Thickness = 3
+		ringStroke.Parent = ring
+
+		local mounted: Feedback = {
+			badge = badge,
+			badgeScale = badgeScale,
+			ring = ring,
+			ringStroke = ringStroke,
+			sparks = {},
+			tweens = {},
+			sequence = 0,
+		}
 		feedbackByTarget[target] = mounted
 		state = mounted
 		badge.Destroying:Once(function()
@@ -238,6 +363,7 @@ function Ui.feedback(
 	for _, spark in state.sparks do
 		spark.Visible = false
 	end
+	state.ring.Visible = false
 	local badge = state.badge
 	badge.Text = string.upper(message)
 		.. (if streak > 1 then string.format(text.combo, streak) else "")
@@ -250,52 +376,101 @@ function Ui.feedback(
 	state.sequence += 1
 	local sequence = state.sequence
 	if not reduced then
-		local tween = TweenInfo.new(0.32, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
+		-- Instant pop-in overshoot on the badge without distorting font aspect ratio.
+		state.badgeScale.Scale = if perfect then 1.32 else 1.18
+		local popTween = TweenService:Create(
+			state.badgeScale,
+			TweenInfo.new(0.22, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+			{ Scale = 1 }
+		)
+		table.insert(state.tweens, popTween)
+		popTween:Play()
+
+		local tween = TweenInfo.new(0.36, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 		local labelTween = TweenService:Create(badge, tween, {
-			Position = at + (if success then UDim2.fromOffset(0, -14) else UDim2.fromOffset(7, 0)),
+			Position = at + (if success then UDim2.fromOffset(0, -18) else UDim2.fromOffset(8, 0)),
 			TextTransparency = 1,
 			TextStrokeTransparency = 1,
 		})
 		table.insert(state.tweens, labelTween)
 		labelTween:Play()
+
 		if success then
+			-- Expanding impact shockwave ring at the hit point.
+			state.ring.Position = at
+			state.ring.Size = UDim2.fromOffset(22, 22)
+			state.ring.Visible = true
+			state.ringStroke.Color = accent
+			state.ringStroke.Thickness = if perfect then 4 else 2.5
+			state.ringStroke.Transparency = 0.1
+			local ringGoal = if perfect then 104 else 72
+			local ringTween = TweenService:Create(
+				state.ring,
+				TweenInfo.new(0.28, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
+				{ Size = UDim2.fromOffset(ringGoal, ringGoal) }
+			)
+			local strokeTween = TweenService:Create(
+				state.ringStroke,
+				TweenInfo.new(0.28, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+				{ Transparency = 1 }
+			)
+			table.insert(state.tweens, ringTween)
+			table.insert(state.tweens, strokeTween)
+			ringTween:Play()
+			strokeTween:Play()
+
 			if #state.sparks == 0 then
-				for _ = 1, 6 do
-					local particle = Ui.frame(target, "Spark", UDim2.fromOffset(6, 6), at, accent)
+				for _ = 1, 8 do
+					local particle = Ui.frame(target, "Spark", UDim2.fromOffset(7, 7), at, accent)
 					particle.AnchorPoint = Vector2.new(0.5, 0.5)
 					particle.Rotation = 45
 					particle.ZIndex = 6
 					table.insert(state.sparks, particle)
 				end
 			end
-			for index, spark in state.sparks do
-				local angle = index * math.pi / 3
+			local sparkCount = if perfect then 8 else 6
+			local radiusX = if perfect then 56 else 42
+			local radiusY = if perfect then 38 else 27
+			for index = 1, sparkCount do
+				local spark = state.sparks[index]
+				local angle = index * math.pi * 2 / sparkCount
 				spark.Position = at
-				spark.BackgroundColor3 = accent
+				spark.BackgroundColor3 = if perfect and index % 2 == 0
+					then Color3.new(1, 1, 1)
+					else accent
 				spark.BackgroundTransparency = 0
 				spark.Visible = true
 				local sparkTween = TweenService:Create(spark, tween, {
-					Position = at + UDim2.fromOffset(math.cos(angle) * 43, math.sin(angle) * 27),
+					Position = at
+						+ UDim2.fromOffset(math.cos(angle) * radiusX, math.sin(angle) * radiusY),
 					BackgroundTransparency = 1,
 				})
 				table.insert(state.tweens, sparkTween)
 				sparkTween:Play()
 			end
+			if perfect then
+				FishingCamera.impulse(0.14)
+				if streak >= 2 then
+					Ui.edgeGlow(Theme.gold, 0.32)
+				end
+			end
 		else
-			badge.Rotation = -5
+			FishingCamera.impulse(0.18)
+			badge.Rotation = -6
 			local tilt = TweenService:Create(
 				badge,
-				TweenInfo.new(0.14, Enum.EasingStyle.Elastic),
+				TweenInfo.new(0.16, Enum.EasingStyle.Elastic),
 				{ Rotation = 0 }
 			)
 			table.insert(state.tweens, tilt)
 			tilt:Play()
 		end
 	end
-	task.delay(0.34, function()
+	task.delay(0.38, function()
 		local current = feedbackByTarget[target]
 		if current and current.badge == badge and current.sequence == sequence then
 			badge.Visible = false
+			current.ring.Visible = false
 			for _, spark in current.sparks do
 				spark.Visible = false
 			end

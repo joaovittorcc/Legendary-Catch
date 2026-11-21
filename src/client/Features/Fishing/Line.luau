@@ -2,6 +2,7 @@
 -- Client-only visuals for the cast: glowing line (Beam) from the rod tip to a bobber that
 -- arcs out over the water, bobs, dips on the bite and shakes during the fight.
 
+local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -10,13 +11,23 @@ local Pose = require(script.Parent.Parent:WaitForChild("AvatarVisuals"):WaitForC
 local Effects = require(script.Parent:WaitForChild("Effects"))
 
 local SEA_Y = 0.25
+local DEFAULT_LINE_COLOR = Color3.fromRGB(150, 235, 255)
+
+local function reduced(): boolean
+	return Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+end
 
 export type Line = {
 	bobber: BasePart,
+	beacon: BasePart,
+	beaconLight: PointLight,
+	trail: Trail,
 	beam: Beam,
 	tip: Attachment,
 	tipPart: BasePart?,
 	rest: Vector3,
+	fightColor: Color3,
+	nextFightFx: number,
 	mode: string, -- "flying" | "floating" | "fighting"
 	conn: RBXScriptConnection?,
 	stopPose: (() -> ())?,
@@ -24,7 +35,7 @@ export type Line = {
 
 local Line = {}
 
-local function newBobber(): BasePart
+local function newBobber(): (BasePart, BasePart, PointLight, Trail)
 	local bobber = Instance.new("Part")
 	bobber.Name = "Bobber"
 	bobber.Shape = Enum.PartType.Ball
@@ -36,6 +47,7 @@ local function newBobber(): BasePart
 	bobber.CanQuery = false
 	bobber.CanTouch = false
 	bobber.CastShadow = false
+
 	local band = Instance.new("Part")
 	band.Name = "Band"
 	band.Shape = Enum.PartType.Cylinder
@@ -48,11 +60,60 @@ local function newBobber(): BasePart
 	band.CanTouch = false
 	band.CastShadow = false
 	band.Parent = bobber
-	return bobber
+
+	-- Glowing crystal beacon on top of the bobber; shifts color to the hooked rarity.
+	local beacon = Instance.new("Part")
+	beacon.Name = "Beacon"
+	beacon.Shape = Enum.PartType.Ball
+	beacon.Size = Vector3.new(0.32, 0.32, 0.32)
+	beacon.Color = DEFAULT_LINE_COLOR
+	beacon.Material = Enum.Material.Neon
+	beacon.Anchored = true
+	beacon.CanCollide = false
+	beacon.CanQuery = false
+	beacon.CanTouch = false
+	beacon.CastShadow = false
+	beacon.Parent = bobber
+
+	local beaconLight = Instance.new("PointLight")
+	beaconLight.Color = DEFAULT_LINE_COLOR
+	beaconLight.Brightness = if reduced() then 0 else 1.5
+	beaconLight.Range = 9
+	beaconLight.Parent = beacon
+
+	-- Tapered energy ribbon during cast flight and reel-in.
+	local trailTop = Instance.new("Attachment")
+	trailTop.Position = Vector3.new(0, 0.24, 0)
+	trailTop.Parent = bobber
+	local trailBottom = Instance.new("Attachment")
+	trailBottom.Position = Vector3.new(0, -0.24, 0)
+	trailBottom.Parent = bobber
+	local trail = Instance.new("Trail")
+	trail.Attachment0 = trailTop
+	trail.Attachment1 = trailBottom
+	trail.Lifetime = 0.26
+	trail.MinLength = 0.1
+	trail.FaceCamera = true
+	trail.LightEmission = 1
+	trail.LightInfluence = 0
+	trail.Color = ColorSequence.new(Color3.new(1, 1, 1), DEFAULT_LINE_COLOR)
+	trail.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.18),
+		NumberSequenceKeypoint.new(0.55, 0.52),
+		NumberSequenceKeypoint.new(1, 1),
+	})
+	trail.WidthScale = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1),
+		NumberSequenceKeypoint.new(1, 0),
+	})
+	trail.Enabled = not reduced()
+	trail.Parent = bobber
+
+	return bobber, beacon, beaconLight, trail
 end
 
 function Line.create(tip: Attachment): Line
-	local bobber = newBobber()
+	local bobber, beacon, beaconLight, trail = newBobber()
 	bobber.CFrame = tip.WorldCFrame
 	local attachment = Instance.new("Attachment")
 	attachment.Parent = bobber
@@ -75,10 +136,15 @@ function Line.create(tip: Attachment): Line
 	local tipPart = tip.Parent
 	local self: Line = {
 		bobber = bobber,
+		beacon = beacon,
+		beaconLight = beaconLight,
+		trail = trail,
 		beam = beam,
 		tip = tip,
 		tipPart = if tipPart and tipPart:IsA("BasePart") then tipPart else nil,
 		rest = bobber.Position,
+		fightColor = DEFAULT_LINE_COLOR,
+		nextFightFx = 0,
 		mode = "flying",
 		conn = nil,
 		stopPose = nil,
@@ -109,14 +175,24 @@ function Line.create(tip: Attachment): Line
 					-0.35 + math.sin(t * 9) * 0.15,
 					math.cos(t * 11) * 0.2
 				)
-			-- Bend the line toward the pull.
+			-- Bend the line toward the pull and hum with tension.
 			beam.CurveSize0 = 1.2 + math.sin(t * 1.6) * 1.6
 			beam.CurveSize1 = -1 + math.cos(t * 1.6) * 0.8
+			local tension = math.abs(math.sin(t * 7.5))
+			beam.Width0 = 0.07 + tension * 0.035
+			beam.Width1 = 0.09 + tension * 0.045
+			if not reduced() and t >= self.nextFightFx then
+				self.nextFightFx = t + 0.58
+				local waterSpot = Vector3.new(bobber.Position.X, SEA_Y, bobber.Position.Z)
+				Effects.ripple(waterSpot, self.fightColor, 3.8, 0.55)
+				Effects.splash(waterSpot, self.fightColor, 8)
+			end
 		end
 		local band = bobber:FindFirstChild("Band")
 		if band and band:IsA("BasePart") then
 			band.CFrame = bobber.CFrame * CFrame.Angles(0, 0, math.rad(90))
 		end
+		beacon.CFrame = bobber.CFrame * CFrame.new(0, 0.44, 0)
 	end)
 	return self
 end
@@ -134,6 +210,7 @@ end
 
 -- Arcs the bobber from the rod tip to the water point; yields until it lands.
 function Line.castTo(self: Line, target: Vector3)
+	self.trail.Enabled = not reduced()
 	pose(self, function(t)
 		if t >= 0.68 then
 			return nil
@@ -159,13 +236,20 @@ function Line.castTo(self: Line, target: Vector3)
 	end
 	self.rest = to
 	self.mode = "floating"
-	Effects.ripple(to, Color3.fromRGB(220, 245, 255), 3, 0.6)
+	self.trail.Enabled = false
+	Effects.ripple(to, Color3.fromRGB(220, 245, 255), 3.4, 0.65)
+	Effects.splash(to, Color3.fromRGB(205, 245, 255), 10)
 end
 
 function Line.setColor(self: Line, color: Color3)
+	self.fightColor = color
 	self.beam.Color = ColorSequence.new(Color3.fromRGB(240, 245, 255), color)
 	self.beam.Width0 = 0.08
 	self.beam.Width1 = 0.1
+	self.beacon.Color = color
+	self.beaconLight.Color = color
+	self.beaconLight.Brightness = if reduced() then 0 else 2.6
+	self.trail.Color = ColorSequence.new(Color3.new(1, 1, 1), color)
 	local tipPart = self.tipPart
 	if tipPart then
 		tipPart.Color = color
@@ -182,9 +266,10 @@ function Line.bite(self: Line, color: Color3)
 		return CFrame.Angles(-0.28 + math.sin(t * 9) * 0.16, 0.1, 0)
 	end)
 	Line.setColor(self, color)
+	self.nextFightFx = 0
 	self.mode = "fighting"
-	Effects.ripple(self.rest, color, 6, 0.8)
-	Effects.splash(self.rest, color, 14)
+	Effects.ripple(self.rest, color, 6.2, 0.85)
+	Effects.splash(self.rest, color, 18)
 end
 
 function Line.reelIn(self: Line, duration: number)
@@ -195,6 +280,7 @@ function Line.reelIn(self: Line, duration: number)
 		return CFrame.Angles(-math.sin(t / 0.95 * math.pi) * 0.85, 0, math.sin(t * 5) * 0.16)
 	end)
 	self.mode = "flying"
+	self.trail.Enabled = not reduced()
 	local goal = self.tip.WorldPosition
 	local tween = TweenService:Create(
 		self.bobber,
@@ -205,7 +291,10 @@ function Line.reelIn(self: Line, duration: number)
 	-- Once it reaches the rod the bobber and line get out of the reveal's way.
 	tween.Completed:Once(function()
 		self.beam.Enabled = false
+		self.trail.Enabled = false
 		self.bobber.Transparency = 1
+		self.beacon.Transparency = 1
+		self.beaconLight.Brightness = 0
 		local band = self.bobber:FindFirstChild("Band")
 		if band and band:IsA("BasePart") then
 			band.Transparency = 1

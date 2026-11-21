@@ -61,9 +61,13 @@ local SHAKE_BUMP_SECONDS = 0.3
 local player = Players.LocalPlayer
 local conn: RBXScriptConnection? = nil
 local oldType: Enum.CameraType? = nil
+local oldFov: number? = nil
 local phase = "waiting"
 local shotIndex = 1
 local shotStart = 0
+local trauma = 0
+local fovOffset = 0
+local smoothedFps = 60
 -- The catch shot: over the shoulder, on the fish that flies in from the water.
 local catchOrigin = Vector3.zero
 local catchStart = 0
@@ -81,10 +85,14 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 	end
 	FishingCamera.stop()
 	oldType = camera.CameraType
+	oldFov = camera.FieldOfView
 	camera.CameraType = Enum.CameraType.Scriptable
 	phase = "waiting"
 	shotIndex = 1
 	shotStart = os.clock()
+	trauma = 0
+	fovOffset = 0
+	smoothedFps = 60
 	-- The player faces the water: forward/side come from that, fixed for the whole cast.
 	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	local forward = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
@@ -117,23 +125,41 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 	local bumpAt = -math.huge
 	local bumpDir = Vector2.zero
 
-	local function tremor(now: number): CFrame
-		if phase ~= "fight" or reduceEffects() then
+	local function tremor(now: number, dt: number): CFrame
+		if reduceEffects() then
+			trauma = 0
 			return CFrame.identity
 		end
-		-- Constant faint tremble, like the line pulling.
-		-- math.noise stays roughly within -0.5..0.5, so x2 gives about ±SHAKE_TREMBLE.
-		local x = math.noise(now * 9, 0.5) * 2 * SHAKE_TREMBLE
-		local y = math.noise(0.5, now * 9) * 2 * SHAKE_TREMBLE
-		-- Every so often the fish yanks: a quick bump that fades out.
-		if now >= nextBump then
-			bumpAt = now
-			bumpDir = Vector2.new(rng:NextNumber(-1, 1), rng:NextNumber(-1, 1)).Unit
-			nextBump = now + rng:NextNumber(0.7, 1.5)
+		if dt > 0.001 then
+			smoothedFps += (math.clamp(1 / dt, 15, 240) - smoothedFps) * 0.15
 		end
-		local fade = math.clamp(1 - (now - bumpAt) / SHAKE_BUMP_SECONDS, 0, 1)
-		local bump = fade * fade * SHAKE_BUMP * math.sin((now - bumpAt) * 40)
-		return CFrame.Angles(math.rad(x + bumpDir.Y * bump), math.rad(y + bumpDir.X * bump), 0)
+		-- Nyquist-safe cap so 30 fps phones never alias shake into jitter.
+		local freq = math.min(9, 0.4 * smoothedFps)
+		trauma = math.max(0, trauma - dt * 1.9)
+		local impulseMag = trauma * trauma * 1.45
+		local rx = math.noise(now * freq, 2.7) * 2 * impulseMag
+		local ry = math.noise(7.1, now * freq) * 2 * impulseMag
+		if phase == "fight" then
+			rx += math.noise(now * freq, 0.5) * 2 * SHAKE_TREMBLE
+			ry += math.noise(0.5, now * freq) * 2 * SHAKE_TREMBLE
+			-- Every so often the fish yanks: a quick bump that fades out.
+			if now >= nextBump then
+				bumpAt = now
+				bumpDir = Vector2.new(rng:NextNumber(-1, 1), rng:NextNumber(-1, 1)).Unit
+				nextBump = now + rng:NextNumber(0.7, 1.5)
+			end
+			local fade = math.clamp(1 - (now - bumpAt) / SHAKE_BUMP_SECONDS, 0, 1)
+			local bump = fade
+				* fade
+				* SHAKE_BUMP
+				* math.sin((now - bumpAt) * math.min(40, freq * 3.5))
+			rx += bumpDir.Y * bump
+			ry += bumpDir.X * bump
+		end
+		if math.abs(rx) < 0.001 and math.abs(ry) < 0.001 then
+			return CFrame.identity
+		end
+		return CFrame.Angles(math.rad(rx), math.rad(ry), 0)
 	end
 
 	conn = RunService.RenderStepped:Connect(function(dt)
@@ -144,6 +170,8 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 		local position: Vector3
 		local look: Vector3
 		local speed: number
+		local baseFov = oldFov or 70
+		local targetFovOffset = 0
 		if phase == "catch" then
 			-- Behind the character's shoulder, on the spot where the fish is shown.
 			local display = root.Position + forward * 7 + UP * 3
@@ -151,6 +179,7 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 			look = (catchOrigin + UP):Lerp(display, a * a * (3 - 2 * a))
 			position = root.Position - forward * 3.2 + side * 2.3 + UP * 3.6
 			speed = 3.2
+			targetFovOffset = -7
 		else
 			local order = if phase == "fight" then FIGHT_ORDER else WAITING_ORDER
 			local length = if phase == "fight" then FIGHT_SECONDS else WAITING_SECONDS
@@ -166,20 +195,39 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 			position, look = SHOTS[name](root.Position, bobber.Position, forward, side, t)
 			-- Smooth glide between angles; snappier while fighting.
 			speed = if phase == "fight" then 4 else 2.2
+			targetFovOffset = if phase == "fight" then -2.5 else 0
+		end
+		if reduceEffects() then
+			fovOffset = 0
+		else
+			fovOffset += (targetFovOffset - fovOffset) * (1 - math.exp(-dt * 6.5))
 		end
 		local goal = CFrame.lookAt(unblocked(position), look)
 		smooth = smooth:Lerp(goal, 1 - math.exp(-dt * speed))
-		camera.CFrame = smooth * tremor(os.clock())
+		camera.CFrame = smooth * tremor(os.clock(), dt)
+		camera.FieldOfView = math.clamp(baseFov + fovOffset, 50, 82)
 		camera.Focus = CFrame.new(look)
 	end)
 end
 
--- The bite: switch to the faster, closer fight sequence.
+-- Adds a capped trauma kick (used on bites, perfect minigame hits, and misses).
+function FishingCamera.impulse(amount: number)
+	if not conn or reduceEffects() then
+		return
+	end
+	trauma = math.min(0.6, trauma + math.max(amount, 0))
+end
+
+-- The bite: switch to the faster, closer fight sequence with an immediate FOV punch.
 function FishingCamera.fight()
 	if conn then
 		phase = "fight"
 		shotIndex = 1
 		shotStart = os.clock()
+		if not reduceEffects() then
+			fovOffset = -7
+			trauma = math.min(0.6, trauma + 0.42)
+		end
 	end
 end
 
@@ -190,6 +238,9 @@ function FishingCamera.catch(origin: Vector3)
 		phase = "catch"
 		catchOrigin = origin
 		catchStart = os.clock()
+		if not reduceEffects() then
+			trauma = math.min(0.6, trauma + 0.25)
+		end
 	end
 end
 
@@ -201,10 +252,18 @@ function FishingCamera.stop()
 		c:Disconnect()
 	end
 	local camera = Workspace.CurrentCamera
-	if camera and oldType then
-		camera.CameraType = oldType
+	if camera then
+		if oldType then
+			camera.CameraType = oldType
+		end
+		if oldFov then
+			camera.FieldOfView = oldFov
+		end
 	end
 	oldType = nil
+	oldFov = nil
+	trauma = 0
+	fovOffset = 0
 end
 
 return FishingCamera

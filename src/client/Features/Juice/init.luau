@@ -3,6 +3,7 @@
 
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
@@ -21,8 +22,21 @@ local player = Players.LocalPlayer
 local gui: ScreenGui
 local lastCoins: number? = nil
 
-type Coin = { image: TextLabel, tween: Tween? }
-local coinPool: { Coin } = {}
+type CoinFlight = {
+	image: TextLabel,
+	scale: UIScale,
+	startPos: Vector2,
+	controlPos: Vector2,
+	goalPos: Vector2,
+	startRot: number,
+	startedAt: number,
+	duration: number,
+	index: number,
+	target: GuiObject,
+	active: boolean,
+}
+local coinPool: { CoinFlight } = {}
+local coinStep: RBXScriptConnection? = nil
 
 local function coinLabel(): GuiObject?
 	local hud = player.PlayerGui:FindFirstChild("AdventureHud")
@@ -39,8 +53,70 @@ local function pulse(target: GuiObject)
 		scale = s
 	end
 	local s = scale :: UIScale
-	s.Scale = 1.18
-	TweenService:Create(s, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+	s.Scale = 1.2
+	TweenService:Create(s, TweenInfo.new(0.32, Enum.EasingStyle.Back), { Scale = 1 }):Play()
+end
+
+local function stopCoinLoop()
+	if coinStep then
+		coinStep:Disconnect()
+		coinStep = nil
+	end
+end
+
+local function ensureCoinLoop()
+	if coinStep then
+		return
+	end
+	coinStep = RunService.RenderStepped:Connect(function()
+		local now = os.clock()
+		local anyActive = false
+		for _, slot in coinPool do
+			if not slot.active then
+				continue
+			end
+			local elapsed = now - slot.startedAt
+			if elapsed < 0 then
+				anyActive = true
+				continue
+			end
+			local a = math.min(elapsed / slot.duration, 1)
+			-- Ease-in-out cubic along a quadratic Bezier arc for lively scatter -> swoop.
+			local t = if a < 0.5 then 2 * a * a else 1 - (-2 * a + 2) ^ 2 / 2
+			local inv = 1 - t
+			local pos = slot.startPos * (inv * inv)
+				+ slot.controlPos * (2 * inv * t)
+				+ slot.goalPos * (t * t)
+			slot.image.Visible = true
+			slot.image.Position = UDim2.fromOffset(pos.X, pos.Y)
+			slot.image.Rotation = slot.startRot * (1 - t)
+			-- Pop bigger at launch, settle crisply into the counter.
+			local pop = 0.65 + math.sin(a * math.pi) * 0.55
+			slot.scale.Scale = pop
+			if a >= 1 then
+				slot.active = false
+				slot.image.Visible = false
+				slot.scale.Scale = 1
+				if
+					slot.target.Parent
+					and not Ui.reduced()
+					and not slot.target:FindFirstChild("MotionScale")
+				then
+					if slot.index == 1 or slot.index % 3 == 0 then
+						pulse(slot.target)
+					end
+				end
+				if slot.index <= 4 then
+					Audio.play("hit", 0.07, 1.25 + slot.index * 0.05)
+				end
+			else
+				anyActive = true
+			end
+		end
+		if not anyActive then
+			stopCoinLoop()
+		end
+	end)
 end
 
 function Juice.flyCoins(amount: number, origin: Vector2?)
@@ -56,37 +132,30 @@ function Juice.flyCoins(amount: number, origin: Vector2?)
 	local view = gui.AbsoluteSize
 	local source = if origin then origin - inset else Vector2.new(view.X * 0.5, view.Y * 0.55)
 	local count = math.clamp(math.floor(math.log10(math.max(amount, 1)) * 3), 3, 10)
+	local now = os.clock()
+	local launched = 0
 	for i = 1, count do
 		local slot = coinPool[i]
-		if slot.tween then
+		if slot.active then
 			continue
 		end
-		local coin = slot.image
-		local start = source + Vector2.new(math.random(-20, 20), math.random(-12, 12))
-		coin.Position = UDim2.fromOffset(start.X, start.Y)
-		coin.Rotation = math.random(-50, 50)
-		coin.Visible = true
-		local delay = (i - 1) * 0.05
-		local tween = TweenService:Create(
-			coin,
-			TweenInfo.new(0.55, Enum.EasingStyle.Quad, Enum.EasingDirection.In, 0, false, delay),
-			{ Position = UDim2.fromOffset(goal.X, goal.Y), Rotation = 0 }
-		)
-		slot.tween = tween
-		tween.Completed:Once(function(state)
-			slot.tween = nil
-			coin.Visible = false
-			if
-				state == Enum.PlaybackState.Completed
-				and i == 1
-				and target.Parent
-				and not Ui.reduced()
-				and not target:FindFirstChild("MotionScale")
-			then
-				pulse(target)
-			end
-		end)
-		tween:Play()
+		local scatterX = math.random(-56, 56)
+		local scatterY = math.random(-36, 26)
+		local mid = source:Lerp(goal, 0.38)
+		slot.startPos = source + Vector2.new(math.random(-14, 14), math.random(-10, 10))
+		slot.controlPos = mid + Vector2.new(scatterX * 1.4, -55 + scatterY)
+		slot.goalPos = goal
+		slot.startRot = math.random(-70, 70)
+		slot.startedAt = now + (i - 1) * 0.045
+		slot.duration = 0.52 + math.random() * 0.1
+		slot.index = i
+		slot.target = target
+		slot.active = true
+		slot.image.Visible = false
+		launched += 1
+	end
+	if launched > 0 then
+		ensureCoinLoop()
 	end
 end
 
@@ -259,16 +328,31 @@ function Juice.start()
 		coin.TextSize = 16
 		coin.TextColor3 = Theme.wood
 		Theme.surface(coin, Theme.gold, 12, Theme.gold)
+		local scale = Instance.new("UIScale")
+		scale.Parent = coin
 		coin.Visible = false
 		coin.Parent = gui
-		table.insert(coinPool, { image = coin })
+		table.insert(coinPool, {
+			image = coin,
+			scale = scale,
+			startPos = Vector2.zero,
+			controlPos = Vector2.zero,
+			goalPos = Vector2.zero,
+			startRot = 0,
+			startedAt = 0,
+			duration = 0.55,
+			index = 1,
+			target = coin,
+			active = false,
+		})
 	end
 	player:GetAttributeChangedSignal("ReduceEffects"):Connect(function()
 		if Ui.reduced() then
+			stopCoinLoop()
 			for _, slot in coinPool do
-				if slot.tween then
-					slot.tween:Cancel()
-				end
+				slot.active = false
+				slot.image.Visible = false
+				slot.scale.Scale = 1
 			end
 		end
 	end)
