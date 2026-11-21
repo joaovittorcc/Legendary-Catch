@@ -21,7 +21,13 @@ type DisplayState = {
 	angle: number,
 }
 
-local function styleSign(sign: BillboardGui, color: Color3, rarity: string?, shiny: boolean)
+local function styleSign(
+	sign: BillboardGui,
+	color: Color3,
+	rarity: string?,
+	shiny: boolean,
+	heroScale: number?
+)
 	local caption = sign:FindFirstChildOfClass("TextLabel")
 	if not caption then
 		return
@@ -33,29 +39,29 @@ local function styleSign(sign: BillboardGui, color: Color3, rarity: string?, shi
 		frame.Name = "LocalTrophyPlate"
 		frame.Size = UDim2.fromScale(1, 1)
 		frame.ZIndex = 1
-		Theme.surface(frame, color, 11, Theme.ink)
+		Theme.surface(frame, color, 14, Theme.ink)
 		local badge = Instance.new("TextLabel")
 		badge.Name = "ShinyBadge"
 		badge.AnchorPoint = Vector2.new(0.5, 0)
-		badge.Position = UDim2.new(0.75, 0, 0, 7)
-		badge.Size = UDim2.fromOffset(112, 19)
+		badge.Position = UDim2.fromScale(0.76, 0.08)
+		badge.Size = UDim2.fromScale(0.38, 0.22)
 		badge.ZIndex = 3
 		badge.BackgroundColor3 = Theme.gold
 		badge.TextColor3 = Theme.ink
 		badge.Text = "✦ " .. Text.shiny
-		badge.TextSize = 13
+		badge.TextScaled = true
 		badge.Font = Theme.font
 		badge.BorderSizePixel = 0
-		Theme.corner(badge, 7)
+		Theme.corner(badge, 8)
 		badge.Parent = frame
 		local rank = Instance.new("TextLabel")
 		rank.Name = "Rarity"
 		rank.AnchorPoint = Vector2.new(0.5, 0)
-		rank.Size = UDim2.fromOffset(136, 19)
+		rank.Size = UDim2.fromScale(0.48, 0.22)
 		rank.BackgroundTransparency = 1
 		rank.TextColor3 = Theme.sand
 		rank.Font = Theme.font
-		rank.TextSize = 14
+		rank.TextScaled = true
 		rank.ZIndex = 3
 		rank.Parent = frame
 		frame.Parent = sign
@@ -74,16 +80,28 @@ local function styleSign(sign: BillboardGui, color: Color3, rarity: string?, shi
 	local rank = styledPlate:FindFirstChild("Rarity")
 	if rank and rank:IsA("TextLabel") then
 		rank.Text = if rarity then Theme.rarityLabel(rarity) else ""
-		rank.Position = UDim2.new(if shiny then 0.28 else 0.5, 0, 0, 7)
+		rank.Position = UDim2.fromScale(if shiny then 0.28 else 0.5, 0.08)
 	end
 	local hasHeader = shiny or rarity ~= nil
-	sign.Size = UDim2.fromOffset(268, if hasHeader then 94 else 70)
+	-- Use world-space studs (Scale) so the card stays proportional at any distance and never blocks the screen.
+	local isMonument = heroScale ~= nil and heroScale >= 10
+	local widthStuds = if isMonument then 17.5 else 7.4
+	local heightStuds = if isMonument
+		then (if hasHeader then 5.6 else 4.2)
+		else (if hasHeader then 2.6 else 2.0)
+	sign.Size = UDim2.fromScale(widthStuds, heightStuds)
+	sign.AlwaysOnTop = false
+	sign.MaxDistance = if isMonument then 175 else 55
+	if isMonument and heroScale then
+		sign.StudsOffsetWorldSpace = Vector3.new(0, heroScale + 4.2, 0)
+	end
 	caption.ZIndex = 2
-	caption.Position = UDim2.fromOffset(10, if hasHeader then 30 else 7)
-	caption.Size = UDim2.new(1, -20, 1, if hasHeader then -36 else -14)
+	caption.Position = UDim2.fromScale(0.06, if hasHeader then 0.34 else 0.12)
+	caption.Size = UDim2.fromScale(0.88, if hasHeader then 0.58 else 0.76)
+	caption.TextScaled = true
 	caption.TextColor3 = Theme.sand
 	caption.TextStrokeColor3 = Color3.new(0, 0, 0)
-	caption.TextStrokeTransparency = 0.48
+	caption.TextStrokeTransparency = 0.42
 	-- The server and WorldText keep ownership of the caption's content.
 end
 
@@ -151,6 +169,10 @@ function TrophyPresentation.start()
 				local color = if creature
 					then Theme.rarity[creature.rarity] or Theme.gold
 					else Theme.gold
+				local rawHero = instance:GetAttribute("HeroScale")
+				local heroScale = if typeof(rawHero) == "number" and rawHero > 0
+					then rawHero
+					else nil
 				local sign = display and display:FindFirstChild("TrophySign")
 				if sign and sign:IsA("BillboardGui") then
 					updateSignVisibility(sign)
@@ -158,7 +180,8 @@ function TrophyPresentation.start()
 						sign,
 						color,
 						if creature then creature.rarity else nil,
-						instance:GetAttribute("TrophyVariant") == "Shiny"
+						instance:GetAttribute("TrophyVariant") == "Shiny",
+						heroScale
 					)
 				end
 				local model = display and display:FindFirstChildOfClass("Model")
@@ -166,6 +189,18 @@ function TrophyPresentation.start()
 					model = nil
 				end
 				if model ~= state.model then
+					if model and heroScale then
+						local _, sz = model:GetBoundingBox()
+						local maxSide = math.max(sz.X, sz.Y, sz.Z, 0.1)
+						if math.abs(maxSide - heroScale) > 0.5 then
+							model:ScaleTo(model:GetScale() * heroScale / maxSide)
+						end
+						local _, scaled = model:GetBoundingBox()
+						model:PivotTo(
+							instance.CFrame
+								* CFrame.new(0, instance.Size.Y / 2 + scaled.Y / 2 + 1.6, 0)
+						)
+					end
 					state.model = model
 					state.pivot = if model then model:GetPivot() else nil
 					state.center = if model then select(1, model:GetBoundingBox()).Position else nil
@@ -224,7 +259,7 @@ function TrophyPresentation.start()
 				and model.Parent
 				and pivot
 				and center
-				and (camera.CFrame.Position - pedestal.Position).Magnitude < 82
+				and (camera.CFrame.Position - pedestal.Position).Magnitude < 190
 			then
 				state.angle = (state.angle + math.min(delta, 0.15) * 0.48) % (math.pi * 2)
 				model:PivotTo(

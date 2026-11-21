@@ -19,8 +19,8 @@ LeaderboardBoard.order = 95
 
 local player = Players.LocalPlayer
 
-local NEAR_DISTANCE = 135
-local ANIM_PAUSE_DISTANCE = 150
+local NEAR_DISTANCE = 165
+local ANIM_PAUSE_DISTANCE = 185
 local CANVAS_WIDTH_PX = 397
 local REFRESH_INTERVAL = 60
 local STAGGER_SECONDS = 1.18
@@ -265,9 +265,9 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		rStroke.Parent = row
 		row.Parent = widget.list
 
-		local badge = makeLabel(row, "#" .. tostring(entry.rank), 18, Theme.ink)
+		local badge = makeLabel(row, "#" .. tostring(entry.rank), 21, Theme.ink)
 		badge.Position = UDim2.fromOffset(4, 3)
-		badge.Size = UDim2.fromOffset(38, 27)
+		badge.Size = UDim2.fromOffset(42, 27)
 		badge.BackgroundTransparency = 0
 		badge.BackgroundColor3 = rankPill(entry.rank)
 		Theme.corner(badge, 6)
@@ -275,17 +275,17 @@ local function renderWidget(widget: BoardWidget, payload: Net.LeaderboardResult?
 		local nameText = if isSelf
 			then string.format("%s (%s)", entry.name, Text.leaderboard.you)
 			else entry.name
-		local nameLbl = makeLabel(row, nameText, 18, Theme.sand, Enum.TextXAlignment.Left)
-		nameLbl.Position = UDim2.fromOffset(48, 0)
-		nameLbl.Size = UDim2.new(1, -168, 1, 0)
+		local nameLbl = makeLabel(row, nameText, 22, Theme.sand, Enum.TextXAlignment.Left)
+		nameLbl.Position = UDim2.fromOffset(52, 0)
+		nameLbl.Size = UDim2.new(1, -172, 1, 0)
 		nameLbl.TextStrokeColor3 = Theme.outline
-		nameLbl.TextStrokeTransparency = 0.25
+		nameLbl.TextStrokeTransparency = 0.15
 		nameLbl.TextTruncate = Enum.TextTruncate.AtEnd
 
 		local scoreLbl = makeLabel(
 			row,
 			formatScore(widget.board, entry.score),
-			18,
+			21,
 			Theme.gold,
 			Enum.TextXAlignment.Right
 		)
