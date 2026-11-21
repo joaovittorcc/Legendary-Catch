@@ -1,0 +1,24 @@
+{
+  "id": "C55_Caranguejo_Rei_Gelo",
+  "rarity": "Rare",
+  "roblox_xyz_studs": [
+    2.86,
+    1.54,
+    1.981
+  ],
+  "head_minus_tail_z": 1.322,
+  "atlas_px": [
+    512,
+    512
+  ],
+  "triangles": 1416,
+  "parts": {
+    "Body": 192,
+    "Head": 372,
+    "Shell": 136,
+    "Claws": 280,
+    "Legs": 264,
+    "Tail": 44,
+    "Extra": 128
+  }
+}

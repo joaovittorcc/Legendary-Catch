@@ -24,7 +24,7 @@ local function prepareCreature(
 	neonExtras: boolean?
 ): Vector3
 	assert(string.match(id, "^C%d+_[%w_]+$"), "Expected the exact creature ID from Config")
-	local small = rarity == "Common" or rarity == "Uncommon"
+	local small = rarity == "Common" or rarity == "Uncommon" or rarity == "Rare"
 	assert(small or rarity == "Epic" or rarity == "Legendary", "Unsupported creature budget")
 
 	local parts: { MeshPart } = {}

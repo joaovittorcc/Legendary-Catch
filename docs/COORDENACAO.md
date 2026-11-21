@@ -753,7 +753,42 @@ Formato: `- [AAAA-MM-DD HH:MM] Agente: mensagem`
     2. **`C20_Raia_Vulcanica` (`2.052` tris totais, `<= 736` por peça):** `Body: 252, Head: 736, Wings: 348, Tail: 160, Extra: 192, Extra.001: 364` (`head_minus_tail_z: +1,829`). Rosto frontal elevado com focinho esculpido, olhos ouro-magma, chifres de brasa, asas em delta com fissuras de lava e cauda-chicote com ponta de magma.
     3. **`C84_Tubarao_Martelo_de_Cristal` (`1.770` tris totais, `<= 796` por peça):** `Body: 276, Head: 796, FinL: 86, FinR: 86, Fins: 92, Tail: 130, Extra: 252, Extra.001: 52` (`head_minus_tail_z: +2,285`). Cefalofólio largo com ponteiras de diamante, olhos frontais safira com crista ciano, sorriso dentado cartoony e dorsal de cristal.
   - **Comparativos Antes/Depois e 6 ângulos:** salvos em `art/screens/creatures-epicas/lote-piloto/` (`README.md`, `*-antes-depois.jpg`, `*-6-angulos.jpg`). Cena temporária de auditoria removida do Studio e `.studio-lock` liberado (nenhum modelo do place foi alterado antes da aprovação).
+- [2026-11-20 22:36] Antigravity: Iniciando **Auditoria + Lote Piloto das Criaturas RARAS (`rarity = "Rare"`, 22 no total: 20 normais + 1 de evento + 1 de Natal)**:
+  1. `C07_Arraia_Prisma` — Arraia Prisma (`prism`, Normal): *"Quando abre as asas, o mar inteiro vira arco-íris."*
+  2. `C08_Enguia_Trovao` — Enguia Trovão (`storm`, Normal): *"Aparece nas tempestades. Ninguém sabe se ela traz o raio ou segue ele."*
+  3. `C17_Martelo_Coral` — Tubarão-Martelo de Coral (`prism`, Normal): *"A cabeça de martelo é coberta de corais que crescem de verdade."*
+  4. `C18_Lula_Neon` — Lula Neon (`spark`, Normal): *"Acende listras coloridas pra conversar com as amigas no fundo."*
+  5. `C19_Peixe_Lua_Dourado` — Peixe-Lua Dourado (`cosmic`, Normal): *"Enorme, redondo e brilhante. Os antigos achavam que era a lua caindo no mar."*
+  6. `C28_Nautilo_Aurora` — Náutilo Aurora (`prism`, Normal): *"A concha guarda as cores do céu do amanhecer. Gira devagar pra mostrar todas."*
+  7. `C32_Espadarte_Relampago` — Espadarte Relâmpago (`storm`, Normal): *"Corta as ondas tão rápido que deixa um risco de luz no mar."*
+  8. `C50_Tubarao_Baleia_Estrelado` — Tubarão-Baleia Estrelado (`cosmic`, Normal): *"As pintas formam constelações que só aparecem de noite."*
+  9. `C51_Lanterna_Abissal` — Lanterna Abissal (`spark`, Normal): *"Vive tão fundo que a lanterna é a única luz que já viu."*
+  10. `C52_Cavalo_Marinho_Real` — Cavalo-Marinho Real (`crystal`, Normal): *"Puxa a carruagem das sereias nos dias de festa."*
+  11. `C53_Moreia_Voltaica` — Moreia Voltaica (`storm`, Normal): *"Dá choquinhos em quem chega perto da toca dela."*
+  12. `C54_Peixe_Vela_Solar` — Peixe-Vela Solar (`magma`, Normal): *"A vela das costas guarda o calor do sol do meio-dia."*
+  13. `C55_Caranguejo_Rei_Gelo` — Caranguejo-Rei do Gelo (`frost`, Normal): *"Suas garras de gelo nunca derretem, nem no verão."*
+  14. `C75_Leao_Marinho_Dourado` — Leão-Marinho Dourado (`magma`, Normal): *"Ruge tão alto que as ondas viram plateia."*
+  15. `C76_Raia_Aurora` — Raia Aurora (`prism`, Normal): *"Carrega auroras boreais nas asas."*
+  16. `C77_Cavalo_Marinho_Relogio` — Cavalo-Marinho Relógio (`crystal`, Normal): *"Cada engrenagem marca a maré certa."*
+  17. `C78_Lagosta_Armadura` — Lagosta Armadura (`frost`, Normal): *"Cavaleira das profundezas, nunca perdeu um duelo."*
+  18. `C79_Mantarraia_Vitral` — Mantarraia Vitral (`prism`, Normal): *"Suas asas filtram a luz como uma catedral."*
+  19. `C80_Peixe_Pavao_Eletrico` — Peixe-Pavão Elétrico (`storm`, Normal): *"Abre o leque e o mar inteiro leva um choque de beleza."*
+  20. `C81_Enguia_Fita_de_Seda` — Enguia Fita-de-Seda (`cloud`, Normal): *"Dança como uma fita levada pela correnteza."*
+  21. `C95_Peixe_Vagalume_Real` — Peixe-Vagalume Real (`spark`, Evento `shimmerShoal`): *"Só aparece quando o cardume brilha: sua cauda é uma fita de luz."*
+  22. `C103_Boneco_de_Gelo_Marinho` — Boneco de Gelo Marinho (`frost`, Natal `xmas`): *"Feito de espuma gelada e cachecol festivo; nunca derrete enquanto houver alegria."*
+  Também adicionado suporte ao orçamento `Rare` (`1.500` tris totais / `500` por peça, escala `2.7`–`2.95` studs, alvo `2.86`) em `tools/blender/{check_creature.py, export_creature.py, ImportCreature.luau}` sem alterar `Epic` nem `Legendary`. Lock `.studio-lock` adquirido para auditoria em Edit.
 - [2026-11-20] Codex: iniciado o piloto Comum/Incomum. Common (22): C01, C02, C03, C11, C12, C13, C25, C26, C35, C36, C37, C38, C39, C40, C41, C42, C65, C66, C67, C68, C69, C101 · Uncommon (21): C04, C05, C06, C14, C15, C16, C27, C31, C43, C44, C45, C46, C47, C48, C49, C70, C71, C72, C73, C74, C102. Natal: C101/C102. Nomes e lore em docs/creatures-audit-incomuns-comuns.md. Auditoria em Edit e piloto local com pausa para aprovação.
 - [2026-11-20] Codex: piloto Comum/Incomum pronto para OK do João. Auditoria das 43 em docs/creatures-audit-incomuns-comuns.md: 19 manter e 24 refazer, incluindo C02/C12/C38 e C05/C06/C15 do piloto. FBXs reimportados: 380 a 596 tris nas Comuns, 592 a 722 nas Incomuns, atlas 256 px. Kit de lote em tools/blender/build_creatures.py, comparativos em art/screens/creatures-incomuns-comuns/piloto/. Cena temporária removida e lock liberado. Importação e demais lotes pausados até aprovação.
 - [2026-11-20] Codex: iniciada revisão de arte do piloto Comum/Incomum a pedido do João. Reforçar proporções, expressões e detalhes que identificam os seis modelos originais, com atlas 256 px e o mesmo orçamento mobile.
+- [2026-11-20 22:59] Antigravity: **Auditoria das 22 Criaturas RARAS + Lote Piloto (3 Raras no Blender headless, já refinadas após feedback do João) concluídos — PAUSADO aguardando o "ok" do João antes de modelar o Lote 2 ou importar no pool do Studio:**
+  - **Auditoria completa (`docs/creatures-audit-raras.md` + `art/creatures/<id>/antes/` com prancha de 6 ângulos e vistas recortadas para todas as 22 Raras):**
+    - **16 `MANTER` (já combinam com o estilo, têm rosto `+Z` legível e peças compatíveis com `CreatureMotion`):** `C07_Arraia_Prisma`, `C08_Enguia_Trovao`, `C17_Martelo_Coral`, `C18_Lula_Neon`, `C19_Peixe_Lua_Dourado`, `C28_Nautilo_Aurora`, `C32_Espadarte_Relampago`, `C51_Lanterna_Abissal`, `C52_Cavalo_Marinho_Real`, `C53_Moreia_Voltaica`, `C54_Peixe_Vela_Solar`, `C77_Cavalo_Marinho_Relogio`, `C79_Mantarraia_Vitral`, `C80_Peixe_Pavao_Eletrico`, `C81_Enguia_Fita_de_Seda`, `C95_Peixe_Vagalume_Real`.
+    - **6 `REFAZER` (divididas em 2 lotes de 3):**
+      - **Lote Piloto (modelado e refinado agora):** `C50_Tubarao_Baleia_Estrelado`, `C55_Caranguejo_Rei_Gelo`, `C103_Boneco_de_Gelo_Marinho`.
+      - **Lote 2 (após aprovação):** `C75_Leao_Marinho_Dourado` (rosa/roxo em vez de dourado com juba), `C76_Raia_Aurora` (roxo chapado com rosquinhas nas asas), `C78_Lagosta_Armadura` (achatada e sem rosto visível em `+Z`).
+  - **Lote Piloto validado via `tools/blender/check_creature.py` (`<= 1.500` tris totais, `<= 500` por peça, atlas `512×512`, escala `2,86` studs, frente `+Z`, sem ossos):**
+    1. **`C50_Tubarao_Baleia_Estrelado` (`1.194` tris):** `Body: 280, Head: 486, FinL: 96, FinR: 96, Fins: 104, Tail: 132` (`head_minus_tail_z: +2,055`). Olhos brilhantes voltados para `+Z`, boca sorridente, nadadeiras em curva e gema estelar discreta.
+    2. **`C55_Caranguejo_Rei_Gelo` (`1.416` tris):** `Body: 192, Head: 372, Shell: 136, Claws: 280, Legs: 264, Tail: 44, Extra: 128` (`head_minus_tail_z: +1,322`). Garras geladas levantadas enquadrando o rosto, coroa real de cristal com aro dourado, 6 patas articuladas e `Head` expressiva.
+    3. **`C103_Boneco_de_Gelo_Marinho` (`1.126` tris):** `Body: 324, Head: 494, FinL: 76, FinR: 76, Tail: 112, Extra: 44` (`head_minus_tail_z: +1,339`). Corrigido de `+X` para frente `+Z`, nariz de cenoura, sorriso de pedrinhas, botões de gelo, cachecol festivo, nadadeiras curvas e cauda de peixe.
+  - **Comparativos e 6 ângulos:** `art/screens/creatures-raras/lote-piloto/` (`README.md`, `*-antes-depois.jpg`, `*-6-angulos.jpg`). Cena temporária de auditoria removida do Studio e `.studio-lock` liberado.
 - [2026-11-20] Codex: revisão de arte do piloto Comum/Incomum entregue para o João. C02/C12/C38 e C05/C06/C15 com silhuetas revistas, rostos pintados e detalhes originais recuperados. Comuns 508 a 580 tris, Incomuns 782 a 892, atlas 256 px. Seis FBXs reimportados e comparativos atualizados em art/screens/creatures-incomuns-comuns/piloto/. Studio e place intactos nesta revisão; aguardando aprovação visual.

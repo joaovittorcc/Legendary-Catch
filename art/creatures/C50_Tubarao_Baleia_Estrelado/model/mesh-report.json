@@ -1,0 +1,23 @@
+{
+  "id": "C50_Tubarao_Baleia_Estrelado",
+  "rarity": "Rare",
+  "roblox_xyz_studs": [
+    2.79,
+    1.325,
+    2.86
+  ],
+  "head_minus_tail_z": 2.055,
+  "atlas_px": [
+    512,
+    512
+  ],
+  "triangles": 1194,
+  "parts": {
+    "Body": 280,
+    "Head": 486,
+    "FinL": 96,
+    "FinR": 96,
+    "Fins": 104,
+    "Tail": 132
+  }
+}

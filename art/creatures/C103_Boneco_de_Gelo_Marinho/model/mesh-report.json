@@ -1,0 +1,23 @@
+{
+  "id": "C103_Boneco_de_Gelo_Marinho",
+  "rarity": "Rare",
+  "roblox_xyz_studs": [
+    2.679,
+    2.86,
+    2.606
+  ],
+  "head_minus_tail_z": 1.339,
+  "atlas_px": [
+    512,
+    512
+  ],
+  "triangles": 1126,
+  "parts": {
+    "Body": 324,
+    "Head": 494,
+    "FinL": 76,
+    "FinR": 76,
+    "Tail": 112,
+    "Extra": 44
+  }
+}
