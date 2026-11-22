@@ -202,6 +202,8 @@ O repositório atual credita moedas na captura, guarda a coleção por espécie 
 
 ## 8. Plano dividido entre os três agentes
 
+Planos de execução por frente: [Claude](PLANO-AQUARIO-CLAUDE.md), [Antigravity](PLANO-AQUARIO-ANTIGRAVITY.md) e [Codex](PLANO-AQUARIO-CODEX.md).
+
 **Dificuldade:** Média = trabalho contido ou adaptação de algo existente. Alta = coordenação entre vários componentes ou bastante produção por lote. Muito alta = risco de mexer em dados persistentes, desequilibrar a progressão ou integrar muitas cenas e dispositivos. A natureza da tarefa aparece separada da dificuldade.
 
 ### Parte 1 — Claude · código bruto e regras do jogo
