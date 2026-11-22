@@ -66,7 +66,7 @@ local ok, err = pcall(function()
 
 	-- preview reports gained/lost families
 	local swapPlan = S.plan(aq, { op = "remove", slot = 3, expectedVersion = aq.version })
-	assert(swapPlan.ok)
+	assert(swapPlan.ok, "remove plan")
 	local pv = S.preview(aq, swapPlan)
 	eq(#pv.synergiesLost, 1, "lost a family")
 
