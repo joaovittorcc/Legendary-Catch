@@ -318,22 +318,24 @@ local function findUnitModel(boardModel: Instance, screenPart: BasePart): Model?
 	return nil
 end
 
+type MountedBoard = {
+	center: Vector3?,
+	units: { FloatingUnit },
+	unitSet: { [Model]: boolean },
+	widgets: { [string]: BoardWidget },
+	cleanupConn: RBXScriptConnection?,
+}
+
 function LeaderboardBoard.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	local requestRemote = remotes:WaitForChild(Net.REQUEST_LEADERBOARD) :: RemoteEvent
 	local resultRemote = remotes:WaitForChild(Net.LEADERBOARD_RESULT) :: RemoteEvent
 
-	local widgetsByBoard: { [string]: BoardWidget } = {}
+	local boards: { [Instance]: MountedBoard } = {}
 	local cachedPayloads: { [string]: Net.LeaderboardResult } = {}
-	local floatingUnits: { FloatingUnit } = {}
-	local unitSet: { [Model]: boolean } = {}
-	local boardCenter: Vector3? = nil
-	local mountedBoard: Instance? = nil
-	local animConn: RBXScriptConnection? = nil
-	local cleanupConn: RBXScriptConnection? = nil
 
-	local function resetUnits()
-		for _, unit in floatingUnits do
+	local function resetBoardUnits(entry: MountedBoard)
+		for _, unit in entry.units do
 			if unit.displaced and unit.model.Parent then
 				unit.model:PivotTo(unit.basePivot)
 				unit.displaced = false
@@ -341,26 +343,30 @@ function LeaderboardBoard.start()
 		end
 	end
 
-	local function stopAnimation()
-		if animConn then
-			animConn:Disconnect()
-			animConn = nil
-		end
-		if cleanupConn then
-			cleanupConn:Disconnect()
-			cleanupConn = nil
-		end
-		resetUnits()
-		table.clear(floatingUnits)
-		table.clear(unitSet)
-	end
-
-	local function registerUnit(boardModel: Instance, screenPart: BasePart, fallbackIndex: number)
-		local unitModel = findUnitModel(boardModel, screenPart)
-		if not unitModel or unitSet[unitModel] then
+	local function unmountBoard(boardModel: Instance)
+		local entry = boards[boardModel]
+		if not entry then
 			return
 		end
-		unitSet[unitModel] = true
+		if entry.cleanupConn then
+			entry.cleanupConn:Disconnect()
+			entry.cleanupConn = nil
+		end
+		resetBoardUnits(entry)
+		boards[boardModel] = nil
+	end
+
+	local function registerUnit(
+		entry: MountedBoard,
+		boardModel: Instance,
+		screenPart: BasePart,
+		fallbackIndex: number
+	)
+		local unitModel = findUnitModel(boardModel, screenPart)
+		if not unitModel or entry.unitSet[unitModel] then
+			return
+		end
+		entry.unitSet[unitModel] = true
 		local rawPhase = unitModel:GetAttribute("BobPhase")
 		local rawPeriod = unitModel:GetAttribute("BobPeriod")
 		local rawAmp = unitModel:GetAttribute("BobAmp")
@@ -369,7 +375,7 @@ function LeaderboardBoard.start()
 			then rawPeriod
 			else DEFAULT_BOB_PERIOD
 		local amp = if typeof(rawAmp) == "number" then rawAmp else DEFAULT_BOB_AMP
-		table.insert(floatingUnits, {
+		table.insert(entry.units, {
 			model = unitModel,
 			basePivot = unitModel:GetPivot(),
 			phase = phase,
@@ -379,77 +385,41 @@ function LeaderboardBoard.start()
 		})
 	end
 
-	local function startAnimation(boardModel: Instance)
-		if animConn then
-			animConn:Disconnect()
-			animConn = nil
-		end
-		animConn = RunService.Heartbeat:Connect(function()
-			if #floatingUnits == 0 then
-				return
-			end
-			if player:GetAttribute("ReduceEffects") == true then
-				resetUnits()
-				return
-			end
-			local center = boardCenter
-			if center then
-				local char = player.Character
-				local root = char and char:FindFirstChild("HumanoidRootPart")
-				local refPos: Vector3? = nil
-				if root and root:IsA("BasePart") then
-					refPos = root.Position
-				else
-					local cam = workspace.CurrentCamera
-					if cam then
-						refPos = cam.CFrame.Position
-					end
-				end
-				if refPos and (refPos - center).Magnitude > ANIM_PAUSE_DISTANCE then
-					return
-				end
-			end
-			local now = os.clock()
-			for _, unit in floatingUnits do
-				if unit.model.Parent then
-					local offsetY = math.sin(now * unit.speed + unit.phase) * unit.amp
-					unit.model:PivotTo(unit.basePivot + Vector3.new(0, offsetY, 0))
-					unit.displaced = true
-				end
-			end
-		end)
-		cleanupConn = boardModel.AncestryChanged:Connect(function(_, parent)
-			if not parent and mountedBoard == boardModel then
-				stopAnimation()
-				mountedBoard = nil
-			end
-		end)
-	end
-
 	local function mountBoard(boardModel: Instance)
-		if mountedBoard == boardModel then
+		if boards[boardModel] then
 			return
 		end
-		stopAnimation()
-		mountedBoard = boardModel
+		local center: Vector3? = nil
 		if boardModel:IsA("Model") then
 			local cf = boardModel:GetBoundingBox()
 			if cf.Position.Magnitude > 0.1 then
-				boardCenter = cf.Position
+				center = cf.Position
 			end
 		end
-		startAnimation(boardModel)
+		local entry: MountedBoard = {
+			center = center,
+			units = {},
+			unitSet = {},
+			widgets = {},
+			cleanupConn = nil,
+		}
+		boards[boardModel] = entry
+		entry.cleanupConn = boardModel.AncestryChanged:Connect(function(_, parent)
+			if not parent then
+				unmountBoard(boardModel)
+			end
+		end)
 		for index, spec in SPECS do
 			task.spawn(function()
 				local part = boardModel:FindFirstChild(spec.partName, true)
 					or boardModel:WaitForChild(spec.partName, 15)
-				if part and part:IsA("BasePart") and mountedBoard == boardModel then
-					if not boardCenter then
-						boardCenter = part.Position
+				if part and part:IsA("BasePart") and boards[boardModel] == entry then
+					if not entry.center then
+						entry.center = part.Position
 					end
-					registerUnit(boardModel, part, index)
+					registerUnit(entry, boardModel, part, index)
 					local widget = buildWidget(part, spec)
-					widgetsByBoard[spec.board] = widget
+					entry.widgets[spec.board] = widget
 					renderWidget(widget, cachedPayloads[spec.board])
 				end
 			end)
@@ -460,15 +430,56 @@ function LeaderboardBoard.start()
 		mountBoard(tagged)
 	end
 	CollectionService:GetInstanceAddedSignal("LeaderboardBoard"):Connect(mountBoard)
+	CollectionService:GetInstanceRemovedSignal("LeaderboardBoard"):Connect(unmountBoard)
+
+	RunService.Heartbeat:Connect(function()
+		local reduced = player:GetAttribute("ReduceEffects") == true
+		if reduced then
+			for _, entry in boards do
+				resetBoardUnits(entry)
+			end
+			return
+		end
+		local char = player.Character
+		local root = char and char:FindFirstChild("HumanoidRootPart")
+		local refPos: Vector3? = nil
+		if root and root:IsA("BasePart") then
+			refPos = root.Position
+		else
+			local cam = workspace.CurrentCamera
+			if cam then
+				refPos = cam.CFrame.Position
+			end
+		end
+		local now = os.clock()
+		for _, entry in boards do
+			if #entry.units > 0 then
+				local center = entry.center
+				if
+					not (refPos and center and (refPos - center).Magnitude > ANIM_PAUSE_DISTANCE)
+				then
+					for _, unit in entry.units do
+						if unit.model.Parent then
+							local offsetY = math.sin(now * unit.speed + unit.phase) * unit.amp
+							unit.model:PivotTo(unit.basePivot + Vector3.new(0, offsetY, 0))
+							unit.displaced = true
+						end
+					end
+				end
+			end
+		end
+	end)
 
 	resultRemote.OnClientEvent:Connect(function(payload: Net.LeaderboardResult)
 		if typeof(payload) ~= "table" or typeof(payload.board) ~= "string" then
 			return
 		end
 		cachedPayloads[payload.board] = payload
-		local widget = widgetsByBoard[payload.board]
-		if widget then
-			renderWidget(widget, payload)
+		for _, entry in boards do
+			local widget = entry.widgets[payload.board]
+			if widget then
+				renderWidget(widget, payload)
+			end
 		end
 	end)
 
@@ -477,16 +488,21 @@ function LeaderboardBoard.start()
 
 	task.spawn(function()
 		while true do
-			local center = boardCenter
 			local char = player.Character
 			local root = char and char:FindFirstChild("HumanoidRootPart")
-			if
-				center
-				and root
-				and root:IsA("BasePart")
-				and not refreshing
-				and (root.Position - center).Magnitude <= NEAR_DISTANCE
-			then
+			local nearAny = false
+			if root and root:IsA("BasePart") then
+				for _, entry in boards do
+					if
+						entry.center
+						and (root.Position - entry.center).Magnitude <= NEAR_DISTANCE
+					then
+						nearAny = true
+						break
+					end
+				end
+			end
+			if nearAny and not refreshing then
 				local now = os.clock()
 				if lastRefreshAt == 0 or now - lastRefreshAt >= REFRESH_INTERVAL then
 					refreshing = true
