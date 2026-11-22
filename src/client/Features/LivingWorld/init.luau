@@ -417,9 +417,20 @@ local function bindGuideNpc(guide: Instance): AnimatedNpc?
 	local headInv = headRoot:Inverse()
 	local torsoInv = torsoRoot:Inverse()
 
-	local headFwd = if nose and nose:IsA("BasePart")
-		then Vector3.new(nose.Position.X - head.Position.X, 0, nose.Position.Z - head.Position.Z).Unit
-		else -headRoot.RightVector
+	local headFwd: Vector3
+	if nose and nose:IsA("BasePart") then
+		headFwd = Vector3.new(
+			nose.Position.X - head.Position.X,
+			0,
+			nose.Position.Z - head.Position.Z
+		).Unit
+	elseif guide:IsA("Model") then
+		local look = guide:GetPivot().LookVector
+		local flat = Vector3.new(look.X, 0, look.Z)
+		headFwd = if flat.Magnitude > 0.01 then flat.Unit else -headRoot.RightVector
+	else
+		headFwd = -headRoot.RightVector
+	end
 
 	local headNames = {
 		Head = true,
@@ -428,7 +439,7 @@ local function bindGuideNpc(guide: Instance): AnimatedNpc?
 		BackHairTuft = true,
 	}
 	local headPrefixes = { "Eye", "Brow", "Ear", "Sideburn" }
-	local staticPrefixes = { "Leg", "Boot" }
+	local staticPrefixes = { "Leg", "Boot", "Prop", "Glass", "NpcRoot" }
 
 	local headParts: { { part: BasePart, offset: CFrame } } = {}
 	local torsoParts: { { part: BasePart, offset: CFrame } } = {}
@@ -475,6 +486,85 @@ local function bindGuideNpc(guide: Instance): AnimatedNpc?
 	}
 end
 
+local function mountTemplateNpc(
+	parent: Instance,
+	template: Model,
+	spec: {
+		name: string,
+		cf: CFrame,
+		lines: { string },
+		displayName: string,
+		accent: Color3,
+		iconGlyph: string,
+		phase: number,
+	}
+): AnimatedNpc?
+	local model = template:Clone()
+	model.Name = spec.name
+	model:PivotTo(spec.cf)
+
+	local head = model:FindFirstChild("Head")
+	local torso = model:FindFirstChild("Torso")
+	if not (head and head:IsA("BasePart") and torso and torso:IsA("BasePart")) then
+		model:Destroy()
+		return nil
+	end
+
+	local headRoot = head.CFrame
+	local torsoRoot = torso.CFrame
+	local headInv = headRoot:Inverse()
+	local torsoInv = torsoRoot:Inverse()
+	local headParts: { { part: BasePart, offset: CFrame } } = {}
+	local torsoParts: { { part: BasePart, offset: CFrame } } = {}
+
+	for _, d in model:GetDescendants() do
+		if d:IsA("BasePart") then
+			local n = d.Name
+			if n == "Head" then
+				table.insert(headParts, { part = d, offset = headInv * d.CFrame })
+			elseif
+				n == "Torso"
+				or string.find(n, "Bucket", 1, true) ~= nil
+				or string.find(n, "Basket", 1, true) ~= nil
+			then
+				table.insert(torsoParts, { part = d, offset = torsoInv * d.CFrame })
+			end
+		end
+	end
+
+	local existingSpeech = head:FindFirstChild("SpeechPoint")
+	local speechPoint: Attachment
+	if existingSpeech and existingSpeech:IsA("Attachment") then
+		speechPoint = existingSpeech
+	else
+		local sp = Instance.new("Attachment")
+		sp.Name = "SpeechPoint"
+		sp.Position = Vector3.new(0, head.Size.Y * 0.65 + 0.35, 0)
+		sp.Parent = head
+		speechPoint = sp
+	end
+
+	model.Parent = parent
+	local look = spec.cf.LookVector
+	local flat = Vector3.new(look.X, 0, look.Z)
+	return {
+		headRoot = headRoot,
+		headForward = if flat.Magnitude > 0.01 then flat.Unit else look,
+		headParts = headParts,
+		torsoRoot = torsoRoot,
+		torsoParts = torsoParts,
+		currentYaw = 0,
+		lookRadius = 22,
+		talkRadius = 18,
+		phase = spec.phase,
+		speechPoint = speechPoint,
+		lines = spec.lines,
+		displayName = spec.displayName,
+		accent = spec.accent,
+		iconGlyph = spec.iconGlyph,
+	}
+end
+
 local function buildCustomNpc(
 	parent: Instance,
 	spec: {
@@ -496,6 +586,15 @@ local function buildCustomNpc(
 		isVendor: boolean,
 	}
 ): AnimatedNpc
+	local npcModels = ReplicatedStorage:FindFirstChild("NpcModels")
+	local template = npcModels and npcModels:FindFirstChild(spec.name)
+	if template and template:IsA("Model") then
+		local mounted = mountTemplateNpc(parent, template, spec)
+		if mounted then
+			return mounted
+		end
+	end
+
 	local model = Instance.new("Model")
 	model.Name = spec.name
 
@@ -1007,10 +1106,10 @@ function LivingWorld.start()
 		end
 	end)
 
-	-- 2 new stylized NPCs: Marina on the pier, Luna on the seaside FrontStairs landing
+	-- 2 stylized NPCs: Lucy on the pier, Luna on the seaside FrontStairs landing
 	local vendorNpc = buildCustomNpc(npcFolder, {
 		name = "NPC_BaitVendor",
-		cf = CFrame.lookAt(Vector3.new(34, 10.15, 3.2), Vector3.new(34, 10.15, 10)),
+		cf = CFrame.lookAt(Vector3.new(34, 10.10, 3.2), Vector3.new(34, 10.10, 10)),
 		shirt = Color3.fromRGB(248, 240, 224),
 		vest = Theme.rose,
 		pants = Color3.fromRGB(48, 76, 114),
