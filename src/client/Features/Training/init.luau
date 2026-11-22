@@ -1,10 +1,9 @@
 --!strict
 -- Lagoon training (client): plays the semi-idle session the server runs.
---   * slow orbit camera around the player, cheer animation loop, rising aura
---   * HUD with stat, level, XP bar and a Stop button
---   * occasional rhythm ring for bonus XP (reuses the fishing rhythm minigame)
+-- Owns the practice presentation and forwards drill results to the training server.
 -- Walking stops training (the server also stops it if the player leaves the spot).
 
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -21,7 +20,8 @@ local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Train
 local FishingFolder = script.Parent:WaitForChild("Fishing")
 local Effects = require(FishingFolder:WaitForChild("Effects"))
 local PressInput = require(FishingFolder:WaitForChild("PressInput"))
-local Rhythm = require(FishingFolder:WaitForChild("Minigames"):WaitForChild("Rhythm"))
+local Drill = require(script:WaitForChild("Drill"))
+local Practice = require(script:WaitForChild("Practice"))
 local Ui = require(FishingFolder:WaitForChild("Ui"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Audio = require(script.Parent:WaitForChild("Audio"))
@@ -47,8 +47,16 @@ local levelLabel: TextLabel? = nil
 local xpFill: Frame? = nil
 local orbitConn: RBXScriptConnection? = nil
 local moveConn: RBXScriptConnection? = nil
-local animThread: thread? = nil
-local animationTracks: { AnimationTrack } = {}
+local practice: Practice.Session? = nil
+local drillAwardUntil = 0
+local sessionXp = 0
+local sessionHits = 0
+local sessionLevels = 0
+local sessionStart = 0
+local drillFeedback: TextLabel? = nil
+local preview: Frame? = nil
+local nearbyPrompts: { [ProximityPrompt]: boolean } = {}
+local cards: { [string]: { level: TextLabel, benefit: TextLabel, fill: Frame } } = {}
 local previousCameraType: Enum.CameraType? = nil
 local aura: Attachment? = nil
 local emitter: ParticleEmitter? = nil
@@ -73,36 +81,77 @@ local function attrNumber(name: string): number
 	return if typeof(v) == "number" then v else 0
 end
 
+local function boost(stat: string, level: number): string
+	if stat == "Control" then
+		return string.format(Text.controlBoost, (TrainingConfig.controlEase(level) - 1) * 100)
+	end
+	return string.format(Text.instinctBoost, TrainingConfig.luckMultiplier(level, 5))
+end
+
 local function showXp(amount: number, color: Color3)
-	local frame = hud
-	if not frame or amount < 1 or frame:FindFirstChild("DailyBonus") then
+	local scene = practice
+	if not scene or amount < 1 then
 		return
 	end
-	local pop = Ui.label(
-		frame,
-		"XpGain",
-		UDim2.fromOffset(76, 20),
-		UDim2.new(0.68, 0, 1, 8),
-		string.format(Text.gain, amount),
-		color:Lerp(Theme.sand, 0.35)
+	sessionXp += amount
+	local special = os.clock() <= drillAwardUntil and amount > 1
+	if special then
+		drillAwardUntil = 0
+	end
+	local old = scene.bobber:FindFirstChild("TrainingXp")
+	if old then
+		old:Destroy()
+	end
+	local board = Instance.new("BillboardGui")
+	board.Name = "TrainingXp"
+	board.AlwaysOnTop = true
+	board.Size = UDim2.fromOffset(174, if special then 38 else 28)
+	board.StudsOffsetWorldSpace = Vector3.new(0, 1.2, 0)
+	board.MaxDistance = 40
+	local label = Ui.label(
+		board,
+		"Amount",
+		UDim2.fromScale(1, 1),
+		UDim2.fromScale(0, 0),
+		string.format(if special then Text.perfectGain else Text.gain, amount),
+		color:Lerp(Theme.sand, 0.4)
 	)
-	pop.AnchorPoint = Vector2.new(0.5, 0)
-	pop.ZIndex = 5
+	local size = Instance.new("UITextSizeConstraint")
+	size.MaxTextSize = if special then 22 else 18
+	size.Parent = label
+	board.Parent = scene.bobber
 	if not Ui.reduced() then
 		TweenService
-			:Create(pop, TweenInfo.new(0.65, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
-				Position = UDim2.new(0.68, 0, 1, 28),
-				TextTransparency = 1,
-				TextStrokeTransparency = 1,
+			:Create(board, TweenInfo.new(0.75, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
+				StudsOffsetWorldSpace = Vector3.new(0, 2.65, 0),
 			})
 			:Play()
 	end
-	task.delay(0.67, function()
-		pop:Destroy()
+	task.delay(0.86, function()
+		board:Destroy()
 	end)
 end
 
+local function refreshCards()
+	local snapshot = Data.get()
+	for stat, card in cards do
+		local stats = snapshot and snapshot.training[stat]
+		local level = if stats then stats.level else attrNumber(TrainingConfig.levelAttribute(stat))
+		local xp = if stats then stats.xp else attrNumber(TrainingConfig.xpAttribute(stat))
+		local goal = TrainingConfig.xpToNext(level)
+		card.level.Text = (Strings.stat[stat] or stat)
+			.. "  ·  "
+			.. string.format(Text.level, level)
+		card.benefit.Text = boost(stat, level)
+		card.fill.Size = UDim2.fromScale(
+			if level >= TrainingConfig.MAX_LEVEL then 1 else math.clamp(xp / goal, 0, 1),
+			1
+		)
+	end
+end
+
 local function refreshHud()
+	refreshCards()
 	local label, fill, progressLabel = levelLabel, xpFill, xpLabel
 	if activeStat == "" or not label or not fill or not progressLabel then
 		return
@@ -113,7 +162,9 @@ local function refreshHud()
 	local xp = if stat then stat.xp else attrNumber(TrainingConfig.xpAttribute(activeStat))
 	local maximum = TrainingConfig.xpToNext(level)
 	local maxed = level >= TrainingConfig.MAX_LEVEL
-	label.Text = string.format(Text.level, level)
+	label.Text = (Strings.stat[activeStat] or activeStat)
+		.. "  ·  "
+		.. string.format(Text.level, level)
 	progressLabel.Text = if maxed
 		then Strings.maxLevel
 		else string.format(Text.progress, xp, maximum)
@@ -165,125 +216,158 @@ local function refreshHud()
 end
 
 local function positionHud()
-	local frame = hud
+	local frame = hud or preview
 	if frame then
+		local camera = Workspace.CurrentCamera
+		local viewport = if camera then camera.ViewportSize else Vector2.new(800, 600)
+		local compact = viewport.Y < 520 and viewport.X > viewport.Y * 1.45
+		local x = if compact then 0.25 else 0.5
+		frame.Size = UDim2.new(if compact then 0.46 else 0.92, 0, 0, frame.Size.Y.Offset)
 		frame.Position =
-			UDim2.new(0.5, 0, 0, math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12))
+			UDim2.new(x, 0, 0, math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12))
 	end
 end
 
 function Training.cardBottom(): number
-	local frame = hud
+	local frame = hud or preview
 	return if frame then frame.Position.Y.Offset + frame.AbsoluteSize.Y else 0
 end
 
-local function buildHud(color: Color3)
+local function addCards(frame: Frame, top: number)
+	table.clear(cards)
+	for index, stat in TrainingConfig.STATS do
+		local selected = stat == activeStat
+		local accent = STAT_COLORS[stat] or Theme.crystal
+		local card = Ui.frame(
+			frame,
+			stat,
+			UDim2.new(0.458, 0, 0, 60),
+			UDim2.new(0.031 + (index - 1) * 0.48, 0, 0, top),
+			Theme.ink
+		)
+		Theme.surface(card, accent, 12, Theme.ink)
+		local header = Ui.label(
+			card,
+			"Level",
+			UDim2.fromScale(0.94, 0.36),
+			UDim2.fromScale(0.03, 0.04),
+			"",
+			if selected then Theme.sand else accent
+		)
+		local benefit = Ui.label(
+			card,
+			"Benefit",
+			UDim2.fromScale(0.94, 0.30),
+			UDim2.fromScale(0.03, 0.43),
+			"",
+			Theme.sand
+		)
+		local back = Ui.frame(
+			card,
+			"Track",
+			UDim2.fromScale(0.88, 0.095),
+			UDim2.fromScale(0.06, 0.81),
+			Theme.muted
+		)
+		Ui.corner(back, 0.5)
+		local fill = Ui.frame(back, "Fill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), accent)
+		Ui.corner(fill, 0.5)
+		cards[stat] = { level = header, benefit = benefit, fill = fill }
+	end
+	refreshCards()
+end
+
+local function mountCard(name: string, height: number, color: Color3): Frame
 	local frame = Ui.frame(
 		Ui.screen(),
-		"TrainingHud",
-		UDim2.new(0.88, 0, 0, 84),
-		UDim2.new(0.5, 0, 0, 66),
-		Color3.fromRGB(14, 18, 40),
-		0.25
+		name,
+		UDim2.new(0.92, 0, 0, height),
+		UDim2.new(0.5, 0, 0, math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12)),
+		Theme.ink
 	)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	Art.panel(frame, color)
-	local icon = Instance.new("Frame")
-	icon.Name = "StatIcon"
-	icon.AnchorPoint = Vector2.new(0, 0.5)
-	icon.Position = UDim2.fromScale(0.035, 0.5)
-	icon.Size = UDim2.fromOffset(40, 40)
-	icon.BackgroundColor3 = Theme.cream
-	icon.BorderSizePixel = 0
-	Theme.corner(icon, 20)
-	local iconStroke = Instance.new("UIStroke")
-	iconStroke.Color = Theme.outline
-	iconStroke.Thickness = 2
-	iconStroke.Parent = icon
-	local glyph = Panel.label(icon, if activeStat == "Instinct" then "✨" else "🎣", 26)
-	glyph.TextStrokeTransparency = 1
-	glyph.TextScaled = true
-	glyph.Size = UDim2.fromScale(1, 1)
-	icon.Parent = frame
-	local size = Instance.new("UISizeConstraint")
-	size.MaxSize = Vector2.new(450, 84)
-	size.Parent = frame
+	local cap = Instance.new("UISizeConstraint")
+	cap.MaxSize = Vector2.new(440, height)
+	cap.Parent = frame
+	Hud.bindFishingVisibility(frame, false)(true)
+	return frame
+end
 
-	local statName = Ui.label(
+local function refreshPreview()
+	if activeStat ~= "" or next(nearbyPrompts) == nil then
+		if preview then
+			preview:Destroy()
+			preview = nil
+			if not hud then
+				table.clear(cards)
+			end
+		end
+		return
+	end
+	if preview then
+		return
+	end
+	local frame = mountCard("TrainingPreview", 97, Theme.crystal)
+	Ui.label(
 		frame,
-		"Stat",
-		UDim2.fromScale(0.46, 0.18),
-		UDim2.fromScale(0.21, 0.12),
-		Strings.stat[activeStat] or activeStat,
+		"Title",
+		UDim2.new(0.92, 0, 0, 20),
+		UDim2.new(0.04, 0, 0, 7),
+		Text.chooseMode,
+		Theme.ink
+	).TextStrokeTransparency =
+		1
+	addCards(frame, 30)
+	preview = frame
+	positionHud()
+end
+
+local function buildHud(color: Color3)
+	local frame = mountCard("TrainingHud", 146, color)
+	addCards(frame, 8)
+	local statLabel = Ui.label(
+		frame,
+		"ActiveLevel",
+		UDim2.new(0.63, 0, 0, 20),
+		UDim2.new(0.04, 0, 0, 72),
+		"",
 		Theme.ink
 	)
-	statName.TextXAlignment = Enum.TextXAlignment.Left
-	statName.TextStrokeTransparency = 1
+	statLabel.TextStrokeTransparency = 1
+	levelLabel = statLabel
 	local milestone = Ui.label(
 		frame,
 		"Milestone",
-		UDim2.fromScale(0.46, 0.14),
-		UDim2.fromScale(0.21, 0.56),
+		UDim2.new(0.63, 0, 0, 18),
+		UDim2.new(0.04, 0, 0, 92),
 		"",
 		Theme.ink
 	)
-	milestone.TextXAlignment = Enum.TextXAlignment.Left
 	milestone.TextStrokeTransparency = 1
 	milestoneLabel = milestone
-
-	local level = Ui.label(
+	local track = Ui.frame(
 		frame,
-		"Level",
-		UDim2.fromScale(0.47, 0.27),
-		UDim2.fromScale(0.21, 0.29),
-		"",
+		"ActiveXpTrack",
+		UDim2.new(0.63, 0, 0, 22),
+		UDim2.new(0.04, 0, 0, 114),
 		Theme.ink
 	)
-	level.TextXAlignment = Enum.TextXAlignment.Left
-	level.TextStrokeTransparency = 1
-	levelLabel = level
-	local back = Ui.frame(
-		frame,
-		"XpBack",
-		UDim2.fromScale(0.49, 0.20),
-		UDim2.fromScale(0.21, 0.73),
-		Theme.muted
-	)
-	Ui.corner(back, 0.5)
-	local backStroke = Instance.new("UIStroke")
-	backStroke.Color = Theme.outline
-	backStroke.Thickness = 2
-	backStroke.Parent = back
-	local fill = Ui.frame(back, "XpFill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
-	Ui.corner(fill, 0.5)
-	local sheen = Instance.new("UIGradient")
-	sheen.Color = ColorSequence.new(Theme.sand, Color3.fromRGB(150, 137, 158))
-	sheen.Rotation = 90
-	sheen.Parent = fill
-	xpFill = fill
-	local xpCount = Ui.label(
-		back,
-		"XpCount",
-		UDim2.fromScale(1, 0.85),
-		UDim2.fromScale(0, 0.075),
-		"",
-		Theme.sand
-	)
-	xpCount.ZIndex = 3
-	xpLabel = xpCount
-
+	Ui.corner(track, 0.35)
+	xpFill = Ui.frame(track, "Fill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
+	local count =
+		Ui.label(track, "Count", UDim2.fromScale(1, 0.84), UDim2.fromScale(0, 0.08), "", Theme.sand)
+	count.ZIndex = 3
+	xpLabel = count
 	local button = Panel.button(frame, Strings.stop, Color3.fromRGB(247, 75, 91))
 	button.Name = "Stop"
-	button.Size = UDim2.new(0.23, 0, 0, 44)
-	button.Position = UDim2.fromScale(0.73, 0.24)
+	button.Size = UDim2.new(0.25, 0, 0, 44)
+	button.Position = UDim2.new(0.71, 0, 0, 81)
 	button.Activated:Connect(function()
 		stopRemote:FireServer()
 	end)
 	stopButton = button
-
 	hud = frame
-	local showHud = Hud.bindFishingVisibility(frame, false)
-	showHud(true)
 	positionHud()
 	refreshHud()
 end
@@ -310,41 +394,6 @@ local function startAura(root: BasePart, color: Color3)
 	emitter = e
 end
 
--- Reuse avatar emotes as training moves.
-local function startAnimation()
-	local character = player.Character
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	local animator = humanoid and humanoid:FindFirstChildOfClass("Animator")
-	local animate = character and character:FindFirstChild("Animate")
-	if not (animator and animate) then
-		return
-	end
-	local poses: { AnimationTrack } = {}
-	for _, name in { "cheer", "wave", "point" } do
-		local holder = animate:FindFirstChild(name)
-		local pose = holder and holder:FindFirstChildOfClass("Animation")
-		if pose then
-			local track = animator:LoadAnimation(pose)
-			track.Priority = Enum.AnimationPriority.Action
-			table.insert(poses, track)
-		end
-	end
-	if #poses == 0 then
-		return
-	end
-	animationTracks = poses
-	animThread = task.spawn(function()
-		local index = 1
-		while true do
-			local track = poses[index]
-			track:Play(0.2)
-			task.wait(3.5)
-			track:Stop(0.2)
-			index = index % #poses + 1
-		end
-	end)
-end
-
 local function startOrbit(root: BasePart)
 	local camera = Workspace.CurrentCamera
 	if not camera or Ui.reduced() then
@@ -360,13 +409,27 @@ local function startOrbit(root: BasePart)
 		angle += dt * (if stopRing then 0.09 else 0.24)
 		cameraPunch *= math.exp(-dt * 2.4)
 		local distance = (if stopRing then 10.5 else 13) - cameraPunch
-		local focus = root.Position + Vector3.new(0, 1.5, 0)
-		local eye = focus
-			+ Vector3.new(
-				math.cos(angle) * distance,
-				4.6 + math.sin(angle * 2) * 0.6,
-				math.sin(angle) * distance
-			)
+		local scene = practice
+		local focus = root.Position + Vector3.new(0, 1.1, 0)
+		if scene then
+			focus = focus:Lerp(scene.target + Vector3.yAxis * 1.4, 0.33)
+		end
+		local portrait = camera.ViewportSize.X < camera.ViewportSize.Y
+		local offset = Vector3.new(
+			math.cos(angle) * distance,
+			4.6 + math.sin(angle * 2) * 0.6,
+			math.sin(angle) * distance
+		)
+		if portrait and scene then
+			local toward = (scene.target - root.Position) * Vector3.new(1, 0, 1)
+			if toward.Magnitude > 0.1 then
+				local forward = toward.Unit
+				offset = -forward * (distance + 1)
+					+ forward:Cross(Vector3.yAxis) * 4
+					+ Vector3.yAxis * 6
+			end
+		end
+		local eye = focus + offset
 		camera.CFrame = camera.CFrame:Lerp(CFrame.lookAt(eye, focus), math.min(dt * 4, 1))
 	end)
 end
@@ -389,6 +452,11 @@ local function finishRing()
 	stopRing = nil
 	if stop then
 		stop()
+		local scene = practice
+		if scene then
+			scene.pull, scene.bite = 0, false
+			scene.drilling = false
+		end
 		PressInput.disable()
 		Ui.hidePanel()
 	end
@@ -401,18 +469,14 @@ local function stopVisuals()
 		moveConn:Disconnect()
 		moveConn = nil
 	end
-	local thread = animThread
-	animThread = nil
-	if thread then
-		task.cancel(thread)
+	if practice then
+		practice.stop()
 	end
-	for _, track in animationTracks do
-		track:Stop(0.2)
-		task.delay(0.25, function()
-			track:Destroy()
-		end)
-	end
-	table.clear(animationTracks)
+	practice = nil
+	drillAwardUntil = 0
+	sessionXp, sessionHits, sessionLevels, sessionStart = 0, 0, 0, 0
+	drillFeedback = nil
+	table.clear(cards)
 	local a = aura
 	aura, emitter = nil, nil
 	lastTotalXp, lastCelebrated, cameraPunch = nil, 0, 0
@@ -439,13 +503,14 @@ local function startVisuals(stat: string)
 	local root = rootPart()
 	local character = player.Character
 	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	if not (root and humanoid) then
+	if not (root and humanoid and character) then
 		return
 	end
 	local color = STAT_COLORS[stat] or Color3.new(1, 1, 1)
+	sessionStart = os.clock()
 	startAura(root, color)
+	practice = Practice.start(character, root, color)
 	buildHud(color)
-	startAnimation()
 	startOrbit(root)
 	if not Ui.reduced() then
 		Effects.ripple(root.Position - Vector3.new(0, 2.9, 0), color, 6, 0.8)
@@ -463,52 +528,114 @@ local function onActiveChanged()
 	if stat == activeStat then
 		return
 	end
+	if sessionStart > 0 and sessionXp > 0 then
+		local color = STAT_COLORS[activeStat] or Theme.crystal
+		local summary = Ui.label(
+			Ui.screen(),
+			"TrainingSummary",
+			UDim2.new(0.86, 0, 0, 40),
+			UDim2.fromScale(0.5, 0.84),
+			string.format(
+				Text.sessionSummary,
+				Strings.stat[activeStat] or activeStat,
+				math.floor(os.clock() - sessionStart),
+				sessionXp,
+				sessionHits,
+				sessionLevels
+			),
+			color
+		)
+		summary.AnchorPoint = Vector2.new(0.5, 0.5)
+		summary.BackgroundTransparency = 0
+		Theme.surface(summary, color, 14, Theme.ink)
+		task.delay(3, function()
+			summary:Destroy()
+		end)
+	end
 	stopVisuals()
 	activeStat = stat
+	refreshPreview()
 	if stat ~= "" then
 		startVisuals(stat)
 	end
 end
 
 local function onRing(update: Net.TrainingUpdate)
-	if activeStat == "" or stopRing then
+	if activeStat == "" or (update.stat and update.stat ~= activeStat) or stopRing then
 		return
 	end
 	local ringId = update.ringId or 0
 	local color = STAT_COLORS[activeStat] or Color3.new(1, 1, 1)
-	local lvl = attrNumber(TrainingConfig.levelAttribute(activeStat))
-	local tier = math.clamp(1 + math.floor(lvl / 6), 1, 5)
+	local activePractice = practice
+	if activePractice then
+		activePractice.drilling = true
+	end
 	PressInput.enable()
-	local area = Ui.showPanel(Strings.ringHint, color, Strings.instructions.rhythm or "")
-	stopRing = Rhythm.run(
-		area,
-		tier,
-		color,
-		function(success)
-			if not stopRing then
-				return
-			end
-			stopRing = nil
-			PressInput.disable()
-			Ui.hidePanel()
-			ringRemote:FireServer(ringId, success)
-		end,
-		update.rings or 1,
-		function(point)
-			local button = stopButton
-			if not button then
-				return false
-			end
-			local offset = point - button.AbsolutePosition
-			local size = button.AbsoluteSize
-			if offset.X < 0 or offset.Y < 0 or offset.X > size.X or offset.Y > size.Y then
-				return false
-			end
-			finishRing()
-			stopRemote:FireServer()
-			return true
+	local area = Ui.showPanel("", color, "")
+	stopRing = Drill.run(area, activeStat, color, update.rings or 1, function(pull, bite)
+		local scene = practice
+		if not scene then
+			return
 		end
-	)
+		if bite and not scene.bite and not Ui.reduced() then
+			Effects.ripple(scene.target, color, 2, 0.48)
+		end
+		scene.pull, scene.bite = pull, bite
+	end, function(success)
+		if not stopRing then
+			return
+		end
+		finishRing()
+		local scene = practice
+		if scene then
+			scene.reelAt = os.clock()
+			if success and not Ui.reduced() then
+				Effects.ripple(scene.target, color, 4.5, 0.64)
+				Effects.splash(scene.target, color, 10)
+			end
+		end
+		local frame = hud
+		if frame then
+			if drillFeedback then
+				drillFeedback:Destroy()
+			end
+			local feedback = Ui.label(
+				frame,
+				"DrillFeedback",
+				UDim2.new(0.9, 0, 0, 25),
+				UDim2.new(0.05, 0, 1, 2),
+				if success then Text.drillGood else Text.drillMiss,
+				if success then color else Theme.sand
+			)
+			drillFeedback = feedback
+			Ui.bounce(feedback)
+			task.delay(1.1, function()
+				if drillFeedback == feedback then
+					drillFeedback = nil
+				end
+				feedback:Destroy()
+			end)
+		end
+		drillAwardUntil = if success then os.clock() + 2 else 0
+		if success then
+			sessionHits += 1
+			Audio.play("level", 0.14, 1.25)
+		end
+		ringRemote:FireServer(ringId, success)
+	end, function(point)
+		local button = stopButton
+		if not button then
+			return false
+		end
+		local offset = point - button.AbsolutePosition
+		local size = button.AbsoluteSize
+		if offset.X < 0 or offset.Y < 0 or offset.X > size.X or offset.Y > size.Y then
+			return false
+		end
+		finishRing()
+		stopRemote:FireServer()
+		return true
+	end)
 end
 
 local function onUpdate(update: Net.TrainingUpdate)
@@ -540,6 +667,7 @@ local function onUpdate(update: Net.TrainingUpdate)
 			return
 		end
 		lastCelebrated = level
+		sessionLevels += 1
 		local color = STAT_COLORS[stat] or Theme.crystal
 		if levelBanner then
 			levelBanner:Destroy()
@@ -547,9 +675,15 @@ local function onUpdate(update: Net.TrainingUpdate)
 		local banner = Ui.label(
 			frame,
 			"LevelUp",
-			UDim2.new(0.86, 0, 0, 46),
+			UDim2.new(0.94, 0, 0, 64),
 			UDim2.new(0.5, 0, 1, 31),
-			string.format(Text.levelUp, level),
+			(Strings.stat[stat] or stat)
+				.. "  ·  "
+				.. string.format(Text.levelUp, level)
+				.. "\n"
+				.. boost(stat, math.max(0, level - 1))
+				.. " → "
+				.. boost(stat, level),
 			Theme.sand
 		)
 		banner.AnchorPoint = Vector2.new(0.5, 0)
@@ -561,7 +695,7 @@ local function onUpdate(update: Net.TrainingUpdate)
 		banner.ZIndex = 8
 		Theme.surface(banner, color, 20)
 		local cap = Instance.new("UISizeConstraint")
-		cap.MaxSize = Vector2.new(290, 46)
+		cap.MaxSize = Vector2.new(405, 64)
 		cap.Parent = banner
 		levelBanner = banner
 		Ui.bounce(banner)
@@ -572,12 +706,15 @@ local function onUpdate(update: Net.TrainingUpdate)
 			end
 			banner:Destroy()
 		end)
-		local root = rootPart()
-		if root and not Ui.reduced() then
-			cameraPunch = 1.3
-			Effects.ripple(root.Position - Vector3.new(0, 2.9, 0), color, 10, 1)
-			Effects.ripple(root.Position - Vector3.new(0, 2.85, 0), Theme.gold, 7, 0.55)
-			Effects.splash(root.Position, color, 24)
+		local scene = practice
+		if scene then
+			scene.reelAt = os.clock()
+		end
+		if scene and not Ui.reduced() then
+			cameraPunch = 0.6
+			Effects.ripple(scene.target, color, 7, 0.9)
+			Effects.ripple(scene.target + Vector3.yAxis * 0.03, Theme.gold, 5, 0.55)
+			Effects.splash(scene.target, color, 18)
 			local particles = emitter
 			if particles then
 				particles:Emit(14)
@@ -588,6 +725,54 @@ local function onUpdate(update: Net.TrainingUpdate)
 	end
 end
 
+local function watchNearbyTraining()
+	local observed: { [Player]: { character: Model, stat: string, session: Practice.Session } } = {}
+	local function remove(other: Player)
+		local entry = observed[other]
+		if entry then
+			entry.session.stop()
+			observed[other] = nil
+		end
+	end
+	Players.PlayerRemoving:Connect(remove)
+	task.spawn(function()
+		while true do
+			local localRoot = rootPart()
+			for _, other in Players:GetPlayers() do
+				if other == player then
+					continue
+				end
+				local stat = other:GetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE)
+				local color = if typeof(stat) == "string" then STAT_COLORS[stat] else nil
+				local character = other.Character
+				local root = character and character:FindFirstChild("HumanoidRootPart")
+				local entry = observed[other]
+				if
+					localRoot
+					and character
+					and root
+					and root:IsA("BasePart")
+					and color
+					and typeof(stat) == "string"
+					and (localRoot.Position - root.Position).Magnitude <= 65
+				then
+					if not entry or entry.character ~= character or entry.stat ~= stat then
+						remove(other)
+						observed[other] = {
+							character = character,
+							stat = stat,
+							session = Practice.start(character, root, color, true),
+						}
+					end
+				else
+					remove(other)
+				end
+			end
+			task.wait(0.35)
+		end
+	end)
+end
+
 function Training.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
 	stopRemote = remotes:WaitForChild(Net.STOP_TRAINING) :: RemoteEvent
@@ -596,6 +781,16 @@ function Training.start()
 
 	Tutorial.layoutChanged:Connect(positionHud)
 	Hud.layoutChanged:Connect(positionHud)
+	ProximityPromptService.PromptShown:Connect(function(prompt)
+		if prompt.Name == "TrainControl" or prompt.Name == "TrainInstinct" then
+			nearbyPrompts[prompt] = true
+			refreshPreview()
+		end
+	end)
+	ProximityPromptService.PromptHidden:Connect(function(prompt)
+		nearbyPrompts[prompt] = nil
+		refreshPreview()
+	end)
 	updateRemote.OnClientEvent:Connect(onUpdate)
 	player:GetAttributeChangedSignal(TrainingConfig.ACTIVE_ATTRIBUTE):Connect(onActiveChanged)
 	player:GetAttributeChangedSignal("TrainingCombo"):Connect(refreshHud)
@@ -618,8 +813,11 @@ function Training.start()
 	player.CharacterAdded:Connect(function()
 		stopVisuals()
 		activeStat = ""
+		table.clear(nearbyPrompts)
+		refreshPreview()
 	end)
 	onActiveChanged()
+	watchNearbyTraining()
 end
 
 return Training
