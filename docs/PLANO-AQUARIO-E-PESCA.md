@@ -200,18 +200,53 @@ O repositório atual credita moedas na captura, guarda a coleção por espécie 
 - **Resiliência.** Tratar repetição de ação, troca concorrente, sessão perdida, reconexão, encerramento do servidor e desativação do recurso. Aplicar limites a entradas remotas e rejeitar IDs, valores e versões inválidos. Revisar interações com prestígio, recibos, conquistas, placar e pesca automática antes do primeiro rollout. Nomear fontes de moeda separadamente na telemetria.
 - **Perfis e rollback.** Executar migração em ambiente de teste com cópias representativas. Ligar por flag com economia/versionamento no servidor e cliente mostrando o estado enviado. Separar visibilidade da UI, crédito de renda, pagamento offline e efeitos. Rollback pausa nova produção e conserva direitos e progressão já concedidos. Reativação retoma a partir de novo cursor.
 
-## 8. Lotes e divisão
+## 8. Plano dividido entre os três agentes
 
-| Lote | Sistemas / Claude | Visual / Codex | Mapa e modelos / Antigravity | Pronto quando |
-|---|---|---|---|---|
-| 0 — Linha de base | Catalogar fontes, gastos, odds, progressão, perfis e migração. Simular tabelas. | Auditar UI, fluxo, efeitos atuais e vídeos. Desenhar cards e HUD com dados fictícios. | Definir local e volume para o primeiro tanque. | Simulação inicial e protótipos de UI mostram o mesmo loop. |
-| 1 — Primeiro ciclo | Renda online com liquidação, variantes, montagem inicial e snapshot. | Card, valor acima da criatura, troca com prévia, saldo e apresentação do primeiro tanque. | Tank level 1 e volume de nado. | Capturar → expor → receber moedas → trocar funciona com perfil novo e antigo. |
-| 2 — Crescer e colecionar | Expansões, sinergias, metas, prêmios e contadores. | Upgrades animados, livro, sinergias, metas, decoração, nado contextual. | Três predefinições de expansão e peças decorativas. | Compra preserva a escalação. Sinergia e total de renda mudam corretamente, com leiaute de celular. |
-| 3 — Pesca | Balancear e integrar estados, combos, tutorial e metas de sessão. | Arremesso e luta. Revisar Reel, Precision e Rhythm. Sinais de raridade e celebrações. | Ajustes de cenário mediante pedido. | Os três modos funcionam com toque e PC, e navegação volta ao normal após qualquer saída. |
-| 4 — Cenas e eventos | Servir evento e regra de disponibilidade. Apoiar as rotinas de teste. | Três cenas piloto, outras 15 por lote, água, portal, VFX, áudio e presets por evento. | Articular ou ajustar assets dos pilotos se necessário. | Cada um dos 18 IDs tem cena, evidência visual e saída limpa. Místicas validadas como regressão. |
-| 5 — Calibração e estreia | Simulação revisada, telemetria, ativação por flag, decidir offline e acompanhar. | Polimento ajustado por dispositivo, suporte ao resumo de volta e revisão de efeitos. | Polimento de desempenho e leitura da galeria. | QA, simulação e evidência da versão registrada no Mural. |
+**Dificuldade:** Média = trabalho contido ou adaptação de algo existente. Alta = coordenação entre vários componentes ou bastante produção por lote. Muito alta = risco de mexer em dados persistentes, desequilibrar a progressão ou integrar muitas cenas e dispositivos. A natureza da tarefa aparece separada da dificuldade.
 
-O lote de pesca pode andar em paralelo ao aquário depois da auditoria, com commits em áreas distintas. O lote de cenas pode começar por storyboard enquanto chegam vídeos. Atualizar o Mural ao começar e terminar cada entrega. Sistemas editam servidor, Config, Net, Types e controlador. Codex fica com o cliente visual, StringsUi PT/EN e UiTheme. Antigravity cuida da construção. Reusar os assets aprovados.
+### Parte 1 — Claude · código bruto e regras do jogo
+
+| Bloco | Natureza | Dificuldade | Entrega |
+|---|---|---|---|
+| Economia e simulação | Código bruto e balanceamento | Muito alta | Taxas por espécie e variante, simulação de fontes, gastos, teto, preços e exposição de veteranos. |
+| Perfis e pagamentos | Código bruto e persistência | Muito alta | Migração idempotente, renda online, saldo, frações, compras, resgates e proteção contra crédito duplicado. Prototipar a opção offline após validar o online. |
+| Aquário e Coleção | Contratos de dados e servidor | Alta | Vagas, escalação, posse, upgrades, sinergias, meta de renda, prévia autoritativa de troca e snapshot para o cliente. |
+| Pesca e eventos | Regras e controlador | Alta | Calibrar os três minigames com base no feedback e nas medições do Codex. Estados de combo, elegibilidade, raridade, evento, tutorial e metas da sessão. |
+| Ativação e acompanhamento | Código bruto e operação | Alta | Telemetria, flags, migração em teste e rollback. |
+
+**Primeira entrega:** valores de piloto e os campos que UI e mapa consomem. Especificar prévia de troca, confirmação, rejeição, taxa e saldo. O Claude é dono de servidor, Config, Net, Types, dados do cliente e controlador de pesca.
+
+### Parte 2 — Antigravity · produção visual e assets
+
+| Bloco | Natureza | Dificuldade | Entrega |
+|---|---|---|---|
+| Aquário físico | Muito visual 3D | Muito alta | Tanque inicial e três ampliações perceptíveis. Silhueta, vidro, iluminação, cristais, decoração e espaços coerentes com o hub. |
+| Vida do aquário | Arte 3D e preparação de assets | Alta | Rotas e volumes de nado, encaixe de criaturas grandes, pontos de decoração, referências de sinergia e aparência de Gigante/Dourada. |
+| Evento e píer | Muito visual 3D | Alta | Portal e cenografia, peças reutilizáveis, pontos de entrada, cor e decoração por evento. |
+| Cenas Lendárias | Direção de arte, animação de criaturas e VFX | Muito alta | Referências visuais por ID, pose e movimento, luz, enquadramento e efeitos. Ajustar modelos/articulação quando necessário. Validar a aparência primeiro em C23, C24 e C64 e depois por lote. |
+| Acabamento visual | Arte e desempenho | Média | Revisar leitura e densidade no aquário cheio, reduzir custo de modelos/efeitos e conferir consistência de cena. |
+
+**Primeira entrega:** tanque inicial com ponto de interação, volume de nado e posições de exibição identificados, mais a referência visual dos próximos níveis. Antigravity define o visual das 18 cenas com os vídeos do João, monta a arte e entrega as poses, efeitos e marcações de tempo para o Codex ligar no jogo.
+
+### Parte 3 — Codex · interface, integração e experiência jogável
+
+| Bloco | Natureza | Dificuldade | Entrega |
+|---|---|---|---|
+| Aquário e Coleção | Interface e integração | Alta | Cards, valor por segundo nas seis cores, comparação, livro, troca, filtros, metas e resumo de retorno. Consumir os contratos do Claude. |
+| Aquário em jogo | Animação de cliente e integração | Alta | Nado e reações usando o espaço do Antigravity, efeito de sinergia, transição dos upgrades e saldo animado. |
+| Pesca e minigames | Interação, interface e código de cliente | Alta | Revisão de Reel, Precision e Rhythm, animação do avatar/linha/boia, sinais de raridade, feedback de acertos, combo e celebrações. Acertar efeitos e timing com Antigravity e calibrar com Claude. |
+| Cenas e eventos | Integração em Luau | Muito alta | Ligar os assets visuais às 18 espécies, fazer a timeline rodar na captura, sincronizar câmera, água, áudio e efeitos, ligar faixas e decorar o evento conforme o estado do servidor. Cobrir pulo, fim da cena e Reduzir Efeitos. |
+| QA de ponta a ponta | Integração e verificação | Alta | Conferir o ciclo completo, dispositivos, dois jogadores e regressões de pesca, Místicas e Coleção. Consolidar evidências no Mural. |
+
+**Primeira entrega:** card da Coleção e protótipo do ciclo `capturar → expor → receber moedas → comparar uma troca`, com dados de demonstração enquanto o contrato do servidor fica pronto. Codex é dono do código visual de cliente, StringsUi PT/EN e UiTheme.
+
+### Ordem de integração
+
+1. **Três frentes em paralelo.** Claude mede a economia e fecha contratos. Antigravity define a implantação e constrói o tanque inicial. Codex prototipa a interface e audita a pesca.
+2. **Primeiro lote jogável.** Integrar tanque inicial, variantes, renda e comparação. Testar perfil novo e antigo antes de ampliar capacidade.
+3. **Expansões e pesca.** Adicionar upgrades, sinergias, metas e livro. Trabalhar arremesso e minigames em paralelo, com arquivos e entregas alinhados.
+4. **Cenas e eventos.** Antigravity prepara três pilotos visuais enquanto chegam os vídeos. Codex integra os pilotos e valida o fluxo. Fechar as outras 15 por lote. Claude fornece a regra de disponibilidade e estado do evento.
+5. **Calibração e estreia.** Revisar números e desempenho com o jogo integrado. Cada agente fecha os problemas da própria frente. Registrar cada entrega e seus testes no Mural, com commits separados.
 
 ## 9. Critérios de aceite e verificação
 
