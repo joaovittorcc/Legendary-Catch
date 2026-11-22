@@ -1,5 +1,8 @@
 --!strict
 
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local CreatureAura = require(script.Parent:WaitForChild("CreatureAura"))
 
 -- A segmented creature part (named by the convention below) and how it moves.
@@ -232,19 +235,24 @@ function CreatureMotion.bind(model: Model, style: string?): Motion
 	local orbitInst = model:FindFirstChild("OrbitCore", true)
 	local orbitCore = if orbitInst and orbitInst:IsA("Bone") then orbitInst else nil
 
+	-- Only Mystic creatures animate (C94 stays intentionally static); all Common..Legendary
+	-- creatures remain rigid while still allowing gentle turntable rotation when showTurn is true.
+	local cfg = Creatures.get(model.Name)
+	local isAnimated = cfg ~= nil and cfg.rarity == "Mystic" and model.Name ~= "C94_Mare_Primordial"
+
 	-- Epic/Legendary aura (skips ViewportFrames by itself). Deferred so callers can parent
 	-- the model right after binding.
 	task.defer(CreatureAura.attach, model)
 	return {
 		model = model,
-		static = model.Name == "C94_Mare_Primordial",
+		static = not isAnimated,
 		center = pivot:PointToObjectSpace(box.Position),
 		amplitude = math.clamp(math.max(size.X, size.Y, size.Z) * 0.075, 0.12, 0.55),
 		tempo = TEMPO[style or ""] or 1,
 		neon = neon,
-		limbs = limbs,
-		spineBones = spineBones,
-		orbitCore = orbitCore,
+		limbs = if isAnimated then limbs else {},
+		spineBones = if isAnimated then spineBones else {},
+		orbitCore = if isAnimated then orbitCore else nil,
 	}
 end
 
@@ -320,7 +328,14 @@ end
 
 function CreatureMotion.pose(motion: Motion, base: CFrame, elapsed: number, showTurn: boolean)
 	if motion.static then
-		motion.model:PivotTo(base)
+		if showTurn then
+			local center = CFrame.new(motion.center)
+			motion.model:PivotTo(
+				base * center * CFrame.Angles(0, elapsed * 0.66, 0) * center:Inverse()
+			)
+		else
+			motion.model:PivotTo(base)
+		end
 		return
 	end
 	local phase = elapsed * math.pi * 2 * motion.tempo
