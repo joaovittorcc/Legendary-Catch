@@ -1,0 +1,177 @@
+# Aquário — contrato S0 (servidor → cliente)
+
+[Plano Claude](PLANO-AQUARIO-CLAUDE.md) · [Economia S0](ECONOMIA-AQUARIO-S0.md) · [Coordenação §4.7](COORDENACAO.md)
+
+Estado: **implementado no servidor (S1, 2026-11-22), ainda não testado com Play/Rojo**. Código: `src/shared/Config/Aquarium.luau`, `src/shared/AquariumState.luau`, `src/server/Features/Aquarium`. Tudo é **aditivo**: nenhum campo atual muda. Codex pode construir fixtures a partir dos exemplos abaixo. Valores monetários são explicados na seção 1.
+
+## 1. Unidades
+
+| Valor | Unidade | Observação |
+|---|---|---|
+| `snapshot.coins` | moedas inteiras | como hoje |
+| `aquarium.fractionCents` | centésimos de moeda, 0–99 | resto ainda não pago; saldo exato = `coins + fractionCents/100` |
+| qualquer `*Cpm` | **centésimos de moeda por minuto**, inteiro | `cpm 180` = 1,80 moedas/min. Mostrar `cpm / 100` com 1 casa, em moedas/min (`+1,8/min`) |
+| `cost`, `reward`, `value` | moedas inteiras | |
+
+Fatores de variante vivem em `Config.Aquarium.VARIANT_FACTOR` (`base 1.00, giant 1.30, gold 1.60, both 1.90`). Sinergia em `synergyPct` (0, 5 ou 10). A taxa efetiva de uma vaga vem **sempre pronta do servidor**; o cliente nunca recalcula para decidir nada, só para rótulo de fixtures.
+
+## 2. Carregar: quatro estados que o cliente distingue
+
+| Situação | O que o cliente vê |
+|---|---|
+| Perfil ainda carregando | `Data.get()` é `nil` (como hoje). `Player:GetAttribute("DataLoaded")` falso. |
+| Recurso desligado (flag) | `snapshot.aquarium = { status = "disabled" }`. Mostrar o card da captura sem exposição e esconder o atalho ao aquário. |
+| Veterano migrado, tanque vazio | `status = "ready"`, `slots` todos vazios, `inventory` preenchido. |
+| Tanque ativo | `status = "ready"` com ocupantes, taxas e sinergias. |
+| Servidor antigo (campo ausente) | `snapshot.aquarium == nil` com perfil carregado: tratar como `disabled`. |
+
+```lua
+-- Tipo (vai para src/shared/Types.luau em S1)
+export type AquariumSlot = { index: number, occupant: { creatureId: string, variant: string }? }
+export type AquariumSnapshot = {
+	status: string, -- "disabled" | "ready"
+	paramsVersion: number?, -- versão da tabela de taxas/preços usada
+	levelId: string?, -- "aquarium_lv1_nursery" | "_lv2_reef" | "_lv3_gallery" | "_lv4_sanctuary"
+	level: number?, -- 1..4
+	version: number?, -- versão da montagem: +1 a cada mudança aceita
+	slots: { AquariumSlot }?, -- tamanho = capacidade do nível
+	inventory: { [string]: { base: number, giant: number, gold: number, both: number } }?, -- DISPONÍVEL (fora das vagas), por espécie
+	totalCpm: number?, -- renda do tanque, com sinergia
+	slotCpm: { number }?, -- lista: índice = vaga, 0 quando vazia (tamanho = capacidade)
+	synergies: { { id: string, members: { string }, bonusPct: number, active: boolean, missing: { string }? } }?,
+	fractionCents: number?,
+	nextLevel: { levelId: string, slots: number, cost: number, requirement: string?, canBuy: boolean, reason: string? }?,
+}
+```
+
+**Exemplo — recurso desligado**
+```lua
+snapshot.aquarium = { status = "disabled" }
+```
+
+**Exemplo — perfil novo, recurso ligado, primeira captura ainda não exposta**
+```lua
+snapshot.aquarium = {
+	status = "ready", paramsVersion = 1,
+	levelId = "aquarium_lv1_nursery", level = 1, version = 0,
+	slots = { { index = 1 }, { index = 2 }, { index = 3 } },
+	inventory = { C04_Baiacu_Nuvem = { base = 1, giant = 0, gold = 0, both = 0 } },
+	totalCpm = 0, slotCpm = { 0, 0, 0 }, synergies = {}, fractionCents = 0,
+	nextLevel = { levelId = "aquarium_lv2_reef", slots = 5, cost = 3000, canBuy = false, reason = "noCoins" },
+}
+```
+
+**Exemplo — veterano migrado** (tanque vazio; 12 `base` + 2 `gold` antigos de uma espécie)
+```lua
+snapshot.aquarium.inventory.C09_Exemplo = { base = 10, giant = 0, gold = 2, both = 0 }
+-- base = count antigo - shiny; gold = shiny; giant/both = 0 (não dá para reconstruir). Ver Economia S0 §5.3.
+```
+
+**Exemplo — tanque ativo, 2 vagas ocupadas de 3**
+```lua
+snapshot.aquarium = {
+	status = "ready", paramsVersion = 1, levelId = "aquarium_lv1_nursery", level = 1, version = 7,
+	slots = {
+		{ index = 1, occupant = { creatureId = "C04_Baiacu_Nuvem", variant = "gold" } },
+		{ index = 2, occupant = { creatureId = "C01_Bolhinha_Azul", variant = "base" } },
+		{ index = 3 },
+	},
+	inventory = { C01_Bolhinha_Azul = { base = 4, giant = 0, gold = 0, both = 0 } },
+	totalCpm = 852, slotCpm = { 672, 180, 0 }, synergies = {}, fractionCents = 42,
+	nextLevel = { levelId = "aquarium_lv2_reef", slots = 5, cost = 3000, canBuy = false, reason = "noCoins" },
+}
+```
+Valores reais da tabela: Bolhinha Azul 180, Baiacu-Nuvem 420 (Dourado = 420 × 1,6 = 672). Total = 672 + 180 = 852.
+
+IDs de geometria: níveis e vagas (`slot_1`..`slot_12`) seguem os IDs do Antigravity (`aquarium_lv1_nursery` já usado em A0). Níveis 2–4 acima são **proposta**; Antigravity confirma no Mural.
+
+## 3. Capturar
+
+`FishingUpdate` mantém todos os campos atuais. Novos campos, só no evento `caught`:
+
+| Campo | Tipo | Significado |
+|---|---|---|
+| `variantId` | string | `"base"` \| `"giant"` \| `"gold"` \| `"both"` (o campo antigo `variant` continua `""`/`"Shiny"`, e `isGiant` continua) |
+| `newVariant` | boolean | primeira vez que essa combinação é pescada (separado de `isNew`, que é espécie nova) |
+| `potentialCpm` | number | taxa individual desta captura, sem sinergia (`cpm da espécie × fator`) |
+| `rewardCoins` | number | igual a `value` (prêmio imediato), publicado também com esse nome para a UI do card |
+| `aquariumVersion` | number? | versão da montagem após a captura (para ordenar contra o snapshot) |
+
+`value` segue sendo o prêmio imediato em moedas inteiras; **a taxa potencial nunca vira moeda**, só vira renda se a criatura entrar numa vaga. No evento `bite` continua só `rarity` (e `tier`/`kind`): nada da espécie, nem da variante.
+
+```lua
+{ event = "caught", castId = 12, creatureId = "C04_Baiacu_Nuvem", weight = 0.9, value = 118,
+  isNew = false, count = 3, variant = "Shiny", isGiant = false,
+  variantId = "gold", newVariant = true, potentialCpm = 672, rewardCoins = 118, aquariumVersion = 7 }
+```
+
+## 4. Comparar (prévia)
+
+Cliente → servidor: `AquariumPreview` (RemoteEvent; a resposta vem por `AquariumResult` com `kind = "preview"`, igual a apply/buy).
+
+```lua
+-- pedido
+{ requestId = "c-0001", op = "place" | "swap" | "remove", slot = 2,
+  creatureId = "C04_Baiacu_Nuvem", variant = "gold", expectedVersion = 7 }
+```
+
+Resposta `AquariumResult`:
+```lua
+{ requestId = "c-0001", kind = "preview", ok = true, version = 7,
+  preview = {
+	slot = 2,
+	current = { creatureId = "C01_Bolhinha_Azul", variant = "base", cpm = 180 },
+	candidate = { creatureId = "C04_Baiacu_Nuvem", variant = "gold", cpm = 672 },
+	slotBeforeCpm = 180, slotAfterCpm = 672,
+	totalBeforeCpm = 852, totalAfterCpm = 1344, deltaCpm = 492,
+	synergiesGained = {}, synergiesLost = {},
+	usedVersion = 7, -- a confirmação deve mandar expectedVersion = 7
+  } }
+```
+**Vaga vazia:** `current = nil`, `slotBeforeCpm = 0`.
+**Perda de sinergia** (números ilustrativos, famílias ainda não existem): trocar o Baiacu Dourado (672) por uma Bolhinha (180) retorna `slotBeforeCpm = 672`, `slotAfterCpm = 180`, `synergiesLost = { "reef" }` e `deltaCpm` já com a perda dos outros participantes; mostrar a perda antes de confirmar.
+**Conflito:** `{ ok = false, reason = "staleVersion", version = 9, snapshot = <AquariumSnapshot atual> }`: pedir nova prévia com `expectedVersion = 9`.
+
+## 5. Confirmar (colocar, trocar, retirar, comprar)
+
+C→S `AquariumApply(request)` (mesmo formato do pedido da prévia, com `op`), `AquariumBuyLevel({ requestId, levelId, expectedVersion })`. Resposta única `AquariumResult` (S→C):
+
+```lua
+{ requestId, kind = "apply" | "buy", ok = true | false, reason?, version = number,
+  snapshot = AquariumSnapshot, -- estado canônico depois da ação (ou o estado atual em caso de rejeição)
+  deltaCoins?, coins? } -- compra: moedas gastas/saldo
+```
+
+**Identificação:** `requestId` é texto de até 36 caracteres escolhido pelo cliente, único por pedido. Repetir o mesmo `requestId` devolve o resultado guardado sem reaplicar (cliques repetidos e retentativa de rede). O servidor guarda os últimos 20 por sessão.
+
+**Fora de ordem:** o estado com **maior `version` vence**. Se a resposta (`result.version`) e o `ProfileSnapshot` (`aquarium.version`) chegarem trocados, o cliente guarda o de maior versão e ignora o menor. Versão igual tem conteúdo igual. Moedas (`coins`) seguem a regra existente de `ProfileSnapshot`.
+
+**Motivos de rejeição que a UI mostra:**
+
+| `reason` | Mensagem sugerida |
+|---|---|
+| `disabled` | Aquário indisponível agora |
+| `notReady` | Perfil ainda carregando |
+| `staleVersion` | O tanque mudou, confira de novo (vem com `snapshot`) |
+| `notOwned` | Você não tem mais essa criatura disponível |
+| `badSlot` / `slotLocked` | Vaga inexistente / vaga ainda bloqueada |
+| `emptySlot` | Nada para retirar |
+| `sameOccupant` | Já está nessa vaga |
+| `noCoins` | Faltam moedas (inclui `needed`) |
+| `maxLevel` | Tanque no nível máximo |
+| `levelLocked` | Requisito não cumprido (`requirement` do `nextLevel`) |
+| `rateLimited` | Muitos pedidos, tente de novo |
+| `badRequest` | Pedido inválido (não mostrar; só log) |
+
+**Implementação S1:** pedidos aceitos a 6/s (prévia), 4/s (apply) e 2/s (compra) por jogador; `requestId` até 36 caracteres. Requisito de espécies dos níveis 2–4 (`minSpecies` 15/40/70) é provisório até o João decidir; falha com `levelLocked` e `requirement = "species:N"`. Flags: atributos `AquariumUI` e `AquariumCredit` em `ReplicatedStorage` (`false` desliga). `ProfileSnapshot` ganha `aquarium` mesmo se o recurso estiver desligado (`status = "disabled"`).
+
+## 6. Comportamento do servidor (para o Codex animar com segurança)
+
+- Troca de taxa: o servidor liquida o intervalo anterior com a taxa **anterior** e só então muda a montagem; o contador animado nunca precisa "voltar".
+- Pagamento em lote, mais ou menos a cada 5 s por jogador online; `coins` sobe em saltos pequenos. Renda offline desligada no piloto.
+- Comprar upgrade: cobra uma vez, mantém ocupantes, `slots` ganha índices novos; `version` +1.
+- Retirar tudo: `totalCpm = 0`; a renda para na hora.
+
+## 7. O que ainda não existe
+
+Metas de renda, metas de sessão, sinergias com famílias reais e IDs de cosméticos entram em S2 (campos `goals` e `synergies` já reservados). Este contrato não faz nenhuma dessas partes.

@@ -64,6 +64,69 @@ export type Daily = {
 	grantedAt: number,
 }
 
+-- Aquarium (docs/AQUARIO-CONTRATO.md). Profile side: slots keyed by slot number as a string.
+export type AquariumProfile = {
+	migrated: number, -- migration version applied (idempotence guard)
+	level: number,
+	version: number, -- +1 on every accepted change (placement, purchase, new catch)
+	slots: { [string]: { creatureId: string, variant: string } },
+	owned: { [string]: { base: number, giant: number, gold: number, both: number } }, -- TOTAL caught per variant
+	cents: number, -- 0..99 hundredths of a coin not yet paid
+	frac: number, -- 0..59999 remainder of cpm*ms/60000 (exact integer carry)
+	cursor: number, -- os.time() of the last settlement
+}
+
+export type AquariumSlot = {
+	index: number,
+	occupant: { creatureId: string, variant: string }?,
+}
+
+export type AquariumOccupantRate = { creatureId: string, variant: string, cpm: number }
+
+export type AquariumPreview = {
+	slot: number,
+	current: AquariumOccupantRate?,
+	candidate: AquariumOccupantRate?,
+	slotBeforeCpm: number,
+	slotAfterCpm: number,
+	totalBeforeCpm: number,
+	totalAfterCpm: number,
+	deltaCpm: number,
+	synergiesGained: { string },
+	synergiesLost: { string },
+	usedVersion: number,
+}
+
+export type AquariumSnapshot = {
+	status: string, -- "disabled" | "ready"
+	paramsVersion: number?,
+	levelId: string?,
+	level: number?,
+	version: number?,
+	slots: { AquariumSlot }?,
+	inventory: { [string]: { base: number, giant: number, gold: number, both: number } }?, -- AVAILABLE (outside slots)
+	totalCpm: number?,
+	slotCpm: { number }?, -- index = slot, 0 when empty
+	synergies: {
+		{
+			id: string,
+			members: { string },
+			bonusPct: number,
+			active: boolean,
+			missing: { string }?,
+		}
+	}?,
+	fractionCents: number?,
+	nextLevel: {
+		levelId: string,
+		slots: number,
+		cost: number,
+		requirement: string?,
+		canBuy: boolean,
+		reason: string?,
+	}?,
+}
+
 export type Snapshot = {
 	coins: number,
 	equippedRod: string,
@@ -79,6 +142,7 @@ export type Snapshot = {
 	achievements: { [string]: number }, -- id -> os.time() unlocked
 	redeemed: { [string]: boolean }, -- promo codes already used
 	prestige: number,
+	aquarium: AquariumSnapshot?, -- nil = server without the feature (treat as disabled)
 }
 
 return {}

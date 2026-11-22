@@ -18,6 +18,8 @@ local RunService = game:GetService("RunService")
 local ServerScriptService = game:GetService("ServerScriptService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local AquariumConfig = require(Shared:WaitForChild("Config"):WaitForChild("Aquarium"))
+local AquariumState = require(Shared:WaitForChild("AquariumState"))
 local Net = require(Shared:WaitForChild("Net"))
 local Rods = require(Shared:WaitForChild("Config"):WaitForChild("Rods"))
 local Strings = require(Shared:WaitForChild("Strings"))
@@ -49,6 +51,7 @@ export type Profile = {
 	purchaseOrder: { string }, -- same ids, oldest first (bounds the record)
 	boosts: { luckUntil: number }, -- os.time() when each paid boost ends
 	daily: Types.Daily,
+	aquarium: Types.AquariumProfile, -- schema v2: owned counts per variant, slots, income carry
 }
 
 -- The Wally shim does not re-export ProfileStore's types; only the members used here.
@@ -62,7 +65,7 @@ type Session = {
 	AddUserId: (self: any, userId: number) -> (),
 }
 
-local SCHEMA_VERSION = 1
+local SCHEMA_VERSION = 2
 local STARTER_ROD = "starter"
 local STORE_NAME = if RunService:IsStudio() then "PlayerData_Studio" else "PlayerData"
 
@@ -109,6 +112,7 @@ local function template(): Profile
 		purchases = {},
 		purchaseOrder = {},
 		boosts = { luckUntil = 0 },
+		aquarium = AquariumState.new(),
 		daily = {
 			lastDay = 0,
 			days = 0,
@@ -146,7 +150,7 @@ local function finiteNumber(value: any, fallback: number, minimum: number?): num
 end
 
 -- Version steps go here (v1 -> v2 ...). Each returns nil on success or an error string.
--- Runs before reconcile. There are none yet: v1 is the first schema.
+-- Runs before reconcile. v1 -> v2: aquarium counts are rebuilt from the collection (idempotent).
 local function migrate(data: { [string]: any }): string?
 	if typeof(data.version) ~= "number" or data.version ~= data.version then
 		data.version = SCHEMA_VERSION
@@ -154,6 +158,7 @@ local function migrate(data: { [string]: any }): string?
 	if data.version > SCHEMA_VERSION then
 		return `save is from a newer version ({data.version})`
 	end
+	AquariumState.migrate(data)
 	return nil
 end
 
@@ -265,6 +270,8 @@ local function reconcile(data: { [string]: any })
 		data.equippedRod = STARTER_ROD
 	end
 
+	AquariumState.sanitize(data.aquarium)
+
 	data.version = SCHEMA_VERSION
 end
 
@@ -280,7 +287,15 @@ end
 
 -- Snapshot -----------------------------------------------------------------------------
 
+local function aquariumEnabled(): boolean
+	return ReplicatedStorage:GetAttribute(AquariumConfig.UI_ATTRIBUTE) ~= false
+end
+
 local function snapshot(profile: Profile): Types.Snapshot
+	local speciesCount = 0
+	for _ in profile.collection do
+		speciesCount += 1
+	end
 	return {
 		coins = profile.coins,
 		equippedRod = profile.equippedRod,
@@ -299,6 +314,12 @@ local function snapshot(profile: Profile): Types.Snapshot
 		prestige = profile.prestige,
 		settings = deepClone(profile.settings),
 		daily = deepClone(profile.daily),
+		aquarium = AquariumState.view(
+			profile.aquarium,
+			profile.coins,
+			speciesCount,
+			aquariumEnabled()
+		),
 	}
 end
 

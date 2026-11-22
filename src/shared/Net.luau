@@ -20,6 +20,11 @@ export type FishingUpdate = {
 	combo: number?, -- consecutive catches including this one
 	comboBonus: number?, -- coin multiplier bonus from the combo (0.09 = +9%)
 	auto: boolean?, -- true when resolved by the server Auto-Fish loop
+	variantId: string?, -- "base" | "giant" | "gold" | "both", on "caught" (variant/isGiant stay as they were)
+	newVariant: boolean?, -- first time this species+variant combination is caught, on "caught"
+	potentialCpm: number?, -- individual aquarium rate of this catch in cpm (no synergy), on "caught"
+	rewardCoins: number?, -- same as value, on "caught"
+	aquariumVersion: number?, -- aquarium version after this catch, on "caught"
 	zoneId: string?, -- fishing zone id ("lagoon" | "coral" | "abyss")
 	minLevel: number?, -- minimum PlayerLevel required by the zone (when reason = "levelLocked")
 }
@@ -87,6 +92,40 @@ local Net = {
 	SET_AUTO_FISH = "SetAutoFish",
 	INSPECT_PLAYER = "InspectPlayer",
 	INSPECT_RESULT = "InspectResult",
+	AQUARIUM_PREVIEW = "AquariumPreview",
+	AQUARIUM_APPLY = "AquariumApply",
+	AQUARIUM_BUY_LEVEL = "AquariumBuyLevel",
+	AQUARIUM_RESULT = "AquariumResult",
+}
+
+-- Client to server (AquariumPreview / AquariumApply share the shape). `requestId` is unique
+-- per request (max 36 chars); repeating one returns the stored result without reapplying.
+export type AquariumRequest = {
+	requestId: string,
+	op: string, -- "place" | "swap" | "remove"
+	slot: number,
+	creatureId: string?,
+	variant: string?,
+	expectedVersion: number,
+}
+
+export type AquariumBuyRequest = {
+	requestId: string,
+	levelId: string,
+	expectedVersion: number,
+}
+
+-- Server to client. The state with the higher `version` always wins.
+export type AquariumResult = {
+	requestId: string,
+	kind: string, -- "preview" | "apply" | "buy"
+	ok: boolean,
+	reason: string?, -- see docs/AQUARIO-CONTRATO.md section 5
+	version: number,
+	preview: any?, -- Types.AquariumPreview on kind "preview"
+	snapshot: any?, -- Types.AquariumSnapshot after "apply"/"buy" or on staleVersion
+	needed: number?, -- noCoins: missing coins
+	coins: number?, -- buy: balance after
 }
 
 export type InspectResult = {

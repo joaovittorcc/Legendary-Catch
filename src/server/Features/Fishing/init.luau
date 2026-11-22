@@ -9,6 +9,8 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local AquariumConfig = require(Shared:WaitForChild("Config"):WaitForChild("Aquarium"))
+local AquariumState = require(Shared:WaitForChild("AquariumState"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
@@ -422,6 +424,9 @@ local function payCatch(
 			* (1 + comboBonus)
 	)
 	local isNew, count, isRecord, previousBest = false, 1, false, 0
+	-- Aquarium variant of this catch (Gigante and Dourada; Dourada = the old Cintilante).
+	local variantId = AquariumConfig.variantId(isGiant, shiny)
+	local newVariant, aquariumVersion = false, 0
 	PlayerData.update(player, function(p)
 		local entry = p.collection[creature.id]
 		if entry then
@@ -441,6 +446,9 @@ local function payCatch(
 		end
 		count = entry.count
 		p.coins += value
+		-- Same mutation as the collection and the prize: one catch, one record.
+		newVariant = AquariumState.addOwned(p.aquarium, creature.id, variantId)
+		aquariumVersion = p.aquarium.version
 		p.stats.catches = (p.stats.catches or 0) + 1
 		if creature.rarity == "Legendary" or creature.rarity == "Mystic" then
 			p.stats.legendaries = (p.stats.legendaries or 0) + 1
@@ -471,6 +479,11 @@ local function payCatch(
 		isRecord = isRecord,
 		previousBest = if isRecord then previousBest else nil,
 		isGiant = isGiant,
+		variantId = variantId,
+		newVariant = newVariant,
+		potentialCpm = AquariumConfig.rateCpm(creature.id, variantId) or 0,
+		rewardCoins = value,
+		aquariumVersion = aquariumVersion,
 		combo = combo,
 		comboBonus = comboBonus,
 		auto = if isAuto then true else nil,
