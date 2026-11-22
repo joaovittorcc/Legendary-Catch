@@ -1,5 +1,7 @@
 # Créditos de referências visuais
 
+- **fwjelaa**, vault `fwjelaa`, *Recipes: vfx*. No Ouroboros Cósmico, fiz os rastros estreitos para preservar a silhueta, concentrei a luz no núcleo durante a carga e deixei a espuma e as ondas expansivas para o impacto.
+
 - **fwjelaa**, vault `fwjelaa`, *Recipes: animation*. Na cinemática da Maré Primordial, usei poses-chave de alcance, contato, antecipação e recuperação, arrasto no braço livre e um arco contínuo da lâmina em relação à mão que segura a espada.
 
 - **fwjelaa (FWJ STUDIOS)**, vault `fwjelaa`, *fwjelaa-blender-modeling* e *make-model*. No piloto das Comuns e Incomuns, usei revisão de silhueta em miniatura, formas por família, paleta curta e conferência do FBX reimportado. Geometria e pintura são próprias do Legendary Catch.

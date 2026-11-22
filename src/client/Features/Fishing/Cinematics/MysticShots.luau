@@ -8,12 +8,12 @@ local Framing = require(script.Parent.Parent.RevealFraming)
 local Motion = require(script.Parent.Parent.Parent.CreatureMotion)
 local Water = require(script.Parent.Water)
 local Tide = require(script.Parent.TideChoreography)
+local Cosmic = require(script.Parent.CosmicChoreography)
 
 local MysticShots = {}
 local UP = Vector3.yAxis
 local FOAM = Color3.fromRGB(211, 248, 255)
 local GOLD = Color3.fromRGB(255, 213, 154)
-local COSMIC_BREACH = 1.08
 local TAU = math.pi * 2
 
 export type Shot = {
@@ -153,7 +153,7 @@ function MysticShots.create(
 	local side = Vector3.new(forward.Z, 0, -forward.X)
 	local spot = stageOrigin(origin, forward, side, character)
 	local tide = kind == "tide"
-	local accent = if tide then Color3.fromRGB(49, 232, 255) else Color3.fromRGB(185, 135, 255)
+	local accent = if tide then Color3.fromRGB(49, 232, 255) else Color3.fromRGB(168, 97, 255)
 	local model = clone(id)
 	local scale = if tide then 2.65 else 2.95
 	model:ScaleTo(model:GetScale() * scale)
@@ -200,7 +200,7 @@ function MysticShots.create(
 	local wakeFolder = Instance.new("Folder")
 	wakeFolder.Name = "OceanWake"
 	wakeFolder.Parent = scene
-	local wakeStarts = if tide then Tide.IMPACT else COSMIC_BREACH
+	local wakeStarts = if tide then Tide.IMPACT else Cosmic.BREACH
 	local wakeDuration = if tide then 3.3 else 2.75
 	local wake = Water.create(wakeFolder, spot + UP * 0.03, {
 		kind = "waves",
@@ -228,24 +228,24 @@ function MysticShots.create(
 	end
 	local swordRotation = if sword then sword.CFrame.Rotation else CFrame.identity
 	local knight = if sword then Tide.bind(model, sword, scene, scale) else nil
+	local constellation = if not tide then Cosmic.bind(scene, model) else nil
 	local storm = { 0.62, 1.44, 7.12, 8.43, Tide.RELEASE }
 	local strike = 1
 	local charged = false
-	local discharge = if tide
-		then Water.create(wakeFolder, spot + UP * 0.10, {
-			kind = "shockwave",
-			at = Tide.RELEASE,
-			duration = 2.35,
-			count = 3,
-			strength = 1,
-		}, {
-			accent = Color3.fromRGB(49, 232, 255),
-			light = GOLD,
-			entrance = 0,
-			duration = 2.35,
-			cues = {},
-		})
-		else nil
+	local releaseAt = if tide then Tide.RELEASE else Cosmic.RELEASE
+	local discharge = Water.create(wakeFolder, spot + UP * 0.10, {
+		kind = "shockwave",
+		at = releaseAt,
+		duration = 2.35,
+		count = 3,
+		strength = 1,
+	}, {
+		accent = accent,
+		light = if tide then GOLD else Color3.fromRGB(151, 240, 255),
+		entrance = 0,
+		duration = 2.35,
+		cues = {},
+	})
 	local struckWater = false
 	local breach = false
 	local spray = false
@@ -269,6 +269,9 @@ function MysticShots.create(
 		grade.Enabled = true
 		if wake then
 			wake(math.clamp((t - wakeStarts) / wakeDuration, 0, 1))
+		end
+		if discharge then
+			discharge(math.clamp((t - releaseAt) / 2.35, 0, 1))
 		end
 		if not opening then
 			opening = true
@@ -352,9 +355,6 @@ function MysticShots.create(
 				end
 				strike += 1
 			end
-			if discharge then
-				discharge(math.clamp((t - Tide.RELEASE) / 2.35, 0, 1))
-			end
 			if t >= Tide.RELEASE and not charged then
 				charged = true
 				foam(11, 5)
@@ -372,30 +372,27 @@ function MysticShots.create(
 			return
 		end
 
-		local age = math.max(0, t - COSMIC_BREACH)
-		local rise = blend(age / 1.2)
-		if t < COSMIC_BREACH then
+		if t < Cosmic.BREACH then
 			at = spot + UP * 0.25
-			eye = spot - forward * (15 - t * 2.4) + side * 4 + UP * 1.25
+			eye = spot - forward * (16 - t * 2.8) + side * (5 - t * 1.6) + UP * 1.3
 			placeShot(camera, eye, at, 46)
 			return
 		end
-		local travel = blend((age - 0.48) / 5.58)
-		local arc = math.sin(math.pi * travel)
-		local sweep = (math.sin(travel * 2 * math.pi + math.pi * 0.2) - math.sin(math.pi * 0.2))
-			* 3.7
-		local heroAt = spot + side * sweep + UP * (-spans.Y * 0.18 + rise * 6.8 + arc * 2.1)
-		local yaw = 0.65 - travel * 1.03
-		local direction = -forward * math.cos(yaw) + side * math.sin(yaw)
-		at = heroAt + UP * (if travel < 0.12 then 0.6 else 0.35)
-		eye = at + direction * (17 + 34 * tight + 2.7 * arc) + UP * (-2.6 + rise * 1.5)
-		local pose = Framing.pose(bounds, heroAt, eye - heroAt, math.rad(-15) - arc * 0.55)
+		local shot = Cosmic.pose(t, spans.Y)
+		local heroAt = spot + side * shot.offset.X + UP * shot.offset.Y + forward * shot.offset.Z
+		local direction = -forward * math.cos(shot.lensYaw) + side * math.sin(shot.lensYaw)
+		local wide = math.abs(shot.bank) / 1.34
+		at = heroAt + UP * (0.48 + shot.charge * 0.85) - side * (shot.offset.X * 0.14)
+		eye = at
+			+ direction * (17.5 + 36 * tight + 4.1 * wide + 1.7 * shot.charge)
+			+ UP * (-2.4 + wide * 1.65 + shot.charge * 3.25)
+		local pose = Framing.pose(bounds, heroAt, eye - heroAt, shot.yaw)
 		local pivot = CFrame.new(heroAt)
-			* CFrame.fromAxisAngle(direction, arc * 1.25)
+			* CFrame.fromAxisAngle(direction, shot.bank)
 			* CFrame.new(-heroAt)
 			* pose
 		model:PivotTo(pivot)
-		Motion.poseBones(motion, travel * 8)
+		Motion.poseBones(motion, shot.phase)
 		if not breach then
 			breach = true
 			model.Parent = scene
@@ -403,14 +400,24 @@ function MysticShots.create(
 			Audio.play("cast", 0.26, 0.61)
 			Audio.play("bite", 0.24, 0.71)
 		end
-		if travel > 0.58 and not spray then
+		if t >= Cosmic.COIL - 1.35 and not spray then
 			spray = true
-			Effects.ripple(spot + side * sweep, accent, 11, 1.6)
-			Effects.splash(spot + side * sweep, Color3.fromRGB(165, 224, 255), 12)
+			local wakePoint = spot + side * shot.offset.X
+			Effects.ripple(wakePoint, accent, 11, 1.6)
+			Effects.splash(wakePoint, Color3.fromRGB(140, 231, 255), 12)
 		end
-		lamp.Position = heroAt + direction * 3
+		if t >= Cosmic.RELEASE and not charged then
+			charged = true
+			foam(11, 5)
+			Audio.play("bite", 0.42, 0.54)
+			Audio.play("legendary", 0.25, 0.68)
+		end
+		local core = if constellation then constellation(t, heroAt, side, forward) else heroAt
+		local releaseAge = math.max(0, t - Cosmic.RELEASE)
+		local kick = math.sin(releaseAge * 14) * math.exp(-releaseAge * 5)
+		lamp.Position = (heroAt + direction * 3):Lerp(core + direction * 2, shot.charge * 0.68)
 		rim.Position = heroAt - direction * 4 + UP * 2
-		placeShot(camera, eye, at, 47 - 3 * rise, -arc * 0.035)
+		placeShot(camera, eye, at, 44 + 2.7 * wide + 2 * kick, -shot.bank * 0.026 + kick * 0.022)
 	end
 
 	return { draw = draw, hide = hide }

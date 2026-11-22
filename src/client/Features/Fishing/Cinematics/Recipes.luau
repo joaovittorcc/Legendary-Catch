@@ -59,11 +59,11 @@ local recipes: { [string]: Recipe } = {
 		},
 	},
 	C93_Ouroboros_Cosmico = {
-		duration = 11.7,
-		entrance = 0.45,
+		duration = 16.9,
+		entrance = 1.55,
 		mysticShot = "orbit",
-		handoff = 7.8,
-		accent = Color3.fromHex("9875E7"),
+		handoff = 12.9,
+		accent = Color3.fromHex("A861FF"),
 		light = Color3.fromHex("F9DFA3"),
 		cues = {
 			cue("aurora", 0, 6.2, 4),

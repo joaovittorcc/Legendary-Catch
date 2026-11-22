@@ -16,3 +16,11 @@ Na v79, a cena no mar dura 12,4 s e a captura no píer leva o total a 16,4 s. A 
 No Play de PC, a ponta da lâmina chegou a 2,69 studs acima do elmo no quadro amostrado. Conferimos a troca da espada em cena pela espada empunhada, a onda de descarga e a restauração do FOV. No iPhone 17 Pro simulado em retrato, a pose carregada coube no viewport e o card apareceu. Reduzir efeitos manteve a revelação curta e dispensou o palco no mar.
 
 [Espada erguida](c94-crown.jpg) · [Descarga](c94-discharge.jpg)
+
+## Segunda versão do Ouroboros Cósmico
+
+Na v80, a cena do Ouroboros no oceano dura 12,9 s. A cena completa com a revelação no píer dura 16,9 s. A criatura rompe a superfície em 1,55 s, desenrola o corpo enquanto a câmera acompanha o nado, volta a se enrolar em torno do núcleo e libera os rastros e a onda de energia em 10,7 s.
+
+No Play em PC e no iPhone 17 Pro simulado em retrato, conferimos a deformação dos ossos, a aproximação e a dispersão dos satélites, a revelação no card e a restauração da iluminação e do FOV. Reduzir efeitos manteve o caminho curto. Sem teste em celular físico ou no cliente publicado.
+
+[Nado](c93-open-swim.jpg) · [Carga do núcleo](c93-core-charge.jpg) · [Descarga no oceano](c93-core-discharge.jpg)
