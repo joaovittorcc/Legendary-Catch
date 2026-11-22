@@ -172,6 +172,31 @@ C→S `AquariumApply(request)` (mesmo formato do pedido da prévia, com `op`), `
 - Comprar upgrade: cobra uma vez, mantém ocupantes, `slots` ganha índices novos; `version` +1.
 - Retirar tudo: `totalCpm = 0`; a renda para na hora.
 
-## 7. O que ainda não existe
+## 7. S2: sinergias, metas e prêmios (implementado no servidor, 2026-11-22)
 
-Metas de renda, metas de sessão, sinergias com famílias reais e IDs de cosméticos entram em S2 (campos `goals` e `synergies` já reservados). Este contrato não faz nenhuma dessas partes.
+**Famílias** (`Config.Aquarium.FAMILY`, uma por criatura, nomes de trabalho a confirmar): `reef` (bolhas/respingo/prisma, 37 espécies), `tempest` (tempestade/nuvem, 19), `abyss` (faíscas/cristal/magma/gelo, 34), `celestial` (cósmico, 10), `festival` (Natal, 6). 2 espécies distintas da mesma família no tanque = **+5%**, 3 ou mais = **+10%** para os participantes. Variante da mesma espécie não conta como outra espécie.
+
+`snapshot.aquarium.synergies` lista as famílias com ao menos uma espécie no tanque:
+```lua
+{ id = "reef", members = { "C01_Bolhinha_Azul", "C02_Sardinha_Solar" }, bonusPct = 5, active = true, count = 2, nextAt = 3 }
+```
+`nextAt` = espécies necessárias para a próxima faixa (`nil` na maior). A prévia traz `synergiesGained` / `synergiesLost` com os ids das famílias que ligam/desligam.
+
+**Metas de renda** (`snapshot.aquarium.goals.income`): `bestCpm` é a maior taxa confirmada do tanque; `list` tem `{ id, cpm, cosmetic, reached, claimed }`; `nextId` e `remainingCpm` apontam a próxima. Faixas em moedas/min: 10 / 25 / 60 / 120 / 250 / 500 (cpm 1.000 … 50.000). Resgate guarda o ID para sempre; trocar e recolocar criaturas não zera nada.
+
+| Meta | cpm | Prêmio (ID de cosmético, proposta p/ Antigravity) |
+|---|---:|---|
+| `income_1` | 1.000 | `aqdeco_plaque` placa do aquário |
+| `income_2` | 2.500 | `aqdeco_lamp` luminária |
+| `income_3` | 6.000 | `aqdeco_coral` coral especial |
+| `income_4` | 12.000 | `aqdeco_fountain` fonte |
+| `income_5` | 25.000 | `aqdeco_frame` moldura |
+| `income_6` | 50.000 | `aqdeco_trophy` troféu |
+
+Cosméticos desbloqueados vêm em `snapshot.aquarium.cosmetics` (lista de IDs). Critério de desbloqueio = a meta de renda correspondente resgatada.
+
+**Metas de sessão** (`goals.session`): `list` com `{ id, kind, target, progress, coins, claimed }` e `coinsLeftToday`. `catch3` (3 capturas manuais, 40 moedas), `kinds2` (2 modos de minigame vencidos, 60), `discover1` (1 espécie nova, 100). Só ações confirmadas, pesca automática não conta. Voltar em até 10 min mantém a mesma sessão; depois disso nasce uma nova. Teto de 600 moedas por dia UTC vindas de metas de sessão.
+
+**Resgate:** C→S `AquariumClaimGoal({ requestId, goalId })` com `goalId = "income:<id>"` ou `"session:<id>"`. Resposta `AquariumResult` com `kind = "claim"`: `ok`, `reward = { coins?, cosmetic? }`, `already = true` se já tinha sido resgatada (nada é pago de novo), `coins` (saldo) e `snapshot`. Motivos: `notReady`, `unknown`, `dailyCap`, `badRequest`, `disabled`, `notReady` (perfil).
+
+Fora do S2 ainda: eventos do oceano e minigames (S3).

@@ -96,6 +96,14 @@ local Net = {
 	AQUARIUM_APPLY = "AquariumApply",
 	AQUARIUM_BUY_LEVEL = "AquariumBuyLevel",
 	AQUARIUM_RESULT = "AquariumResult",
+	AQUARIUM_CLAIM_GOAL = "AquariumClaimGoal",
+}
+
+-- goalId: "income:<id>" or "session:<id>" (ids in Config/Aquarium). A repeated claim answers
+-- ok = true with already = true and grants nothing.
+export type AquariumClaimRequest = {
+	requestId: string,
+	goalId: string,
 }
 
 -- Client to server (AquariumPreview / AquariumApply share the shape). `requestId` is unique
@@ -118,14 +126,16 @@ export type AquariumBuyRequest = {
 -- Server to client. The state with the higher `version` always wins.
 export type AquariumResult = {
 	requestId: string,
-	kind: string, -- "preview" | "apply" | "buy"
+	kind: string, -- "preview" | "apply" | "buy" | "claim"
 	ok: boolean,
 	reason: string?, -- see docs/AQUARIO-CONTRATO.md section 5
 	version: number,
 	preview: any?, -- Types.AquariumPreview on kind "preview"
 	snapshot: any?, -- Types.AquariumSnapshot after "apply"/"buy" or on staleVersion
 	needed: number?, -- noCoins: missing coins
-	coins: number?, -- buy: balance after
+	coins: number?, -- buy/claim: balance after
+	already: boolean?, -- claim: it had been claimed before
+	reward: any?, -- claim: { coins: number?, cosmetic: string? }
 }
 
 export type InspectResult = {

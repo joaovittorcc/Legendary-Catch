@@ -39,6 +39,17 @@ local function wholeNumber(value: any, fallback: number, minimum: number, maximu
 	return math.clamp(math.floor(value), minimum, maximum)
 end
 
+local function newSession(now: number): Types.AquariumSession
+	return {
+		startedAt = now,
+		lastSeen = now,
+		catches = 0,
+		kinds = {},
+		discoveries = 0,
+		claimed = {},
+	}
+end
+
 function AquariumState.new(): Types.AquariumProfile
 	return {
 		migrated = Config.MIGRATION_VERSION,
@@ -46,6 +57,12 @@ function AquariumState.new(): Types.AquariumProfile
 		version = 0,
 		slots = {},
 		owned = {},
+		bestCpm = 0,
+		claimed = {},
+		cosmetics = {},
+		session = newSession(0),
+		sessionDay = 0,
+		sessionCoins = 0,
 		cents = 0,
 		frac = 0,
 		cursor = 0,
@@ -89,6 +106,45 @@ function AquariumState.sanitize(aq: { [string]: any })
 	aq.cents = wholeNumber(aq.cents, 0, 0, 99)
 	aq.frac = wholeNumber(aq.frac, 0, 0, 59999)
 	aq.cursor = wholeNumber(aq.cursor, 0, 0, 2 ^ 52)
+	aq.bestCpm = wholeNumber(aq.bestCpm, 0, 0, 2 ^ 52)
+	aq.sessionDay = wholeNumber(aq.sessionDay, 0, 0, 2 ^ 52)
+	aq.sessionCoins = wholeNumber(aq.sessionCoins, 0, 0, 1_000_000_000)
+	for _, key in { "claimed", "cosmetics" } do
+		local clean: { [string]: boolean } = {}
+		if typeof(aq[key]) == "table" then
+			for id, value in aq[key] do
+				if typeof(id) == "string" and value == true then
+					clean[id] = true
+				end
+			end
+		end
+		aq[key] = clean
+	end
+	local session = if typeof(aq.session) == "table" then aq.session else {}
+	local cleanKinds: { [string]: boolean } = {}
+	local cleanClaimed: { [string]: boolean } = {}
+	if typeof(session.kinds) == "table" then
+		for kind, value in session.kinds do
+			if typeof(kind) == "string" and value == true then
+				cleanKinds[kind] = true
+			end
+		end
+	end
+	if typeof(session.claimed) == "table" then
+		for id, value in session.claimed do
+			if typeof(id) == "string" and value == true then
+				cleanClaimed[id] = true
+			end
+		end
+	end
+	aq.session = {
+		startedAt = wholeNumber(session.startedAt, 0, 0, 2 ^ 52),
+		lastSeen = wholeNumber(session.lastSeen, 0, 0, 2 ^ 52),
+		catches = wholeNumber(session.catches, 0, 0, 1_000_000_000),
+		kinds = cleanKinds,
+		discoveries = wholeNumber(session.discoveries, 0, 0, 1_000_000_000),
+		claimed = cleanClaimed,
+	}
 	if typeof(aq.owned) ~= "table" then
 		aq.owned = {}
 	end
@@ -171,9 +227,62 @@ function AquariumState.available(
 	)
 end
 
--- Synergy percent for a slot. Families arrive in S2; until then nobody gets a bonus.
-local function synergyPercent(_aq: Types.AquariumProfile, _slot: number): number
+-- Distinct species per family among occupied slots, plus the bonus percent of each count.
+local function tierPercent(species: number): number
+	for _, tier in Config.SYNERGY_TIERS do
+		if species >= tier.species then
+			return tier.percent
+		end
+	end
 	return 0
+end
+
+local function familyCounts(aq: Types.AquariumProfile): { [string]: { [string]: boolean } }
+	local families: { [string]: { [string]: boolean } } = {}
+	for _, occupant in aq.slots do
+		local family = Config.FAMILY[occupant.creatureId]
+		if family then
+			local set = families[family] or {}
+			set[occupant.creatureId] = true
+			families[family] = set
+		end
+	end
+	return families
+end
+
+local function countOf(set: { [string]: boolean }): number
+	local n = 0
+	for _ in set do
+		n += 1
+	end
+	return n
+end
+
+-- Active family ids (2+ distinct species), sorted, for previews and the view.
+function AquariumState.activeFamilies(aq: Types.AquariumProfile): { string }
+	local list: { string } = {}
+	for family, set in familyCounts(aq) do
+		if tierPercent(countOf(set)) > 0 then
+			table.insert(list, family)
+		end
+	end
+	table.sort(list)
+	return list
+end
+
+-- Synergy percent of one slot: its creature's family bonus (one family per creature, so
+-- "highest bonus wins" is trivially that one), capped by MAX_SYNERGY_PERCENT.
+local function synergyPercent(aq: Types.AquariumProfile, slot: number): number
+	local occupant = occupantAt(aq, slot)
+	if not occupant then
+		return 0
+	end
+	local family = Config.FAMILY[occupant.creatureId]
+	if not family then
+		return 0
+	end
+	local set = familyCounts(aq)[family]
+	return if set then tierPercent(countOf(set)) else 0
 end
 
 function AquariumState.slotRate(aq: Types.AquariumProfile, slot: number): number
@@ -255,6 +364,12 @@ local function copyAq(aq: Types.AquariumProfile): Types.AquariumProfile
 		version = aq.version,
 		slots = slots,
 		owned = aq.owned, -- read only here
+		bestCpm = aq.bestCpm,
+		claimed = aq.claimed,
+		cosmetics = aq.cosmetics,
+		session = aq.session,
+		sessionDay = aq.sessionDay,
+		sessionCoins = aq.sessionCoins,
 		cents = aq.cents,
 		frac = aq.frac,
 		cursor = aq.cursor,
@@ -297,6 +412,20 @@ function AquariumState.preview(aq: Types.AquariumProfile, plan: Plan): Types.Aqu
 	AquariumState.apply(after, plan)
 	local totalAfter, perSlotAfter = AquariumState.rates(after)
 	local slot = plan.slot :: number
+	local before = AquariumState.activeFamilies(aq)
+	local afterFamilies = AquariumState.activeFamilies(after)
+	local gained: { string } = {}
+	local lost: { string } = {}
+	for _, family in afterFamilies do
+		if not table.find(before, family) then
+			table.insert(gained, family)
+		end
+	end
+	for _, family in before do
+		if not table.find(afterFamilies, family) then
+			table.insert(lost, family)
+		end
+	end
 	local function describe(o: Occupant?): Types.AquariumOccupantRate?
 		if not o then
 			return nil
@@ -316,10 +445,199 @@ function AquariumState.preview(aq: Types.AquariumProfile, plan: Plan): Types.Aqu
 		totalBeforeCpm = totalBefore,
 		totalAfterCpm = totalAfter,
 		deltaCpm = totalAfter - totalBefore,
-		synergiesGained = {},
-		synergiesLost = {},
+		synergiesGained = gained,
+		synergiesLost = lost,
 		usedVersion = aq.version,
 	}
+end
+
+-- Families that have at least one species in the tank, with progress to the next tier.
+function AquariumState.synergyList(aq: Types.AquariumProfile): { any }
+	local list = {}
+	for family, set in familyCounts(aq) do
+		local count = countOf(set)
+		local members: { string } = {}
+		for id in set do
+			table.insert(members, id)
+		end
+		table.sort(members)
+		local percent = tierPercent(count)
+		local nextAt: number? = nil
+		for i = #Config.SYNERGY_TIERS, 1, -1 do
+			local tier = Config.SYNERGY_TIERS[i]
+			if count < tier.species then
+				nextAt = tier.species
+				break
+			end
+		end
+		table.insert(list, {
+			id = family,
+			members = members,
+			bonusPct = percent,
+			active = percent > 0,
+			count = count,
+			nextAt = nextAt,
+		})
+	end
+	table.sort(list, function(a, b)
+		return a.id < b.id
+	end)
+	return list
+end
+
+local function cosmeticList(aq: Types.AquariumProfile): { string }
+	local list: { string } = {}
+	for id in aq.cosmetics do
+		table.insert(list, id)
+	end
+	table.sort(list)
+	return list
+end
+
+local function sessionProgress(session: Types.AquariumSession, kind: string): number
+	if kind == "catches" then
+		return session.catches
+	elseif kind == "discoveries" then
+		return session.discoveries
+	elseif kind == "minigames" then
+		local n = 0
+		for _ in session.kinds do
+			n += 1
+		end
+		return n
+	end
+	return 0
+end
+
+local function coinsLeftToday(aq: Types.AquariumProfile, today: number): number
+	local used = if aq.sessionDay == today then aq.sessionCoins else 0
+	return math.max(0, Config.SESSION_COINS_DAILY_CAP - used)
+end
+
+function AquariumState.goals(aq: Types.AquariumProfile, today: number?): Types.AquariumGoals
+	local day = today or (os.time() // 86400)
+	local income = {}
+	local nextId: string? = nil
+	local remaining: number? = nil
+	for _, goal in Config.INCOME_GOALS do
+		local reached = aq.bestCpm >= goal.cpm
+		table.insert(income, {
+			id = goal.id,
+			cpm = goal.cpm,
+			cosmetic = goal.cosmetic,
+			reached = reached,
+			claimed = aq.claimed[goal.id] == true,
+		})
+		if not reached and nextId == nil then
+			nextId, remaining = goal.id, goal.cpm - aq.bestCpm
+		end
+	end
+	local sessionList = {}
+	for _, goal in Config.SESSION_GOALS do
+		table.insert(sessionList, {
+			id = goal.id,
+			kind = goal.kind,
+			target = goal.target,
+			progress = math.min(sessionProgress(aq.session, goal.kind), goal.target),
+			coins = goal.coins,
+			claimed = aq.session.claimed[goal.id] == true,
+		})
+	end
+	return {
+		income = { bestCpm = aq.bestCpm, list = income, nextId = nextId, remainingCpm = remaining },
+		session = { list = sessionList, coinsLeftToday = coinsLeftToday(aq, day) },
+	}
+end
+
+-- Records the best confirmed income (call after any change of the tank). True when it grew.
+function AquariumState.recordBest(aq: Types.AquariumProfile): boolean
+	local total = AquariumState.rates(aq)
+	if total > aq.bestCpm then
+		aq.bestCpm = total
+		return true
+	end
+	return false
+end
+
+-- Starts a fresh session unless the last one ended within the reentry window.
+function AquariumState.beginSession(aq: Types.AquariumProfile, now: number)
+	local session = aq.session
+	if session.startedAt == 0 or now - session.lastSeen > Config.SESSION_REENTRY_SECONDS then
+		aq.session = newSession(now)
+	else
+		session.lastSeen = now
+	end
+end
+
+-- A confirmed manual catch. `minigame` is the mode that was won.
+function AquariumState.recordCatch(
+	aq: Types.AquariumProfile,
+	minigame: string,
+	isNewSpecies: boolean,
+	now: number
+)
+	local session = aq.session
+	session.lastSeen = now
+	session.catches += 1
+	if minigame ~= "" then
+		session.kinds[minigame] = true
+	end
+	if isNewSpecies then
+		session.discoveries += 1
+	end
+end
+
+export type ClaimOutcome = {
+	ok: boolean,
+	reason: string?,
+	already: boolean?,
+	coins: number?,
+	cosmetic: string?,
+}
+
+-- Claims an income ("income:<id>") or session ("session:<id>") goal in place.
+function AquariumState.claim(aq: Types.AquariumProfile, goalId: string, today: number): ClaimOutcome
+	local scope, id = string.match(goalId, "^(%a+):([%w_]+)$")
+	if scope == "income" and id then
+		local goal = Config.incomeGoal(id)
+		if not goal then
+			return { ok = false, reason = "unknown" }
+		end
+		if aq.claimed[id] then
+			return { ok = true, already = true, cosmetic = goal.cosmetic }
+		end
+		if aq.bestCpm < goal.cpm then
+			return { ok = false, reason = "notReady" }
+		end
+		aq.claimed[id] = true
+		aq.cosmetics[goal.cosmetic] = true
+		aq.version += 1
+		return { ok = true, cosmetic = goal.cosmetic }
+	elseif scope == "session" and id then
+		local goal = Config.sessionGoal(id)
+		if not goal then
+			return { ok = false, reason = "unknown" }
+		end
+		if aq.session.claimed[id] then
+			return { ok = true, already = true }
+		end
+		if sessionProgress(aq.session, goal.kind) < goal.target then
+			return { ok = false, reason = "notReady" }
+		end
+		if aq.sessionDay ~= today then
+			aq.sessionDay, aq.sessionCoins = today, 0
+		end
+		local pay =
+			math.min(goal.coins, math.max(0, Config.SESSION_COINS_DAILY_CAP - aq.sessionCoins))
+		if pay <= 0 then
+			return { ok = false, reason = "dailyCap" }
+		end
+		aq.sessionCoins += pay
+		aq.session.claimed[id] = true
+		aq.version += 1
+		return { ok = true, coins = pay }
+	end
+	return { ok = false, reason = "badRequest" }
 end
 
 -- What the client receives. `status` "disabled" hides everything else.
@@ -382,7 +700,9 @@ function AquariumState.view(
 		inventory = inventory,
 		totalCpm = total,
 		slotCpm = perSlot,
-		synergies = {},
+		synergies = AquariumState.synergyList(aq),
+		goals = AquariumState.goals(aq),
+		cosmetics = cosmeticList(aq),
 		fractionCents = aq.cents,
 		nextLevel = nextLevel,
 	}

@@ -235,6 +235,7 @@ local function onApply(player: Player, raw: unknown)
 			return
 		end
 		AquariumState.apply(p.aquarium, plan)
+		AquariumState.recordBest(p.aquarium)
 	end)
 	local snapshot = snapshotOf(player)
 	local version = if snapshot and snapshot.version
@@ -339,6 +340,72 @@ local function onBuy(player: Player, raw: unknown)
 	reply(player, result)
 end
 
+local function onClaim(player: Player, raw: unknown)
+	local session = sessions[player]
+	if not session or typeof(raw) ~= "table" then
+		return
+	end
+	local rawTable = raw :: any
+	local requestId = readString(rawTable.requestId, 36)
+	local goalId = readString(rawTable.goalId, 64)
+	if not requestId or not goalId then
+		return
+	end
+	local stored = session.results[requestId]
+	if stored then
+		reply(player, stored)
+		return
+	end
+	local aq, failed = gate(player, requestId, "claim")
+	if failed then
+		reply(player, failed)
+		return
+	end
+	local outcome: AquariumState.ClaimOutcome = { ok = false, reason = "badRequest" }
+	local today = os.time() // 86400
+	PlayerData.update(player, function(p)
+		outcome = AquariumState.claim(p.aquarium, goalId, today)
+		if outcome.ok and outcome.coins and outcome.coins > 0 then
+			p.coins += outcome.coins
+		end
+	end)
+	local snapshot = snapshotOf(player)
+	local profile = PlayerData.get(player)
+	local version = if snapshot and snapshot.version
+		then snapshot.version
+		else (aq :: Types.AquariumProfile).version
+	local result: Net.AquariumResult
+	if outcome.ok then
+		result = {
+			requestId = requestId,
+			kind = "claim",
+			ok = true,
+			version = version,
+			snapshot = snapshot,
+			already = outcome.already,
+			reward = { coins = outcome.coins, cosmetic = outcome.cosmetic },
+			coins = if profile then profile.coins else nil,
+		}
+		if outcome.coins and outcome.coins > 0 then
+			Analytics.coins(player, true, outcome.coins, "AquariumSessionGoal", goalId)
+		end
+	else
+		result = fail(requestId, "claim", outcome.reason or "badRequest", version, snapshot)
+	end
+	remember(session, result)
+	reply(player, result)
+end
+
+-- A confirmed manual catch (Fishing calls this): advances the session goals.
+function Aquarium.onCatch(player: Player, minigame: string, isNewSpecies: boolean)
+	if not sessions[player] then
+		return
+	end
+	PlayerData.update(player, function(p)
+		AquariumState.recordCatch(p.aquarium, minigame, isNewSpecies, os.time())
+	end)
+end
+
 -- Lifecycle -------------------------------------------------------------------------------
 
 local function begin(player: Player)
@@ -348,7 +415,10 @@ local function begin(player: Player)
 	sessions[player] = { lastClock = os.clock(), results = {}, order = {} }
 	-- New cursor on every activation: time spent offline is never paid (offline is off).
 	PlayerData.update(player, function(p)
-		p.aquarium.cursor = os.time()
+		local now = os.time()
+		p.aquarium.cursor = now
+		AquariumState.beginSession(p.aquarium, now)
+		AquariumState.recordBest(p.aquarium)
 	end)
 end
 
@@ -357,6 +427,7 @@ function Aquarium.start()
 	Remotes.onServerEvent(Net.AQUARIUM_PREVIEW, 6, 10, onPreview)
 	Remotes.onServerEvent(Net.AQUARIUM_APPLY, 4, 8, onApply)
 	Remotes.onServerEvent(Net.AQUARIUM_BUY_LEVEL, 2, 4, onBuy)
+	Remotes.onServerEvent(Net.AQUARIUM_CLAIM_GOAL, 3, 6, onClaim)
 
 	PlayerData.Loaded:Connect(begin)
 	for _, player in Players:GetPlayers() do

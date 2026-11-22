@@ -64,6 +64,15 @@ export type Daily = {
 	grantedAt: number,
 }
 
+export type AquariumSession = {
+	startedAt: number,
+	lastSeen: number, -- os.time(); a return within the reentry window keeps this session
+	catches: number,
+	kinds: { [string]: boolean }, -- minigame modes won this session
+	discoveries: number,
+	claimed: { [string]: boolean }, -- session goal ids claimed
+}
+
 -- Aquarium (docs/AQUARIO-CONTRATO.md). Profile side: slots keyed by slot number as a string.
 export type AquariumProfile = {
 	migrated: number, -- migration version applied (idempotence guard)
@@ -71,6 +80,12 @@ export type AquariumProfile = {
 	version: number, -- +1 on every accepted change (placement, purchase, new catch)
 	slots: { [string]: { creatureId: string, variant: string } },
 	owned: { [string]: { base: number, giant: number, gold: number, both: number } }, -- TOTAL caught per variant
+	bestCpm: number, -- highest confirmed tank income ever (income goals read this)
+	claimed: { [string]: boolean }, -- income goal ids already claimed
+	cosmetics: { [string]: boolean }, -- decoration ids unlocked by goals
+	session: AquariumSession,
+	sessionDay: number, -- UTC day of sessionCoins
+	sessionCoins: number, -- coins paid by session goals on sessionDay (daily cap)
 	cents: number, -- 0..99 hundredths of a coin not yet paid
 	frac: number, -- 0..59999 remainder of cpm*ms/60000 (exact integer carry)
 	cursor: number, -- os.time() of the last settlement
@@ -97,6 +112,28 @@ export type AquariumPreview = {
 	usedVersion: number,
 }
 
+export type AquariumGoals = {
+	income: {
+		bestCpm: number,
+		list: { { id: string, cpm: number, cosmetic: string, reached: boolean, claimed: boolean } },
+		nextId: string?, -- first goal not reached yet
+		remainingCpm: number?,
+	},
+	session: {
+		list: {
+			{
+				id: string,
+				kind: string,
+				target: number,
+				progress: number,
+				coins: number,
+				claimed: boolean,
+			}
+		},
+		coinsLeftToday: number,
+	},
+}
+
 export type AquariumSnapshot = {
 	status: string, -- "disabled" | "ready"
 	paramsVersion: number?,
@@ -113,9 +150,12 @@ export type AquariumSnapshot = {
 			members: { string },
 			bonusPct: number,
 			active: boolean,
-			missing: { string }?,
+			count: number, -- distinct species of the family in the tank
+			nextAt: number?, -- species needed for the next bonus tier
 		}
 	}?,
+	goals: AquariumGoals?,
+	cosmetics: { string }?,
 	fractionCents: number?,
 	nextLevel: {
 		levelId: string,

@@ -23,6 +23,7 @@ local Zones = require(Shared:WaitForChild("Config"):WaitForChild("Zones"))
 
 local Features = script.Parent
 local Analytics = require(Features:WaitForChild("Analytics"))
+local Aquarium = require(Features:WaitForChild("Aquarium"))
 local Monetization = require(Features:WaitForChild("Monetization"))
 local OceanEvents = require(Features:WaitForChild("OceanEvents"))
 local PlayerData = require(Features:WaitForChild("PlayerData"))
@@ -401,7 +402,8 @@ local function payCatch(
 	player: Player,
 	creature: Creatures.Creature,
 	castId: number,
-	isAuto: boolean?
+	isAuto: boolean?,
+	minigame: string?
 )
 	local weight = rollWeight(creature)
 	local isGiant = weight >= creature.weightMin + (creature.weightMax - creature.weightMin) * 0.85
@@ -488,6 +490,9 @@ local function payCatch(
 		comboBonus = comboBonus,
 		auto = if isAuto then true else nil,
 	})
+	if not isAuto then
+		Aquarium.onCatch(player, minigame or "", isNew)
+	end
 	Journey.onCatch(player, creature, isNew, isGiant)
 	Progress.onCatch(player, creature, value, castId)
 	Social.onCatch(player, creature, if shiny then "Shiny" else "")
@@ -515,6 +520,7 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 	local minimum = if now < s.penaltyUntil then baseMinimum * PENALTY_MULTIPLIER else baseMinimum
 	local rateLimited = s.lastCatchAt ~= nil and (now - s.lastCatchAt) < CATCH_RATE_LIMIT
 	local creature = Creatures.get(s.creatureId)
+	local wonKind = s.kind -- reset() below clears it
 	-- The fight happens where the line was cast: walking (or teleporting) away loses the
 	-- catch. Lenient radius so a small step near the zone edge never costs a real player.
 	local root = rootOf(player)
@@ -527,7 +533,7 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 		if stayed and elapsed >= minimum and not rateLimited and creature then
 			s.wonCasts[castId] = true
 			s.lastCatchAt = now
-			payCatch(player, creature, castId)
+			payCatch(player, creature, castId, nil, wonKind)
 			return
 		end
 	end

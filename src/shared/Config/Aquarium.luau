@@ -46,6 +46,146 @@ Aquarium.REQUEST_MEMORY = 20
 Aquarium.UI_ATTRIBUTE = "AquariumUI"
 Aquarium.CREDIT_ATTRIBUTE = "AquariumCredit"
 
+-- Synergy families (one per creature). Derived from the reveal style so every species is
+-- covered; the family names are working names to confirm with João:
+--   reef (bubbles/splash/prism), tempest (storm/cloud), abyss (spark/crystal/magma/frost),
+--   celestial (cosmic), festival (Christmas season).
+-- 2 distinct species of one family in the tank = +5%, 3 or more = +10% to those participants.
+-- A variant of the same species never counts as another species.
+Aquarium.SYNERGY_TIERS = { { species = 3, percent = 10 }, { species = 2, percent = 5 } }
+
+Aquarium.FAMILY = {
+	C01_Bolhinha_Azul = "reef",
+	C02_Sardinha_Solar = "reef",
+	C03_Siri_Pipoca = "reef",
+	C04_Baiacu_Nuvem = "reef",
+	C05_Medusinha_Estelar = "abyss",
+	C06_Cavalo_Marinho_Coral = "reef",
+	C07_Arraia_Prisma = "reef",
+	C08_Enguia_Trovao = "tempest",
+	C09_Guardiao_Cristal = "abyss",
+	C10_Leviata_Astral = "celestial",
+	C11_Pingo_Lanterna = "abyss",
+	C12_Camarao_Confete = "reef",
+	C13_Linguado_Sonolento = "reef",
+	C14_Polvinho_Aquarela = "reef",
+	C15_Tartaruga_Musgo = "reef",
+	C16_Voador_Brisa = "reef",
+	C17_Martelo_Coral = "reef",
+	C18_Lula_Neon = "abyss",
+	C19_Peixe_Lua_Dourado = "celestial",
+	C20_Raia_Vulcanica = "abyss",
+	C21_Baleia_Nebulosa = "tempest",
+	C22_Serpente_Glacial = "abyss",
+	C23_Kraken_Trovejante = "tempest",
+	C24_Fenix_das_Mares = "abyss",
+	C25_Ourico_Gelatina = "reef",
+	C26_Peixe_Pipa = "reef",
+	C27_Ermitao_Cristal = "abyss",
+	C28_Nautilo_Aurora = "reef",
+	C29_Dragao_Folha = "abyss",
+	C30_Tartaruga_Ilha = "abyss",
+	C31_Carpa_Celeste = "tempest",
+	C32_Espadarte_Relampago = "tempest",
+	C33_Orca_Aurora = "abyss",
+	C34_Serpente_Arco_Iris = "reef",
+	C60_Hidra_das_Profundezas = "tempest",
+	C61_Baleia_Celestial = "celestial",
+	C62_Dragao_Dourado = "tempest",
+	C63_Grifo_Marinho = "tempest",
+	C64_Guardiao_Abissal = "abyss",
+	C50_Tubarao_Baleia_Estrelado = "celestial",
+	C51_Lanterna_Abissal = "abyss",
+	C52_Cavalo_Marinho_Real = "abyss",
+	C53_Moreia_Voltaica = "tempest",
+	C54_Peixe_Vela_Solar = "abyss",
+	C55_Caranguejo_Rei_Gelo = "abyss",
+	C56_Dragao_de_Coral = "reef",
+	C57_Manta_Galactica = "celestial",
+	C58_Tubarao_Fantasma = "abyss",
+	C59_Narval_Unicornio = "abyss",
+	C35_Bagre_Bigodudo = "reef",
+	C36_Peixe_Bolha_Rosa = "reef",
+	C37_Caramujo_Doce = "reef",
+	C38_Estrela_Sonolenta = "abyss",
+	C39_Lambari_Prata = "reef",
+	C40_Caranguejo_Bolacha = "reef",
+	C41_Palhaco_Neon = "abyss",
+	C42_Lulinha_Gota = "reef",
+	C43_Baiacu_Algodao_Doce = "tempest",
+	C44_Arraia_Pintada = "reef",
+	C45_Tartaruguinha_Coral = "reef",
+	C46_Peixe_Leque = "reef",
+	C47_Medusa_Lanterna = "abyss",
+	C48_Peixe_Anjo_Real = "reef",
+	C49_Polvo_Bolinhas = "reef",
+	C75_Leao_Marinho_Dourado = "abyss",
+	C76_Raia_Aurora = "reef",
+	C77_Cavalo_Marinho_Relogio = "abyss",
+	C78_Lagosta_Armadura = "abyss",
+	C79_Mantarraia_Vitral = "reef",
+	C80_Peixe_Pavao_Eletrico = "tempest",
+	C81_Enguia_Fita_de_Seda = "tempest",
+	C93_Ouroboros_Cosmico = "celestial",
+	C94_Mare_Primordial = "celestial",
+	C65_Tilapia_Moranguinho = "reef",
+	C66_Ourico_Pompom = "abyss",
+	C67_Lesma_do_Mar_Arco_iris = "reef",
+	C68_Peixe_Biscoito = "reef",
+	C69_Ermitao_Xicara = "reef",
+	C70_Agua_viva_Lanterna = "abyss",
+	C71_Peixe_Espada_Neon = "tempest",
+	C72_Tartaruga_Pergaminho = "abyss",
+	C73_Polvo_Origami = "tempest",
+	C74_Baiacu_Balao_de_Festa = "reef",
+	C82_Kitsune_Aquatica = "abyss",
+	C83_Golfinho_Trovao = "tempest",
+	C84_Tubarao_Martelo_de_Cristal = "abyss",
+	C85_Lula_Galaxia = "celestial",
+	C86_Cervo_Coral = "reef",
+	C87_Salamandra_de_Lava = "abyss",
+	C88_Rei_Tritao_Colossal = "tempest",
+	C89_Dragao_de_Jade = "tempest",
+	C90_Tartaruga_Mundo = "abyss",
+	C91_Hipocampo_Imperial = "reef",
+	C92_Serafim_do_Mar = "celestial",
+	C95_Peixe_Vagalume_Real = "abyss",
+	C96_Lua_Dourada = "celestial",
+	C97_Raia_Tempestade = "tempest",
+	C98_Coral_Ancestral_Vivo = "abyss",
+	C99_Baleia_Fantasma = "tempest",
+	C100_Aurora_Boreal_Viva = "abyss",
+	C101_Rena_do_Mar = "festival",
+	C102_Peixe_Arvore_de_Natal = "festival",
+	C103_Boneco_de_Gelo_Marinho = "festival",
+	C104_Polvo_Presente = "festival",
+	C105_Estrela_do_Natal = "festival",
+	C106_Rei_do_Gelo_Natalino = "festival",
+} :: { [string]: string }
+
+-- Income goals: best CONFIRMED tank income reached (cpm). Claimed once by id, kept forever.
+-- Thresholds are the plan's 0.5/1/2/4/8/15 coins/s scaled x0.2 and shown per minute.
+-- Cosmetic ids are proposals until Antigravity confirms the decoration catalog.
+Aquarium.INCOME_GOALS = {
+	{ id = "income_1", cpm = 1000, cosmetic = "aqdeco_plaque" },
+	{ id = "income_2", cpm = 2500, cosmetic = "aqdeco_lamp" },
+	{ id = "income_3", cpm = 6000, cosmetic = "aqdeco_coral" },
+	{ id = "income_4", cpm = 12000, cosmetic = "aqdeco_fountain" },
+	{ id = "income_5", cpm = 25000, cosmetic = "aqdeco_frame" },
+	{ id = "income_6", cpm = 50000, cosmetic = "aqdeco_trophy" },
+} :: { { id: string, cpm: number, cosmetic: string } }
+
+-- Session goals: confirmed actions only (never auto-fish). A quick return inside
+-- SESSION_REENTRY_SECONDS keeps the same session. Coins are capped per UTC day.
+--   kind: "catches" | "minigames" (distinct modes) | "discoveries" (new species)
+Aquarium.SESSION_GOALS = {
+	{ id = "catch3", kind = "catches", target = 3, coins = 40 },
+	{ id = "kinds2", kind = "minigames", target = 2, coins = 60 },
+	{ id = "discover1", kind = "discoveries", target = 1, coins = 100 },
+} :: { { id: string, kind: string, target: number, coins: number } }
+Aquarium.SESSION_REENTRY_SECONDS = 600
+Aquarium.SESSION_COINS_DAILY_CAP = 600
+
 Aquarium.RATES_CPM = {
 	C01_Bolhinha_Azul = 180,
 	C02_Sardinha_Solar = 230,
@@ -158,6 +298,26 @@ Aquarium.RATES_CPM = {
 local levelsById: { [string]: Level } = {}
 for _, l in Aquarium.LEVELS do
 	levelsById[l.id] = l
+end
+
+function Aquarium.incomeGoal(id: string): { id: string, cpm: number, cosmetic: string }?
+	for _, goal in Aquarium.INCOME_GOALS do
+		if goal.id == id then
+			return goal
+		end
+	end
+	return nil
+end
+
+function Aquarium.sessionGoal(
+	id: string
+): { id: string, kind: string, target: number, coins: number }?
+	for _, goal in Aquarium.SESSION_GOALS do
+		if goal.id == id then
+			return goal
+		end
+	end
+	return nil
 end
 
 function Aquarium.level(level: number): Level?
