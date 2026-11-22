@@ -7,13 +7,12 @@ local Effects = require(script.Parent.Parent.Effects)
 local Framing = require(script.Parent.Parent.RevealFraming)
 local Motion = require(script.Parent.Parent.Parent.CreatureMotion)
 local Water = require(script.Parent.Water)
+local Tide = require(script.Parent.TideChoreography)
 
 local MysticShots = {}
 local UP = Vector3.yAxis
 local FOAM = Color3.fromRGB(211, 248, 255)
 local GOLD = Color3.fromRGB(255, 213, 154)
-local TIDE_IMPACT = 1.75
-local TIDE_RISE = 2.55
 local COSMIC_BREACH = 1.08
 local TAU = math.pi * 2
 
@@ -154,9 +153,10 @@ function MysticShots.create(
 	local side = Vector3.new(forward.Z, 0, -forward.X)
 	local spot = stageOrigin(origin, forward, side, character)
 	local tide = kind == "tide"
-	local accent = if tide then Color3.fromRGB(82, 214, 255) else Color3.fromRGB(185, 135, 255)
+	local accent = if tide then Color3.fromRGB(49, 232, 255) else Color3.fromRGB(185, 135, 255)
 	local model = clone(id)
-	model:ScaleTo(model:GetScale() * (if tide then 2.65 else 2.95))
+	local scale = if tide then 2.65 else 2.95
+	model:ScaleTo(model:GetScale() * scale)
 	local spans = model:GetExtentsSize()
 	local bounds = Framing.measure(model)
 	local motion = Motion.bind(model, if tide then "storm" else "cosmic")
@@ -200,7 +200,7 @@ function MysticShots.create(
 	local wakeFolder = Instance.new("Folder")
 	wakeFolder.Name = "OceanWake"
 	wakeFolder.Parent = scene
-	local wakeStarts = if tide then TIDE_IMPACT else COSMIC_BREACH
+	local wakeStarts = if tide then Tide.IMPACT else COSMIC_BREACH
 	local wakeDuration = if tide then 3.3 else 2.75
 	local wake = Water.create(wakeFolder, spot + UP * 0.03, {
 		kind = "waves",
@@ -227,6 +227,25 @@ function MysticShots.create(
 		sword = prop
 	end
 	local swordRotation = if sword then sword.CFrame.Rotation else CFrame.identity
+	local knight = if sword then Tide.bind(model, sword, scene, scale) else nil
+	local storm = { 0.62, 1.44, 7.12, 8.43, Tide.RELEASE }
+	local strike = 1
+	local charged = false
+	local discharge = if tide
+		then Water.create(wakeFolder, spot + UP * 0.10, {
+			kind = "shockwave",
+			at = Tide.RELEASE,
+			duration = 2.35,
+			count = 3,
+			strength = 1,
+		}, {
+			accent = Color3.fromRGB(49, 232, 255),
+			light = GOLD,
+			entrance = 0,
+			duration = 2.35,
+			cues = {},
+		})
+		else nil
 	local struckWater = false
 	local breach = false
 	local spray = false
@@ -260,22 +279,23 @@ function MysticShots.create(
 		local eye: Vector3
 		local fov: number
 		if tide then
-			local falling = blend((t - 0.35) / (TIDE_IMPACT - 0.35))
+			local falling = math.clamp((t - 0.72) / (Tide.IMPACT - 0.72), 0, 1) ^ 1.75
 			local bladeAt = spot + UP * (2.15 + 15 * (1 - falling))
-			local impact = math.max(0, t - TIDE_IMPACT)
-			if sword then
-				sword.Transparency = blend((t - 2.24) / 0.35)
-				sword.CFrame = CFrame.new(bladeAt)
-					* CFrame.Angles(0, math.atan2(forward.X, forward.Z) + t * 0.36, 0)
-					* swordRotation
+			local impact = math.max(0, t - Tide.IMPACT)
+			local waterBlade = CFrame.new(bladeAt)
+				* CFrame.Angles(0, math.atan2(forward.X, forward.Z) + falling * 0.7, 0)
+				* swordRotation
+			if sword and t < Tide.RISE then
+				sword.CFrame = waterBlade
 			end
-			if t >= TIDE_IMPACT and not struckWater then
+			if t >= Tide.IMPACT and not struckWater then
 				struckWater = true
 				Effects.lightning(spot, GOLD)
 				foam(8, 4)
 				Audio.play("bite", 0.36, 0.63)
 			end
-			if t < TIDE_RISE then
+			local tip: Vector3? = nil
+			if t < Tide.RISE then
 				at = spot + UP * ((if sword then bladeAt.Y - spot.Y else 3) * 0.69)
 				eye = at
 					- forward * (12 + tight * 8)
@@ -283,14 +303,29 @@ function MysticShots.create(
 					+ UP * (1.25 - falling)
 				fov = 49
 			else
-				local rise = blend((t - TIDE_RISE) / 1.55)
-				local heroAt = spot + UP * (-spans.Y * 0.15 + spans.Y * 0.76 * rise)
-				local arc = (1 - blend((t - TIDE_RISE) / 3.45)) * 0.93
+				local rise = blend((t - Tide.RISE) / 1.56)
+				local pickup = blend((t - 4.1) / 0.55) * (1 - blend((t - Tide.GRIP) / 0.55))
+				local crown = blend((t - Tide.LIFT) / (Tide.CROWN - Tide.LIFT))
+					* (1 - blend((t - Tide.RELEASE) / (Tide.REST - Tide.RELEASE)))
+				local brace = math.sin(math.pi * blend((t - 4.55) / 1.3))
+				local heroAt = spot
+					+ UP
+						* (-spans.Y * 0.15 + spans.Y * 0.76 * rise - brace * 0.78 + crown * 0.48)
+				local arc = 1.02 - blend((t - Tide.RISE) / 8.7) * 1.22
 				local direction = -forward * math.cos(arc) + side * math.sin(arc)
-				at = spot + UP * (1.4 + rise * 3.3)
-				eye = at + direction * (17.5 + tight * 40 - rise * 1.2) + UP * (-0.75 + rise * 2.75)
-				fov = 48 - rise * 5
-				model:PivotTo(Framing.pose(bounds, heroAt, eye - heroAt, math.rad(-14)))
+				at = spot + UP * (1.4 + rise * 3.3 + crown * 2.25 - pickup * 0.58)
+				eye = at
+					+ direction * (17.5 + tight * 40 + crown * 3.7)
+					+ UP * (-0.75 + rise * 2.75)
+				fov = 48 - rise * 5 + crown * 2.8 - pickup * (3.8 - tight * 2.8)
+				local pivot =
+					Framing.pose(bounds, heroAt, eye - heroAt, math.rad(-14) + crown * -0.14)
+				model:PivotTo(pivot)
+				if knight then
+					tip = knight(t, pivot, waterBlade)
+				elseif sword then
+					sword.Transparency = 1
+				end
 				if not breach then
 					breach = true
 					model.Parent = scene
@@ -302,12 +337,38 @@ function MysticShots.create(
 					foam(4, 2)
 				end
 				lamp.Position = spot + UP * (1.3 + 3.4 * rise) + direction * 4
+				if tip then
+					lamp.Position = lamp.Position:Lerp(tip + direction * 2, crown * 0.57)
+				end
 				rim.Position = heroAt - direction * 4 + UP * 2
+			end
+			while strike <= #storm and t >= storm[strike] do
+				local direction = if strike % 2 == 1 then side else -side
+				local target = if strike == #storm and tip
+					then tip
+					else spot + direction * (9 + strike * 2)
+				if t - storm[strike] < 0.30 then
+					Effects.lightning(target, if strike % 2 == 1 then GOLD else accent)
+				end
+				strike += 1
+			end
+			if discharge then
+				discharge(math.clamp((t - Tide.RELEASE) / 2.35, 0, 1))
+			end
+			if t >= Tide.RELEASE and not charged then
+				charged = true
+				foam(11, 5)
+				Audio.play("bite", 0.46, 0.56)
+				Audio.play("legendary", 0.24, 0.76)
 			end
 			local recoil = if impact > 0
 				then math.exp(-impact * 9) * math.sin(impact * 23) * 0.022
 				else 0
-			placeShot(camera, eye, at, fov, recoil)
+			local releaseAge = math.max(0, t - Tide.RELEASE)
+			local kick = if releaseAge > 0
+				then math.exp(-releaseAge * 5) * math.sin(releaseAge * 14)
+				else 0
+			placeShot(camera, eye, at, fov + 2.4 * kick, recoil + 0.024 * kick)
 			return
 		end
 

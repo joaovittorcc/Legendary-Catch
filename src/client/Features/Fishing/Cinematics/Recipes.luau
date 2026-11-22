@@ -73,12 +73,12 @@ local recipes: { [string]: Recipe } = {
 		},
 	},
 	C94_Mare_Primordial = {
-		duration = 11.2,
+		duration = 16.4,
 		entrance = 3.22,
 		mysticShot = "tide",
-		handoff = 7.35,
-		accent = Color3.fromHex("54CFF3"),
-		light = Color3.fromHex("FFD998"),
+		handoff = 12.4,
+		accent = Color3.fromHex("31E8FF"),
+		light = Color3.fromHex("FFC552"),
 		cues = {
 			cue("mist", 1.65, 3.25, 5),
 			cue("bubbles", 2.25, 4.9, 14),
