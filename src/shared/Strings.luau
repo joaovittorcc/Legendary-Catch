@@ -278,6 +278,14 @@ local PT = {
 	openWorkshop = "Abrir Oficina",
 	aquarium = "Aquário",
 	openAquarium = "Ver Aquário",
+	-- Synergy families (ids in Config/Aquarium.FAMILY)
+	aquariumFamily = {
+		reef = "Recife",
+		tempest = "Tempestade",
+		abyss = "Abissal",
+		celestial = "Celestial",
+		festival = "Festival",
+	},
 	-- Map signs, keyed by the sign model name (Sign_<KEY>).
 	signs = {
 		FISHINGPIER = "PÍER DE PESCA",
@@ -634,6 +642,13 @@ local EN: Strings = {
 	openWorkshop = "Open Workshop",
 	aquarium = "Aquarium",
 	openAquarium = "View Aquarium",
+	aquariumFamily = {
+		reef = "Reef",
+		tempest = "Storm",
+		abyss = "Abyssal",
+		celestial = "Celestial",
+		festival = "Festival",
+	},
 	signs = {
 		FISHINGPIER = "FISHING PIER",
 		UPGRADEWORKSHOP = "UPGRADE WORKSHOP",

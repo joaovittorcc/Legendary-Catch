@@ -218,3 +218,20 @@ C104_Polvo_Presente	Epic	2050	20.5
 C105_Estrela_do_Natal	Epic	2590	25.9
 C106_Rei_do_Gelo_Natalino	Legendary	4460	44.6
 ```
+
+## 7. Decisões fechadas (2026-11-22)
+
+O João confirmou a 3 e delegou o resto ao Claude.
+
+| # | Decisão | Por quê |
+|---|---|---|
+| 1 | Unidade exibida: moedas/min; faixas ×0,2; preços 3.000 / 12.000 / 50.000 | Aprovado no S1. |
+| 2 | Escala ×0,2 mantida | Passivo em 42–57% da renda em 2 semanas, teto 3,8× a pesca. |
+| 3 | **Cintilante vira Dourada** (confirmado pelo João) | Já é o que a migração faz: `count − shiny` vira base, `shiny` vira gold. |
+| 4 | Requisito de espécies 15 / 40 / 70 para os níveis 2 / 3 / 4 | Estimativa pela tabela de raridade: um jogador regular tem ~27 espécies aos 10 min e ~58 aos 40 min, então 15 e 40 não seguram quem joga normalmente; 70 vira meta de médio prazo e impede o veterano de comprar tudo no primeiro minuto. |
+| 5 | Renda offline: continua **desligada** no lançamento; quando ligar, 25% da taxa de saída, até 2 h e **no máximo 5.000 moedas por ausência** (`OFFLINE_MAX_COINS`) | Sem teto, um tanque de fim de jogo ganharia ~54 mil em 2 h fora. 5.000 ≈ 10 min de pesca com a Astral. |
+| 6 | Prêmios de sessão 40 / 60 / 100 moedas, teto 600/dia | São só um aceno (menos de 1 min de pesca); o valor da meta está em ser anunciada. Mexer só com dados. |
+| 7 | Famílias: Recife, Tempestade, Abissal, Celestial, Festival (EN: Reef, Storm, Abyssal, Celestial, Festival) em `Strings.aquariumFamily` | Nomes do plano; os ids internos não mudam. |
+| 8 | `LIVE_ENABLED` só vira `true` depois de: UI do Codex ligada aos dados reais, um Play com 2 jogadores e um teste em celular | Sem isso, o jogador publicado veria tanque sem interface. |
+| 9 | Prestígio mantém o aquário (tanque, nível, criaturas, metas) | O prestígio já mantém a coleção; zera moedas e varas. Placar, conquistas e recibos não tocam no aquário. |
+

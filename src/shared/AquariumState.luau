@@ -743,7 +743,7 @@ function AquariumState.settleOffline(
 	end
 	local seconds = math.min(now - exitAt, Config.OFFLINE_MAX_SECONDS)
 	local cpm = exitCpm * Config.OFFLINE_PERCENT // 100
-	local coins = AquariumState.accrue(aq, cpm, seconds * 1000)
+	local coins = math.min(AquariumState.accrue(aq, cpm, seconds * 1000), Config.OFFLINE_MAX_COINS)
 	if coins > 0 then
 		aq.offlineLast = { coins = coins, seconds = seconds }
 	end

@@ -212,3 +212,18 @@ Fora do S2 ainda: eventos do oceano e minigames (S3).
 - Cada nível do kit tem `Layer_00_Platform` (deck/estacas/guarda-corpo do tamanho daquele nível; níveis 1 e 2 incluem a rampa `Ramp`). Trocar o modelo troca a plataforma.
 - A vitrine completa dos quatro níveis lado a lado fica em `ServerStorage.AquariumShowcase` (referência, não vai ao cliente).
 
+## 10. Cosméticos das metas de renda (2026-11-22)
+
+`Config.Aquarium.COSMETICS[id] = { prop, anchor, fallback? }`: o modelo em `ReplicatedStorage.AquariumLevels.Decor` e a âncora (`Anchors.<nome>`, busca recursiva) onde ele encaixa no nível atual. Conferido nos 4 níveis.
+
+| Cosmético | Prop | Âncora |
+|---|---|---|
+| `aqdeco_plaque` | `decor_income_plaque` | `DecorAnchor_01_Plaque` |
+| `aqdeco_lamp` | `decor_reef_lamp` | `DecorAnchor_02_Lamp` |
+| `aqdeco_coral` | `decor_crystal_coral` | `DecorAnchor_03_LeftBed` |
+| `aqdeco_fountain` | `decor_bubble_fountain` | `DecorAnchor_04_RightBed` |
+| `aqdeco_frame` | `decor_golden_frame` | `DecorAnchor_07_Crown` (nível 1: `DecorAnchor_05_LeftPost`) |
+| `aqdeco_trophy` | `decor_astral_obelisk` | `DecorAnchor_06_RightPost` |
+
+Nomes das famílias para a UI: `Strings.aquariumFamily[familyId]` (PT/EN).
+

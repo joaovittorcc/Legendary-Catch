@@ -57,6 +57,10 @@ Aquarium.LIVE_ENABLED = false
 -- most two hours, paid once on the next join.
 Aquarium.OFFLINE_PERCENT = 25
 Aquarium.OFFLINE_MAX_SECONDS = 7200
+-- Hard cap per absence (decided 2026-11-22): an end-game tank (~30 coins/s) would otherwise get
+-- ~54k for 2 h away, worth more than an hour of fishing. 5,000 is ~10 min of fishing with the
+-- Astral rod. Offline stays OFF until the online economy has real data.
+Aquarium.OFFLINE_MAX_COINS = 5000
 
 -- Synergy families (one per creature). Derived from the reveal style so every species is
 -- covered; the family names are working names to confirm with João:
@@ -178,6 +182,22 @@ Aquarium.FAMILY = {
 -- Income goals: best CONFIRMED tank income reached (cpm). Claimed once by id, kept forever.
 -- Thresholds are the plan's 0.5/1/2/4/8/15 coins/s scaled x0.2 and shown per minute.
 -- Cosmetic ids are proposals until Antigravity confirms the decoration catalog.
+-- Decoration each income-goal cosmetic unlocks: the prop model in
+-- ReplicatedStorage.AquariumLevels.Decor and the anchor (Anchors.<name>) it sits on. The frame
+-- uses the crown anchor on levels 2-4 and falls back to the left post on level 1, which has no crown.
+Aquarium.COSMETICS = {
+	aqdeco_plaque = { prop = "decor_income_plaque", anchor = "DecorAnchor_01_Plaque" },
+	aqdeco_lamp = { prop = "decor_reef_lamp", anchor = "DecorAnchor_02_Lamp" },
+	aqdeco_coral = { prop = "decor_crystal_coral", anchor = "DecorAnchor_03_LeftBed" },
+	aqdeco_fountain = { prop = "decor_bubble_fountain", anchor = "DecorAnchor_04_RightBed" },
+	aqdeco_frame = {
+		prop = "decor_golden_frame",
+		anchor = "DecorAnchor_07_Crown",
+		fallback = "DecorAnchor_05_LeftPost",
+	},
+	aqdeco_trophy = { prop = "decor_astral_obelisk", anchor = "DecorAnchor_06_RightPost" },
+} :: { [string]: { prop: string, anchor: string, fallback: string? } }
+
 Aquarium.INCOME_GOALS = {
 	{ id = "income_1", cpm = 1000, cosmetic = "aqdeco_plaque" },
 	{ id = "income_2", cpm = 2500, cosmetic = "aqdeco_lamp" },
