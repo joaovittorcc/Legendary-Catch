@@ -170,7 +170,11 @@ local ok, err = pcall(function()
 	eq(S.view(cap, 0, 0, true).offline.coins, 300, "view shows the payout")
 	local big = S.new()
 	big.exitCpm, big.exitAt = 180000, 100
-	eq(S.settleOffline(big, 100 + 7200, true), Config.OFFLINE_MAX_COINS, "offline capped per absence")
+	eq(
+		S.settleOffline(big, 100 + 7200, true),
+		Config.OFFLINE_MAX_COINS,
+		"offline capped per absence"
+	)
 	local retro = S.new()
 	retro.exitCpm, retro.exitAt = 0, 100
 	eq(S.settleOffline(retro, 100 + 3600, true), 0, "no rate saved, no pay (never retroactive)")
