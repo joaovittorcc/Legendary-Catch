@@ -39,7 +39,7 @@ Estimativa pela mesma tabela da simulação (manual 13 s por captura e 85% de vi
 | Astral | 479 | 519 | 1,08 |
 | Mística | 614 | 634 | 1,03 |
 
-O passe de pesca automática rende **igual ou mais** que jogar, só perde Lendárias e Místicas. Isso esvazia a pesca ativa para quem comprar. O passe ainda não está à venda (ID 0), então dá para corrigir sem prejudicar ninguém. **Proposta (decisão do João):** alongar o ciclo do auto em ~7 s (por exemplo, +6 s de espera por captura) para ficar em ~60% do manual. Não alterei: mexe em produto pago.
+O passe de pesca automática rende **igual ou mais** que jogar, só perde Lendárias e Místicas. Isso esvazia a pesca ativa para quem comprar. O passe ainda não está à venda (ID 0), então dá para corrigir sem prejudicar ninguém. **Proposta (decisão do João):** alongar o ciclo do auto em ~7 s (por exemplo, +6 s de espera por captura) para ficar em ~60% do manual. **Aplicado em 2026-11-22 (aprovado pelo João):** `AUTO_EXTRA_DELAY = 6` s por ciclo; auto/manual cai para ~0,64 (inicial), ~0,58 (Astral) e ~0,56 (Mística) pela mesma estimativa. Revisar com a telemetria depois de publicar.
 
 ## 4. Calibração dos minigames
 

@@ -70,6 +70,8 @@ local AUTO_MAX_RARITY_RANK = 4 -- Epic cap for Auto-Fish (ranks 5-6 reroll)
 local AUTO_BASE_SUCCESS = 0.85
 local AUTO_TIER_PENALTY = 0.05 -- -5% per tier above 3
 local AUTO_FIGHT_MULTIPLIER = 1.5
+-- Extra wait per Auto-Fish cycle so it earns ~60% of manual play (docs/PESCA-S3.md section 3).
+local AUTO_EXTRA_DELAY = 6
 local AUTO_MAX_DRIFT = 3
 local AUTO_MAX_SPEED = 2
 
@@ -745,7 +747,7 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 			send(player, { event = "escaped", castId = castId, auto = true })
 		end
 
-		if not waitAutoSlice(player, s, token, FishingConfig.CAST_COOLDOWN) then
+		if not waitAutoSlice(player, s, token, FishingConfig.CAST_COOLDOWN + AUTO_EXTRA_DELAY) then
 			break
 		end
 	end
