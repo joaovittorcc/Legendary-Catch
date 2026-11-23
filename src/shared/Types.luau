@@ -12,6 +12,7 @@ export type CollectionEntry = {
 export type TrainingStat = {
 	level: number,
 	xp: number,
+	power: number?, -- Fishing Power 1..1e15 (v2); with the TrainingPower flag on, level/xp derive from it
 }
 
 export type Stats = {
@@ -186,6 +187,7 @@ export type Snapshot = {
 	achievements: { [string]: number }, -- id -> os.time() unlocked
 	redeemed: { [string]: boolean }, -- promo codes already used
 	prestige: number,
+	trainingField: number?, -- training field level 1..10 (Fishing Power v2)
 	aquarium: AquariumSnapshot?, -- nil = server without the feature (treat as disabled)
 }
 

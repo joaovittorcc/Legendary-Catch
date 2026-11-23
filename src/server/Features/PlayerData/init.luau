@@ -38,6 +38,7 @@ export type Profile = {
 	rodsOwned: { string },
 	collection: { [string]: Types.CollectionEntry },
 	training: { [string]: Types.TrainingStat },
+	trainingField: number, -- training field level 1..10 (Fishing Power v2)
 	stats: Types.Stats,
 	funnel: { [string]: boolean }, -- analytics onboarding steps already logged
 	tutorial: Types.Tutorial,
@@ -83,7 +84,7 @@ local snapshotRemote: RemoteEvent
 local function template(): Profile
 	local training: { [string]: Types.TrainingStat } = {}
 	for _, stat in TrainingConfig.STATS do
-		training[stat] = { level = 0, xp = 0 }
+		training[stat] = { level = 0, xp = 0, power = 1 }
 	end
 	return {
 		version = SCHEMA_VERSION,
@@ -92,6 +93,7 @@ local function template(): Profile
 		rodsOwned = { STARTER_ROD },
 		collection = {},
 		training = training,
+		trainingField = 1,
 		stats = {
 			catches = 0,
 			legendaries = 0,
@@ -209,10 +211,16 @@ local function reconcile(data: { [string]: any })
 		if typeof(data.training[stat]) ~= "table" then
 			data.training[stat] = deepClone(value)
 		else
-			data.training[stat].level = finiteNumber(data.training[stat].level, 0, 0)
-			data.training[stat].xp = finiteNumber(data.training[stat].xp, 0, 0)
+			local t = data.training[stat]
+			t.level = finiteNumber(t.level, 0, 0)
+			t.xp = finiteNumber(t.xp, 0, 0)
+			-- Fishing Power v2: older saves get the power matching their level (idempotent).
+			t.power = if typeof(t.power) == "number"
+				then TrainingConfig.clampPower(t.power)
+				else TrainingConfig.powerFromLevel(t.level, t.xp)
 		end
 	end
+	data.trainingField = TrainingConfig.fieldLevel(data.trainingField)
 
 	mergeTable(data.stats, defaults.stats, { level = 1 })
 	mergeTable(data.boosts, defaults.boosts)
@@ -312,6 +320,7 @@ local function snapshot(profile: Profile): Types.Snapshot
 		achievements = deepClone(profile.achievements),
 		redeemed = deepClone(profile.redeemed),
 		prestige = profile.prestige,
+		trainingField = profile.trainingField,
 		settings = deepClone(profile.settings),
 		daily = deepClone(profile.daily),
 		aquarium = AquariumState.view(
@@ -332,10 +341,18 @@ local function mirrorAttributes(player: Player, profile: Profile)
 	player:SetAttribute("EquippedRod", profile.equippedRod)
 	player:SetAttribute("Prestige", profile.prestige)
 	player:SetAttribute("LoginStreak", (profile.daily and profile.daily.streak) or 0)
+	local powerOn = TrainingConfig.powerEnabled()
 	for stat, t in profile.training do
-		player:SetAttribute(TrainingConfig.levelAttribute(stat), t.level)
-		player:SetAttribute(TrainingConfig.xpAttribute(stat), t.xp)
+		local power = TrainingConfig.clampPower(t.power)
+		local level, xp = t.level, t.xp
+		if powerOn then
+			level, xp = TrainingConfig.legacyLevel(power)
+		end
+		player:SetAttribute(TrainingConfig.levelAttribute(stat), level)
+		player:SetAttribute(TrainingConfig.xpAttribute(stat), xp)
+		player:SetAttribute(TrainingConfig.powerAttribute(stat), power)
 	end
+	player:SetAttribute(TrainingConfig.FIELD_ATTRIBUTE, profile.trainingField)
 end
 
 local function push(player: Player)

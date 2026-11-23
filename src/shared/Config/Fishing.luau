@@ -121,6 +121,142 @@ function Fishing.oddsOf(
 	return math.max(1, math.floor(1 / chance + 0.5))
 end
 
+---------------------------------------------------------------------------------------------
+-- Power bar on the cast (docs/PLANO-PESCA-FORCA-ODDS.md §2). Behind the ReplicatedStorage
+-- attribute "FishingPower" (off by default). The server owns the clock: the pointer position is
+-- a function of server time since aimStart, so the client only reports when it tapped.
+---------------------------------------------------------------------------------------------
+
+Fishing.POWER_FLAG = "FishingPower"
+Fishing.AIM = {
+	sweepSeconds = 1.1, -- one pass 0 -> 1 (then back): kid-friendly, purple stays reachable
+	timeoutSeconds = 3.5, -- no tap: casts in "red"
+	maxLagSeconds = 0.2, -- a reported tap time may be at most this much before it arrived
+	suspectPurpleShare = 0.6, -- above this share of purple in the last `suspectWindow` casts,
+	suspectWindow = 20, -- the client's tap time stops being trusted (server time only)
+}
+
+-- Luck per band: factor = 1 + b x (rank - 1), only from Uncommon (rank 2) up, floor 0.2.
+Fishing.POWER_BAND_B = {
+	red = -0.08,
+	yellow = -0.04,
+	neutral = 0,
+	green = 0.1,
+	purple = 0.25,
+} :: { [string]: number }
+
+-- With the bar on, every luck source together is capped per rank (Common .. Mystic).
+Fishing.LUCK_CAP = { 1, 2.5, 3.5, 4.5, 6, 8 }
+
+-- Band widths by aim level (0..1): red, yellow, neutral, green, purple. Interpolated.
+local AIM_ROWS = {
+	{ at = 0, w = { 0.24, 0.24, 0.40, 0.12, 0 } },
+	{ at = 0.35, w = { 0.18, 0.20, 0.34, 0.28, 0 } },
+	{ at = 0.60, w = { 0.12, 0.16, 0.30, 0.36, 0.06 } },
+	{ at = 0.85, w = { 0.08, 0.12, 0.24, 0.40, 0.16 } },
+	{ at = 1, w = { 0.04, 0.08, 0.20, 0.44, 0.24 } },
+}
+Fishing.TWO_PURPLE_AT = 0.95 -- aim level where the purple splits into two bars
+
+export type AimSegment = { band: string, from: number, to: number }
+
+function Fishing.powerEnabled(): boolean
+	return game:GetService("ReplicatedStorage"):GetAttribute(Fishing.POWER_FLAG) == true
+end
+
+-- Aim level 0..1 from training progress (0..1) and the rod's controlBonus (0..0.32).
+function Fishing.aimLevel(trainingProgress: number, rodControlBonus: number): number
+	local t = math.clamp(if trainingProgress == trainingProgress then trainingProgress else 0, 0, 1)
+	local r =
+		math.clamp(if rodControlBonus == rodControlBonus then rodControlBonus / 0.32 else 0, 0, 1)
+	return math.clamp(0.7 * t + 0.3 * r, 0, 1)
+end
+
+local function widths(aim: number): { number }
+	local a = math.clamp(aim, 0, 1)
+	for i = 1, #AIM_ROWS - 1 do
+		local lo, hi = AIM_ROWS[i], AIM_ROWS[i + 1]
+		if a <= hi.at then
+			local k = (a - lo.at) / (hi.at - lo.at)
+			local out = {}
+			for j = 1, 5 do
+				out[j] = lo.w[j] + (hi.w[j] - lo.w[j]) * k
+			end
+			return out
+		end
+	end
+	return table.clone(AIM_ROWS[#AIM_ROWS].w)
+end
+
+-- Bar layout (0..1, left to right), symmetric: red and yellow at the edges, neutral, green in
+-- the middle with the purple at its centre (two purple bars from TWO_PURPLE_AT).
+function Fishing.aimLayout(aim: number): { AimSegment }
+	local w = widths(aim)
+	local red, yellow, neutral, green, purple = w[1], w[2], w[3], w[4], w[5]
+	local parts: { { band: string, size: number } } = {
+		{ band = "red", size = red / 2 },
+		{ band = "yellow", size = yellow / 2 },
+		{ band = "neutral", size = neutral / 2 },
+	}
+	if purple <= 0.001 then
+		table.insert(parts, { band = "green", size = green })
+	elseif aim >= Fishing.TWO_PURPLE_AT then
+		table.insert(parts, { band = "green", size = green / 3 })
+		table.insert(parts, { band = "purple", size = purple / 2 })
+		table.insert(parts, { band = "green", size = green / 3 })
+		table.insert(parts, { band = "purple", size = purple / 2 })
+		table.insert(parts, { band = "green", size = green / 3 })
+	else
+		table.insert(parts, { band = "green", size = green / 2 })
+		table.insert(parts, { band = "purple", size = purple })
+		table.insert(parts, { band = "green", size = green / 2 })
+	end
+	table.insert(parts, { band = "neutral", size = neutral / 2 })
+	table.insert(parts, { band = "yellow", size = yellow / 2 })
+	table.insert(parts, { band = "red", size = red / 2 })
+	local total = 0
+	for _, p in parts do
+		total += p.size
+	end
+	local out: { AimSegment } = {}
+	local x = 0
+	for _, p in parts do
+		local size = p.size / total
+		if size > 0 then
+			table.insert(out, { band = p.band, from = x, to = x + size })
+			x += size
+		end
+	end
+	out[#out].to = 1
+	return out
+end
+
+-- Pointer position 0..1 after `elapsed` seconds (ping-pong, starts at 0).
+function Fishing.aimPosition(elapsed: number): number
+	local sweep = Fishing.AIM.sweepSeconds
+	local t = math.max(0, if elapsed == elapsed then elapsed else 0) / sweep
+	local phase = t % 2
+	return if phase <= 1 then phase else 2 - phase
+end
+
+function Fishing.bandAt(layout: { AimSegment }, position: number): string
+	for _, seg in layout do
+		if position >= seg.from and position <= seg.to then
+			return seg.band
+		end
+	end
+	return "red"
+end
+
+-- Luck factor of a band for a rarity rank (1 = Common .. 6 = Mystic).
+function Fishing.powerFactor(band: string, rank: number): number
+	if rank < 2 then
+		return 1
+	end
+	local b = Fishing.POWER_BAND_B[band] or 0
+	return math.max(0.2, 1 + b * (rank - 1))
+end
+
 function Fishing.tierValue(list: { number }, tier: number): number
 	return list[math.clamp(tier, 1, #list)]
 end

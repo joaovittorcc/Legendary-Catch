@@ -48,6 +48,10 @@ type Session = {
 	kind: string,
 	creatureId: string,
 	odds: number, -- real "1 in N" of the hooked creature (0 = not shown, e.g. tutorial catch)
+	powerBand: string, -- power bar band of the current cast ("neutral" when the bar is off)
+	aimStart: number, -- workspace:GetServerTimeNow() when the bar started (phase "aiming")
+	aimLayout: { FishingConfig.AimSegment },
+	aimHistory: { string }, -- last bands (anti-cheat: too many purples stops trusting tap times)
 	eventId: string, -- ocean event in force at the bite ("" none); locks the value bonus
 	zoneId: string,
 	castPos: Vector3, -- root position when the line was cast
@@ -95,6 +99,10 @@ local function session(player: Player): Session
 			kind = "",
 			creatureId = "",
 			odds = 0,
+			powerBand = "neutral",
+			aimStart = 0,
+			aimLayout = {},
+			aimHistory = {},
 			eventId = "",
 			zoneId = "",
 			castPos = Vector3.zero,
@@ -201,7 +209,7 @@ end
 
 -- Instinct training, the equipped rod, zone, prestige and ocean event all tilt the odds
 -- toward rarer creatures (each capped in its own config).
-local function luckyWeights(player: Player, zoneId: string?): { [string]: number }
+local function luckyWeights(player: Player, zoneId: string?, band: string?): { [string]: number }
 	local instinct = Training.level(player, "Instinct")
 	local rod = equippedRod(player)
 	local prestige = Prestige.level(player)
@@ -229,6 +237,13 @@ local function luckyWeights(player: Player, zoneId: string?): { [string]: number
 		if boosted and rank >= 3 then
 			w *= Products.LUCK_BOOST_MULTIPLIER
 		end
+		-- Power bar (flag FishingPower): the band tilts luck, then every source together is
+		-- capped per rank so stacking never runs away.
+		if band and FishingConfig.powerEnabled() then
+			w *= FishingConfig.powerFactor(band, rank)
+			local base = if released then FishingConfig.RARITY_WEIGHTS[rarity] or 0 else 0
+			w = math.min(w, base * (FishingConfig.LUCK_CAP[rank] or 1))
+		end
 		weights[rarity] = w
 	end
 	return weights
@@ -242,7 +257,7 @@ local function rollCreature(
 ): (Creatures.Creature, number)
 	local s = sessions[player]
 	local effectiveZone = zoneId or (if s and s.zoneId ~= "" then s.zoneId else nil)
-	local weights = luckyWeights(player, effectiveZone)
+	local weights = luckyWeights(player, effectiveZone, if s then s.powerBand else nil)
 	local rarity = devOverride(player, "DevForceRarity")
 		or weightedPick(weights, FishingConfig.RARITY_ORDER)
 	local rank = table.find(FishingConfig.RARITY_ORDER, rarity) or 1
@@ -320,8 +335,93 @@ local function reset(player: Player, s: Session)
 	s.kind = ""
 	s.creatureId = ""
 	s.odds = 0
+	s.powerBand = "neutral"
+	s.aimStart = 0
 	s.zoneId = ""
 	publish(player, "", nil, nil)
+end
+
+local beginWaiting: (Player, Session, number, BasePart, boolean) -> ()
+local startAim: (Player, Session, number) -> ()
+
+-- Resolves the power bar once: from the tap time (trusted within maxLagSeconds, unless the
+-- player's recent purple share is suspicious) or "red" on timeout. Then the cast goes on.
+local function resolveAim(player: Player, s: Session, castId: number, tapTime: number?)
+	if sessions[player] ~= s or s.castId ~= castId or s.phase ~= "aiming" then
+		return
+	end
+	local band = "red"
+	if tapTime then
+		band = FishingConfig.bandAt(s.aimLayout, FishingConfig.aimPosition(tapTime - s.aimStart))
+	end
+	s.powerBand = band
+	table.insert(s.aimHistory, band)
+	if #s.aimHistory > FishingConfig.AIM.suspectWindow then
+		table.remove(s.aimHistory, 1)
+	end
+	Analytics.custom(player, "PowerBand", 1, band)
+	local root = rootOf(player)
+	-- The player must still be at the cast spot (same rule as the fight).
+	if not root or (root.Position - s.castPos).Magnitude > MAX_FIGHT_DRIFT then
+		reset(player, s)
+		send(player, { event = "cancelled", castId = castId })
+		return
+	end
+	beginWaiting(player, s, castId, root, false)
+end
+
+local function purpleShare(s: Session): number
+	if #s.aimHistory < FishingConfig.AIM.suspectWindow then
+		return 0
+	end
+	local n = 0
+	for _, b in s.aimHistory do
+		if b == "purple" then
+			n += 1
+		end
+	end
+	return n / #s.aimHistory
+end
+
+-- Phase "aiming": the server clock drives the bar; the client gets the layout and start time.
+function startAim(player: Player, s: Session, castId: number)
+	s.phase = "aiming"
+	s.aimStart = workspace:GetServerTimeNow()
+	local rod = equippedRod(player)
+	local progress = Training.level(player, "Control") / TrainingConfig.MAX_LEVEL
+	local aim = FishingConfig.aimLevel(progress, if rod then rod.controlBonus else 0)
+	s.aimLayout = FishingConfig.aimLayout(aim)
+	send(player, {
+		event = "aim",
+		castId = castId,
+		aimStart = s.aimStart,
+		aimSweep = FishingConfig.AIM.sweepSeconds,
+		aimLevel = aim,
+		aimLayout = s.aimLayout,
+	})
+	task.delay(FishingConfig.AIM.timeoutSeconds, function()
+		resolveAim(player, s, castId, nil)
+	end)
+end
+
+local function onPowerTap(player: Player, castId: unknown, clientTime: unknown)
+	local s = sessions[player]
+	if not s or typeof(castId) ~= "number" or s.castId ~= castId or s.phase ~= "aiming" then
+		return
+	end
+	local now = workspace:GetServerTimeNow()
+	local tapTime = now
+	if
+		typeof(clientTime) == "number"
+		and clientTime == clientTime
+		and purpleShare(s) <= FishingConfig.AIM.suspectPurpleShare
+	then
+		-- Forgive latency, but never accept a time from the future or too far in the past.
+		tapTime = math.clamp(clientTime, now - FishingConfig.AIM.maxLagSeconds, now)
+	elseif purpleShare(s) > FishingConfig.AIM.suspectPurpleShare then
+		recordSuspicious(player, s, os.clock())
+	end
+	resolveAim(player, s, castId, math.max(tapTime, s.aimStart))
 end
 
 local function onCast(player: Player)
@@ -360,18 +460,38 @@ local function onCast(player: Player)
 	if s.castId > 200 then
 		s.wonCasts[s.castId - 200] = nil
 	end
-	s.phase = "waiting"
 	local castId = s.castId
-	local castZone = zoneId
 	local profile = PlayerData.get(player)
 	-- The very first catch is quick and friendly: a bite in 2-3.5 s, an Uncommon, the easy reel.
 	local firstEver = profile ~= nil and profile.stats.catches == 0
+	s.powerBand = "neutral"
+	if FishingConfig.powerEnabled() and not firstEver then
+		startAim(player, s, castId)
+		return
+	end
+	beginWaiting(player, s, castId, root, firstEver)
+end
+
+-- After the cast (and the power bar, when on): line in the water, bite timer running.
+function beginWaiting(
+	player: Player,
+	s: Session,
+	castId: number,
+	root: BasePart,
+	firstEver: boolean
+)
+	s.phase = "waiting"
+	local castZone = s.zoneId
 	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	local target = root.Position
 		+ (if flat.Magnitude > 0 then flat.Unit else Vector3.zAxis)
 			* FishingConfig.CAST_DISTANCE
 	publish(player, "waiting", Vector3.new(target.X, 0, target.Z), nil)
-	send(player, { event = "cast", castId = castId })
+	send(player, {
+		event = "cast",
+		castId = castId,
+		powerBand = if FishingConfig.powerEnabled() then s.powerBand else nil,
+	})
 	Analytics.step(player, "firstCast")
 	Progress.onCast(player)
 
@@ -846,6 +966,7 @@ function Fishing.start()
 	update = Remotes.event(Net.FISHING_UPDATE)
 	Remotes.onServerEvent(Net.CAST_LINE, 2, 3, onCast)
 	Remotes.onServerEvent(Net.CANCEL_FISHING, 2, 3, onCancel)
+	Remotes.onServerEvent(Net.POWER_TAP, 3, 3, onPowerTap)
 	Remotes.onServerEvent(Net.SUBMIT_CATCH, 2, 3, onSubmit)
 	Remotes.onServerEvent(Net.SET_AUTO_FISH, 1, 2, onSetAutoFish)
 	local function watchCharacter(player: Player, character: Model)

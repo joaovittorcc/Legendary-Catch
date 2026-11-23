@@ -18,6 +18,7 @@ local StringsUi = require(Shared:WaitForChild("StringsUi"))
 local FishingCamera = require(script:WaitForChild("Camera"))
 local Line = require(script:WaitForChild("Line"))
 local Omen = require(script:WaitForChild("Omen"))
+local PowerBar = require(script:WaitForChild("PowerBar"))
 local PressInput = require(script:WaitForChild("PressInput"))
 local Reveal = require(script:WaitForChild("Reveal"))
 local Ui = require(script:WaitForChild("Ui"))
@@ -43,9 +44,11 @@ local castRemote: RemoteEvent
 local cancelRemote: RemoteEvent
 local submitRemote: RemoteEvent
 local perfectRemote: RemoteEvent
+local powerTapRemote: RemoteEvent? = nil
 local pendingPerfect = false
 
-local state: string = "idle" -- "idle" | "casting" | "waiting" | "fighting" | "resolving" | "revealing"
+-- "idle" | "casting" | "aiming" | "waiting" | "fighting" | "resolving" | "revealing"
+local state: string = "idle"
 local castId = 0
 local line: Line.Line? = nil
 local stopMinigame: (() -> ())? = nil
@@ -105,6 +108,7 @@ local function cleanup()
 	end
 	PressInput.disable()
 	Ui.hidePanel()
+	PowerBar.hide()
 	freeze(false)
 	FishingCamera.stop()
 	Omen.stop()
@@ -131,6 +135,15 @@ local function onActivated()
 	end
 	local tool = equippedRod()
 	local root = rootPart()
+	-- Power bar (flag FishingPower): the next press is the tap; the server reads the band from
+	-- its own clock, the time sent here only forgives a little latency.
+	if state == "aiming" then
+		local remote = powerTapRemote
+		if remote then
+			remote:FireServer(castId, Workspace:GetServerTimeNow())
+		end
+		return
+	end
 	if state ~= "idle" or not tool or not root then
 		return
 	end
@@ -151,6 +164,7 @@ local function startCast(id: number)
 	end
 	castId = id
 	state = "waiting"
+	freeze(false)
 	local l = Line.create(attachment)
 	line = l
 	FishingCamera.start(root, l.bobber)
@@ -295,7 +309,15 @@ local function onUpdate(update: Net.FishingUpdate)
 			)
 			else Strings.notInZone
 		Ui.toast(message, Color3.fromRGB(255, 220, 120))
-	elseif update.event == "cast" and state == "casting" then
+	elseif update.event == "aim" and state == "casting" then
+		castId = update.castId or 0
+		state = "aiming"
+		freeze(true)
+		PowerBar.show(update.aimLayout or {}, update.aimStart or Workspace:GetServerTimeNow())
+	elseif update.event == "cast" and (state == "casting" or state == "aiming") then
+		if update.powerBand then
+			PowerBar.result(update.powerBand)
+		end
 		startCast(update.castId or 0)
 	elseif update.castId ~= castId then
 		return
@@ -359,6 +381,13 @@ function Fishing.start()
 	cancelRemote = remotes:WaitForChild(Net.CANCEL_FISHING) :: RemoteEvent
 	submitRemote = remotes:WaitForChild(Net.SUBMIT_CATCH) :: RemoteEvent
 	perfectRemote = remotes:WaitForChild(Net.REPORT_PERFECT) :: RemoteEvent
+	-- Optional: an older server without the power bar never creates it.
+	task.spawn(function()
+		local remote = remotes:WaitForChild(Net.POWER_TAP, 30)
+		if remote and remote:IsA("RemoteEvent") then
+			powerTapRemote = remote
+		end
+	end)
 	local updateRemote = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
 
 	Ui.init()

@@ -4,6 +4,11 @@
 -- ring event is offered for bonus XP. Walking away from the spot stops it.
 --
 -- Levels live in the player profile (PlayerData); the profile mirrors them as attributes.
+--
+-- Fishing Power v2 (ReplicatedStorage attribute "TrainingPower" = true): each stat gains power
+-- (1..1e15) every second instead of XP, multiplied by the training field (bought with
+-- TrainingBuyField), the spot's island and prestige. Level/XP are then derived from power so
+-- older readers keep working. Contract: docs/TREINO-PP-CONTRATO.md.
 
 local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
@@ -27,6 +32,7 @@ type Session = {
 	ringId: number,
 	ringExpires: number, -- 0 when no ring is pending
 	combo: number,
+	island: number, -- island index of the spot (1 = hub lagoon)
 }
 
 local Training = {}
@@ -40,6 +46,84 @@ local function level(player: Player, stat: string): number
 	local profile = PlayerData.get(player)
 	local t = profile and profile.training[stat]
 	return if t then t.level else 0
+end
+
+local function powerOf(player: Player, stat: string): number
+	local profile = PlayerData.get(player)
+	local t = profile and profile.training[stat]
+	return TrainingConfig.clampPower(t and t.power)
+end
+
+local function powerSum(player: Player): number
+	local total = 0
+	for _, stat in TrainingConfig.STATS do
+		total += powerOf(player, stat)
+	end
+	return total
+end
+
+-- Effective level for gameplay: the stored level, or the power mapped onto 0..25 (continuous).
+local function effectiveLevel(player: Player, stat: string): number
+	if TrainingConfig.powerEnabled() then
+		return TrainingConfig.equivalentLevel(powerOf(player, stat))
+	end
+	return level(player, stat)
+end
+
+local function prestigeOf(player: Player): number
+	local profile = PlayerData.get(player)
+	return if profile then math.max(0, profile.prestige or 0) else 0
+end
+
+-- Power per second right now for `player` training `stat` on `island`.
+local function currentGain(player: Player, stat: string, island: number): number
+	local profile = PlayerData.get(player)
+	local field = if profile then profile.trainingField else 1
+	local mult = TrainingConfig.multiplier(field, island, prestigeOf(player))
+	return TrainingConfig.gainPerSecond(powerOf(player, stat), mult)
+end
+
+-- Adds power, keeps level/xp in step (old UI, achievements) and announces level-ups and
+-- each power of ten crossed.
+local function addPower(player: Player, stat: string, amount: number)
+	local profile = PlayerData.get(player)
+	local t = profile and profile.training[stat]
+	if not t then
+		return
+	end
+	local before = TrainingConfig.clampPower(t.power)
+	local after = TrainingConfig.addPower(before, amount)
+	if after == before then
+		return
+	end
+	local oldLevel = TrainingConfig.legacyLevel(before)
+	local newLevel, newXp = TrainingConfig.legacyLevel(after)
+	PlayerData.update(player, function(p)
+		p.training[stat] = { level = newLevel, xp = newXp, power = after }
+	end)
+	local fromDecade = math.floor(math.log10(before) + 1e-9)
+	local toDecade = math.floor(math.log10(after) + 1e-9)
+	if toDecade > fromDecade and toDecade >= 3 then
+		update:FireClient(
+			player,
+			{
+				event = "powerMilestone",
+				stat = stat,
+				power = after,
+				milestone = 10 ^ toDecade,
+			} :: Net.TrainingUpdate
+		)
+		Analytics.custom(player, "TrainingPowerMilestone", toDecade)
+	end
+	for lvl = oldLevel + 1, newLevel do
+		update:FireClient(
+			player,
+			{ event = "levelUp", stat = stat, level = lvl } :: Net.TrainingUpdate
+		)
+	end
+	if newLevel > oldLevel then
+		Achievements.check(player)
+	end
 end
 
 local function rootOf(player: Player): BasePart?
@@ -106,9 +190,24 @@ local function start(player: Player, stat: string, spot: BasePart)
 	if not near(player, spot) or not PlayerData.get(player) then
 		return
 	end
+	local island = TrainingConfig.islandIndex(spot:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE))
+	if
+		TrainingConfig.powerEnabled() and not TrainingConfig.islandAllowed(island, powerSum(player))
+	then
+		update:FireClient(
+			player,
+			{
+				event = "islandLocked",
+				island = island,
+				gate = TrainingConfig.ISLANDS[island].gate,
+			} :: Net.TrainingUpdate
+		)
+		return
+	end
 	sessions[player] = {
 		stat = stat,
 		spot = spot,
+		island = island,
 		nextRingAt = os.clock()
 			+ rng:NextNumber(TrainingConfig.RING_INTERVAL_MIN, TrainingConfig.RING_INTERVAL_MAX),
 		ringId = 0,
@@ -124,12 +223,21 @@ local function start(player: Player, stat: string, spot: BasePart)
 		PlayerData.update(player, function(p)
 			p.stats.trainDay = today
 		end)
-		local bonus = 15 + level(player, stat) * 3
-		addXp(player, stat, bonus)
-		update:FireClient(
-			player,
-			{ event = "dailyBonus", stat = stat, bonusXp = bonus } :: Net.TrainingUpdate
-		)
+		if TrainingConfig.powerEnabled() then
+			local bonus = currentGain(player, stat, island) * TrainingConfig.DAILY_GAIN_SECONDS
+			addPower(player, stat, bonus)
+			update:FireClient(
+				player,
+				{ event = "dailyBonus", stat = stat, gain = bonus } :: Net.TrainingUpdate
+			)
+		else
+			local bonus = 15 + level(player, stat) * 3
+			addXp(player, stat, bonus)
+			update:FireClient(
+				player,
+				{ event = "dailyBonus", stat = stat, bonusXp = bonus } :: Net.TrainingUpdate
+			)
+		end
 	end
 	Analytics.step(player, "firstTraining")
 	Progress.onTrainingStarted(player)
@@ -164,7 +272,21 @@ local function step()
 			stop(player, "left")
 			continue
 		end
-		addXp(player, s.stat, TrainingConfig.XP_PER_SECOND)
+		if TrainingConfig.powerEnabled() then
+			local gain = currentGain(player, s.stat, s.island)
+			addPower(player, s.stat, gain)
+			update:FireClient(
+				player,
+				{
+					event = "power",
+					stat = s.stat,
+					power = powerOf(player, s.stat),
+					gain = gain,
+				} :: Net.TrainingUpdate
+			)
+		else
+			addXp(player, s.stat, TrainingConfig.XP_PER_SECOND)
+		end
 		Progress.onTrainSecond(player)
 
 		if s.ringExpires > 0 and now > s.ringExpires then
@@ -177,7 +299,7 @@ local function step()
 			s.ringExpires = now + TrainingConfig.RING_TIMEOUT
 			s.nextRingAt = now
 				+ rng:NextNumber(TrainingConfig.RING_INTERVAL_MIN, TrainingConfig.RING_INTERVAL_MAX)
-			local rings = if level(player, s.stat) >= 10 then 2 else 1
+			local rings = if effectiveLevel(player, s.stat) >= 10 then 2 else 1
 			update:FireClient(
 				player,
 				{ event = "ring", ringId = s.ringId, rings = rings, stat = s.stat } :: Net.TrainingUpdate
@@ -199,16 +321,93 @@ local function onRingResult(player: Player, ringId: unknown, success: unknown)
 		s.combo += 1
 		-- Streak of rings in a row: +10% bonus XP per step, up to +50%.
 		local mult = 1 + math.min(s.combo - 1, 5) * 0.1
-		addXp(player, s.stat, math.floor(TrainingConfig.ringBonus(level(player, s.stat)) * mult))
+		if TrainingConfig.powerEnabled() then
+			local bonus = currentGain(player, s.stat, s.island)
+				* TrainingConfig.RING_GAIN_SECONDS
+				* mult
+			addPower(player, s.stat, bonus)
+			update:FireClient(
+				player,
+				{
+					event = "ringResult",
+					stat = s.stat,
+					combo = s.combo,
+					gain = bonus,
+				} :: Net.TrainingUpdate
+			)
+		else
+			addXp(
+				player,
+				s.stat,
+				math.floor(TrainingConfig.ringBonus(level(player, s.stat)) * mult)
+			)
+		end
 	else
 		s.combo = 0
 	end
 	player:SetAttribute("TrainingCombo", s.combo)
 end
 
--- Used by fishing: the player's current level in a stat (0 if never trained).
+-- Buys the next training field level (Fishing Power v2). Server checks coins, power and level.
+local function onBuyField(player: Player, requestId: unknown)
+	local id = if typeof(requestId) == "number" and requestId == requestId then requestId else 0
+	local profile = PlayerData.get(player)
+	if not profile then
+		return
+	end
+	local function reply(ok: boolean, reason: string?, gate: number?)
+		local current = PlayerData.get(player)
+		update:FireClient(
+			player,
+			{
+				event = "fieldResult",
+				ok = ok,
+				reason = reason,
+				field = if current then current.trainingField else 1,
+				requestId = id,
+				gate = gate,
+			} :: Net.TrainingUpdate
+		)
+	end
+	if not TrainingConfig.powerEnabled() then
+		reply(false, "disabled")
+		return
+	end
+	local sum = powerSum(player)
+	local ok, reason, cost = TrainingConfig.canBuyField(profile.trainingField, sum, profile.coins)
+	if not ok then
+		local nextDef = TrainingConfig.FIELD[TrainingConfig.fieldLevel(profile.trainingField) + 1]
+		reply(false, reason, if reason == "power" and nextDef then nextDef.gate else nil)
+		return
+	end
+	local bought, newLevel = false, profile.trainingField
+	PlayerData.update(player, function(p)
+		-- Re-check inside the mutation: coins or level may have moved since.
+		local stillOk, _, price = TrainingConfig.canBuyField(p.trainingField, sum, p.coins)
+		if not stillOk or price ~= cost then
+			return
+		end
+		p.coins -= price
+		p.trainingField = TrainingConfig.fieldLevel(p.trainingField + 1)
+		bought, newLevel = true, p.trainingField
+	end)
+	if not bought then
+		reply(false, "changed")
+		return
+	end
+	Analytics.coins(player, false, cost, "TrainingField", "field_" .. tostring(newLevel))
+	reply(true)
+end
+
+-- Used by fishing: the player's effective level in a stat (0 if never trained). With Fishing
+-- Power on it is continuous (power mapped onto 0..25).
 function Training.level(player: Player, stat: string): number
-	return level(player, stat)
+	return effectiveLevel(player, stat)
+end
+
+-- Fishing Power of a stat (1 when never trained or the profile is not loaded).
+function Training.power(player: Player, stat: string): number
+	return powerOf(player, stat)
 end
 
 -- Used by portals: cleanly stops any active training session before teleporting.
@@ -222,6 +421,7 @@ function Training.start()
 		stop(player, "manual")
 	end)
 	Remotes.onServerEvent(Net.TRAINING_RING_RESULT, 2, 3, onRingResult)
+	Remotes.onServerEvent(Net.TRAINING_BUY_FIELD, 2, 3, onBuyField)
 
 	local function initPlayer(player: Player)
 		player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, "")

@@ -366,6 +366,14 @@ local PT = {
 	-- Omen while fighting a Legendary (the creature is still hidden).
 	omenLegendary = "O MAR ESTÁ AGITADO...",
 	omenLegendarySub = "Algo lendário mordeu a isca!",
+	powerTap = "Toque para lançar!",
+	powerBand = {
+		red = "Fraco...",
+		yellow = "Quase!",
+		neutral = "Lançou!",
+		green = "Ótimo!",
+		purple = "PERFEITO!",
+	},
 	odds = "1 em %s",
 }
 
@@ -727,6 +735,14 @@ local EN: Strings = {
 	},
 	omenLegendary = "THE SEA IS STIRRING...",
 	omenLegendarySub = "Something legendary took the bait!",
+	powerTap = "Tap to cast!",
+	powerBand = {
+		red = "Weak...",
+		yellow = "Almost!",
+		neutral = "Cast!",
+		green = "Great!",
+		purple = "PERFECT!",
+	},
 	odds = "1 in %s",
 }
 

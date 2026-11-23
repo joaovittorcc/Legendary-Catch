@@ -60,8 +60,17 @@ local function onPrestige(player: Player)
 		p.coins = gift
 		p.rodsOwned = { Rods.STARTER }
 		p.equippedRod = Rods.STARTER
+		-- Fishing Power v2 keeps power and the training field (prestige multiplies the gain
+		-- instead); the old level system still resets.
+		local keepPower = TrainingConfig.powerEnabled()
 		for _, stat in TrainingConfig.STATS do
-			p.training[stat] = { level = 0, xp = 0 }
+			local old = p.training[stat]
+			if keepPower and old then
+				local level, xp = TrainingConfig.legacyLevel(TrainingConfig.clampPower(old.power))
+				p.training[stat] = { level = level, xp = xp, power = old.power }
+			else
+				p.training[stat] = { level = 0, xp = 0, power = 1 }
+			end
 		end
 		applied = true
 	end)

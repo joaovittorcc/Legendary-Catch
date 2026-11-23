@@ -29,6 +29,12 @@ export type FishingUpdate = {
 	rewardCoins: number?, -- same as value, on "caught"
 	aquariumVersion: number?, -- aquarium version after this catch, on "caught"
 	odds: number?, -- real "1 in N" of this catch (rarity luck x dropWeight share), on "caught"; nil = don't show
+	-- Power bar (flag FishingPower; docs/PESCA-FORCA-CONTRATO.md):
+	aimStart: number?, -- "aim": workspace:GetServerTimeNow() when the pointer left 0
+	aimSweep: number?, -- "aim": seconds for one pass 0 -> 1 (ping-pong)
+	aimLevel: number?, -- "aim": 0..1, how trained the aim is (wider green/purple)
+	aimLayout: { { band: string, from: number, to: number } }?, -- "aim": bar segments 0..1
+	powerBand: string?, -- "cast": "red" | "yellow" | "neutral" | "green" | "purple"
 	zoneId: string?, -- fishing zone id ("lagoon" | "coral" | "abyss")
 	minLevel: number?, -- minimum PlayerLevel required by the zone (when reason = "levelLocked")
 }
@@ -55,7 +61,7 @@ export type AdventureReward = {
 }
 
 export type TrainingUpdate = {
-	event: string, -- "ring" | "levelUp" | "stopped"
+	event: string, -- "ring" | "levelUp" | "stopped" | "dailyBonus" | "power" | "powerMilestone" | "fieldResult" | "islandLocked"
 	ringId: number?,
 	rings: number?,
 	stat: string?,
@@ -64,12 +70,22 @@ export type TrainingUpdate = {
 	bonusXp: number?, -- "dailyBonus": first training of the day
 	rewardCoins: number?, -- "levelUp" on every 5th level
 	combo: number?, -- "ringResult": consecutive successful rings
+	-- Fishing Power v2 (flag TrainingPower; see docs/TREINO-PP-CONTRATO.md):
+	power: number?, -- "power" (every second while training) / "powerMilestone": the stat's power
+	gain: number?, -- "power": power per second right now; "dailyBonus"/ring: amount added
+	milestone: number?, -- "powerMilestone": the power of ten just crossed (1e3, 1e4, ...)
+	field: number?, -- "fieldResult": field level after the request
+	ok: boolean?, -- "fieldResult"
+	requestId: number?, -- "fieldResult": echo of the client's id
+	island: number?, -- "islandLocked": island index of the spot
+	gate: number?, -- "islandLocked" / "fieldResult" (reason "power"): power sum required
 }
 
 local Net = {
 	FOLDER = "Remotes",
 	CAST_LINE = "CastLine",
 	CANCEL_FISHING = "CancelFishing",
+	POWER_TAP = "PowerTap", -- client -> server: (castId: number, tapServerTime: number)
 	SUBMIT_CATCH = "SubmitCatch",
 	FISHING_UPDATE = "FishingUpdate",
 	ADVENTURE_REWARD = "AdventureReward",
@@ -79,6 +95,7 @@ local Net = {
 	STOP_TRAINING = "StopTraining",
 	TRAINING_RING_RESULT = "TrainingRingResult",
 	TRAINING_UPDATE = "TrainingUpdate",
+	TRAINING_BUY_FIELD = "TrainingBuyField", -- client -> server: (requestId: number)
 	PROFILE_SNAPSHOT = "ProfileSnapshot",
 	REQUEST_PROFILE = "RequestProfile",
 	BUY_ROD = "BuyRod",
