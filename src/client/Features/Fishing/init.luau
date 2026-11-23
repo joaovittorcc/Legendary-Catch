@@ -17,6 +17,7 @@ local StringsUi = require(Shared:WaitForChild("StringsUi"))
 
 local FishingCamera = require(script:WaitForChild("Camera"))
 local Line = require(script:WaitForChild("Line"))
+local OddsMoment = require(script:WaitForChild("OddsMoment"))
 local Omen = require(script:WaitForChild("Omen"))
 local PowerBar = require(script:WaitForChild("PowerBar"))
 local PressInput = require(script:WaitForChild("PressInput"))
@@ -238,6 +239,15 @@ local function onCaught(update: Net.FishingUpdate)
 	Omen.stop()
 	local creature = Creatures.get(creatureId)
 	local rarity = if creature then creature.rarity else "Common"
+	-- The "1 in N" moment (flag FishingPower): counts up the real odds before the reveal.
+	-- Legendary/Mystic keep it short because their own cinematic follows.
+	if update.odds and FishingConfig.powerEnabled() then
+		OddsMoment.play({
+			creatureId = creatureId,
+			odds = update.odds,
+			short = rarity == "Legendary" or rarity == "Mystic",
+		})
+	end
 	local origin = l.rest
 	-- Legendaries run their own cinematic; the rest watch the fish fly in over the shoulder.
 	if rarity == "Legendary" or rarity == "Mystic" then
@@ -316,7 +326,8 @@ local function onUpdate(update: Net.FishingUpdate)
 		PowerBar.show(update.aimLayout or {}, update.aimStart or Workspace:GetServerTimeNow())
 	elseif update.event == "cast" and (state == "casting" or state == "aiming") then
 		if update.powerBand then
-			PowerBar.result(update.powerBand)
+			-- Show what the band does to a Legendary (rank 5): the clearest "x2" to read.
+			PowerBar.result(update.powerBand, FishingConfig.powerFactor(update.powerBand, 5))
 		end
 		startCast(update.castId or 0)
 	elseif update.castId ~= castId then

@@ -574,6 +574,15 @@ local PT = {
 		green = "Ótimo!",
 		purple = "PERFEITO!",
 	},
+	powerTitle = "FORÇA",
+	powerLabel = { purple = "PERFEITO", green = "ÓTIMO", neutral = "BOM" },
+	powerLuck = "SORTE x%s",
+	oddsTier = { "SORTE!", "UAU!", "INSANO!", "IRREAL!", "DIVINO!", "CÓSMICO!", "IMPOSSÍVEL!" },
+	oddsOneIn = "1 em %s",
+	oddsGrowing = "CRESCENDO...",
+	oddsSkip = "Toque para pular",
+	thousandsSep = ".",
+	decimalSep = ",",
 	odds = "1 em %s",
 }
 
@@ -1143,6 +1152,15 @@ local EN: Strings = {
 		green = "Great!",
 		purple = "PERFECT!",
 	},
+	powerTitle = "POWER",
+	powerLabel = { purple = "PERFECT", green = "GREAT", neutral = "GOOD" },
+	powerLuck = "LUCK x%s",
+	oddsTier = { "LUCKY!", "WOW!", "INSANE!", "UNREAL!", "DIVINE!", "COSMIC!", "IMPOSSIBLE!" },
+	oddsOneIn = "1 in %s",
+	oddsGrowing = "GROWING...",
+	oddsSkip = "Tap to skip",
+	thousandsSep = ",",
+	decimalSep = ".",
 	odds = "1 in %s",
 }
 
