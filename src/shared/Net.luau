@@ -35,6 +35,11 @@ export type FishingUpdate = {
 	aimLevel: number?, -- "aim": 0..1, how trained the aim is (wider green/purple)
 	aimLayout: { { band: string, from: number, to: number } }?, -- "aim": bar segments 0..1
 	powerBand: string?, -- "cast": "red" | "yellow" | "neutral" | "green" | "purple"
+	-- Catch roulette (flag FishingRoulette; docs/PLANO-ROLETA.md), on "caught":
+	spins: { { wheel: string, result: string } }?, -- in order; the UI replays them
+	sizeMult: number?, -- applied to the weight (weight already final)
+	mutation: string?, -- mutation id, nil = none
+	coinMult: number?, -- applied to the coins (value already final)
 	zoneId: string?, -- fishing zone id ("lagoon" | "coral" | "abyss")
 	minLevel: number?, -- minimum PlayerLevel required by the zone (when reason = "levelLocked")
 }

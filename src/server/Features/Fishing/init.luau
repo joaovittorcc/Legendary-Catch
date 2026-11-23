@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AquariumConfig = require(Shared:WaitForChild("Config"):WaitForChild("Aquarium"))
 local AquariumState = require(Shared:WaitForChild("AquariumState"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+local RouletteConfig = require(Shared:WaitForChild("Config"):WaitForChild("Roulette"))
 local EventsConfig = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
@@ -567,6 +568,17 @@ local function payCatch(
 )
 	local weight = rollWeight(creature)
 	local isGiant = weight >= creature.weightMin + (creature.weightMax - creature.weightMin) * 0.85
+	-- Catch roulette (flag FishingRoulette): size, shrink or mutation, rolled here on the server.
+	-- The aquarium variant (isGiant above) keeps using the base weight on purpose.
+	local baseWeight = weight
+	local roulette: RouletteConfig.Outcome? = nil
+	if RouletteConfig.enabled() then
+		roulette = RouletteConfig.spin(function()
+			return rng:NextNumber()
+		end)
+		local spun = roulette :: RouletteConfig.Outcome
+		weight = math.floor(baseWeight * spun.sizeMult * 100 + 0.5) / 100
+	end
 	local previousCombo = (player:GetAttribute("FishingCombo") or 0) :: number
 	local combo = if isAuto then previousCombo else previousCombo + 1
 	local comboBonus = if isAuto then 0 else math.min(combo - 1, COMBO_MAX_STEPS) * COMBO_STEP
@@ -582,7 +594,8 @@ local function payCatch(
 	local shiny = forced == "Shiny"
 		or (forced == nil and rng:NextNumber() < FishingConfig.SHINY_CHANCE)
 	local value = math.floor(
-		Creatures.valueFor(creature, weight)
+		Creatures.valueFor(creature, baseWeight)
+			* (if roulette then roulette.coinMult else 1)
 			* (if event then event.valueMultiplier else 1)
 			* (if shiny then FishingConfig.SHINY_VALUE_MULTIPLIER else 1)
 			* Monetization.coinMultiplier(player)
@@ -609,6 +622,14 @@ local function payCatch(
 		end
 		if shiny then
 			entry.shiny = (entry.shiny or 0) + 1
+		end
+		if
+			roulette
+			and roulette.mutation
+			and RouletteConfig.mutationRank(roulette.mutation)
+				> RouletteConfig.mutationRank(entry.bestMutation)
+		then
+			entry.bestMutation = roulette.mutation
 		end
 		count = entry.count
 		p.coins += value
@@ -656,6 +677,10 @@ local function payCatch(
 		eventId = if event then event.id else nil,
 		auto = if isAuto then true else nil,
 		odds = if odds and odds > 0 then odds else nil,
+		spins = if roulette then roulette.spins else nil,
+		sizeMult = if roulette then roulette.sizeMult else nil,
+		mutation = if roulette then roulette.mutation else nil,
+		coinMult = if roulette then roulette.coinMult else nil,
 	})
 	if not isAuto then
 		Aquarium.onCatch(player, minigame or "", isNew)

@@ -20,6 +20,7 @@ local Line = require(script:WaitForChild("Line"))
 local OddsMoment = require(script:WaitForChild("OddsMoment"))
 local Omen = require(script:WaitForChild("Omen"))
 local PowerBar = require(script:WaitForChild("PowerBar"))
+local Roulette = require(script:WaitForChild("Roulette"))
 local PressInput = require(script:WaitForChild("PressInput"))
 local Reveal = require(script:WaitForChild("Reveal"))
 local Ui = require(script:WaitForChild("Ui"))
@@ -247,6 +248,10 @@ local function onCaught(update: Net.FishingUpdate)
 			odds = update.odds,
 			short = rarity == "Legendary" or rarity == "Mystic",
 		})
+	end
+	-- Catch roulette (flag FishingRoulette): replays the spins the server already rolled.
+	if update.spins and #update.spins > 0 then
+		Roulette.play(update :: any)
 	end
 	local origin = l.rest
 	-- Legendaries run their own cinematic; the rest watch the fish fly in over the shoulder.

@@ -7,6 +7,7 @@ export type CollectionEntry = {
 	bestWeight: number,
 	firstAt: number, -- os.time() of the first catch
 	shiny: number?, -- shiny variants caught (added 2026-11-17; nil on older entries)
+	bestMutation: string?, -- best roulette mutation ever caught on this species (Config/Roulette)
 }
 
 export type TrainingStat = {

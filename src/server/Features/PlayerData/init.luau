@@ -259,6 +259,9 @@ local function reconcile(data: { [string]: any })
 			entry.bestWeight = finiteNumber(entry.bestWeight, 0.1, 0)
 			entry.firstAt = finiteNumber(entry.firstAt, 0, 0)
 			entry.shiny = finiteNumber(entry.shiny, 0, 0)
+			if typeof(entry.bestMutation) ~= "string" then
+				entry.bestMutation = nil
+			end
 		end
 	end
 
