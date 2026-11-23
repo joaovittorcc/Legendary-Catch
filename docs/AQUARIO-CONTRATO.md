@@ -83,7 +83,7 @@ snapshot.aquarium = {
 ```
 Valores reais da tabela: Bolhinha Azul 180, Baiacu-Nuvem 420 (Dourado = 420 × 1,6 = 672). Total = 672 + 180 = 852.
 
-IDs de geometria: níveis e vagas (`slot_1`..`slot_12`) seguem os IDs do Antigravity (`aquarium_lv1_nursery` já usado em A0). Níveis 2–4 acima são **proposta**; Antigravity confirma no Mural.
+IDs de geometria **conferidos no Studio em 2026-11-22** (`Workspace._AquariumA1Showcase`): níveis `aquarium_lv1_nursery`, `aquarium_lv2_reef`, `aquarium_lv3_gallery`, `aquarium_lv4_sanctuary` (atributos `LevelId`, `Capacity` 3/5/8/12, `LevelIndex`), iguais aos do servidor. Vaga de índice N = instância `Slot_NN` dentro de `Slots` (`Slot_01`..`Slot_12`, dois dígitos). Pontos de decoração do mapa: `DecorAnchor_01_Plaque`, `_02_Lamp`, `_03_LeftBed`, `_04_RightBed`, `_05_LeftPost`, `_06_RightPost`, `_07_Crown` (níveis 2+); os cosméticos de meta de renda (`aqdeco_*`) ainda precisam ser mapeados a esses pontos.
 
 ## 3. Capturar
 
