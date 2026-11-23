@@ -63,6 +63,9 @@ function AquariumState.new(): Types.AquariumProfile
 		session = newSession(0),
 		sessionDay = 0,
 		sessionCoins = 0,
+		exitCpm = 0,
+		exitAt = 0,
+		offlineLast = { coins = 0, seconds = 0 },
 		cents = 0,
 		frac = 0,
 		cursor = 0,
@@ -109,6 +112,13 @@ function AquariumState.sanitize(aq: { [string]: any })
 	aq.bestCpm = wholeNumber(aq.bestCpm, 0, 0, 2 ^ 52)
 	aq.sessionDay = wholeNumber(aq.sessionDay, 0, 0, 2 ^ 52)
 	aq.sessionCoins = wholeNumber(aq.sessionCoins, 0, 0, 1_000_000_000)
+	aq.exitCpm = wholeNumber(aq.exitCpm, 0, 0, 2 ^ 40)
+	aq.exitAt = wholeNumber(aq.exitAt, 0, 0, 2 ^ 52)
+	local last = if typeof(aq.offlineLast) == "table" then aq.offlineLast else {}
+	aq.offlineLast = {
+		coins = wholeNumber(last.coins, 0, 0, 1_000_000_000),
+		seconds = wholeNumber(last.seconds, 0, 0, 1_000_000),
+	}
 	for _, key in { "claimed", "cosmetics" } do
 		local clean: { [string]: boolean } = {}
 		if typeof(aq[key]) == "table" then
@@ -370,6 +380,9 @@ local function copyAq(aq: Types.AquariumProfile): Types.AquariumProfile
 		session = aq.session,
 		sessionDay = aq.sessionDay,
 		sessionCoins = aq.sessionCoins,
+		exitCpm = aq.exitCpm,
+		exitAt = aq.exitAt,
+		offlineLast = aq.offlineLast,
 		cents = aq.cents,
 		frac = aq.frac,
 		cursor = aq.cursor,
@@ -703,9 +716,38 @@ function AquariumState.view(
 		synergies = AquariumState.synergyList(aq),
 		goals = AquariumState.goals(aq),
 		cosmetics = cosmeticList(aq),
+		offline = if aq.offlineLast.coins > 0 then aq.offlineLast else nil,
 		fractionCents = aq.cents,
 		nextLevel = nextLevel,
 	}
+end
+
+-- Offline pilot. Called when the player leaves: remembers the rate and the time.
+function AquariumState.markExit(aq: Types.AquariumProfile, now: number)
+	aq.exitCpm = (AquariumState.rates(aq))
+	aq.exitAt = now
+end
+
+-- Called on join. Advances the cursor first (exitAt = 0) so a gap is paid at most once, and
+-- pays only when `enabled`. Rate is the one saved at exit, never today's. Returns the coins.
+function AquariumState.settleOffline(
+	aq: Types.AquariumProfile,
+	now: number,
+	enabled: boolean
+): number
+	local exitAt, exitCpm = aq.exitAt, aq.exitCpm
+	aq.exitAt, aq.exitCpm = 0, 0
+	aq.offlineLast = { coins = 0, seconds = 0 }
+	if not enabled or exitAt <= 0 or exitCpm <= 0 or now <= exitAt then
+		return 0
+	end
+	local seconds = math.min(now - exitAt, Config.OFFLINE_MAX_SECONDS)
+	local cpm = exitCpm * Config.OFFLINE_PERCENT // 100
+	local coins = AquariumState.accrue(aq, cpm, seconds * 1000)
+	if coins > 0 then
+		aq.offlineLast = { coins = coins, seconds = seconds }
+	end
+	return coins
 end
 
 -- Income accounting, all integers. `ms` of play at `cpm` earns cpm*ms/60000 cents; the

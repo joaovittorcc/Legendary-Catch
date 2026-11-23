@@ -41,16 +41,13 @@ local ok, err = pcall(function()
 	end
 	S.addOwned(aq, "C01_Bolhinha_Azul", "base")
 	local function place(slot: number, id: string)
-		local plan = S.plan(
-			aq,
-			{
-				op = "place",
-				slot = slot,
-				creatureId = id,
-				variant = "base",
-				expectedVersion = aq.version,
-			}
-		)
+		local plan = S.plan(aq, {
+			op = "place",
+			slot = slot,
+			creatureId = id,
+			variant = "base",
+			expectedVersion = aq.version,
+		})
 		assert(plan.ok, plan.reason)
 		S.apply(aq, plan)
 	end
@@ -96,6 +93,90 @@ local ok, err = pcall(function()
 	local a = S.new()
 	eq(S.accrue(a, 180, 60000), 1, "1 min Common = 1 coin")
 	eq(a.cents, 80, "80 cents left")
+
+	-- S4 edge cases ------------------------------------------------------------------
+	-- two concurrent applies on the same version: the second is stale, never double-applies
+	local race = S.new()
+	S.addOwned(race, "C01_Bolhinha_Azul", "base")
+	S.addOwned(race, "C02_Sardinha_Solar", "base")
+	local v = race.version
+	local firstPlan = S.plan(race, {
+		op = "place",
+		slot = 1,
+		creatureId = "C01_Bolhinha_Azul",
+		variant = "base",
+		expectedVersion = v,
+	})
+	S.apply(race, firstPlan)
+	eq(
+		S.plan(race, {
+			op = "place",
+			slot = 2,
+			creatureId = "C02_Sardinha_Solar",
+			variant = "base",
+			expectedVersion = v,
+		}).reason,
+		"staleVersion",
+		"concurrent apply is stale"
+	)
+	eq(S.available(race, "C01_Bolhinha_Azul", "base"), 0, "no double placement")
+
+	-- rate change between two ticks: settle with the OLD rate, then change
+	local tick = S.new()
+	S.addOwned(tick, "C01_Bolhinha_Azul", "base")
+	S.addOwned(tick, "C04_Baiacu_Nuvem", "base")
+	S.apply(
+		tick,
+		S.plan(tick, {
+			op = "place",
+			slot = 1,
+			creatureId = "C01_Bolhinha_Azul",
+			variant = "base",
+			expectedVersion = tick.version,
+		})
+	)
+	local coins = S.accrue(tick, (S.rates(tick)), 30000) -- 30 s at 180 cpm = 90 cents
+	S.apply(
+		tick,
+		S.plan(tick, {
+			op = "swap",
+			slot = 1,
+			creatureId = "C04_Baiacu_Nuvem",
+			variant = "base",
+			expectedVersion = tick.version,
+		})
+	)
+	coins += S.accrue(tick, (S.rates(tick)), 30000) -- 30 s at 420 cpm = 210 cents
+	eq(coins * 100 + tick.cents, 300, "30s old rate + 30s new rate = 3.00 coins")
+
+	-- retire everything: no income
+	S.apply(tick, S.plan(tick, { op = "remove", slot = 1, expectedVersion = tick.version }))
+	eq((S.rates(tick)), 0, "empty tank pays nothing")
+	eq(S.accrue(tick, (S.rates(tick)), 60000), 0, "accrue with no rate")
+
+	-- offline: off pays nothing and still advances the cursor; on pays once, 25%, capped
+	local off = S.new()
+	off.exitCpm, off.exitAt = 1000, 100
+	eq(S.settleOffline(off, 100 + 3600, false), 0, "flag off pays nothing")
+	eq(off.exitAt, 0, "cursor advanced when off")
+	local on = S.new()
+	on.exitCpm, on.exitAt = 1000, 100
+	eq(S.settleOffline(on, 100 + 3600, true), 150, "1 h at 25% of 10 coins/min = 150")
+	eq(on.exitAt, 0, "paid once")
+	eq(S.settleOffline(on, 100 + 7200, true), 0, "no second payout")
+	local cap = S.new()
+	cap.exitCpm, cap.exitAt = 1000, 100
+	eq(S.settleOffline(cap, 100 + 86400, true), 300, "capped at 2 h")
+	eq(S.view(cap, 0, 0, true).offline.coins, 300, "view shows the payout")
+	local retro = S.new()
+	retro.exitCpm, retro.exitAt = 0, 100
+	eq(S.settleOffline(retro, 100 + 3600, true), 0, "no rate saved, no pay (never retroactive)")
+
+	-- hostile exit fields are repaired
+	local hostile = { exitCpm = -5, exitAt = "x", offlineLast = 3 }
+	S.sanitize(hostile)
+	eq(hostile.exitCpm, 0, "exitCpm clamp")
+	eq(hostile.exitAt, 0, "exitAt clamp")
 end)
 
 return if ok then "ALL OK" else "FAIL: " .. tostring(err)

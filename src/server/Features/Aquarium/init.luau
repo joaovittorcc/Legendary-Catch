@@ -38,11 +38,15 @@ local resultRemote: RemoteEvent
 local MAX_SETTLE_MS = 60_000 -- a long stall never pays more than a minute at once
 
 local function uiEnabled(): boolean
-	return ReplicatedStorage:GetAttribute(Config.UI_ATTRIBUTE) ~= false
+	return Config.flag(Config.UI_ATTRIBUTE)
 end
 
 local function creditEnabled(): boolean
-	return ReplicatedStorage:GetAttribute(Config.CREDIT_ATTRIBUTE) ~= false
+	return Config.flag(Config.CREDIT_ATTRIBUTE)
+end
+
+local function offlineEnabled(): boolean
+	return Config.flag(Config.OFFLINE_ATTRIBUTE, true) and creditEnabled()
 end
 
 local function snapshotOf(player: Player): Types.AquariumSnapshot?
@@ -252,6 +256,17 @@ local function onApply(player: Player, raw: unknown)
 			version = version,
 			snapshot = snapshot,
 		}
+		if request.op ~= "remove" then
+			Analytics.step(player, "firstTankPlace")
+		end
+		Analytics.custom(
+			player,
+			"AquariumChange",
+			if snapshot and snapshot.totalCpm then snapshot.totalCpm else 0,
+			request.op,
+			`lv{if snapshot and snapshot.level then snapshot.level else 0}`,
+			`syn{if snapshot and snapshot.synergies then #snapshot.synergies else 0}`
+		)
 	end
 	remember(session, result)
 	reply(player, result)
@@ -335,6 +350,8 @@ local function onBuy(player: Player, raw: unknown)
 			coins = if profile then profile.coins else nil,
 		}
 		Analytics.coins(player, false, spent, "AquariumLevel", boughtId)
+		Analytics.step(player, "firstTankUpgrade")
+		Analytics.custom(player, "AquariumUpgrade", spent, boughtId, nil, nil)
 	end
 	remember(session, result)
 	reply(player, result)
@@ -413,13 +430,21 @@ local function begin(player: Player)
 		return
 	end
 	sessions[player] = { lastClock = os.clock(), results = {}, order = {} }
-	-- New cursor on every activation: time spent offline is never paid (offline is off).
+	-- New cursor on every activation. Time offline is paid only when the offline flag is on,
+	-- once, at the rate saved on exit; otherwise the gap is dropped.
+	local offlinePaid = 0
+	local allow = offlineEnabled()
 	PlayerData.update(player, function(p)
 		local now = os.time()
 		p.aquarium.cursor = now
+		offlinePaid = AquariumState.settleOffline(p.aquarium, now, allow)
+		p.coins += offlinePaid
 		AquariumState.beginSession(p.aquarium, now)
 		AquariumState.recordBest(p.aquarium)
 	end)
+	if offlinePaid > 0 then
+		Analytics.coins(player, true, offlinePaid, "AquariumOffline", "welcomeBack")
+	end
 end
 
 function Aquarium.start()
@@ -435,8 +460,14 @@ function Aquarium.start()
 			begin(player)
 		end
 	end
+	-- Runs while the profile still exists: pay the last interval, remember rate and time.
+	PlayerData.onBeforeRelease(function(player)
+		settle(player)
+		PlayerData.update(player, function(p)
+			AquariumState.markExit(p.aquarium, os.time())
+		end)
+	end)
 	Players.PlayerRemoving:Connect(function(player)
-		settle(player) -- best effort: the profile may already be released
 		sessions[player] = nil
 	end)
 

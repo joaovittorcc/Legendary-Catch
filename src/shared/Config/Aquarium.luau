@@ -45,6 +45,18 @@ Aquarium.REQUEST_MEMORY = 20
 --   AquariumCredit  false pauses passive income (rights and progress are kept)
 Aquarium.UI_ATTRIBUTE = "AquariumUI"
 Aquarium.CREDIT_ATTRIBUTE = "AquariumCredit"
+Aquarium.OFFLINE_ATTRIBUTE = "AquariumOffline"
+
+-- Default of the UI and credit flags when no attribute is set: ON in Studio, and in a live
+-- server only when this constant is true. Ship it false, verify on a test server, then flip
+-- it here and publish (there is no live config channel yet). The offline flag is OFF
+-- everywhere unless its attribute is explicitly true.
+Aquarium.LIVE_ENABLED = false
+
+-- Offline pilot (flag off): a quarter of the rate the tank had when the player left, for at
+-- most two hours, paid once on the next join.
+Aquarium.OFFLINE_PERCENT = 25
+Aquarium.OFFLINE_MAX_SECONDS = 7200
 
 -- Synergy families (one per creature). Derived from the reveal style so every species is
 -- covered; the family names are working names to confirm with João:
@@ -298,6 +310,19 @@ Aquarium.RATES_CPM = {
 local levelsById: { [string]: Level } = {}
 for _, l in Aquarium.LEVELS do
 	levelsById[l.id] = l
+end
+
+-- Reads a live flag: an explicit boolean attribute on ReplicatedStorage wins; otherwise Studio
+-- is on and live follows LIVE_ENABLED. Pass offline = true for the offline flag (default off).
+function Aquarium.flag(attribute: string, offline: boolean?): boolean
+	local value = game:GetService("ReplicatedStorage"):GetAttribute(attribute)
+	if typeof(value) == "boolean" then
+		return value
+	end
+	if offline then
+		return false
+	end
+	return game:GetService("RunService"):IsStudio() or Aquarium.LIVE_ENABLED
 end
 
 function Aquarium.incomeGoal(id: string): { id: string, cpm: number, cosmetic: string }?

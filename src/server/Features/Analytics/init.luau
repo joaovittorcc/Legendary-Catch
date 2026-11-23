@@ -25,6 +25,8 @@ local STEPS: { [string]: { index: number, name: string } } = {
 	firstCodeRedeemed = { index = 11, name = "First promo code redeemed" },
 	firstChest = { index = 12, name = "First treasure chest opened" },
 	day2Return = { index = 13, name = "Returned on day 2+" },
+	firstTankPlace = { index = 14, name = "First creature placed in the aquarium" },
+	firstTankUpgrade = { index = 15, name = "First aquarium upgrade bought" },
 }
 Analytics.STEPS = STEPS
 
@@ -68,6 +70,24 @@ function Analytics.coins(
 				else Enum.AnalyticsEconomyTransactionType.Shop.Name,
 			sku or transaction
 		)
+	end)
+end
+
+-- Generic low-cardinality custom event (max 3 string fields, no personal data).
+function Analytics.custom(
+	player: Player,
+	name: string,
+	value: number,
+	a: string?,
+	b: string?,
+	c: string?
+)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(player, name, value, {
+			CustomField01 = a,
+			CustomField02 = b,
+			CustomField03 = c,
+		})
 	end)
 end
 

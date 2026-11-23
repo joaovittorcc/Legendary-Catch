@@ -86,6 +86,9 @@ export type AquariumProfile = {
 	session: AquariumSession,
 	sessionDay: number, -- UTC day of sessionCoins
 	sessionCoins: number, -- coins paid by session goals on sessionDay (daily cap)
+	exitCpm: number, -- tank rate when the player last left (offline pilot); never retroactive
+	exitAt: number, -- os.time() of that exit, 0 = none pending
+	offlineLast: { coins: number, seconds: number }, -- last offline payout, for the welcome-back card
 	cents: number, -- 0..99 hundredths of a coin not yet paid
 	frac: number, -- 0..59999 remainder of cpm*ms/60000 (exact integer carry)
 	cursor: number, -- os.time() of the last settlement
@@ -156,6 +159,7 @@ export type AquariumSnapshot = {
 	}?,
 	goals: AquariumGoals?,
 	cosmetics: { string }?,
+	offline: { coins: number, seconds: number }?, -- present only when an offline payout happened
 	fractionCents: number?,
 	nextLevel: {
 		levelId: string,

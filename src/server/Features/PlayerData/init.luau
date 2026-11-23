@@ -288,7 +288,7 @@ end
 -- Snapshot -----------------------------------------------------------------------------
 
 local function aquariumEnabled(): boolean
-	return ReplicatedStorage:GetAttribute(AquariumConfig.UI_ATTRIBUTE) ~= false
+	return AquariumConfig.flag(AquariumConfig.UI_ATTRIBUTE)
 end
 
 local function snapshot(profile: Profile): Types.Snapshot
@@ -428,6 +428,22 @@ end
 
 PlayerData.Loaded = loadedEvent.Event
 
+-- Callbacks that must run while the profile still exists (leave or session end). They run
+-- synchronously, before the profile is released, so a last settlement is never lost.
+local beforeRelease: { (Player) -> () } = {}
+function PlayerData.onBeforeRelease(callback: (Player) -> ())
+	table.insert(beforeRelease, callback)
+end
+
+local function runBeforeRelease(player: Player)
+	for _, callback in beforeRelease do
+		local ok, err = (pcall :: any)(callback, player)
+		if not ok then
+			warn(`[PlayerData] beforeRelease failed for {player.Name}: {err}`)
+		end
+	end
+end
+
 -- Lifecycle ----------------------------------------------------------------------------
 
 local function startSession(player: Player): Session?
@@ -444,6 +460,7 @@ end
 local function activate(player: Player, session: Session)
 	local profile = session.Data :: Profile
 	session.OnSessionEnd:Connect(function()
+		runBeforeRelease(player)
 		profiles[player] = nil
 		sessions[player] = nil
 		player:Kick(Strings.forLocale(player.LocaleId).dataSessionEnded)
@@ -527,6 +544,9 @@ end
 
 local function onPlayerRemoving(player: Player)
 	local session = sessions[player]
+	if profiles[player] then
+		runBeforeRelease(player)
+	end
 	profiles[player] = nil
 	sessions[player] = nil
 	dirty[player] = nil
