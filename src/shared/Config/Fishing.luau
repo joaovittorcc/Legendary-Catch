@@ -100,6 +100,27 @@ function Fishing.baseOdds(rarity: string, poolSize: number): number
 	return math.floor(total / weight * poolSize + 0.5)
 end
 
+-- Real "1 in N" of one roll: chance of the rarity (from the weights actually used, luck
+-- included) times the creature's share of its pool. `poolTotal` and `weight` are the pool's
+-- total weight and this creature's weight in it (Creatures.pick). 0 when it cannot roll.
+function Fishing.oddsOf(
+	rarityWeights: { [string]: number },
+	rarity: string,
+	poolTotal: number,
+	weight: number
+): number
+	local total = 0
+	for _, r in Fishing.RARITY_ORDER do
+		total += rarityWeights[r] or 0
+	end
+	local rw = rarityWeights[rarity] or 0
+	if rw <= 0 or weight <= 0 or poolTotal <= 0 or total <= 0 then
+		return 0
+	end
+	local chance = (rw / total) * (weight / poolTotal)
+	return math.max(1, math.floor(1 / chance + 0.5))
+end
+
 function Fishing.tierValue(list: { number }, tier: number): number
 	return list[math.clamp(tier, 1, #list)]
 end

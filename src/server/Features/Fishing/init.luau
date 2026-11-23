@@ -47,6 +47,7 @@ type Session = {
 	penaltyUntil: number, -- os.clock() until which minimum fight time increases by 50%
 	kind: string,
 	creatureId: string,
+	odds: number, -- real "1 in N" of the hooked creature (0 = not shown, e.g. tutorial catch)
 	eventId: string, -- ocean event in force at the bite ("" none); locks the value bonus
 	zoneId: string,
 	castPos: Vector3, -- root position when the line was cast
@@ -93,6 +94,7 @@ local function session(player: Player): Session
 			penaltyUntil = 0,
 			kind = "",
 			creatureId = "",
+			odds = 0,
 			eventId = "",
 			zoneId = "",
 			castPos = Vector3.zero,
@@ -232,7 +234,12 @@ local function luckyWeights(player: Player, zoneId: string?): { [string]: number
 	return weights
 end
 
-local function rollCreature(player: Player, maxRank: number?, zoneId: string?): Creatures.Creature
+-- Returns the creature and its real "1 in N" for this roll (luck included).
+local function rollCreature(
+	player: Player,
+	maxRank: number?,
+	zoneId: string?
+): (Creatures.Creature, number)
 	local s = sessions[player]
 	local effectiveZone = zoneId or (if s and s.zoneId ~= "" then s.zoneId else nil)
 	local weights = luckyWeights(player, effectiveZone)
@@ -246,30 +253,28 @@ local function rollCreature(player: Player, maxRank: number?, zoneId: string?): 
 		end
 		rarity = weightedPick(weights, cappedOrder)
 	end
-	-- Event and seasonal creatures join the pool (3x weight) only while active.
+	-- Each creature weighs its dropWeight; event and seasonal ones join (3x) only while active.
 	local current = OceanEvents.current()
-	local pool = {}
+	local pool: { Creatures.PoolEntry } = {}
 	for _, c in Creatures.ofRarity(rarity) do
+		local w = Creatures.dropWeight(c)
 		if c.event then
 			if current and current.id == c.event then
-				for _ = 1, 3 do
-					table.insert(pool, c)
-				end
+				table.insert(pool, { creature = c, weight = w * 3 })
 			end
 		elseif c.season then
 			if SeasonsConfig.isActive(c.season, player) then
-				for _ = 1, 3 do
-					table.insert(pool, c)
-				end
+				table.insert(pool, { creature = c, weight = w * 3 })
 			end
 		else
-			table.insert(pool, c)
+			table.insert(pool, { creature = c, weight = w })
 		end
 	end
-	if #pool == 0 then
-		pool = Creatures.LIST
+	local picked, poolTotal = Creatures.pick(pool, rng:NextNumber())
+	if not picked then
+		return Creatures.LIST[rng:NextInteger(1, #Creatures.LIST)], 0
 	end
-	return pool[rng:NextInteger(1, #pool)]
+	return picked.creature, FishingConfig.oddsOf(weights, rarity, poolTotal, picked.weight)
 end
 
 local function rollMinigame(player: Player): string
@@ -314,6 +319,7 @@ local function reset(player: Player, s: Session)
 	s.isAuto = false
 	s.kind = ""
 	s.creatureId = ""
+	s.odds = 0
 	s.zoneId = ""
 	publish(player, "", nil, nil)
 end
@@ -377,13 +383,15 @@ local function onCast(player: Player)
 			if sessions[player] ~= s or s.castId ~= castId or s.phase ~= "waiting" then
 				return
 			end
-			local creature = rollCreature(player, nil, castZone)
+			local creature, odds = rollCreature(player, nil, castZone)
 			if firstEver then
 				local friendly = Creatures.ofRarity("Uncommon")
 				if #friendly > 0 then
 					creature = friendly[rng:NextInteger(1, #friendly)]
+					odds = 0 -- scripted tutorial catch: no honest odds to show
 				end
 			end
+			s.odds = odds
 			s.phase = "fighting"
 			s.kind = if firstEver then "reel" else rollMinigame(player)
 			s.creatureId = creature.id
@@ -434,7 +442,8 @@ local function payCatch(
 	castId: number,
 	isAuto: boolean?,
 	minigame: string?,
-	lockedEventId: string?
+	lockedEventId: string?,
+	odds: number?
 )
 	local weight = rollWeight(creature)
 	local isGiant = weight >= creature.weightMin + (creature.weightMax - creature.weightMin) * 0.85
@@ -526,6 +535,7 @@ local function payCatch(
 		comboMilestone = if not isAuto and COMBO_MILESTONES[combo] then combo else nil,
 		eventId = if event then event.id else nil,
 		auto = if isAuto then true else nil,
+		odds = if odds and odds > 0 then odds else nil,
 	})
 	if not isAuto then
 		Aquarium.onCatch(player, minigame or "", isNew)
@@ -559,6 +569,7 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 	local creature = Creatures.get(s.creatureId)
 	local wonKind = s.kind -- reset() below clears it
 	local wonEvent = s.eventId
+	local wonOdds = s.odds
 	-- The fight happens where the line was cast: walking (or teleporting) away loses the
 	-- catch. Lenient radius so a small step near the zone edge never costs a real player.
 	local root = rootOf(player)
@@ -572,7 +583,7 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 			s.wonCasts[castId] = true
 			s.lastCatchAt = now
 			Analytics.fight(player, wonKind, creature.tier, "win", elapsed)
-			payCatch(player, creature, castId, nil, wonKind, wonEvent)
+			payCatch(player, creature, castId, nil, wonKind, wonEvent, wonOdds)
 			return
 		end
 	end
@@ -713,7 +724,8 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 			break
 		end
 
-		local creature = rollCreature(player, AUTO_MAX_RARITY_RANK, castZone)
+		local creature, odds = rollCreature(player, AUTO_MAX_RARITY_RANK, castZone)
+		s.odds = odds
 		local kind = rollMinigame(player)
 		s.phase = "fighting"
 		s.kind = kind
@@ -736,13 +748,14 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 			break
 		end
 
+		local autoOdds = s.odds -- reset() clears it
 		reset(player, s)
 		local tierPenalty = math.max(0, creature.tier - 3) * AUTO_TIER_PENALTY
 		local chance = math.clamp(AUTO_BASE_SUCCESS - tierPenalty, 0.10, AUTO_BASE_SUCCESS)
 		if rng:NextNumber() < chance then
 			s.wonCasts[castId] = true
 			s.lastCatchAt = os.clock()
-			payCatch(player, creature, castId, true, nil, s.eventId)
+			payCatch(player, creature, castId, true, nil, s.eventId, autoOdds)
 		else
 			send(player, { event = "escaped", castId = castId, auto = true })
 		end

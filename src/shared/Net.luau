@@ -28,6 +28,7 @@ export type FishingUpdate = {
 	potentialCpm: number?, -- individual aquarium rate of this catch in cpm (no synergy), on "caught"
 	rewardCoins: number?, -- same as value, on "caught"
 	aquariumVersion: number?, -- aquarium version after this catch, on "caught"
+	odds: number?, -- real "1 in N" of this catch (rarity luck x dropWeight share), on "caught"; nil = don't show
 	zoneId: string?, -- fishing zone id ("lagoon" | "coral" | "abyss")
 	minLevel: number?, -- minimum PlayerLevel required by the zone (when reason = "levelLocked")
 }

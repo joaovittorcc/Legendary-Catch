@@ -16,6 +16,7 @@ export type Creature = {
 	revealStyle: string,
 	event: string?, -- only rolls while that ocean event is active
 	season: string?, -- only rolls while that seasonal window is active
+	dropWeight: number?, -- relative chance inside its rarity (default from DROP_WEIGHTS, else 1)
 }
 
 local LIST: { Creature } = {
@@ -998,6 +999,154 @@ local PLANNED: { Creature } = {
 	-- Batch 3 (C35–C64), designed 2026-11-17: waiting for models.
 }
 
+-- Relative chance of each creature INSIDE its rarity (missing = 1). Richer, more detailed models
+-- are rarer: 0.25 rarest .. 3 most common (Mystic uses its own ladder down to 0.025).
+-- Ranked 2026-11-23 from the measured models plus the batch 4 prompt specs (C107-C206, not
+-- released yet: unused until their models land). Table and resulting odds:
+-- docs/CRIATURAS-ODDS-E-LISTA.md. Event and seasonal creatures keep 1 (x3 while active).
+local DROP_WEIGHTS: { [string]: number } = {
+	C01_Bolhinha_Azul = 3,
+	C02_Sardinha_Solar = 2,
+	C04_Baiacu_Nuvem = 3,
+	C05_Medusinha_Estelar = 3,
+	C06_Cavalo_Marinho_Coral = 2,
+	C07_Arraia_Prisma = 3,
+	C08_Enguia_Trovao = 3,
+	C10_Leviata_Astral = 3,
+	C11_Pingo_Lanterna = 2,
+	C12_Camarao_Confete = 0.25,
+	C14_Polvinho_Aquarela = 2,
+	C15_Tartaruga_Musgo = 0.25,
+	C16_Voador_Brisa = 3,
+	C17_Martelo_Coral = 2,
+	C18_Lula_Neon = 3,
+	C19_Peixe_Lua_Dourado = 2,
+	C20_Raia_Vulcanica = 3,
+	C21_Baleia_Nebulosa = 2,
+	C22_Serpente_Glacial = 2,
+	C23_Kraken_Trovejante = 3,
+	C24_Fenix_das_Mares = 3,
+	C25_Ourico_Gelatina = 2,
+	C26_Peixe_Pipa = 2,
+	C27_Ermitao_Cristal = 0.25,
+	C28_Nautilo_Aurora = 3,
+	C29_Dragao_Folha = 3,
+	C30_Tartaruga_Ilha = 3,
+	C32_Espadarte_Relampago = 2,
+	C33_Orca_Aurora = 2,
+	C34_Serpente_Arco_Iris = 3,
+	C35_Bagre_Bigodudo = 2,
+	C36_Peixe_Bolha_Rosa = 0.25,
+	C37_Caramujo_Doce = 3,
+	C38_Estrela_Sonolenta = 2,
+	C39_Lambari_Prata = 3,
+	C40_Caranguejo_Bolacha = 2,
+	C42_Lulinha_Gota = 3,
+	C43_Baiacu_Algodao_Doce = 0.5,
+	C44_Arraia_Pintada = 2,
+	C45_Tartaruguinha_Coral = 2,
+	C46_Peixe_Leque = 3,
+	C49_Polvo_Bolinhas = 2,
+	C51_Lanterna_Abissal = 3,
+	C53_Moreia_Voltaica = 2,
+	C54_Peixe_Vela_Solar = 2,
+	C55_Caranguejo_Rei_Gelo = 0.5,
+	C56_Dragao_de_Coral = 2,
+	C57_Manta_Galactica = 2,
+	C58_Tubarao_Fantasma = 2,
+	C59_Narval_Unicornio = 2,
+	C62_Dragao_Dourado = 2,
+	C63_Grifo_Marinho = 3,
+	C64_Guardiao_Abissal = 2,
+	C65_Tilapia_Moranguinho = 0.5,
+	C67_Lesma_do_Mar_Arco_iris = 2,
+	C68_Peixe_Biscoito = 3,
+	C69_Ermitao_Xicara = 0.25,
+	C71_Peixe_Espada_Neon = 2,
+	C72_Tartaruga_Pergaminho = 2,
+	C73_Polvo_Origami = 3,
+	C74_Baiacu_Balao_de_Festa = 0.5,
+	C76_Raia_Aurora = 2,
+	C78_Lagosta_Armadura = 3,
+	C79_Mantarraia_Vitral = 2,
+	C83_Golfinho_Trovao = 3,
+	C85_Lula_Galaxia = 3,
+	C86_Cervo_Coral = 2,
+	C87_Salamandra_de_Lava = 3,
+	C88_Rei_Tritao_Colossal = 0.25,
+	C89_Dragao_de_Jade = 0.25,
+	C90_Tartaruga_Mundo = 0.25,
+	C91_Hipocampo_Imperial = 0.5,
+	C92_Serafim_do_Mar = 0.25,
+	C93_Ouroboros_Cosmico = 0.275,
+	C94_Mare_Primordial = 0.22,
+	C107_Relogio_do_Abismo_Eterno = 0.04,
+	C108_Yggdrasil_Marinha = 0.06,
+	C109_Fenix_do_Vazio = 0.12,
+	C110_Rei_Dragao_do_Oceano = 0.08,
+	C111_Deusa_da_Lua_Submersa = 0.18,
+	C112_Singularidade_Estelar = 0.025,
+	C114_Quimera_Marinha = 0.5,
+	C115_Leviata_de_Cristal = 0.5,
+	C118_Rainha_Sereia_Imperial = 0.25,
+	C119_Wyvern_do_Relampago = 0.5,
+	C120_Colosso_Tentaculado = 0.25,
+	C123_Medusa_Imperatriz = 0.5,
+	C124_Lobo_do_Mar_Lunar = 2,
+	C127_Caranguejo_Colosso = 2,
+	C128_Garca_Estelar = 0.5,
+	C129_Mamute_de_Gelo_Marinho = 2,
+	C131_Naga_das_Profundezas = 2,
+	C132_Oraculo_do_Mar = 0.5,
+	C134_Vulcao_Nadador = 2,
+	C135_Imperador_Orca_Sombria = 2,
+	C136_Polvo_Alquimista = 0.5,
+	C137_Arraia_Cometa = 0.25,
+	C138_Tubarao_Tigre_Neon = 0.5,
+	C139_Dragao_Filhote_das_Mares = 0.5,
+	C140_Lontra_Estelar = 0.5,
+	C141_Naja_de_Coral = 0.5,
+	C142_Golfinho_de_Cristal = 0.25,
+	C143_Jubarte_Tempestade = 0.25,
+	C144_Lula_Colossal_Neon = 0.5,
+	C145_Peixe_Espada_Carmesim = 0.5,
+	C148_Cavalo_Marinho_Dragao = 0.25,
+	C151_Pinguim_Imperador_Cristal = 0.5,
+	C152_Manta_Solar = 0.25,
+	C154_Mamba_das_Mares = 0.5,
+	C158_Moreia_Esmeralda = 0.5,
+	C159_Polvo_Mimico = 0.25,
+	C160_Peixe_Lanterna_Dourado = 0.25,
+	C161_Lagosta_Rubi = 0.25,
+	C162_Esponja_Guerreira = 0.5,
+	C164_Peixe_Pedra_Vulcanico = 0.25,
+	C165_Camarao_Mantis_Arcoiris = 0.25,
+	C167_Peixe_Gato_Eletrico = 0.5,
+	C168_Cavala_Relampago = 0.5,
+	C169_Caramujo_Cone_Dourado = 0.5,
+	C171_Cobra_do_Mar_Listrada = 2,
+	C174_Baiacu_Espinho_de_Cristal = 0.5,
+	C175_Siri_Joia = 0.5,
+	C176_Salmao_Real_Ouro = 0.25,
+	C179_Camarao_Pistola = 0.5,
+	C180_Lesma_Marinha_Pavao = 0.25,
+	C181_Tartaruga_Jovem_Verde = 0.5,
+	C182_Peixe_Pedra_Camuflado = 0.5,
+	C183_Estrela_Quebradica = 0.5,
+	C188_Peixe_Sapo_Rosa = 0.25,
+	C190_Anemona_Dancarina = 0.5,
+	C191_Peixe_Mandarim = 0.25,
+	C194_Anchova_Esperta = 0.5,
+	C195_Cascudinho_Azul = 0.5,
+	C197_Ostra_Pequena = 0.25,
+	C198_Peixe_Lapis = 0.5,
+	C201_Alga_Viva = 0.5,
+	C202_Peixe_Bola_Amarelo = 0.5,
+	C204_Mini_Polvo_Verde = 0.5,
+	C205_Estrelinha_Rosa = 0.25,
+	C206_Lambari_Dourado = 0.5,
+}
+
 local byId: { [string]: Creature } = {}
 for _, c in LIST do
 	byId[c.id] = c
@@ -1021,6 +1170,34 @@ function Creatures.ofRarity(rarity: string): { Creature }
 		end
 	end
 	return out
+end
+
+-- Relative chance of `creature` inside its rarity.
+function Creatures.dropWeight(creature: Creature): number
+	local w = creature.dropWeight or DROP_WEIGHTS[creature.id] or 1
+	return if w > 0 then w else 1
+end
+
+export type PoolEntry = { creature: Creature, weight: number }
+
+-- Weighted pick from `pool` with `roll` in [0, 1). Returns the entry (nil for an empty pool) and
+-- the pool's total weight, which the "1 in N" odds need.
+function Creatures.pick(pool: { PoolEntry }, roll: number): (PoolEntry?, number)
+	local total = 0
+	for _, entry in pool do
+		total += entry.weight
+	end
+	if #pool == 0 or total <= 0 then
+		return nil, 0
+	end
+	local left = math.clamp(roll, 0, 1) * total
+	for _, entry in pool do
+		left -= entry.weight
+		if left < 0 then
+			return entry, total
+		end
+	end
+	return pool[#pool], total
 end
 
 -- Coins for a catch of `weight` kg (0.75x at the minimum weight, 1.25x at the maximum).
