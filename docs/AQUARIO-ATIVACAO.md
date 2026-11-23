@@ -56,6 +56,26 @@ Sem dado pessoal. Cardinalidade baixa de propósito. Versão dos parâmetros: `C
 
 `PARAMS_VERSION 1`: taxas = faixas do plano ×0,2 em cpm; níveis 3/5/8/12 vagas por 0/3.000/12.000/50.000; requisito de espécies 15/40/70 (provisório); sinergia 2 espécies +5%, 3+ +10%; metas de renda 1.000/2.500/6.000/12.000/25.000/50.000 cpm; metas de sessão 40/60/100 moedas, teto 600/dia; pagamento em lote a cada 5 s; offline 25%/2 h (desligado). Evidências: simulação em `docs/ECONOMIA-AQUARIO-S0.md`.
 
-## 7. Ainda não verificado
+## 7. Verificação em Play (2026-11-22, Studio, 1 jogador, perfil de teste veterano)
 
-Tudo acima com servidor real: Play, dois clientes, reconexão, saída inesperada, flags ao vivo, painel de telemetria. Os testes puros cobrem regras, migração, concorrência por versão, troca de taxa entre dois ticks, offline e perfis hostis, mas **não rodaram** (precisam do Rojo sincronizado).
+Rodado no Studio com Rojo sincronizado: servidor e cliente reais, remotes reais, `ProfileStore` do Studio (`PlayerData_Studio`). **Passou:**
+
+| Caso | Resultado |
+|---|---|
+| Carga | Perfil veterano (32 espécies) migrou, `snapshot.aquarium` pronto, nível 1 com 3 vagas; prompt `OpenAquarium` criado no `AquariumSpot` |
+| Prévia, colocar, retirar | Versão sobe de 1 em 1; `slotCpm` e `totalCpm` corretos |
+| `requestId` repetido | Devolve a mesma resposta sem reaplicar |
+| Versão velha | `staleVersion` com o snapshot atual |
+| Sinergia (2 espécies da mesma família) | Total = soma com +5% (3.559 cpm), família ativa |
+| Renda online | +552 centésimos em 12,1 s com 3.559 cpm (esperado ~720; diferença dentro de um lote de 5 s) |
+| Captura | `variantId`, `newVariant`, `potentialCpm`, `rewardCoins`, `aquariumVersion` presentes; `bite` sem espécie; combo 3 gera `comboMilestone = 3`; `eventId` correto com evento ativo |
+| Metas de sessão | Progresso por captura manual; resgate 40/60/100; resgate repetido `already = true`; teto diário descontado (600 → 400) |
+| Compra de nível | Nível 2 (3.000 moedas, 5 vagas); compra duplicada com o mesmo `requestId` não cobra de novo; nova compra com versão velha dá `staleVersion` |
+| Meta de renda não alcançada | `notReady` |
+| Flag crédito | Desligada: 0 centésimos em 12 s; religada: renda retoma sem retroagir o tempo parado |
+| Flag UI | Desligada: `status = "disabled"`, remotes respondem `disabled`, prompt desativado (**bug achado e corrigido no teste**: o prompt não reagia à flag ao vivo) |
+| Reentrada | Nível, vaga e saldo persistem; renda do último intervalo paga ao sair; sessão de metas mantida (volta em < 10 min); offline desligado não pagou nada |
+
+**Não verificado ainda:** dois clientes; celular; evento terminando no meio de uma luta (o teste só provou `eventId` com evento ativo); renda offline ligada de verdade (só a lógica pura); queda inesperada do servidor; compra com saldo insuficiente em Play (coberta pela lógica pura); servidor publicado.
+
+**Efeito colateral:** o perfil de teste do Studio ficou no nível 2 com 1 vaga ocupada e ~3.000 moedas a menos.

@@ -475,6 +475,16 @@ function Aquarium.start()
 		addAquariumPrompt(spot)
 	end
 	CollectionService:GetInstanceAddedSignal(SPOT_TAG):Connect(addAquariumPrompt)
+	-- The UI flag also hides the prompt, live.
+	ReplicatedStorage:GetAttributeChangedSignal(Config.UI_ATTRIBUTE):Connect(function()
+		local enabled = uiEnabled()
+		for _, spot in CollectionService:GetTagged(SPOT_TAG) do
+			local prompt = spot:FindFirstChild("OpenAquarium")
+			if prompt and prompt:IsA("ProximityPrompt") then
+				prompt.Enabled = enabled
+			end
+		end
+	end)
 	Remotes.onServerEvent(Net.AQUARIUM_PREVIEW, 6, 10, onPreview)
 	Remotes.onServerEvent(Net.AQUARIUM_APPLY, 4, 8, onApply)
 	Remotes.onServerEvent(Net.AQUARIUM_BUY_LEVEL, 2, 4, onBuy)
