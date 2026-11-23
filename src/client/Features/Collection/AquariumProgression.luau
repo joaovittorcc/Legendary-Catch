@@ -2,14 +2,16 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Config = require(Shared.Config.Aquarium)
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent.Parent.Hud.Panel)
 local View = require(script.Parent.AquariumView)
 local Tank = require(script.Parent.AquariumTank)
-local Income = require(script.Parent.AquariumIncome)
+local Candy = require(script.Parent.AquariumCandy)
 
 local Copy = Text.aquariumProgression
+local Tabs = Text.aquariumTabs
 local Progression = {}
 
 export type Goal = {
@@ -44,35 +46,77 @@ export type State = {
 
 local function label(parent: Instance, content: string, size: number): TextLabel
 	local text = Panel.label(parent, content, size)
+	text.TextColor3 = Candy.ink
 	text.TextStrokeTransparency = 1
 	return text
 end
 
-local function addGoal(parent: Instance, goal: Goal)
-	local card = Panel.card(parent, Theme.crystal, 106)
-	local function line(content: string, size: number, y: number)
+local function addGoal(parent: Instance, goal: Goal, claim: (() -> ())?)
+	local tone = if goal.claimed
+		then Candy.cyan
+		elseif goal.canClaim then Candy.gold
+		else Candy.pearl
+	local card = Candy.card(parent, tone, 100)
+	local function line(content: string, size: number, y: number, height: number)
 		local text = label(card, content, size)
-		text.Size = UDim2.new(1, -20, 0, 23)
-		text.Position = UDim2.fromOffset(10, y)
+		text.TextXAlignment = Enum.TextXAlignment.Left
+		text.Size = UDim2.new(0.62, -12, 0, height)
+		text.Position = UDim2.fromOffset(12, y)
+		text.TextScaled = true
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MinTextSize = 11
+		limit.MaxTextSize = size
+		limit.Parent = text
 	end
-	line(goal.title, 17, 5)
-	line(goal.progressText, 14, 32)
-	line(string.format(Copy.reward, goal.reward), 14, 58)
+	line(goal.title, 16, 5, 38)
+	line(goal.progressText, 14, 46, 24)
+	local reward = label(card, goal.reward, 13)
+	reward.Size = UDim2.new(0.36, -6, 0, 28)
+	reward.Position = UDim2.new(0.64, 0, 0, 9)
+	local action = View.button(
+		card,
+		"Claim_" .. (goal.id or ""),
+		if goal.claimed then Copy.claimed elseif goal.canClaim then Copy.claim else Tabs.progress,
+		if goal.claimed then Candy.cyan elseif goal.canClaim then Candy.gold else Candy.muted,
+		claim
+	)
+	action.TextSize = 14
+	action.Size = UDim2.new(0.36, -6, 0, 44)
+	action.Position = UDim2.new(0.64, 0, 0, 42)
 
 	local track = Instance.new("Frame")
 	track.Name = "GoalProgress"
-	track.Size = UDim2.new(1, -24, 0, 7)
-	track.Position = UDim2.new(0, 12, 1, -17)
-	track.BackgroundColor3 = Theme.ink
+	track.Size = UDim2.new(0.58, -12, 0, 9)
+	track.Position = UDim2.new(0, 12, 1, -24)
+	track.BackgroundColor3 = Candy.ink
 	track.BorderSizePixel = 0
 	Theme.corner(track, 4)
 	local progress = Instance.new("Frame")
 	progress.Size = UDim2.fromScale(math.clamp(goal.progress / math.max(1, goal.target), 0, 1), 1)
-	progress.BackgroundColor3 = Theme.crystal
+	progress.BackgroundColor3 = Candy.cyan
 	progress.BorderSizePixel = 0
 	Theme.corner(progress, 4)
 	progress.Parent = track
 	track.Parent = card
+end
+
+local function addLevels(parent: Instance, state: State)
+	local tones = { Candy.cyan, Candy.gold, Candy.violet, Candy.coral }
+	local row = Candy.row(parent, 63, 2, 8)
+	for index, level in Config.LEVELS do
+		if index == 3 then
+			row = Candy.row(parent, 63, 2, 8)
+		end
+		local isCurrent = level.id == state.levelId
+		local title = (Tabs.levels[index] or level.id)
+			.. " · "
+			.. string.format(Tabs.slotsCount, level.slots)
+		local detail = if isCurrent
+			then Tabs.current
+			elseif level.cost == 0 then "✓"
+			else string.format(Tabs.levelCost, level.cost, level.minSpecies)
+		Candy.metric(row, title, detail, tones[index])
+	end
 end
 
 function Progression.mount(
@@ -83,16 +127,22 @@ function Progression.mount(
 	requestExpansion: (Expansion, (boolean) -> ()) -> (),
 	back: () -> (),
 	changed: RBXScriptSignal?,
-	claim: ((string, (string?) -> ()) -> ())?
+	claim: ((string, (string?) -> ()) -> ())?,
+	mode: string
 )
 	Panel.stack(view)
 	local stage = Instance.new("Frame")
 	stage.Name = "TankStage"
 	stage.BackgroundTransparency = 1
-	stage.Size = UDim2.new(1, 0, 0, 175)
-	stage.Parent = view
 	local state = read()
-	local habitat = Tank.mount(stage, scroll, displays, state.capacity, state.levelId)
+	local habitat: Tank.Controller? = nil
+	if mode == "expansion" then
+		stage.Size = UDim2.new(1, 0, 0, 175)
+		stage.Parent = view
+		habitat = Tank.mount(stage, scroll, displays, state.capacity, state.levelId)
+	else
+		stage:Destroy()
+	end
 
 	local content = Instance.new("Frame")
 	content.Name = "ProgressionDetails"
@@ -110,12 +160,15 @@ function Progression.mount(
 		content:ClearAllChildren()
 		Panel.stack(content)
 		local nextExpansion = state.nextExpansion
-		label(content, string.format(Copy.tankStatus, state.capacity, Income.rate(state.rate)), 17)
+		if mode == "expansion" and not previewing then
+			addLevels(content, state)
+		end
 		if notice then
 			label(content, notice, 16)
 		end
 
-		if nextExpansion and previewing then
+		if habitat and nextExpansion and previewing then
+			local tank = habitat
 			label(
 				content,
 				string.format(Copy.expansionPreview, state.capacity, nextExpansion.capacity),
@@ -145,7 +198,7 @@ function Progression.mount(
 						previewing = false
 						notice =
 							string.format(Copy.expansionConfirmed, oldCapacity + 1, state.capacity)
-						habitat.expand(state.capacity, state.levelId)
+						tank.expand(state.capacity, state.levelId)
 						scroll.CanvasPosition = Vector2.zero
 					else
 						notice = Copy.expansionRejected
@@ -161,55 +214,54 @@ function Progression.mount(
 					elseif canBuy then Copy.buyExpansion
 					else Text.aquariumPreview.errors[nextExpansion.reason or "noCoins"]
 						or Copy.insufficient,
-				if canBuy then Theme.track else Theme.muted,
+				if canBuy and not pending then Candy.gold else Candy.muted,
 				if canBuy and not pending then buy else nil
 			)
 			View.button(
 				content,
 				"CancelExpansion",
 				Copy.cancelExpansion,
-				Theme.crystal,
+				Candy.pearl,
 				if pending
 					then nil
 					else function()
 						previewing = false
 						notice = nil
-						habitat.preview(nil)
+						tank.preview(nil)
 						render()
 					end
 			)
-		elseif nextExpansion then
-			View.button(content, "PreviewExpansion", Copy.previewExpansion, Theme.track, function()
+		elseif habitat and nextExpansion then
+			local tank = habitat
+			View.button(content, "PreviewExpansion", Copy.previewExpansion, Candy.gold, function()
 				previewing = true
 				notice = nil
-				habitat.preview(nextExpansion.capacity, nextExpansion.id)
+				tank.preview(nextExpansion.capacity, nextExpansion.id)
 				scroll.CanvasPosition = Vector2.zero
 				render()
 			end)
 		end
 
-		if not previewing then
-			if #displays > 0 then
-				View.button(content, "ReactToTank", Copy.react, Theme.crystal, function()
-					habitat.react()
-					scroll.CanvasPosition = Vector2.zero
-				end)
-			end
-			for _, goal in state.goals do
-				addGoal(content, goal)
-				local id = goal.id
-				if claim and id then
-					View.button(
+		if mode == "goals" then
+			local function group(prefix: string, caption: string)
+				label(content, caption, 20)
+				for _, goal in state.goals do
+					local claimGoal = claim
+					local id = goal.id
+					if not id or string.sub(id, 1, #prefix) ~= prefix then
+						continue
+					end
+					addGoal(
 						content,
-						"Claim_" .. id,
-						if goal.claimed then Copy.claimed else Copy.claim,
-						Theme.track,
-						if goal.canClaim and not pending
+						goal,
+						if claimGoal
+								and goal.canClaim
+								and not pending
 							then function()
 								pending = true
 								notice = nil
 								render()
-								claim(id, function(reason)
+								claimGoal(id, function(reason)
 									if not view.Parent then
 										return
 									end
@@ -226,19 +278,13 @@ function Progression.mount(
 					)
 				end
 			end
+			group("session:", Tabs.session)
+			group("income:", Tabs.income)
 			local previous = state.previousSessionCoins
 			if previous ~= nil then
 				label(content, string.format(Copy.returnSummary, previous), 15)
 			end
 		end
-
-		View.button(
-			content,
-			"BackToAquarium",
-			Copy.back,
-			Theme.crystal,
-			if pending then nil else back
-		)
 	end
 	if changed then
 		local connection = changed:Connect(function()

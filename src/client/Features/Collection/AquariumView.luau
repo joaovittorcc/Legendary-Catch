@@ -9,6 +9,7 @@ local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent.Parent.Hud.Panel)
 local Income = require(script.Parent.AquariumIncome)
+local Candy = require(script.Parent.AquariumCandy)
 
 local Copy = Text.aquariumPreview
 local LOSS = Color3.fromRGB(142, 40, 76)
@@ -37,6 +38,7 @@ export type Snapshot = {
 	coins: number,
 	slots: { Slot },
 	candidates: { Specimen },
+	synergies: { string }?,
 	capacity: number?,
 	level: number?,
 }
@@ -59,7 +61,7 @@ export type Source = {
 	confirm: (Comparison, (string?) -> ()) -> (),
 	canRemove: boolean?,
 	focus: ((number?) -> ())?,
-	stage: ((Frame) -> ())?,
+	stage: ((Frame) -> (() -> ())?)?,
 }
 
 local REMOVE = "remove"
@@ -69,7 +71,7 @@ local function name(specimen: Specimen): string
 end
 
 local function label(parent: Instance, content: string, size: number, color: Color3?): TextLabel
-	local text = Panel.label(parent, content, size, color)
+	local text = Panel.label(parent, content, size, color or Candy.ink)
 	text.TextStrokeTransparency = 1
 	return text
 end
@@ -81,12 +83,8 @@ function AquariumView.button(
 	accent: Color3,
 	pressed: (() -> ())?
 )
-	local action = Panel.button(parent, content, accent)
+	local action = Candy.button(parent, content, accent)
 	action.Name = key
-	if accent == Theme.gold or accent == Theme.crystal then
-		action.TextColor3 = Theme.ink
-		action.TextStrokeTransparency = 1
-	end
 	if pressed then
 		action.Activated:Connect(pressed)
 	else
@@ -96,29 +94,30 @@ function AquariumView.button(
 	return action
 end
 
-local function summary(parent: Instance, snapshot: Snapshot): (number) -> ()
-	local card = Panel.card(parent, Theme.crystal, 68)
-	local function line(content: string, x: number, w: number, y: number, size: number): TextLabel
-		local text = label(card, content, size)
-		text.Size = UDim2.new(w, -8, 0, 27)
-		text.Position = UDim2.new(x, 4, 0, y)
-		text.TextScaled = true
-		local constraint = Instance.new("UITextSizeConstraint")
-		constraint.MinTextSize = 11
-		constraint.MaxTextSize = size
-		constraint.Parent = text
-		return text
+local function occupancy(snapshot: Snapshot): number
+	local occupied = 0
+	for _, entry in snapshot.slots do
+		if entry.occupant then
+			occupied += 1
+		end
 	end
-	line(Copy.tankRate, 0, 0.55, 3, 14)
-	line(Income.rate(snapshot.total), 0, 0.55, 30, 22)
-	line(
-		if snapshot.level then string.format(Copy.level, snapshot.level) else Copy.title,
-		0.55,
-		0.45,
-		3,
-		14
+	return occupied
+end
+
+local function summary(parent: Instance, snapshot: Snapshot, stacked: boolean?): (number) -> ()
+	local capacity = snapshot.capacity or #snapshot.slots
+	local metrics = if stacked then parent else Candy.row(parent, 63, 2, 8)
+	Candy.metric(metrics, Copy.tankRate, Income.rate(snapshot.total), Candy.cyan)
+	local levelName = Text.aquariumTabs.levels[snapshot.level or 0] or Copy.title
+	Candy.metric(
+		metrics,
+		levelName,
+		string.format("%d / %d", occupancy(snapshot), capacity),
+		Candy.violet
 	)
-	local balance = line(string.format(Copy.balance, snapshot.coins), 0.55, 0.45, 30, 15)
+	local strip = Candy.card(parent, Candy.gold, 44)
+	local balance = label(strip, string.format(Copy.balance, snapshot.coins), 16)
+	balance.Size = UDim2.fromScale(1, 1)
 	balance.Name = "AquariumBalance"
 	local tween: Tween? = nil
 	local counter = Instance.new("NumberValue")
@@ -152,7 +151,7 @@ local function showSpecimen(
 	effective: number?,
 	showModel: (Frame, string) -> ()
 )
-	local model = Panel.card(parent, Theme.crystal, 125)
+	local model = Candy.card(parent, Candy.cobalt, 142)
 	model.BackgroundColor3 = Theme.viewport
 	showModel(model, specimen.id)
 	if effective then
@@ -194,14 +193,15 @@ end
 
 local function showComparison(parent: Instance, comparison: Comparison)
 	local difference = comparison.afterTotal - comparison.beforeTotal
-	label(
-		parent,
-		string.format(
-			Copy.comparison,
-			Income.rate(comparison.beforeTotal),
-			Income.rate(comparison.afterTotal)
-		),
-		20
+	local row = Candy.row(parent, 63, 3, 7)
+	local tabs = Text.aquariumTabs
+	Candy.metric(row, tabs.currentRate, Income.rate(comparison.beforeTotal), Candy.pearl)
+	Candy.metric(row, tabs.afterRate, Income.rate(comparison.afterTotal), Candy.cyan)
+	Candy.metric(
+		row,
+		tabs.difference,
+		Income.signed(difference),
+		if difference < 0 then Candy.coral else Candy.gold
 	)
 	label(
 		parent,
@@ -211,12 +211,6 @@ local function showComparison(parent: Instance, comparison: Comparison)
 			Income.rate(comparison.afterSlot)
 		),
 		15
-	)
-	label(
-		parent,
-		string.format(Copy.change, Income.signed(difference)),
-		16,
-		if difference < 0 then LOSS else GAIN
 	)
 	if comparison.synergyDelta ~= 0 then
 		label(
@@ -305,7 +299,7 @@ function AquariumView.mount(
 						elseif specimenKey == REMOVE then Copy.remove
 						elseif inspected then Copy.swap
 						else Copy.display,
-					Theme.gold,
+					if specimenKey == REMOVE then Candy.coral else Candy.gold,
 					if busy
 						then nil
 						else function()
@@ -343,7 +337,7 @@ function AquariumView.mount(
 					view,
 					"RetryCompare",
 					Copy.retry,
-					Theme.track,
+					Candy.cobalt,
 					requestComparison
 				)
 			end
@@ -360,7 +354,7 @@ function AquariumView.mount(
 			if inspected then
 				showSpecimen(view, inspected.specimen, inspected.effective, showModel)
 				if source.canRemove then
-					AquariumView.button(view, "CompareRemoval", Copy.remove, Theme.rose, function()
+					AquariumView.button(view, "CompareRemoval", Copy.remove, Candy.coral, function()
 						specimenKey = REMOVE
 						notice = nil
 						requestComparison()
@@ -381,7 +375,9 @@ function AquariumView.mount(
 						specimen.variant,
 						specimen.available
 					),
-					if available then Theme.track else Theme.muted,
+					if available
+						then (if index % 2 == 1 then Candy.violet else Candy.cobalt)
+						else Candy.muted,
 					if available
 						then function()
 							specimenKey = specimen.key
@@ -399,7 +395,7 @@ function AquariumView.mount(
 				intro.BackgroundTransparency = 1
 				intro.Size = UDim2.new(1, 0, 0, 350)
 				intro.Parent = view
-				local stage = Panel.card(intro, Theme.crystal, 170)
+				local stage = Candy.card(intro, Candy.cobalt, 200)
 				stage.Name = "TankPreview"
 				local stats = Instance.new("Frame")
 				stats.Name = "TankActions"
@@ -407,39 +403,45 @@ function AquariumView.mount(
 				stats.AutomaticSize = Enum.AutomaticSize.Y
 				Panel.stack(stats)
 				stats.Parent = intro
-				updateCoins = summary(stats, snapshot)
+				updateCoins = summary(stats, snapshot, true)
+				for _, synergy in ipairs(snapshot.synergies or {}) do
+					local card = Candy.card(stats, Candy.violet, 44)
+					local badge = label(card, synergy, 16, Candy.pearl)
+					badge.Size = UDim2.fromScale(1, 1)
+				end
 				overviewActions(stats, snapshot)
 				local function fitOverview()
 					local wide = intro.AbsoluteSize.X >= 455
-					stage.Size = UDim2.new(
-						if wide then 0.56 else 1,
-						if wide then -5 else 0,
-						0,
-						if wide then 177 else 152
-					)
+					local tankHeight = if wide then 236 else 196
+					stage.Size =
+						UDim2.new(if wide then 0.56 else 1, if wide then -5 else 0, 0, tankHeight)
 					stats.Position = if wide
 						then UDim2.new(0.56, 5, 0, 0)
-						else UDim2.fromOffset(0, 162)
+						else UDim2.fromOffset(0, tankHeight + 10)
 					stats.Size = UDim2.new(if wide then 0.44 else 1, if wide then -5 else 0, 0, 0)
-					intro.Size =
-						UDim2.new(1, 0, 0, if wide then 177 else 162 + stats.AbsoluteSize.Y)
+					intro.Size = UDim2.new(
+						1,
+						0,
+						0,
+						if wide
+							then math.max(tankHeight, stats.AbsoluteSize.Y)
+							else tankHeight + 10 + stats.AbsoluteSize.Y
+					)
 				end
 				intro:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitOverview)
 				stats:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitOverview)
 				fitOverview()
-				source.stage(stage)
-			end
-			local occupied = 0
-			for _, entry in snapshot.slots do
-				if entry.occupant then
-					occupied += 1
+				local react = source.stage(stage)
+				if react then
+					AquariumView.button(
+						stats,
+						"ReactToTank",
+						Text.aquariumProgression.react,
+						Candy.pearl,
+						react
+					)
 				end
 			end
-			label(
-				view,
-				string.format(Copy.occupancy, occupied, snapshot.capacity or #snapshot.slots),
-				17
-			)
 			local grid = Instance.new("Frame")
 			grid.Name = "TankSlotsGrid"
 			grid.BackgroundTransparency = 1
@@ -455,7 +457,7 @@ function AquariumView.mount(
 				local columns = math.clamp(math.floor((width + 8) / 176), 1, 3)
 				layout.CellSize = UDim2.fromOffset(
 					math.max(1, math.floor((width - (columns - 1) * 8) / columns)),
-					50
+					55
 				)
 			end
 			grid:GetPropertyChangedSignal("AbsoluteSize"):Connect(resizeGrid)
@@ -473,9 +475,10 @@ function AquariumView.mount(
 					"Slot" .. entry.id,
 					string.format(Copy.slot, entry.id, title),
 					if entry.locked
-						then Theme.muted
-						elseif occupant then Theme.crystal
-						else Theme.track,
+						then Candy.muted
+						elseif not occupant then Candy.gold
+						elseif entry.id % 2 == 1 then Candy.cyan
+						else Candy.violet,
 					if entry.locked
 						then nil
 						else function()
@@ -487,7 +490,7 @@ function AquariumView.mount(
 				tile.LayoutOrder = entry.id
 				tile.TextSize = 14
 			end
-			if occupied == 0 then
+			if occupancy(snapshot) == 0 then
 				label(view, Copy.empty, 16)
 			end
 			if not source.stage then
@@ -500,7 +503,7 @@ function AquariumView.mount(
 				view,
 				"BackStep",
 				Copy.back,
-				Theme.crystal,
+				Candy.pearl,
 				if busy == "confirm"
 					then nil
 					else function()

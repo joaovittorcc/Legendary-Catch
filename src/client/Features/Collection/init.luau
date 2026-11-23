@@ -20,6 +20,7 @@ local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local CreatureMotion = require(script.Parent:WaitForChild("CreatureMotion"))
 local Aquarium = require(script.Aquarium)
+local AquariumCandy = require(script.AquariumCandy)
 local AquariumIncome = require(script.AquariumIncome)
 local Collection = {}
 type PreviewPose = { motion: CreatureMotion.Motion, base: CFrame }
@@ -131,13 +132,14 @@ end
 
 function Collection.start()
 	local gui, scroll, heading = Panel.create("Collection", Text.collection, Theme.crystal)
-	local aquariumGui, aquariumScroll =
+	local aquariumGui, aquariumScroll, aquariumHeading =
 		Panel.create("Aquarium", Text.aquariumPreview.title, Theme.crystal, 1, 650, true)
 	aquariumGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	AquariumCandy.styleShell(aquariumGui, aquariumHeading)
 	local aquariumBody = Instance.new("Frame")
 	aquariumBody.Name = "AquariumBody"
 	aquariumBody.BackgroundTransparency = 1
-	aquariumBody.Size = UDim2.fromScale(1, 0)
+	aquariumBody.Size = UDim2.new(1, -8, 0, 0)
 	aquariumBody.AutomaticSize = Enum.AutomaticSize.Y
 	aquariumBody.Parent = aquariumScroll
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
@@ -694,7 +696,7 @@ function Collection.start()
 				preview(holder, id, false)
 			end, function()
 				Hud.showPanel("Collection")
-			end)
+			end, aquariumHeading)
 		end
 		gui.Enabled = name == "Collection" or name == "Milestones"
 		if rotation then

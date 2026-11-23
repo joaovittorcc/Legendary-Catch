@@ -6,11 +6,13 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = require(Shared.Config.Aquarium)
 local Creatures = require(Shared.Config.Creatures)
 local Net = require(Shared.Net)
+local Strings = require(Shared.Strings)
 local Text = require(Shared.StringsUi)
-local Theme = require(Shared.UiTheme)
 local Types = require(Shared.Types)
 local Data = require(script.Parent.Parent.Parent.Data)
 local View = require(script.Parent.AquariumView)
+local Candy = require(script.Parent.AquariumCandy)
+local Panel = require(script.Parent.Parent.Hud.Panel)
 local Income = require(script.Parent.AquariumIncome)
 local Progression = require(script.Parent.AquariumProgression)
 local Tank = require(script.Parent.AquariumTank)
@@ -119,6 +121,19 @@ function Aquarium.start(remotes: Instance)
 		local snapshot = state
 		local slots: { View.Slot } = {}
 		local candidates: { View.Specimen } = {}
+		local synergies: { string } = {}
+		for _, synergy in ipairs((snapshot and snapshot.synergies) or {}) do
+			if synergy.active then
+				table.insert(
+					synergies,
+					string.format(
+						Text.aquariumTabs.synergy,
+						Strings.aquariumFamily[synergy.id] or synergy.id,
+						synergy.bonusPct
+					)
+				)
+			end
+		end
 		local slotCpm = snapshot and snapshot.slotCpm
 		for _, slot in ipairs((snapshot and snapshot.slots) or {}) do
 			local occupant = slot.occupant
@@ -172,6 +187,7 @@ function Aquarium.start(remotes: Instance)
 			capacity = if snapshot and snapshot.slots then #snapshot.slots else 0,
 			slots = slots,
 			candidates = candidates,
+			synergies = synergies,
 		}
 	end
 
@@ -309,7 +325,8 @@ function Aquarium.start(remotes: Instance)
 		parent: Frame,
 		scroll: ScrollingFrame,
 		showModel: (Frame, string) -> (),
-		back: () -> ()
+		back: () -> (),
+		heading: TextLabel
 	)
 		local function frame(name: string, container: Frame): Frame
 			local page = Instance.new("Frame")
@@ -321,11 +338,14 @@ function Aquarium.start(remotes: Instance)
 			return page
 		end
 		local page = frame("Aquarium", parent)
-		local showSlots: () -> ()
-		local function showProgress()
-			page:ClearAllChildren()
-			scroll.CanvasPosition = Vector2.zero
-			local view = frame("AquariumProgression", page)
+		Panel.stack(page)
+		local tabs = Candy.row(page, 44, 3, 7)
+		tabs.Name = "AquariumTabs"
+		local content = frame("AquariumContent", page)
+		content.LayoutOrder = 1
+		local show: (string) -> ()
+		local function showProgress(mode: string)
+			local view = frame("AquariumProgression", content)
 			Progression.mount(
 				view,
 				scroll,
@@ -340,45 +360,99 @@ function Aquarium.start(remotes: Instance)
 						end
 					)
 				end,
-				showSlots,
+				function()
+					show("slots")
+				end,
 				changed.Event,
 				function(id, done)
 					request(Net.AQUARIUM_CLAIM_GOAL, { goalId = id }, function(result)
 						done(reason(result))
 					end)
-				end
+				end,
+				mode
 			)
 		end
-		showSlots = function()
-			page:ClearAllChildren()
-			scroll.CanvasPosition = Vector2.zero
-			local view = frame("AquariumSlots", page)
+		local function showSlots()
+			local view = frame("AquariumSlots", content)
 			local screenSource = table.clone(source)
 			screenSource.stage = function(stage)
 				local aquarium = state
 				local slots = aquarium and aquarium.slots
-				Tank.mount(
+				local displays = World.displays(aquarium)
+				local preview = Tank.mount(
 					stage,
 					scroll,
-					World.displays(aquarium),
+					displays,
 					if slots then #slots else 0,
-					if aquarium then aquarium.levelId else nil
+					if aquarium then aquarium.levelId else nil,
+					true
 				)
+				return if #displays > 0 then preview.react else nil
 			end
 			View.mount(view, scroll, screenSource, showModel, function(container, snapshot)
-				if snapshot.status == "active" then
-					View.button(
-						container,
-						"AquariumProgression",
-						Goals.open,
-						Theme.track,
-						showProgress
-					)
+				if snapshot.status ~= "active" then
+					View.button(container, "BackToCollection", Text.collection, Candy.pearl, back)
 				end
-				View.button(container, "BackToCollection", Text.collection, Theme.crystal, back)
 			end)
 		end
-		showSlots()
+		local selected = "slots"
+		local ready: boolean? = nil
+		local function drawTabs()
+			for _, child in tabs:GetChildren() do
+				if child:IsA("GuiButton") then
+					child:Destroy()
+				end
+			end
+			local active = state ~= nil and state.status == "ready"
+			ready = active
+			local labels = Text.aquariumTabs
+			for index, tab in
+				{
+					{ key = "slots", caption = labels.slots, tone = Candy.cyan },
+					{ key = "expansion", caption = labels.expansion, tone = Candy.violet },
+					{ key = "goals", caption = labels.goals, tone = Candy.gold },
+				}
+			do
+				local key = tab.key
+				local action = View.button(
+					tabs,
+					"Tab_" .. key,
+					tab.caption,
+					if key == selected then tab.tone elseif active then Candy.pearl else Candy.muted,
+					if key ~= selected and active
+						then function()
+							show(key)
+						end
+						else nil
+				)
+				action.LayoutOrder = index
+				action.TextSize = 15
+			end
+			heading.Text = if selected == "expansion"
+				then labels.expansion
+				elseif selected == "goals" then labels.goals
+				else Copy.title
+		end
+		show = function(key: string)
+			selected = key
+			content:ClearAllChildren()
+			scroll.CanvasPosition = Vector2.zero
+			drawTabs()
+			if key == "slots" then
+				showSlots()
+			else
+				showProgress(key)
+			end
+		end
+		local connection = changed.Event:Connect(function()
+			if ready ~= (state ~= nil and state.status == "ready") then
+				show("slots")
+			end
+		end)
+		page.Destroying:Once(function()
+			connection:Disconnect()
+		end)
+		show("slots")
 	end
 
 	return {

@@ -7,6 +7,7 @@ local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared.Config.Creatures)
 local Theme = require(Shared.UiTheme)
+local Candy = require(script.Parent.AquariumCandy)
 
 local Tank = {}
 export type Display = {
@@ -62,23 +63,35 @@ local function swimPose(
 		else CFrame.new(center)
 end
 
+export type Controller = {
+	expand: (number, string?) -> (),
+	react: () -> (),
+	preview: (number?, string?) -> (),
+}
+
 function Tank.mount(
 	parent: Frame,
 	scroll: ScrollingFrame,
 	displays: { Display },
 	capacity: number,
-	levelId: string?
-)
+	levelId: string?,
+	immersive: boolean?
+): Controller
 	local player = Players.LocalPlayer
 	local viewport = Instance.new("ViewportFrame")
 	viewport.Name = "AquariumTankViewport"
 	viewport.Size = UDim2.fromScale(1, 1)
-	viewport.BackgroundColor3 = Color3.fromRGB(24, 75, 106)
+	viewport.BackgroundColor3 = Candy.cobalt
 	viewport.BorderSizePixel = 0
-	viewport.Ambient = Color3.fromRGB(168, 217, 235)
-	viewport.LightColor = Color3.fromRGB(255, 235, 187)
+	viewport.Ambient = Color3.fromRGB(155, 221, 255)
+	viewport.LightColor = Color3.fromRGB(255, 243, 208)
 	viewport.LightDirection = Vector3.new(-0.5, -1, -0.6)
 	Theme.corner(viewport, 14)
+	local rim = Instance.new("UIStroke")
+	rim.Color = Candy.cyan
+	rim.Thickness = 2
+	rim.BorderStrokePosition = Enum.BorderStrokePosition.Inner
+	rim.Parent = viewport
 
 	local world = Instance.new("WorldModel")
 	world.Parent = viewport
@@ -100,9 +113,27 @@ function Tank.mount(
 	local swimOrigin = CFrame.identity
 	local viewAnchor: CFrame? = nil
 	local coral = {}
-	for index = 1, 5 do
-		local color = if index % 2 == 0 then Theme.crystal else Theme.rose
+	local coralColors = { Candy.coral, Candy.violet, Candy.cyan, Candy.gold }
+	for index = 1, if immersive then 12 else 5 do
+		local color = coralColors[(index - 1) % #coralColors + 1]
 		coral[index] = part(world, "Coral" .. index, color, 0)
+		if immersive then
+			coral[index].Shape = Enum.PartType.Ball
+		end
+	end
+	local bubbles: { Part } = {}
+	if immersive then
+		base.Color = Candy.cobalt
+		glass.Color = Color3.fromRGB(15, 138, 248)
+		glass.Transparency = 0.1
+		sand.Color = Color3.fromRGB(255, 188, 96)
+		for index = 1, 8 do
+			local bubble = part(world, "Bubble" .. index, Candy.cyan, 0.35)
+			bubble.Shape = Enum.PartType.Ball
+			bubble.Material = Enum.Material.Neon
+			bubble.Size = Vector3.one * (0.09 + index % 3 * 0.046)
+			table.insert(bubbles, bubble)
+		end
 	end
 	local function levelTemplate(id: string?): Model?
 		local kit = ReplicatedStorage:FindFirstChild("AquariumLevels")
@@ -111,6 +142,9 @@ function Tank.mount(
 		return if source and source:IsA("Model") then source else nil
 	end
 	local function mountLevel(id: string?): Vector3?
+		if immersive then
+			return nil
+		end
 		local source = levelTemplate(id)
 		if not source then
 			return nil
@@ -169,7 +203,10 @@ function Tank.mount(
 			end
 		end
 		local _, oldSize = model:GetBoundingBox()
-		local maxSize = if display.large then 2.4 else 1.62
+		local maxSize = if display.large
+			then (if immersive then 3.05 else 2.4)
+			elseif immersive then 2.2
+			else 1.62
 		model:ScaleTo(model:GetScale() * maxSize / math.max(0.1, oldSize.X, oldSize.Y, oldSize.Z))
 		local box, size = model:GetBoundingBox()
 		local offset = box:ToObjectSpace(model:GetPivot())
@@ -225,6 +262,10 @@ function Tank.mount(
 				anchor.Position * math.max(1, previewSize.X / math.max(1, x)),
 				swimOrigin.Position
 			)
+			elseif immersive then CFrame.lookAt(
+				Vector3.new(0, y * 0.18, math.max(y * 1.42, x * 0.51) + z * 0.5),
+				Vector3.zero
+			)
 			else CFrame.lookAt(Vector3.new(x * 0.11, y * 0.58, distance), Vector3.zero)
 		base.Size = Vector3.new(x + 0.42, 0.36, z + 0.42)
 		base.Position = Vector3.new(0, -y / 2 - 0.22, 0)
@@ -240,8 +281,11 @@ function Tank.mount(
 		trim.Position = Vector3.new(0, y / 2, -z / 2)
 		for index, stem in coral do
 			local height = 0.5 + index % 3 * y * 0.15
-			stem.Size = Vector3.new(0.2 + index % 2 * 0.22, height, 0.34)
-			stem.CFrame = CFrame.new((index / 6 - 0.5) * x, -y / 2 + height / 2, -z * 0.39)
+			local side = if index % 2 == 0 then -1 else 1
+			local edge = if immersive then side * (0.24 + index % 5 * 0.045) else index / 6 - 0.5
+			local width = if immersive then 0.25 + index % 4 * 0.13 else 0.2 + index % 2 * 0.22
+			stem.Size = Vector3.new(width, height, width)
+			stem.CFrame = CFrame.new(edge * x, -y / 2 + height / 2, -z * (0.39 - index % 3 * 0.08))
 				* CFrame.Angles(0, 0, (index - 3) * 0.14)
 		end
 	end
@@ -254,6 +298,16 @@ function Tank.mount(
 		end
 		local reaction = if reduced then 0 else math.max(0, 1 - (time - lastReaction) / 1.2)
 		local synergy = if reduced then 0 else math.max(0, 1 - (time - lastSynergy) / 1.25)
+		for index, bubble in bubbles do
+			local offset = (index * 0.168 + swimTime * 0.11) % 1
+			local side = if index % 2 == 0 then -1 else 1
+			bubble.Position = Vector3.new(
+				side * size.X * (0.24 + 0.05 * math.sin(offset * math.pi * 2 + index)),
+				(offset - 0.5) * size.Y,
+				-size.Z * 0.27
+			)
+			bubble.Transparency = 1 - 0.56 * math.sin(math.pi * offset)
+		end
 		for _, fish in shoal do
 			local pose = swimOrigin
 				* swimPose(size, fish.display.slot, fish.speed, fish.radius, swimTime, reaction)
