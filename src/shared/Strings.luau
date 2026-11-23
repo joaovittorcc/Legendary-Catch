@@ -276,6 +276,8 @@ local PT = {
 	} :: { [string]: string },
 	workshop = "Oficina",
 	openWorkshop = "Abrir Oficina",
+	aquarium = "Aquário",
+	openAquarium = "Ver Aquário",
 	-- Map signs, keyed by the sign model name (Sign_<KEY>).
 	signs = {
 		FISHINGPIER = "PÍER DE PESCA",
@@ -630,6 +632,8 @@ local EN: Strings = {
 	},
 	workshop = "Workshop",
 	openWorkshop = "Open Workshop",
+	aquarium = "Aquarium",
+	openAquarium = "View Aquarium",
 	signs = {
 		FISHINGPIER = "FISHING PIER",
 		UPGRADEWORKSHOP = "UPGRADE WORKSHOP",

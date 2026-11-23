@@ -10,6 +10,7 @@
 --     AquariumCredit pauses income. Neither removes anything the player already owns.
 -- Contract: docs/AQUARIO-CONTRATO.md
 
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
@@ -18,6 +19,8 @@ local Config = require(Shared:WaitForChild("Config"):WaitForChild("Aquarium"))
 local AquariumState = require(Shared:WaitForChild("AquariumState"))
 local Net = require(Shared:WaitForChild("Net"))
 local Types = require(Shared:WaitForChild("Types"))
+
+local Strings = require(Shared:WaitForChild("Strings"))
 
 local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
@@ -35,6 +38,7 @@ Aquarium.order = 60
 local sessions: { [Player]: Session } = {}
 local resultRemote: RemoteEvent
 
+local SPOT_TAG = "AquariumSpot"
 local MAX_SETTLE_MS = 60_000 -- a long stall never pays more than a minute at once
 
 local function uiEnabled(): boolean
@@ -447,8 +451,30 @@ local function begin(player: Player)
 	end
 end
 
+-- Any part tagged AquariumSpot gets the "OpenAquarium" prompt (same pattern as the workshop);
+-- the client opens the tank view when it fires. Works with streaming: tagged parts that
+-- stream in later are caught by the instance-added signal.
+local function addAquariumPrompt(spot: Instance)
+	if not spot:IsA("BasePart") or spot:FindFirstChild("OpenAquarium") then
+		return
+	end
+	local prompt = Instance.new("ProximityPrompt")
+	prompt.Name = "OpenAquarium"
+	prompt.ActionText = Strings.openAquarium
+	prompt.ObjectText = Strings.aquarium
+	prompt.HoldDuration = 0
+	prompt.MaxActivationDistance = 14
+	prompt.RequiresLineOfSight = false
+	prompt.Enabled = uiEnabled()
+	prompt.Parent = spot
+end
+
 function Aquarium.start()
 	resultRemote = Remotes.event(Net.AQUARIUM_RESULT)
+	for _, spot in CollectionService:GetTagged(SPOT_TAG) do
+		addAquariumPrompt(spot)
+	end
+	CollectionService:GetInstanceAddedSignal(SPOT_TAG):Connect(addAquariumPrompt)
 	Remotes.onServerEvent(Net.AQUARIUM_PREVIEW, 6, 10, onPreview)
 	Remotes.onServerEvent(Net.AQUARIUM_APPLY, 4, 8, onApply)
 	Remotes.onServerEvent(Net.AQUARIUM_BUY_LEVEL, 2, 4, onBuy)

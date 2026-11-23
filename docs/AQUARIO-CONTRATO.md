@@ -205,3 +205,9 @@ Fora do S2 ainda: eventos do oceano e minigames (S3).
 
 `FishingUpdate`: `caught.comboMilestone` (3/5/8), `caught.eventId` (bônus de evento que valeu), `escaped`/`cancelled` com `comboLost`. `ReplicatedStorage`: `OceanEventNextAt`. Regras e decisões em [PESCA-S3.md](PESCA-S3.md).
 
+## 9. Tanque no mundo e troca de nível (A0, 2026-11-22)
+
+- **No mapa:** `Workspace.Island.AquariumNursery` (tag `AquariumTank`, `ModelStreamingMode = Persistent`) é o tanque do jogador no hub, a sudoeste da escadaria (origem em x -40, z 30, y 10; a frente do modelo aponta para o leste, para a praça). Ponto de interação: peça `AquariumSpot` dentro dele, com o prompt `OpenAquarium` criado pelo servidor (ativo só quando o recurso está ligado).
+- **Kit de runtime:** `ReplicatedStorage.AquariumLevels` com `Levels` (`aquarium_lv1..4`), `Decor` (props) e `Variants` (referências de variante). Para ampliar: clonar `Levels[levelId]`, posicionar com `PivotTo(origemAtual * origemDoClone:Inverse() * clone:GetPivot())` (a origem é a peça `AquariumOrigin` de cada nível), apagar o modelo antigo e manter o nome `AquariumNursery`. Vagas: `Anchors.Slots.Slot_NN` com NN = índice do servidor (dois dígitos).
+- A vitrine completa dos quatro níveis lado a lado fica em `ServerStorage.AquariumShowcase` (referência, não vai ao cliente).
+
