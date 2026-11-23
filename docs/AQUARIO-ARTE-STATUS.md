@@ -53,3 +53,5 @@ Pedido do João: aquário nível 1 bem instalado e preparado para crescer até o
 
 **Não verificado:** Play andando pelo caminho (a checagem foi por geometria e captura), celular, e a troca de nível pelo cliente (é do Codex: trocar o modelo por `AquariumLevels.Levels[levelId]` na mesma origem, já com a plataforma).
 
+**Correção da rampa (2026-11-22, place v88).** O João viu a rampa "bugada" no nível 2: a rampa do nível 1 tinha sido copiada para o nível 2, cruzava o deck maior na diagonal e terminava por baixo da borda dele. Agora cada nível tem a sua (`Layer_00_Platform.Ramp`), reta e perpendicular à frente do deck, saindo do fim do caminho (z = 41) e terminando rente ao topo do deck: nível 1 com 14°, nível 2 com 16°, nível 3 com 22° e nível 4 com 5 degraus (o deck já chega quase no caminho). O caminho de pedra foi refeito para descer reto até esse ponto. Conferido por captura nos 4 níveis; 0 faces coplanares no caminho e nos 4 níveis.
+

@@ -231,9 +231,9 @@ end
 local PATH = {
 	Vector2.new(-19, 19),
 	Vector2.new(-22, 24.5),
-	Vector2.new(-25, 30),
-	Vector2.new(-27.5, 36),
-	Vector2.new(-28.8, 41),
+	Vector2.new(-23.5, 30.5),
+	Vector2.new(-24, 36),
+	Vector2.new(-24.2, 43.2), -- ends east of every deck front; ramps leave from here at z = 41
 }
 
 local function buildPath(island: Instance): (Model, Vector3)
@@ -282,45 +282,73 @@ local function buildPath(island: Instance): (Model, Vector3)
 	return model, Vector3.new(last.X, tops[#PATH] + 0.04, last.Y)
 end
 
--- Wooden ramp from the path end to the level 1 deck front. It lives inside the level 1 and 2
--- platforms (levels 3-4 cover the path end), and its top end is 0.06 under the deck top so it
--- never shares a plane with the bigger decks.
-local function buildRamp(pathEnd: Vector3, origin: CFrame): Model
+-- Ramp per level, perpendicular to that deck's front (the deck faces +X), from the path end at
+-- z = 41 to just past the front fascia, top flush with the deck. A run shorter than 2.5x the
+-- rise (level 4) becomes solid steps instead. Fixed 2026-11-22: the first version copied the
+-- level 1 ramp into level 2, so it crossed the bigger deck diagonally and ended under its edge.
+local RAMP_Z = 41
+local RAMP_START_X = -24.2
+
+local function buildRamp(levelIndex: number, pathTop: number, origin: CFrame): Model
 	local ramp = Instance.new("Model")
 	ramp.Name = "Ramp"
-	local front = (origin * CFrame.new(0, DECK_TOP - 0.06, SPECS[1].front + 0.35)).Position
-	local b = Vector3.new(front.X, front.Y, origin.Position.Z)
-	slab(ramp, "BridgeDeck", pathEnd, b, 5, 0.5, WOOD, Enum.Material.WoodPlanks, 0.4)
-	local side = (b - pathEnd).Unit:Cross(Vector3.yAxis).Unit
-	for _, sgn in { -1, 1 } do
-		local off = side * 2.7 * sgn - Vector3.new(0, 0.15, 0)
-		slab(
-			ramp,
-			"BridgeBeam",
-			pathEnd + off,
-			b + off,
-			0.5,
-			0.7,
-			WOOD_DARK,
-			Enum.Material.WoodPlanks,
-			0.4
-		)
-	end
-	for _, t in { 0.5, 0.92 } do
-		local q = pathEnd:Lerp(b, t)
+	local frontX = (origin * CFrame.new(0, 0, SPECS[levelIndex].front)).Position.X + 0.37
+	local deckTop = origin.Y + DECK_TOP
+	local a = Vector3.new(
+		RAMP_START_X + 1.2,
+		math.max(groundY(RAMP_START_X, RAMP_Z), pathTop - 0.25) + 0.06,
+		RAMP_Z
+	)
+	local b = Vector3.new(frontX, deckTop, RAMP_Z)
+	local run, rise = math.abs(b.X - a.X), b.Y - a.Y
+	if run / math.max(rise, 0.01) >= 2.5 then
+		slab(ramp, "RampDeck", a, b, 5, 0.5, WOOD, Enum.Material.WoodPlanks, 0)
 		for _, sgn in { -1, 1 } do
-			local x, z = q.X + side.X * 2.2 * sgn, q.Z + side.Z * 2.2 * sgn
-			local g, topY = groundY(x, z), q.Y - 0.5
-			if topY - g > 0.8 then
-				local post = part(
-					ramp,
-					"BridgePost",
-					Vector3.new(topY - g + 1, 1, 1),
-					CFrame.new(x, (topY + g - 1) / 2, z) * CFrame.Angles(0, 0, math.rad(90)),
-					WOOD_DARK
-				)
-				post.Shape = Enum.PartType.Cylinder
+			local off = Vector3.new(0, -0.15, 2.65 * sgn)
+			slab(
+				ramp,
+				"RampBeam",
+				a + off,
+				b + off,
+				0.5,
+				0.7,
+				WOOD_DARK,
+				Enum.Material.WoodPlanks,
+				0
+			)
+		end
+		for _, t in { 0.45, 0.9 } do
+			local q = a:Lerp(b, t)
+			for _, sgn in { -1, 1 } do
+				local z = q.Z + 2.2 * sgn
+				local g, topY = groundY(q.X, z), q.Y - 0.5
+				if topY - g > 0.8 then
+					local post = part(
+						ramp,
+						"RampPost",
+						Vector3.new(topY - g + 1, 1, 1),
+						CFrame.new(q.X, (topY + g - 1) / 2, z) * CFrame.Angles(0, 0, math.rad(90)),
+						WOOD_DARK
+					)
+					post.Shape = Enum.PartType.Cylinder
+				end
 			end
+		end
+	else
+		local n = math.max(2, math.ceil(rise / 0.45))
+		local tread = run / n
+		for k = 1, n do
+			local topY = a.Y + rise * k / n
+			local x0 = a.X - tread * (k - 1)
+			local x1 = x0 - tread
+			local h = topY - (groundY((x0 + x1) / 2, RAMP_Z) - 0.4)
+			part(
+				ramp,
+				"Step",
+				Vector3.new(tread + 0.02, h, 5),
+				CFrame.new((x0 + x1) / 2, topY - h / 2 - (k % 2) * 0.01, RAMP_Z),
+				if k % 2 == 0 then WOOD else Color3.fromRGB(150, 104, 64)
+			)
 		end
 	end
 	ramp.WorldPivot = origin
@@ -342,6 +370,7 @@ function Builder.run(): string
 	end
 
 	local _, pathEnd = buildPath(island)
+	local pathTop = pathEnd.Y - 0.04
 
 	-- platforms for every level, built at the hub origin then copied into the kit level
 	local levels: { [number]: Model } = {}
@@ -354,9 +383,7 @@ function Builder.run(): string
 	for index = 1, 4 do
 		local level = levels[index]
 		local platform = buildPlatform(index, ORIGIN)
-		if index <= 2 then
-			buildRamp(pathEnd, ORIGIN).Parent = platform
-		end
+		buildRamp(index, pathTop, ORIGIN).Parent = platform
 		moveTo(platform, ORIGIN, (level:FindFirstChild("AquariumOrigin") :: BasePart).CFrame)
 		platform.Parent = level
 	end
@@ -388,7 +415,7 @@ function Builder.run(): string
 	CollectionService:AddTag(spot, "AquariumSpot")
 	tank.Parent = island
 	-- After building, run tools/ZFightFixer.luau over each kit level and reinstall level 1.
-	return "built path, 4 platforms (ramp on 1-2), installed level 1"
+	return "built path, 4 platforms with their own ramp/steps, installed level 1"
 end
 
 return Builder
