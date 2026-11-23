@@ -11,6 +11,8 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent.Parent.Hud:WaitForChild("Panel"))
 local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local Framing = require(script.Parent:WaitForChild("RevealFraming"))
+local Data = require(script.Parent.Parent.Parent.Data)
+local AquariumIncome = require(script.Parent.Parent.Collection.AquariumIncome)
 
 local RevealCard = {}
 local CARD_TWEEN = 0.26
@@ -25,6 +27,10 @@ export type CatchInfo = {
 	isRecord: boolean?,
 	isGiant: boolean?,
 	previousBest: number?,
+	rewardCoins: number?,
+	potentialCpm: number?,
+	variantId: string?,
+	newVariant: boolean?,
 }
 
 type Row = { label: TextLabel, height: number }
@@ -183,23 +189,45 @@ function RevealCard.open(
 	local rewardWeight: number? = nil
 	local rewardTarget: number? = nil
 	local rewardPopped = false
-	if info and info.weight and info.value then
-		local initialVal = if reduced then info.value else 0
+	local reward = info and (info.rewardCoins or info.value)
+	if info and info.weight and reward then
+		local initialVal = if reduced then reward else 0
 		rewardLabel =
 			row("Reward", string.format(Text.captureReward, info.weight, initialVal), 15, 19)
 		rewardWeight = info.weight
-		rewardTarget = info.value
+		rewardTarget = reward
+	end
+	local profile = Data.get()
+	local aquarium = profile and profile.aquarium
+	if info and info.potentialCpm and aquarium and aquarium.status == "ready" then
+		row(
+			"PotentialIncome",
+			string.format(
+				Text.aquariumPreview.capturePotential,
+				AquariumIncome.rate(info.potentialCpm)
+			),
+			14,
+			19
+		)
 	end
 	local badges = {}
 	if info then
 		if info.isNew then
 			table.insert(badges, Text.discovery)
 		end
-		if info.variant == "Shiny" then
+		local copy = Text.aquariumPreview
+		if info.variantId == "both" then
+			table.insert(badges, copy.combined)
+		elseif info.variantId == "gold" then
+			table.insert(badges, copy.golden)
+		elseif info.variant == "Shiny" then
 			table.insert(badges, Text.shiny)
 		end
-		if info.isGiant then
+		if info.variantId ~= "both" and info.isGiant then
 			table.insert(badges, Text.adventure.giant)
+		end
+		if info.newVariant and info.variantId ~= "base" then
+			table.insert(badges, Text.discoveries.newAquariumVariant)
 		end
 		if info.isRecord and not info.previousBest then
 			table.insert(badges, Text.adventure.catchRecord)

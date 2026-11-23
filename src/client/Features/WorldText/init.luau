@@ -20,6 +20,9 @@ local function localizePrompt(prompt: Instance)
 	if stat and Strings.stat[stat] then
 		prompt.ActionText = `{Strings.trainAction} {Strings.stat[stat]}`
 		prompt.ObjectText = Strings.statHelp[stat] or Strings.trainingSpot
+	elseif prompt.Name == "OpenAquarium" then
+		prompt.ActionText = Strings.openAquarium
+		prompt.ObjectText = Strings.aquarium
 	elseif prompt.Name == "OpenWorkshop" then
 		prompt.ActionText = Strings.openWorkshop
 		prompt.ObjectText = Strings.workshop

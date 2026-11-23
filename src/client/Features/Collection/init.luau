@@ -1,6 +1,9 @@
 --!strict
+local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local RunService = game:GetService("RunService")
+local TweenService = game:GetService("TweenService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
 local Creatures = require(Config:WaitForChild("Creatures"))
@@ -14,9 +17,10 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local Panel = require(script.Parent:WaitForChild("Hud"):WaitForChild("Panel"))
 local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
-local RunService = game:GetService("RunService")
 
 local CreatureMotion = require(script.Parent:WaitForChild("CreatureMotion"))
+local Aquarium = require(script.Aquarium)
+local AquariumIncome = require(script.AquariumIncome)
 local Collection = {}
 type PreviewPose = { motion: CreatureMotion.Motion, base: CFrame }
 type Thumbnail = { holder: Frame, id: string, hidden: boolean, pose: PreviewPose? }
@@ -93,9 +97,51 @@ local function progressBar(parent: Instance, count: number, target: number, colo
 	bar.Parent = parent
 end
 
+local function discoveryStamp(
+	parent: Frame,
+	key: string,
+	caption: string,
+	accent: Color3,
+	animate: boolean,
+	delayTime: number
+)
+	local stamp = Panel.label(parent, caption, 15, Theme.ink)
+	stamp.Name = key
+	stamp.Size = UDim2.new(1, 0, 0, 34)
+	stamp.TextStrokeTransparency = 1
+	Theme.surface(stamp, accent, 10, accent:Lerp(Theme.cream, 0.62))
+	if animate then
+		local scale = Instance.new("UIScale")
+		scale.Scale = 0.82
+		scale.Parent = stamp
+		TweenService:Create(
+			scale,
+			TweenInfo.new(
+				0.28,
+				Enum.EasingStyle.Back,
+				Enum.EasingDirection.Out,
+				0,
+				false,
+				delayTime
+			),
+			{ Scale = 1 }
+		):Play()
+	end
+end
+
 function Collection.start()
 	local gui, scroll, heading = Panel.create("Collection", Text.collection, Theme.crystal)
+	local aquariumGui, aquariumScroll =
+		Panel.create("Aquarium", Text.aquariumPreview.title, Theme.crystal, 1, 650, true)
+	aquariumGui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
+	local aquariumBody = Instance.new("Frame")
+	aquariumBody.Name = "AquariumBody"
+	aquariumBody.BackgroundTransparency = 1
+	aquariumBody.Size = UDim2.fromScale(1, 0)
+	aquariumBody.AutomaticSize = Enum.AutomaticSize.Y
+	aquariumBody.Parent = aquariumScroll
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
+	local aquarium = Aquarium.start(remotes)
 	local body = Instance.new("Frame")
 	body.BackgroundTransparency = 1
 	body.Size = UDim2.new(1, -10, 0, 0)
@@ -123,6 +169,24 @@ function Collection.start()
 		end
 	end
 	local lastSignature: string? = nil
+	local aquariumAvailable = aquarium.available()
+	local initialSnapshot = Data.get()
+	local previousCollection = if initialSnapshot then initialSnapshot.collection else nil
+	local newSpecies: { [string]: boolean } = {}
+	local newVariants: { [string]: boolean } = {}
+	local newAquariumVariants: { [string]: boolean } = {}
+	local fishingUpdates = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
+	fishingUpdates.OnClientEvent:Connect(function(update: Net.FishingUpdate)
+		if
+			update.event == "caught"
+			and update.creatureId
+			and update.newVariant
+			and update.variantId
+			and update.variantId ~= "base"
+		then
+			newAquariumVariants[update.creatureId .. "/" .. update.variantId] = true
+		end
+	end)
 	local function refreshPreviews()
 		if not gui.Enabled then
 			return
@@ -149,6 +213,32 @@ function Collection.start()
 	local previewsDirty = false
 	local function queuePreviews()
 		previewsDirty = true
+	end
+
+	local function collectionSignature(): string?
+		local snapshot = Data.get()
+		if not snapshot then
+			return nil
+		end
+		local values = {}
+		if snapshot.aquarium and snapshot.aquarium.version then
+			table.insert(values, tostring(snapshot.aquarium.version))
+		end
+		for _, entry in Creatures.LIST do
+			local record = snapshot.collection[entry.id]
+			if record then
+				table.insert(
+					values,
+					`{entry.id}:{record.count}:{record.bestWeight}:{record.shiny or 0}`
+				)
+			end
+		end
+		for _, milestone in Milestones.LIST do
+			if snapshot.milestones and snapshot.milestones[milestone.id] then
+				table.insert(values, milestone.id)
+			end
+		end
+		return table.concat(values, "|")
 	end
 
 	local function render()
@@ -193,11 +283,60 @@ function Collection.start()
 			stage.Size = UDim2.new(1, 0, 0, 145)
 			Theme.surface(stage, Theme.crystal, 22, Theme.viewport)
 			stage.Parent = body
-			spinning = preview(stage, creature.id, record == nil)
+			local firstDiscovery = newSpecies[creature.id] == true and record ~= nil
+			local firstVariant = newVariants[creature.id] == true and record ~= nil
+			newSpecies[creature.id] = nil
+			newVariants[creature.id] = nil
+			local animate = Players.LocalPlayer:GetAttribute("ReduceEffects") ~= true
+			spinning = preview(stage, creature.id, record == nil or (firstDiscovery and animate))
+			local revealDelay = if firstDiscovery and animate then 0.24 else 0
+			if revealDelay > 0 then
+				task.delay(revealDelay, function()
+					if stage.Parent then
+						local silhouette = stage:FindFirstChildWhichIsA("ViewportFrame")
+						if silhouette then
+							silhouette:Destroy()
+						end
+						spinning = preview(stage, creature.id, false)
+						motionStart = os.clock()
+					end
+				end)
+			end
 			motionStart = os.clock()
 			if record then
+				local book = Text.discoveries
+				local firstAt = record.firstAt
+				local date = if firstAt > 0 and firstAt <= os.time()
+					then string.format(book.firstCatch, os.date(book.dateFormat, firstAt))
+					else book.recorded
+				if firstDiscovery then
+					discoveryStamp(
+						body,
+						"NewDiscoveryStamp",
+						book.newDiscovery,
+						Theme.rarity[creature.rarity] or Theme.crystal,
+						animate,
+						revealDelay
+					)
+				end
+				discoveryStamp(
+					body,
+					"DiscoveryDate",
+					date,
+					Theme.rarity[creature.rarity] or Theme.crystal,
+					false,
+					0
+				)
 				local shiny = record.shiny
-				if typeof(shiny) == "number" and shiny > 0 then
+				if typeof(shiny) == "number" and shiny > 0 and not aquarium.available() then
+					discoveryStamp(
+						body,
+						"VariantStamp",
+						if firstVariant then book.newVariant else book.variant,
+						Theme.gold,
+						firstVariant and animate,
+						revealDelay
+					)
 					local shinyLbl = Panel.label(
 						body,
 						string.format(Text.shinyCount, shiny),
@@ -217,6 +356,38 @@ function Collection.start()
 					),
 					15
 				)
+				local copy = Text.aquariumPreview
+				for _, variant in aquarium.details(creature.id) do
+					local key = creature.id .. "/" .. variant.id
+					if newAquariumVariants[key] then
+						newAquariumVariants[key] = nil
+						discoveryStamp(
+							body,
+							"NewVariant_" .. variant.id,
+							book.newAquariumVariant,
+							Theme.gold,
+							animate,
+							revealDelay
+						)
+					end
+					Panel.label(
+						body,
+						string.format(copy.variantCount, variant.variant, variant.count),
+						16
+					)
+					Panel.label(
+						body,
+						string.format(copy.capturePotential, AquariumIncome.rate(variant.potential)),
+						14
+					)
+					if variant.effective then
+						Panel.label(
+							body,
+							string.format(copy.effective, AquariumIncome.rate(variant.effective)),
+							14
+						)
+					end
+				end
 				local lore = Strings.creatureLore[creature.id]
 				if lore then
 					local loreLbl = Panel.label(body, lore, 15, Theme.wood)
@@ -335,6 +506,20 @@ function Collection.start()
 				end)
 			end
 			return
+		end
+		if aquarium.available() then
+			local action = Panel.button(
+				body,
+				if aquarium.firstDisplay()
+					then Text.aquariumPreview.firstDisplay
+					else Text.aquariumPreview.title,
+				Theme.crystal
+			)
+			action.Name = "OpenAquarium"
+			action.LayoutOrder = -4
+			action.Activated:Connect(function()
+				Hud.showPanel("Aquarium")
+			end)
 		end
 		local album = Panel.card(body, Theme.crystal, 65)
 		album.Name = "AlbumIntro"
@@ -491,7 +676,26 @@ function Collection.start()
 			end
 		end)
 	end
+	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
+		if
+			player ~= Players.LocalPlayer
+			or prompt.Name ~= "OpenAquarium"
+			or Hud.isFishingActive()
+		then
+			return
+		end
+		Hud.showPanel("Aquarium")
+	end)
 	Hud.panelChanged:Connect(function(name: string)
+		aquariumBody:ClearAllChildren()
+		if name == "Aquarium" then
+			aquariumScroll.CanvasPosition = Vector2.zero
+			aquarium.mount(aquariumBody, aquariumScroll, function(holder, id)
+				preview(holder, id, false)
+			end, function()
+				Hud.showPanel("Collection")
+			end)
+		end
 		gui.Enabled = name == "Collection" or name == "Milestones"
 		if rotation then
 			rotation:Disconnect()
@@ -500,6 +704,7 @@ function Collection.start()
 		if gui.Enabled then
 			selected = nil
 			showRewards = name == "Milestones"
+			lastSignature = collectionSignature()
 			scroll.CanvasPosition = Vector2.zero
 			render()
 			local elapsed = 0
@@ -550,26 +755,29 @@ function Collection.start()
 	end)
 	Data.changed:Connect(function()
 		local snapshot = Data.get()
-		if not gui.Enabled or not snapshot then
+		if not snapshot then
 			return
 		end
-		local values = {}
-		for _, entry in Creatures.LIST do
-			local record = snapshot.collection[entry.id]
-			if record then
-				table.insert(
-					values,
-					`{entry.id}:{record.count}:{record.bestWeight}:{record.shiny or 0}`
-				)
+		local previous = previousCollection
+		previousCollection = snapshot.collection
+		if previous then
+			for id, record in snapshot.collection do
+				local old = previous[id]
+				if not old and record.count > 0 then
+					newSpecies[id] = true
+				end
+				if (record.shiny or 0) > 0 and (not old or (old.shiny or 0) == 0) then
+					newVariants[id] = true
+				end
 			end
 		end
-		for _, milestone in Milestones.LIST do
-			if snapshot.milestones and snapshot.milestones[milestone.id] then
-				table.insert(values, milestone.id)
-			end
+		if not gui.Enabled then
+			return
 		end
-		local signature = table.concat(values, "|")
-		if signature ~= lastSignature then
+		local signature = collectionSignature()
+		local available = aquarium.available()
+		if signature ~= lastSignature or available ~= aquariumAvailable then
+			aquariumAvailable = available
 			lastSignature = signature
 			render()
 		end

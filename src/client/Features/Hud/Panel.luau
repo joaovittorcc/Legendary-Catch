@@ -16,6 +16,7 @@ local panelBlur: BlurEffect? = nil
 local activeScreens: { [ScreenGui]: Frame } = {}
 local ICONS = {
 	Collection = "🐠",
+	Aquarium = "🐟",
 	Shop = "🎣",
 	Robux = "💎",
 	Missions = "📜",
