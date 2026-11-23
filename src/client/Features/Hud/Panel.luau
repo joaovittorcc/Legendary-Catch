@@ -251,7 +251,8 @@ function Panel.create(
 	title: string,
 	accent: Color3,
 	heightScale: number?,
-	maxHeight: number?
+	maxHeight: number?,
+	wide: boolean?
 ): (ScreenGui, ScrollingFrame, TextLabel)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = id .. "Screen"
@@ -404,11 +405,15 @@ function Panel.create(
 			return
 		end
 		local insetTop = GuiService:GetGuiInset()
-		local topSafe = math.max(math.round(insetTop.Y) + 18, 66)
-		local availHeight = math.max(240, size.Y - topSafe - 16)
-		local width = math.min(size.X * 0.88, 760)
+		local compact = wide == true and size.X > size.Y
+		local topSafe = if compact then 21 else math.max(math.round(insetTop.Y) + 18, 66)
+		local availHeight = if compact
+			then math.max(1, size.Y - topSafe - 12)
+			else math.max(240, size.Y - topSafe - 16)
+		local width =
+			math.min(size.X * (if compact then 0.94 else 0.88), if wide then 1120 else 760)
 		local height = math.min(availHeight * (heightScale or 0.92), maxHeight or 570)
-		local viewRatio = math.clamp(width / math.max(height, 1), 0.68, 2.8)
+		local viewRatio = math.clamp(width / math.max(height, 1), if wide then 0.52 else 0.68, 2.8)
 		if width / math.max(height, 1) > viewRatio then
 			width = height * viewRatio
 		else
@@ -418,11 +423,12 @@ function Panel.create(
 		shell.Size = UDim2.fromOffset(width, height)
 		shell.Position = UDim2.new(0.5, 0, 0, topSafe + math.floor((size.Y - topSafe) * 0.5))
 		local narrow = width <= 420
-		tab.Size = UDim2.new(if narrow then 0.80 else 0.69, 0, 0, 48)
-		tab.Position = UDim2.new(if narrow then 0.44 else 0.5, 0, 0, 7)
-		local sidePad = if narrow then 16 else 28
-		scroll.Position = UDim2.fromOffset(sidePad, 64)
-		scroll.Size = UDim2.new(1, -(sidePad * 2), 1, -80)
+		tab.Size = UDim2.new(if compact then 0.49 elseif narrow then 0.80 else 0.69, 0, 0, 48)
+		tab.Position = UDim2.new(if compact then 0.26 elseif narrow then 0.44 else 0.5, 0, 0, 7)
+		local sidePad = if compact then 12 elseif narrow then 16 else 28
+		local topPad = if compact then 34 else 64
+		scroll.Position = UDim2.fromOffset(sidePad, topPad)
+		scroll.Size = UDim2.new(1, -(sidePad * 2), 1, -topPad - (if compact then 10 else 16))
 	end
 	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
 	shell.Parent = gui
