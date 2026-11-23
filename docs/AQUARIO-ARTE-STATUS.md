@@ -28,3 +28,28 @@ Revisado em 2026-11-22 por Claude a pedido do João (o Antigravity parou após e
 - **Cosméticos `aqdeco_*`:** mapear placa/luminária aos `DecorAnchor_01/02`; coral, fonte, moldura e troféu usam os props de `AquariumLevels.Decor` (`decor_crystal_coral`, `decor_bubble_fountain`, `decor_golden_frame`, `decor_astral_obelisk`), mas faltam âncoras próprias.
 - **Play:** andar até o aquário, abrir o prompt, ver o tanque cheio no celular.
 - **João:** vídeos das 18 Lendárias para fechar A3.
+
+## Varredura do hub sudoeste (2026-11-22, place v87)
+
+Pedido do João: aquário nível 1 bem instalado e preparado para crescer até o nível 4, acesso digno, revisão da área de treino e de tudo que pisca ou atravessa o chão. Tudo conferido por captura no Studio, nível por nível.
+
+**Aquário**
+- Novo lugar: ponta sudoeste do hub, sobre a água (origem `(-40, 10.4, 47.5)`, frente para a praça). É o único ponto onde o nível 4 (~57 × 40) cabe sem invadir a lagoa, a escadaria nem o placar flutuante. Conferido com o modelo de cada nível instalado no lugar: nenhuma colisão.
+- Plataforma por nível (`Layer_00_Platform` dentro de cada nível em `ReplicatedStorage.AquariumLevels.Levels`): deck, borda elevada, guarda-corpo atrás e nos lados, frente aberta, estacas até o fundo do mar. Cresce de 24 × 21 (nível 1) até 57 × 40 (nível 4). Como a plataforma está dentro do modelo do nível, a troca de nível troca a plataforma junto.
+- O deck fica sempre ≥ 0,35 acima do terreno (a 10,0 a grama atravessava o piso dos níveis 3 e 4).
+- Acesso: caminho de pedra igual ao da praça, da borda da praça até o ombro do penhasco, mais uma rampa de madeira até a frente do deck (a rampa vive nos níveis 1 e 2; nos níveis 3 e 4 o deck já chega ao caminho). Lanterna existente marca o caminho.
+- Decoração que ficaria dentro da área do nível 4 foi realocada para a borda oeste e o mar (1 palmeira, 3 cristais, 3 arbustos); o cristal sob o deck do nível 1 saiu daí.
+
+**Treino e entorno**
+- Deck de treino estava 0,1 abaixo do calçamento da praça: as tábuas sumiam embaixo dele e a viga da borda aparecia atravessada no chão. Deck inteiro erguido 0,36.
+- Pedras da borda da lagoa eram blocos quadrados flutuando como azulejos. Viraram rocha de terreno (como o resto da ilha), rebaixada do lado da praça. Original guardado em `ServerStorage.Backup_LagoonRim`.
+- Disco do fundo da lagoa reduzido para não encostar no terreno; vitória-régia e lótus que estavam em cima da pedra voltaram para a água.
+- 8 pedras e bases de cristal com o topo exatamente na linha d'água (piscavam com a água) foram erguidas para romper a superfície.
+
+**Z-fighting (pisca-pisca)**
+- Detector de faces coplanares sobrepostas (`tools/ZFightFixer.luau`): 121 pares na região oeste, mais dentro dos 4 níveis do kit (degraus da escadaria, placar, estátua da fênix, ponte do portal, píer, fundação do tanque). **0 restantes** no hub inteiro e nos 4 níveis.
+
+**Ferramentas no repositório:** `tools/HubAquariumBuilder.luau` (plataformas, caminho, rampa, instalação) e `tools/ZFightFixer.luau`. Os ajustes pontuais (decoração realocada, deck do treino, lagoa) foram aplicados só no place e estão descritos aqui.
+
+**Não verificado:** Play andando pelo caminho (a checagem foi por geometria e captura), celular, e a troca de nível pelo cliente (é do Codex: trocar o modelo por `AquariumLevels.Levels[levelId]` na mesma origem, já com a plataforma).
+

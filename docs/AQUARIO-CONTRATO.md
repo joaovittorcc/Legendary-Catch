@@ -207,7 +207,8 @@ Fora do S2 ainda: eventos do oceano e minigames (S3).
 
 ## 9. Tanque no mundo e troca de nível (A0, 2026-11-22)
 
-- **No mapa:** `Workspace.Island.AquariumNursery` (tag `AquariumTank`, `ModelStreamingMode = Persistent`) é o tanque do jogador no hub, a sudoeste da escadaria (origem em x -40, z 30, y 10; a frente do modelo aponta para o leste, para a praça). Ponto de interação: peça `AquariumSpot` dentro dele, com o prompt `OpenAquarium` criado pelo servidor (ativo só quando o recurso está ligado).
+- **No mapa:** `Workspace.Island.AquariumNursery` (tag `AquariumTank`, `ModelStreamingMode = Persistent`) é o tanque do jogador no hub, na ponta sudoeste, sobre a água (origem em x -40, y 10.4, z 47.5; a frente do modelo aponta para o leste, para a praça; atributo `OriginCFrame` no modelo). Ponto de interação: peça `AquariumSpot` dentro dele, com o prompt `OpenAquarium` criado pelo servidor (ativo só quando o recurso está ligado).
 - **Kit de runtime:** `ReplicatedStorage.AquariumLevels` com `Levels` (`aquarium_lv1..4`), `Decor` (props) e `Variants` (referências de variante). Para ampliar: clonar `Levels[levelId]`, posicionar com `PivotTo(origemAtual * origemDoClone:Inverse() * clone:GetPivot())` (a origem é a peça `AquariumOrigin` de cada nível), apagar o modelo antigo e manter o nome `AquariumNursery`. Vagas: `Anchors.Slots.Slot_NN` com NN = índice do servidor (dois dígitos).
+- Cada nível do kit tem `Layer_00_Platform` (deck/estacas/guarda-corpo do tamanho daquele nível; níveis 1 e 2 incluem a rampa `Ramp`). Trocar o modelo troca a plataforma.
 - A vitrine completa dos quatro níveis lado a lado fica em `ServerStorage.AquariumShowcase` (referência, não vai ao cliente).
 
