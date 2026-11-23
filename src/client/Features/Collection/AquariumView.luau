@@ -228,6 +228,41 @@ local function showComparison(parent: Instance, comparison: Comparison)
 	end
 end
 
+local function chooserColumns(parent: Frame): (Frame, Frame)
+	local row = Instance.new("Frame")
+	row.Name = "SpecimenPicker"
+	row.BackgroundTransparency = 1
+	local function column(title: string): Frame
+		local content = Instance.new("Frame")
+		content.Name = title
+		content.BackgroundTransparency = 1
+		content.AutomaticSize = Enum.AutomaticSize.Y
+		Panel.stack(content)
+		content.Parent = row
+		return content
+	end
+	local options = column("Options")
+	local details = column("CurrentSpecimen")
+	local function fit()
+		local wide = row.AbsoluteSize.X >= 535
+		options.Size = UDim2.new(if wide then 0.5 else 1, if wide then -5 else 0, 0, 0)
+		details.Size = options.Size
+		details.Position = if wide
+			then UDim2.new(0.5, 5, 0, 0)
+			else UDim2.fromOffset(0, options.AbsoluteSize.Y + 10)
+		local height = if wide
+			then math.max(options.AbsoluteSize.Y, details.AbsoluteSize.Y)
+			else options.AbsoluteSize.Y + 10 + details.AbsoluteSize.Y
+		row.Size = UDim2.new(1, 0, 0, height)
+	end
+	row:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	options:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	details:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
+	row.Parent = parent
+	fit()
+	return options, details
+end
+
 function AquariumView.mount(
 	view: Frame,
 	scroll: ScrollingFrame,
@@ -351,30 +386,41 @@ function AquariumView.mount(
 			end
 		elseif slot then
 			label(view, string.format(Copy.choose, slot.id), 20)
+			local options = view
 			if inspected then
-				showSpecimen(view, inspected.specimen, inspected.effective, showModel)
+				local list, details = chooserColumns(view)
+				options = list
+				showSpecimen(details, inspected.specimen, inspected.effective, showModel)
 				if source.canRemove then
-					AquariumView.button(view, "CompareRemoval", Copy.remove, Candy.coral, function()
-						specimenKey = REMOVE
-						notice = nil
-						requestComparison()
-					end)
+					AquariumView.button(
+						options,
+						"CompareRemoval",
+						Copy.remove,
+						Candy.coral,
+						function()
+							specimenKey = REMOVE
+							notice = nil
+							requestComparison()
+						end
+					)
 				end
 			end
 			if #snapshot.candidates == 0 then
-				label(view, Copy.noCandidates, 16)
+				label(options, Copy.noCandidates, 16)
 			end
 			for index, specimen in snapshot.candidates do
 				local available = specimen.available > 0
-				AquariumView.button(
-					view,
+				local option = AquariumView.button(
+					options,
 					"Candidate" .. index,
 					string.format(
 						Copy.candidate,
 						name(specimen),
 						specimen.variant,
 						specimen.available
-					),
+					)
+						.. "\n"
+						.. Income.rate(specimen.potential),
 					if available
 						then (if index % 2 == 1 then Candy.violet else Candy.cobalt)
 						else Candy.muted,
@@ -387,6 +433,8 @@ function AquariumView.mount(
 						end
 						else nil
 				)
+				option.Size = UDim2.new(1, 0, 0, 54)
+				option.TextSize = 15
 			end
 		else
 			if source.stage then
