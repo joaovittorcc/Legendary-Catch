@@ -19,6 +19,9 @@ export type FishingUpdate = {
 	isGiant: boolean?, -- weight in the top 15% of the species range
 	combo: number?, -- consecutive catches including this one
 	comboBonus: number?, -- coin multiplier bonus from the combo (0.09 = +9%)
+	comboMilestone: number?, -- 3 | 5 | 8 when this catch reached a celebrated streak, on "caught"
+	comboLost: number?, -- length of the streak (>= 3) that just ended, on "escaped" / "cancelled"
+	eventId: string?, -- ocean event whose bonus applied to this catch ("" or nil = none), on "caught"
 	auto: boolean?, -- true when resolved by the server Auto-Fish loop
 	variantId: string?, -- "base" | "giant" | "gold" | "both", on "caught" (variant/isGiant stay as they were)
 	newVariant: boolean?, -- first time this species+variant combination is caught, on "caught"

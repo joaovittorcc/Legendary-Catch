@@ -62,6 +62,14 @@ Events.INTERVAL_MIN = 12 * 60
 Events.INTERVAL_MAX = 20 * 60
 Events.ACTIVE_ATTRIBUTE = "OceanEvent"
 Events.ENDS_AT_ATTRIBUTE = "OceanEventEndsAt"
+-- workspace:GetServerTimeNow() of the next scheduled roll. If an event is still running
+-- then, the roll is skipped and a new time is published (so it can be later than the end).
+Events.NEXT_AT_ATTRIBUTE = "OceanEventNextAt"
+-- The event portal on the pier is SCENERY (decor that opens and closes with the event). It
+-- does not teleport anywhere: zones are unlocked by player level (Config/Zones), not events.
+-- Event-only creatures are the ones in Config/Creatures with `event == <event id>`; they roll
+-- only while that event is the current one.
+Events.PORTAL_IS_SCENERY = true
 
 function Events.get(id: string): OceanEvent?
 	return byId[id]

@@ -71,6 +71,30 @@ function Analytics.coins(
 	end)
 end
 
+-- Fight telemetry for minigame calibration (S3). One event per judged fight; value is the
+-- fight length in seconds. Fields: mode, tier, result ("win" | "lose" | "timeout").
+-- Low cardinality on purpose (3 modes x 6 tiers x 3 results); no personal data.
+function Analytics.fight(
+	player: Player,
+	kind: string,
+	tier: number,
+	result: string,
+	seconds: number
+)
+	pcall(function()
+		AnalyticsService:LogCustomEvent(
+			player,
+			"FishingFight",
+			math.floor(seconds * 10 + 0.5) / 10,
+			{
+				CustomField01 = kind,
+				CustomField02 = `tier{tier}`,
+				CustomField03 = result,
+			}
+		)
+	end)
+end
+
 function Analytics.start() end
 
 return Analytics

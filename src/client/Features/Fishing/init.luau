@@ -156,7 +156,10 @@ local function startCast(id: number)
 	FishingCamera.start(root, l.bobber)
 	local flat = (root.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
 	Line.castTo(l, root.Position + flat * FishingConfig.CAST_DISTANCE)
-	Ui.toast(Strings.waiting)
+	-- castTo can return after the cast ended (bite, cancel): only hint while still waiting.
+	if currentState() == "waiting" and line == l then
+		Ui.toast(Strings.waiting)
+	end
 end
 
 local function startFight(update: Net.FishingUpdate)
@@ -236,13 +239,27 @@ local function onCaught(update: Net.FishingUpdate)
 end
 
 local function onEscaped()
+	local id = castId
+	-- Clear the fight controls at once; only the line snap and the toast wait 0.6 s.
+	local stop = stopMinigame
+	stopMinigame = nil
+	if stop then
+		stop()
+	end
+	PressInput.disable()
+	Ui.hidePanel()
+	Omen.stop()
+	state = "resolving"
 	local l = line
 	if l then
 		Line.snap(l)
 	end
 	Ui.toast(Strings.escaped, Color3.fromRGB(255, 120, 120))
 	task.wait(0.6)
-	cleanup()
+	-- A "cancelled" update (or a new cast) may have cleaned up while we waited.
+	if castId == id and currentState() == "resolving" then
+		cleanup()
+	end
 end
 
 local function onUpdate(update: Net.FishingUpdate)

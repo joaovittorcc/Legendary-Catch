@@ -200,3 +200,8 @@ Cosméticos desbloqueados vêm em `snapshot.aquarium.cosmetics` (lista de IDs). 
 **Resgate:** C→S `AquariumClaimGoal({ requestId, goalId })` com `goalId = "income:<id>"` ou `"session:<id>"`. Resposta `AquariumResult` com `kind = "claim"`: `ok`, `reward = { coins?, cosmetic? }`, `already = true` se já tinha sido resgatada (nada é pago de novo), `coins` (saldo) e `snapshot`. Motivos: `notReady`, `unknown`, `dailyCap`, `badRequest`, `disabled`, `notReady` (perfil).
 
 Fora do S2 ainda: eventos do oceano e minigames (S3).
+
+## 8. S3: campos de pesca (aditivos)
+
+`FishingUpdate`: `caught.comboMilestone` (3/5/8), `caught.eventId` (bônus de evento que valeu), `escaped`/`cancelled` com `comboLost`. `ReplicatedStorage`: `OceanEventNextAt`. Regras e decisões em [PESCA-S3.md](PESCA-S3.md).
+

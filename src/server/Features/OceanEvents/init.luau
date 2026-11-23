@@ -54,7 +54,12 @@ function OceanEvents.start()
 
 	task.spawn(function()
 		while true do
-			task.wait(rng:NextNumber(Events.INTERVAL_MIN, Events.INTERVAL_MAX))
+			local delay = rng:NextNumber(Events.INTERVAL_MIN, Events.INTERVAL_MAX)
+			ReplicatedStorage:SetAttribute(
+				Events.NEXT_AT_ATTRIBUTE,
+				Workspace:GetServerTimeNow() + delay
+			)
+			task.wait(delay)
 			if not active then
 				OceanEvents.startEvent(Events.LIST[rng:NextInteger(1, #Events.LIST)].id)
 			end

@@ -12,6 +12,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local AquariumConfig = require(Shared:WaitForChild("Config"):WaitForChild("Aquarium"))
 local AquariumState = require(Shared:WaitForChild("AquariumState"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
+local EventsConfig = require(Shared:WaitForChild("Config"):WaitForChild("Events"))
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Net = require(Shared:WaitForChild("Net"))
 local PrestigeConfig = require(Shared:WaitForChild("Config"):WaitForChild("Prestige"))
@@ -46,6 +47,7 @@ type Session = {
 	penaltyUntil: number, -- os.clock() until which minimum fight time increases by 50%
 	kind: string,
 	creatureId: string,
+	eventId: string, -- ocean event in force at the bite ("" none); locks the value bonus
 	zoneId: string,
 	castPos: Vector3, -- root position when the line was cast
 	isAuto: boolean, -- current cast is running on the server Auto-Fish loop
@@ -89,6 +91,7 @@ local function session(player: Player): Session
 			penaltyUntil = 0,
 			kind = "",
 			creatureId = "",
+			eventId = "",
 			zoneId = "",
 			castPos = Vector3.zero,
 			isAuto = false,
@@ -284,11 +287,24 @@ end
 
 local COMBO_STEP = 0.03 -- +3% coins per consecutive catch
 local COMBO_MAX_STEPS = 10 -- capped at +30%
+-- Streak lengths the client celebrates with a stronger effect (3 / 5 / 8 manual catches).
+-- Only juice: the coin bonus stays on COMBO_STEP up to COMBO_MAX_STEPS.
+local COMBO_MILESTONES: { [number]: boolean } = { [3] = true, [5] = true, [8] = true }
+local COMBO_LOST_MIN = 3 -- the client only mourns a streak of at least this length
 
-local function breakCombo(player: Player)
-	if (player:GetAttribute("FishingCombo") or 0) ~= 0 then
+-- Ends the streak (escape, failed fight, timeout, cancel). Returns the length that was lost
+-- when it was worth announcing, else nil. Auto-Fish never moves the combo either way.
+local function breakCombo(player: Player): number?
+	local previous = (player:GetAttribute("FishingCombo") or 0) :: number
+	if previous ~= 0 then
 		player:SetAttribute("FishingCombo", 0)
 	end
+	return if previous >= COMBO_LOST_MIN then previous else nil
+end
+
+local function currentEventId(): string
+	local event = OceanEvents.current()
+	return if event then event.id else ""
 end
 
 local function reset(player: Player, s: Session)
@@ -369,6 +385,7 @@ local function onCast(player: Player)
 			s.phase = "fighting"
 			s.kind = if firstEver then "reel" else rollMinigame(player)
 			s.creatureId = creature.id
+			s.eventId = currentEventId()
 			s.fightStart = os.clock()
 			local character = player.Character
 			publish(
@@ -389,9 +406,20 @@ local function onCast(player: Player)
 
 			task.delay(FishingConfig.FIGHT_TIMEOUT, function()
 				if sessions[player] == s and s.castId == castId and s.phase == "fighting" then
+					local kind = s.kind -- reset() clears it
 					reset(player, s)
-					breakCombo(player)
-					send(player, { event = "escaped", castId = castId })
+					Analytics.fight(
+						player,
+						kind,
+						creature.tier,
+						"timeout",
+						FishingConfig.FIGHT_TIMEOUT
+					)
+					send(player, {
+						event = "escaped",
+						castId = castId,
+						comboLost = breakCombo(player),
+					})
 				end
 			end)
 		end
@@ -403,7 +431,8 @@ local function payCatch(
 	creature: Creatures.Creature,
 	castId: number,
 	isAuto: boolean?,
-	minigame: string?
+	minigame: string?,
+	lockedEventId: string?
 )
 	local weight = rollWeight(creature)
 	local isGiant = weight >= creature.weightMin + (creature.weightMax - creature.weightMin) * 0.85
@@ -413,7 +442,11 @@ local function payCatch(
 	if not isAuto then
 		player:SetAttribute("FishingCombo", combo)
 	end
-	local event = OceanEvents.current()
+	-- The event that was active at the BITE decides the bonus, so a catch in progress when the
+	-- event ends still pays what the player saw (and one that began mid-fight does not).
+	local event = if lockedEventId ~= nil
+		then EventsConfig.get(lockedEventId)
+		else OceanEvents.current()
 	local forced = devOverride(player, "DevForceVariant")
 	local shiny = forced == "Shiny"
 		or (forced == nil and rng:NextNumber() < FishingConfig.SHINY_CHANCE)
@@ -488,6 +521,8 @@ local function payCatch(
 		aquariumVersion = aquariumVersion,
 		combo = combo,
 		comboBonus = comboBonus,
+		comboMilestone = if not isAuto and COMBO_MILESTONES[combo] then combo else nil,
+		eventId = if event then event.id else nil,
 		auto = if isAuto then true else nil,
 	})
 	if not isAuto then
@@ -521,6 +556,7 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 	local rateLimited = s.lastCatchAt ~= nil and (now - s.lastCatchAt) < CATCH_RATE_LIMIT
 	local creature = Creatures.get(s.creatureId)
 	local wonKind = s.kind -- reset() below clears it
+	local wonEvent = s.eventId
 	-- The fight happens where the line was cast: walking (or teleporting) away loses the
 	-- catch. Lenient radius so a small step near the zone edge never costs a real player.
 	local root = rootOf(player)
@@ -533,20 +569,22 @@ local function onSubmit(player: Player, castId: unknown, success: unknown)
 		if stayed and elapsed >= minimum and not rateLimited and creature then
 			s.wonCasts[castId] = true
 			s.lastCatchAt = now
-			payCatch(player, creature, castId, nil, wonKind)
+			Analytics.fight(player, wonKind, creature.tier, "win", elapsed)
+			payCatch(player, creature, castId, nil, wonKind, wonEvent)
 			return
 		end
 	end
-	breakCombo(player)
-	send(player, { event = "escaped", castId = castId })
+	if not success and creature and stayed and elapsed >= minimum then
+		Analytics.fight(player, wonKind, creature.tier, "lose", elapsed)
+	end
+	send(player, { event = "escaped", castId = castId, comboLost = breakCombo(player) })
 end
 
 local function onCancel(player: Player)
 	local s = sessions[player]
 	if s and not s.isAuto and s.phase ~= "idle" then
 		reset(player, s)
-		breakCombo(player)
-		send(player, { event = "cancelled", castId = s.castId })
+		send(player, { event = "cancelled", castId = s.castId, comboLost = breakCombo(player) })
 	end
 end
 
@@ -678,6 +716,7 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 		s.phase = "fighting"
 		s.kind = kind
 		s.creatureId = creature.id
+		s.eventId = currentEventId()
 		s.fightStart = os.clock()
 		local character = player.Character
 		publish(
@@ -701,7 +740,7 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 		if rng:NextNumber() < chance then
 			s.wonCasts[castId] = true
 			s.lastCatchAt = os.clock()
-			payCatch(player, creature, castId, true)
+			payCatch(player, creature, castId, true, nil, s.eventId)
 		else
 			send(player, { event = "escaped", castId = castId, auto = true })
 		end
