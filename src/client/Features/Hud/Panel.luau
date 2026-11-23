@@ -4,6 +4,7 @@ local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
+local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Hud = require(script.Parent)
@@ -203,7 +204,9 @@ local function setOpen(gui: ScreenGui, shell: Frame, opened: boolean)
 					:Play()
 			end
 		end
-		if not reduced then
+		-- Full-screen blur is a post-process pass: too costly on phones, the dim backdrop is enough.
+		local touchOnly = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
+		if not reduced and not touchOnly then
 			local blur = panelBlur
 			if not blur or blur.Parent ~= Lighting then
 				local effect = Instance.new("BlurEffect")
