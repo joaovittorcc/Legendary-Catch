@@ -134,6 +134,8 @@ Fishing.AIM = {
 	sweepSeconds = 1.6, -- kept for older readers: same as fillSeconds
 	segments = 10, -- "gominhos" (cells) in the vertical gauge
 	timeoutSeconds = 3.5, -- no tap: casts in "red"
+	-- The cast cutscene (pull-back hold) plays first: the bar starts this long after the press.
+	windupSeconds = 0.6,
 	maxLagSeconds = 0.2, -- a reported tap time may be at most this much before it arrived
 	suspectPurpleShare = 0.6, -- above this share of purple in the last `suspectWindow` casts,
 	suspectWindow = 20, -- the client's tap time stops being trusted (server time only)

@@ -387,7 +387,8 @@ end
 -- Phase "aiming": the server clock drives the bar; the client gets the layout and start time.
 function startAim(player: Player, s: Session, castId: number)
 	s.phase = "aiming"
-	s.aimStart = workspace:GetServerTimeNow()
+	-- The bar starts after the cast cutscene's pull-back (client), so no time is lost to it.
+	s.aimStart = workspace:GetServerTimeNow() + FishingConfig.AIM.windupSeconds
 	local rod = equippedRod(player)
 	local progress = Training.level(player, "Control") / TrainingConfig.MAX_LEVEL
 	local aim = FishingConfig.aimLevel(progress, if rod then rod.controlBonus else 0)
@@ -401,7 +402,7 @@ function startAim(player: Player, s: Session, castId: number)
 		aimLevel = aim,
 		aimLayout = s.aimLayout,
 	})
-	task.delay(FishingConfig.AIM.timeoutSeconds, function()
+	task.delay(FishingConfig.AIM.windupSeconds + FishingConfig.AIM.timeoutSeconds, function()
 		resolveAim(player, s, castId, nil)
 	end)
 end
@@ -412,6 +413,9 @@ local function onPowerTap(player: Player, castId: unknown, clientTime: unknown)
 		return
 	end
 	local now = workspace:GetServerTimeNow()
+	if now < s.aimStart then
+		return -- tapped during the pull-back, before the bar started: ignore
+	end
 	local tapTime = now
 	if
 		typeof(clientTime) == "number"

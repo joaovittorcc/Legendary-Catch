@@ -20,6 +20,7 @@ local Line = require(script:WaitForChild("Line"))
 local OddsMoment = require(script:WaitForChild("OddsMoment"))
 local Omen = require(script:WaitForChild("Omen"))
 local PowerBar = require(script:WaitForChild("PowerBar"))
+local CastCutscene = require(script:WaitForChild("CastCutscene"))
 local CatchShow = require(script:WaitForChild("CatchShow"))
 local PressInput = require(script:WaitForChild("PressInput"))
 local Reveal = require(script:WaitForChild("Reveal"))
@@ -51,6 +52,7 @@ local pendingPerfect = false
 
 -- "idle" | "casting" | "aiming" | "waiting" | "fighting" | "resolving" | "revealing"
 local state: string = "idle"
+local aimStartAt = 0 -- server time the power bar starts (after the cast cutscene's pull-back)
 local castId = 0
 local line: Line.Line? = nil
 local stopMinigame: (() -> ())? = nil
@@ -111,6 +113,7 @@ local function cleanup()
 	PressInput.disable()
 	Ui.hidePanel()
 	PowerBar.hide()
+	CastCutscene.stop()
 	freeze(false)
 	FishingCamera.stop()
 	Omen.stop()
@@ -140,6 +143,10 @@ local function onActivated()
 	-- Power bar (flag FishingPower): the next press is the tap; the server reads the band from
 	-- its own clock, the time sent here only forgives a little latency.
 	if state == "aiming" then
+		-- Taps during the pull-back (before the bar starts) do nothing.
+		if Workspace:GetServerTimeNow() < aimStartAt then
+			return
+		end
 		local remote = powerTapRemote
 		if remote then
 			remote:FireServer(castId, Workspace:GetServerTimeNow())
@@ -150,7 +157,10 @@ local function onActivated()
 		return
 	end
 	state = "casting"
-	playCastSwing(tool)
+	-- With the power bar, the cast cutscene's pull-back replaces the quick slash.
+	if not FishingConfig.powerEnabled() then
+		playCastSwing(tool)
+	end
 	castRemote:FireServer()
 end
 
@@ -169,7 +179,12 @@ local function startCast(id: number)
 	freeze(false)
 	local l = Line.create(attachment)
 	line = l
-	FishingCamera.start(root, l.bobber)
+	-- After the cast cutscene the fishing camera starts where its follow shot ends.
+	CastCutscene.release(function()
+		if line == l and l.bobber.Parent and root.Parent then
+			FishingCamera.start(root, l.bobber)
+		end
+	end)
 	local flat = (root.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
 	Line.castTo(l, root.Position + flat * FishingConfig.CAST_DISTANCE)
 	-- castTo can return after the cast ended (bite, cancel): only hint while still waiting.
@@ -190,6 +205,7 @@ local function startFight(update: Net.FishingUpdate)
 	local minigame = MINIGAMES[kind] or MINIGAMES.reel
 
 	state = "fighting"
+	CastCutscene.finish() -- an early bite cuts the follow shot short
 	Line.bite(l, color)
 	FishingCamera.fight()
 	if rarity == "Legendary" or rarity == "Mystic" then
@@ -333,7 +349,9 @@ local function onUpdate(update: Net.FishingUpdate)
 		castId = update.castId or 0
 		state = "aiming"
 		freeze(true)
-		PowerBar.show(update.aimLayout or {}, update.aimStart or Workspace:GetServerTimeNow())
+		aimStartAt = update.aimStart or Workspace:GetServerTimeNow()
+		CastCutscene.windup(player.Character)
+		PowerBar.show(update.aimLayout or {}, aimStartAt)
 	elseif update.event == "cast" and (state == "casting" or state == "aiming") then
 		if update.powerBand then
 			-- Show what the band does to a Legendary (rank 5): the clearest "x2" to read.
