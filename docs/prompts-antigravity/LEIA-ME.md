@@ -16,3 +16,20 @@ Leia docs/prompts-antigravity/<ARQUIVO>.md inteiro e execute o lote <N>. Siga as
 ```
 
 Lembretes: só um Studio aberto (place 112666482424701); cada agente mexe só nos IDs do seu lote; `save_place` a cada 3 a 5 criaturas; se os 4 travarem esperando o lock, rode um por vez começando pelo lote 1.
+
+
+## Ilhas de treino: conceitos (3 agentes, 4 imagens cada)
+
+Etapa de **conceito**, antes de construir. Cada agente gera 4 imagens da sua ilha; o João escolhe uma e só então o agente constrói no Studio.
+
+| Agente | Arquivo | Ilha |
+|---|---|---|
+| 1 | `ILHA-CONCEITO-1-RECIFE.md` | Ilha do Recife (x3) |
+| 2 | `ILHA-CONCEITO-2-ABISMO-ESTELAR.md` | Ilha Abismo Estelar (x12) |
+| 3 | `ILHA-CONCEITO-3-CELESTIAL.md` | Ilha Celestial (x50) |
+
+Texto para colar (um por conversa):
+
+```text
+Leia docs/prompts-antigravity/<ARQUIVO>.md inteiro e faça só o que ele pede (4 imagens de conceito e a descrição). Não abra o Studio nem construa nada.
+```
