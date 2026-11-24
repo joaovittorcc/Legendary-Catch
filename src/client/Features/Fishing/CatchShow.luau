@@ -26,9 +26,14 @@ local Roulette = require(script.Parent:WaitForChild("Roulette"))
 
 local CatchShow = {}
 
-export type Update = Roulette.Update
+export type Update = Roulette.Update & {
+	potentialCpm: number?, -- aquarium income of this catch in hundredths of a coin per minute
+	variantId: string?, -- "base" | "giant" | "gold" | "both"
+	variant: string?, -- "" | "Shiny"
+}
 export type Info = {
 	creatureId: string,
+	rarity: string?, -- "Common" .. "Mystic": styles the income number
 	odds: number?, -- final "1 in N" (payload `odds`); nil = skip the counter
 	short: boolean?, -- true when a long reveal cinematic follows (Legendary/Mystic)
 }
@@ -153,6 +158,127 @@ local function buildSilhouette(parent: Instance, creatureId: string): (ViewportF
 	camera.Parent = vp
 	vp.CurrentCamera = camera
 	return vp, model
+end
+
+-- Coins per minute from hundredths: 2100 -> "21", 1850 -> "18,5", 123456 -> "1.234".
+local function coinsText(cpm: number): string
+	local perMin = cpm / 100
+	if perMin >= 100 then
+		return grouped(perMin)
+	end
+	local text = if perMin == math.floor(perMin)
+		then tostring(perMin)
+		else string.format("%.1f", perMin)
+	return (text:gsub("%.", Strings.decimalSep))
+end
+
+local NUMBER_BASE: { [string]: Color3 } = {
+	Common = Color3.fromRGB(255, 246, 228),
+	Uncommon = Color3.fromRGB(120, 235, 170),
+	Rare = Color3.fromRGB(90, 190, 255),
+	Epic = Color3.fromRGB(190, 120, 255),
+}
+local GOLD_SHIMMER = ColorSequence.new({
+	ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 170, 40)),
+	ColorSequenceKeypoint.new(0.35, Color3.fromRGB(255, 215, 80)),
+	ColorSequenceKeypoint.new(0.5, Color3.fromRGB(255, 255, 230)),
+	ColorSequenceKeypoint.new(0.65, Color3.fromRGB(255, 215, 80)),
+	ColorSequenceKeypoint.new(1, Color3.fromRGB(255, 170, 40)),
+})
+
+-- Styles the income number by rarity and runs its animation until `alive()` turns false:
+-- Common/Uncommon/Rare plain colour, Epic purple with a pulsing outline, Legendary (and the gold
+-- variant) a gold gradient with a shine sweeping across, Mystic a rotating rainbow; Legendary and
+-- Mystic also throw sparkles around the number.
+local function styleIncome(
+	lbl: TextLabel,
+	rarity: string,
+	gold: boolean,
+	reduce: boolean,
+	alive: () -> boolean
+)
+	local stroke = lbl:FindFirstChildOfClass("UIStroke")
+	local mystic = rarity == "Mystic"
+	local shimmer = (rarity == "Legendary" or gold) and not mystic
+	local base = NUMBER_BASE[rarity] or NUMBER_BASE.Common
+	lbl.TextColor3 = WHITE
+	local gradient = Instance.new("UIGradient")
+	if mystic then
+		gradient.Color = K.RAINBOW
+	elseif shimmer then
+		gradient.Color = GOLD_SHIMMER
+	else
+		gradient.Color = ColorSequence.new(base:Lerp(WHITE, 0.4), base)
+		gradient.Rotation = 90
+	end
+	gradient.Parent = lbl
+	if stroke and rarity == "Epic" then
+		stroke.Color = Color3.fromRGB(70, 30, 130)
+	end
+	if reduce then
+		return
+	end
+	task.spawn(function()
+		local t = 0
+		local last = 0
+		while alive() and lbl.Parent do
+			t += task.wait()
+			if mystic then
+				gradient.Rotation = (t * 150) % 360
+			elseif shimmer then
+				gradient.Offset = Vector2.new(((t * 0.9) % 2) - 1, 0)
+			elseif stroke and rarity == "Epic" then
+				stroke.Thickness = 4 + math.sin(t * 6) * 1.5
+			end
+			local screenGui = lbl:FindFirstAncestorOfClass("ScreenGui")
+			if (mystic or shimmer) and t - last > 0.14 and screenGui then
+				last = t
+				local sp = Instance.new("Frame")
+				sp.AnchorPoint = Vector2.new(0.5, 0.5)
+				sp.Size = UDim2.fromOffset(math.random(6, 11), math.random(6, 11))
+				sp.Rotation = 45
+				sp.BackgroundColor3 = if mystic
+					then Color3.fromHSV(math.random(), 0.5, 1)
+					else Color3.fromRGB(255, 240, 160)
+				sp.BorderSizePixel = 0
+				sp.ZIndex = lbl.ZIndex + 1
+				local px = lbl.AbsolutePosition.X + lbl.AbsoluteSize.X * math.random()
+				local py = lbl.AbsolutePosition.Y + lbl.AbsoluteSize.Y * math.random()
+				local origin = screenGui.AbsolutePosition
+				sp.Position = UDim2.fromOffset(px - origin.X, py - origin.Y)
+				sp.Parent = screenGui
+				local tw = TweenService:Create(sp, TweenInfo.new(0.7, Enum.EasingStyle.Quad), {
+					Position = sp.Position - UDim2.fromOffset(0, 30),
+					BackgroundTransparency = 1,
+					Size = UDim2.fromOffset(2, 2),
+					Rotation = 225,
+				})
+				tw:Play()
+				tw.Completed:Once(function()
+					sp:Destroy()
+				end)
+			end
+		end
+	end)
+end
+
+-- Screen point of the player's right hand (falls back to the lower middle of the screen).
+local function handPoint(): UDim2
+	local camera = Workspace.CurrentCamera
+	local char = player.Character
+	local hand = char
+		and (
+			char:FindFirstChild("RightHand")
+			or char:FindFirstChild("Right Arm")
+			or char:FindFirstChild("HumanoidRootPart")
+		)
+	if camera and hand and hand:IsA("BasePart") then
+		local point, onScreen = camera:WorldToViewportPoint(hand.Position)
+		if onScreen and point.Z > 0 then
+			return UDim2.fromOffset(point.X, point.Y)
+		end
+	end
+	return UDim2.fromScale(0.5, 0.86)
 end
 
 -- How big the silhouette looks for a size multiplier (the real model grows in the reveal).
@@ -955,6 +1081,151 @@ function CatchShow.play(update: Update, info: Info)
 		punch(TIER_ACCENT[tier], tier >= 4)
 		confetti(16 + finalTier * 4, true)
 		task.wait(if state.fast then 0.4 else 0.9)
+	end
+
+	------------------------------------------------------------------ phase 4: it becomes the fish
+	do
+		state.fast = false
+		local rarityName = info.rarity or "Common"
+		local goldVariant = update.variantId == "gold"
+			or update.variantId == "both"
+			or update.variant == "Shiny"
+		local cpm = update.potentialCpm
+		-- the black silhouette takes its real colours (a mutation keeps a hint of its tint)
+		local finalTint = WHITE
+		if mutationId then
+			finalTint = WHITE:Lerp(MUTATION_COLORS[mutationId] or WHITE, 0.22)
+		end
+		TweenService:Create(vp, TweenInfo.new(0.55), {
+			ImageColor3 = finalTint,
+			Ambient = Color3.fromRGB(165, 165, 175),
+		}):Play()
+		TweenService:Create(glow, TweenInfo.new(0.5), { BackgroundTransparency = 0.35 }):Play()
+		-- the fish grows into the middle of the screen so it can be admired (flies off below)
+		local revealScale = 1.5
+		TweenService
+			:Create(vpScale, TweenInfo.new(0.55, Enum.EasingStyle.Back), { Scale = revealScale })
+			:Play()
+		punch(TIER_ACCENT[tier], true)
+		confetti(26, true)
+		nameLabel.Text = name
+		for _, label in { word, counter } do
+			TweenService:Create(label, TweenInfo.new(0.4), { TextTransparency = 0.55 }):Play()
+		end
+		task.wait(0.5)
+
+		-- coins per minute above the creature, styled by rarity
+		local showing = true
+		if cpm and cpm > 0 then
+			local pill = Instance.new("Frame")
+			pill.Name = "IncomePill"
+			pill.AnchorPoint = Vector2.new(0.5, 0.5)
+			pill.Position = UDim2.fromScale(0.5, 0.265)
+			pill.Size = UDim2.fromScale(0.78, 0.085)
+			pill.BackgroundColor3 = Color3.fromRGB(24, 14, 44)
+			pill.BackgroundTransparency = 0.25
+			pill.BorderSizePixel = 0
+			pill.ZIndex = 14
+			local pillCorner = Instance.new("UICorner")
+			pillCorner.CornerRadius = UDim.new(0.5, 0)
+			pillCorner.Parent = pill
+			local pillStroke = Instance.new("UIStroke")
+			pillStroke.Thickness = 3
+			pillStroke.Color = (NUMBER_BASE[rarityName] or Color3.fromRGB(255, 205, 70)):Lerp(
+				WHITE,
+				0.15
+			)
+			if rarityName == "Legendary" or goldVariant then
+				pillStroke.Color = Color3.fromRGB(255, 205, 70)
+			elseif rarityName == "Mystic" then
+				pillStroke.Color = Color3.fromRGB(255, 120, 220)
+			end
+			pillStroke.Parent = pill
+			local pillLimit = Instance.new("UISizeConstraint")
+			pillLimit.MaxSize = Vector2.new(620, 92)
+			pillLimit.Parent = pill
+			pill.Parent = screen
+			K.pop(pill, 0.4, 1, 0.4)
+			local income = K.label(
+				pill,
+				"",
+				WHITE,
+				UDim2.new(1, -28, 0.82, 0),
+				UDim2.fromScale(0.5, 0.5),
+				4,
+				15
+			)
+			local incomeCap = Instance.new("UITextSizeConstraint")
+			incomeCap.MaxTextSize = 84
+			incomeCap.Parent = income
+			styleIncome(income, rarityName, goldVariant, reduce, function()
+				return showing
+			end)
+			K.pop(income, 0.4, 1, 0.4)
+			local steps = if state.fast then 1 else 16
+			for i = 1, steps do
+				income.Text = string.format(Strings.incomePerMin, coinsText(cpm * (i / steps)))
+				task.wait(0.03)
+			end
+			K.pop(income, 1.35, 1, 0.3)
+			sparkles(TIER_ACCENT[tier], 14, UDim2.fromScale(0.5, 0.265))
+			task.wait(if state.fast then 0.5 else 1.2)
+		else
+			task.wait(if state.fast then 0.3 else 0.7)
+		end
+		showing = false
+
+		-- everything fades except the fish, which flies to the hand and shrinks
+		local gone = TweenInfo.new(0.3)
+		for _, d in screen:GetChildren() do
+			if d ~= vp and d:IsA("GuiObject") then
+				if d:IsA("TextLabel") then
+					TweenService:Create(d, gone, { TextTransparency = 1 }):Play()
+					local st = d:FindFirstChildOfClass("UIStroke")
+					if st then
+						TweenService:Create(st, gone, { Transparency = 1 }):Play()
+					end
+				elseif d:IsA("Frame") and d ~= glow then
+					TweenService:Create(d, gone, { BackgroundTransparency = 1 }):Play()
+				end
+			end
+		end
+		if blur then
+			TweenService:Create(blur, gone, { Size = 0 }):Play()
+		end
+		TweenService:Create(grade, gone, { Saturation = 0, Contrast = 0 }):Play()
+		local target = handPoint()
+		local flight = TweenService:Create(
+			vp,
+			TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{
+				Position = target,
+				Rotation = 25,
+			}
+		)
+		TweenService:Create(
+			vpScale,
+			TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+			{ Scale = 0.12 }
+		):Play()
+		TweenService
+			:Create(glow, TweenInfo.new(0.6, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
+				Position = target,
+				BackgroundTransparency = 1,
+			})
+			:Play()
+		flight:Play()
+		flight.Completed:Wait()
+		sparkles(
+			TIER_ACCENT[tier],
+			16,
+			UDim2.fromScale(
+				target.X.Offset / screen.AbsoluteSize.X,
+				target.Y.Offset / screen.AbsoluteSize.Y
+			)
+		)
+		TweenService:Create(vp, TweenInfo.new(0.15), { ImageTransparency = 1 }):Play()
+		task.wait(0.15)
 	end
 
 	------------------------------------------------------------------ fade out + restore

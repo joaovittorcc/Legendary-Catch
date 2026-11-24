@@ -246,11 +246,15 @@ local function onCaught(update: Net.FishingUpdate)
 	-- Legendary/Mystic keep it short because their own cinematic follows.
 	local short = rarity == "Legendary" or rarity == "Mystic"
 	if update.spins and #update.spins > 0 then
-		CatchShow.play(update :: any, {
+		local shown: any = update
+		CatchShow.play(shown, {
 			creatureId = creatureId,
+			rarity = rarity,
 			odds = if FishingConfig.powerEnabled() then update.odds else nil,
 			short = short,
 		})
+		-- The silhouette already flew to the hand: the 3D reveal may start from there.
+		shown.fromShow = true
 	elseif update.odds and FishingConfig.powerEnabled() then
 		OddsMoment.play({ creatureId = creatureId, odds = update.odds, short = short })
 	end
