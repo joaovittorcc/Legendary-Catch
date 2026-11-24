@@ -20,7 +20,7 @@ local Line = require(script:WaitForChild("Line"))
 local OddsMoment = require(script:WaitForChild("OddsMoment"))
 local Omen = require(script:WaitForChild("Omen"))
 local PowerBar = require(script:WaitForChild("PowerBar"))
-local Roulette = require(script:WaitForChild("Roulette"))
+local CatchShow = require(script:WaitForChild("CatchShow"))
 local PressInput = require(script:WaitForChild("PressInput"))
 local Reveal = require(script:WaitForChild("Reveal"))
 local Ui = require(script:WaitForChild("Ui"))
@@ -240,18 +240,19 @@ local function onCaught(update: Net.FishingUpdate)
 	Omen.stop()
 	local creature = Creatures.get(creatureId)
 	local rarity = if creature then creature.rarity else "Common"
-	-- The "1 in N" moment (flag FishingPower): counts up the real odds before the reveal.
+	-- Catch show. With the roulette flag it is ONE screen: silhouette on top, the reels the server
+	-- already rolled below (size really grows/shrinks it, mutation tints it) and then the "1 in N"
+	-- counter up to the final odds (roulette bonus included). Without roulette, just the counter.
 	-- Legendary/Mystic keep it short because their own cinematic follows.
-	if update.odds and FishingConfig.powerEnabled() then
-		OddsMoment.play({
-			creatureId = creatureId,
-			odds = update.odds,
-			short = rarity == "Legendary" or rarity == "Mystic",
-		})
-	end
-	-- Catch roulette (flag FishingRoulette): replays the spins the server already rolled.
+	local short = rarity == "Legendary" or rarity == "Mystic"
 	if update.spins and #update.spins > 0 then
-		Roulette.play(update :: any)
+		CatchShow.play(update :: any, {
+			creatureId = creatureId,
+			odds = if FishingConfig.powerEnabled() then update.odds else nil,
+			short = short,
+		})
+	elseif update.odds and FishingConfig.powerEnabled() then
+		OddsMoment.play({ creatureId = creatureId, odds = update.odds, short = short })
 	end
 	local origin = l.rest
 	-- Legendaries run their own cinematic; the rest watch the fish fly in over the shoulder.

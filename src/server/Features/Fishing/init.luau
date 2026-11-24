@@ -396,7 +396,8 @@ function startAim(player: Player, s: Session, castId: number)
 		event = "aim",
 		castId = castId,
 		aimStart = s.aimStart,
-		aimSweep = FishingConfig.AIM.sweepSeconds,
+		aimSweep = FishingConfig.AIM.fillSeconds,
+		aimHold = FishingConfig.AIM.holdSeconds,
 		aimLevel = aim,
 		aimLayout = s.aimLayout,
 	})
@@ -676,7 +677,12 @@ local function payCatch(
 		comboMilestone = if not isAuto and COMBO_MILESTONES[combo] then combo else nil,
 		eventId = if event then event.id else nil,
 		auto = if isAuto then true else nil,
-		odds = if odds and odds > 0 then odds else nil,
+		-- "1 in N" of the creature together with the roulette bonus (see Roulette.combinedOdds);
+		-- oddsBase is the creature alone.
+		odds = if odds and odds > 0
+			then (if roulette then RouletteConfig.combinedOdds(odds, roulette.coinMult) else odds)
+			else nil,
+		oddsBase = if odds and odds > 0 then odds else nil,
 		spins = if roulette then roulette.spins else nil,
 		sizeMult = if roulette then roulette.sizeMult else nil,
 		mutation = if roulette then roulette.mutation else nil,

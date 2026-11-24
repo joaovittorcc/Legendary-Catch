@@ -190,7 +190,7 @@ local function pop(target: Instance, from: number, to: number, time: number)
 		:Play()
 end
 
-type Card = { frame: Frame, shine: UIGradient, spin: UIGradient?, phase: number }
+export type Card = { frame: Frame, shine: UIGradient, spin: UIGradient?, phase: number }
 
 local function makeCard(parent: Instance, wheel: string, id: string, index: number): Card
 	local card = Instance.new("Frame")
@@ -897,5 +897,28 @@ function Roulette.play(update: Update)
 		grade:Destroy()
 	end
 end
+
+-- Building blocks shared with CatchShow (silhouette + reels + final odds in one screen).
+Roulette.kit = {
+	makeCard = makeCard,
+	cardColor = cardColor,
+	entryOf = entryOf,
+	num = num,
+	label = label,
+	pop = pop,
+	scaleOf = scaleOf,
+	isBig = isBig,
+	isGood = isGood,
+	WHEEL_COLOR = WHEEL_COLOR,
+	BACKDROP = BACKDROP,
+	SPIN_TIME = SPIN_TIME,
+	CARD_W = CARD_W,
+	CARDS = CARDS,
+	TARGET = TARGET,
+	RAINBOW = RAINBOW,
+	CONFETTI_COLORS = CONFETTI_COLORS,
+	CONFETTI_MAX = CONFETTI_MAX,
+	RAY_COUNT = RAY_COUNT,
+}
 
 return Roulette

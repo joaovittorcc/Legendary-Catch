@@ -3,13 +3,13 @@
 -- that can grow the creature (size), shrink it (worse), give a mutation, spin again or do
 -- nothing. The client only animates the recorded spins. Behind the ReplicatedStorage
 -- attribute "FishingRoulette" (off by default). Economy sim: node tools/roulette-sim.js
--- (keep the tables in sync with it): about x1.18 coins per catch on average.
+-- (keep the tables in sync with it): about x1.28 coins per catch on average (effects stack).
 
 local Roulette = {}
 
 Roulette.FLAG = "FishingRoulette"
-Roulette.MAX_AGAIN = 3 -- at most 3 "spin again" in a row
-Roulette.AGAIN_NOTHING_BONUS = 25 -- each re-spin adds this much weight to "nothing"
+Roulette.MAX_MAIN = 4 -- at most 4 spins of the main wheel per catch
+Roulette.AGAIN_NOTHING_BONUS = 40 -- every spin after the first adds this much weight to "nothing"
 Roulette.SIZE_VALUE_EXP = 0.5 -- coins grow with sqrt(size): x100 size = x10 coins
 
 export type Entry = { id: string, weight: number, mult: number }
@@ -118,27 +118,35 @@ function Roulette.mutationRank(id: string?): number
 	return 0
 end
 
--- Spins the whole chain. `nextRoll` returns numbers in [0, 1) (server: Random:NextNumber).
+-- Weight of a main-wheel card on the `mains`-th spin (1-based): "nothing" grows with every
+-- spin so chains end, and "again" disappears on the last allowed spin.
+local function mainWeight(e: Entry, mains: number): number
+	if e.id == "nothing" then
+		return e.weight + (mains - 1) * Roulette.AGAIN_NOTHING_BONUS
+	elseif e.id == "again" and mains >= Roulette.MAX_MAIN then
+		return 0
+	end
+	return e.weight
+end
+
+-- Spins the whole chain. Effects STACK: sizes multiply, the best mutation is kept, and the
+-- main wheel spins again after every effect until it lands on "nothing" (or the spin limit).
+-- `nextRoll` returns numbers in [0, 1) (server: Random:NextNumber).
 function Roulette.spin(nextRoll: () -> number): Outcome
 	local spins: { Spin } = {}
 	local size = 1
 	local mutation: string? = nil
-	local again = 0
+	local mains = 0
 	while true do
+		mains += 1
+		local spinNo = mains
 		local main = Roulette.pick(Roulette.MAIN, nextRoll(), function(e)
-			if e.id == "nothing" then
-				return e.weight + again * Roulette.AGAIN_NOTHING_BONUS
-			elseif e.id == "again" and again >= Roulette.MAX_AGAIN then
-				return 0
-			end
-			return e.weight
+			return mainWeight(e, spinNo)
 		end)
 		table.insert(spins, { wheel = "main", result = main.id })
-		if main.id == "again" then
-			again += 1
-			continue
-		end
-		if main.id == "size" then
+		if main.id == "nothing" then
+			break
+		elseif main.id == "size" then
 			local s = Roulette.pick(Roulette.SIZE, nextRoll())
 			table.insert(spins, { wheel = "size", result = s.id })
 			size *= s.mult
@@ -149,9 +157,13 @@ function Roulette.spin(nextRoll: () -> number): Outcome
 		elseif main.id == "mutation" then
 			local m = Roulette.pick(Roulette.MUTATIONS, nextRoll())
 			table.insert(spins, { wheel = "mutation", result = m.id })
-			mutation = m.id
+			if Roulette.mutationRank(m.id) > Roulette.mutationRank(mutation) then
+				mutation = m.id
+			end
 		end
-		break
+		if mains >= Roulette.MAX_MAIN then
+			break
+		end
 	end
 	local mut = Roulette.mutation(mutation)
 	return {
@@ -160,6 +172,99 @@ function Roulette.spin(nextRoll: () -> number): Outcome
 		mutation = mutation,
 		coinMult = (size ^ Roulette.SIZE_VALUE_EXP) * (if mut then mut.mult else 1),
 	}
+end
+
+-- Exact distribution of coinMult over the whole chain, as { coinMult, probability } sorted
+-- from the best to the worst. Built once (about 100k branches) and cached.
+local distribution: { { number } }? = nil
+local function buildDistribution(): { { number } }
+	local sums: { [string]: number } = {}
+	local values: { [string]: number } = {}
+	local function leaf(size: number, rank: number, prob: number)
+		local mut = if rank > 0 then Roulette.MUTATIONS[rank] else nil
+		local coin = (size ^ Roulette.SIZE_VALUE_EXP) * (if mut then mut.mult else 1)
+		local key = string.format("%.6f", coin)
+		sums[key] = (sums[key] or 0) + prob
+		values[key] = coin
+	end
+	local function walk(mains: number, size: number, rank: number, prob: number)
+		local total = 0
+		for _, e in Roulette.MAIN do
+			total += mainWeight(e, mains)
+		end
+		for _, e in Roulette.MAIN do
+			local w = mainWeight(e, mains)
+			if w <= 0 then
+				continue
+			end
+			local pe = prob * w / total
+			if e.id == "nothing" then
+				leaf(size, rank, pe)
+			elseif e.id == "again" then
+				walk(mains + 1, size, rank, pe)
+			else
+				local list: { Entry } = if e.id == "size"
+					then Roulette.SIZE
+					elseif e.id == "worse" then Roulette.WORSE
+					else Roulette.MUTATIONS
+				local sub = 0
+				for _, x in list do
+					sub += x.weight
+				end
+				for i, x in list do
+					local px = pe * x.weight / sub
+					local nextSize, nextRank = size, rank
+					if e.id == "mutation" then
+						nextRank = math.max(rank, i)
+					else
+						nextSize = size * x.mult
+					end
+					if mains >= Roulette.MAX_MAIN then
+						leaf(nextSize, nextRank, px)
+					else
+						walk(mains + 1, nextSize, nextRank, px)
+					end
+				end
+			end
+		end
+	end
+	walk(1, 1, 0, 1)
+	local out: { { number } } = {}
+	for key, p in sums do
+		table.insert(out, { values[key], p })
+	end
+	table.sort(out, function(a, b)
+		return a[1] > b[1]
+	end)
+	return out
+end
+
+-- Chance that a catch's roulette lands on `coinMult` or better (1 for no bonus).
+function Roulette.tailProbability(coinMult: number): number
+	if coinMult <= 1.000001 then
+		return 1
+	end
+	local d = distribution
+	if not d then
+		d = buildDistribution()
+		distribution = d
+	end
+	local total = 0
+	for _, entry in d :: { { number } } do
+		if entry[1] >= coinMult - 1e-6 then
+			total += entry[2]
+		end
+	end
+	return math.clamp(total, 1e-12, 1)
+end
+
+-- "1 in N" of the creature odds `baseOdds` together with a roulette result: only a BONUS
+-- makes it rarer (chance of that bonus or better); nothing/worse keep the creature odds.
+function Roulette.combinedOdds(baseOdds: number, coinMult: number): number
+	if baseOdds <= 0 then
+		return 0
+	end
+	return math.max(1, math.floor(baseOdds / Roulette.tailProbability(coinMult) + 0.5))
 end
 
 -- The table of a wheel name (for the UI to draw the cards).

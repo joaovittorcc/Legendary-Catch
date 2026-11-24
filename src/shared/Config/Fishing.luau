@@ -129,7 +129,10 @@ end
 
 Fishing.POWER_FLAG = "FishingPower"
 Fishing.AIM = {
-	sweepSeconds = 1.1, -- one pass 0 -> 1 (then back): kid-friendly, purple stays reachable
+	fillSeconds = 1.6, -- the gauge fills from 0 to full in this long (progressive, not ping-pong)
+	holdSeconds = 0.4, -- stays full this long, then snaps back to empty and fills again
+	sweepSeconds = 1.6, -- kept for older readers: same as fillSeconds
+	segments = 10, -- "gominhos" (cells) in the vertical gauge
 	timeoutSeconds = 3.5, -- no tap: casts in "red"
 	maxLagSeconds = 0.2, -- a reported tap time may be at most this much before it arrived
 	suspectPurpleShare = 0.6, -- above this share of purple in the last `suspectWindow` casts,
@@ -156,8 +159,6 @@ local AIM_ROWS = {
 	{ at = 0.85, w = { 0.08, 0.12, 0.24, 0.40, 0.16 } },
 	{ at = 1, w = { 0.04, 0.08, 0.20, 0.44, 0.24 } },
 }
-Fishing.TWO_PURPLE_AT = 0.95 -- aim level where the purple splits into two bars
-
 export type AimSegment = { band: string, from: number, to: number }
 
 function Fishing.powerEnabled(): boolean
@@ -188,64 +189,78 @@ local function widths(aim: number): { number }
 	return table.clone(AIM_ROWS[#AIM_ROWS].w)
 end
 
--- Bar layout (0..1, left to right), symmetric: red and yellow at the edges, neutral, green in
--- the middle with the purple at its centre (two purple bars from TWO_PURPLE_AT).
-function Fishing.aimLayout(aim: number): { AimSegment }
-	local w = widths(aim)
-	local red, yellow, neutral, green, purple = w[1], w[2], w[3], w[4], w[5]
-	local parts: { { band: string, size: number } } = {
-		{ band = "red", size = red / 2 },
-		{ band = "yellow", size = yellow / 2 },
-		{ band = "neutral", size = neutral / 2 },
+-- Cell order in the gauge, bottom to top: grey (neutral), red, yellow, green, purple.
+local CELL_ORDER = { "neutral", "red", "yellow", "green", "purple" }
+
+-- How many of the `segments` cells each band gets at aim level `aim`: the interpolated band
+-- widths scaled to the cell count with largest-remainder rounding (always sums to `segments`).
+function Fishing.aimCounts(aim: number): { [string]: number }
+	local w = widths(aim) -- red, yellow, neutral, green, purple
+	local share: { [string]: number } = {
+		neutral = w[3],
+		red = w[1],
+		yellow = w[2],
+		green = w[4],
+		purple = w[5],
 	}
-	if purple <= 0.001 then
-		table.insert(parts, { band = "green", size = green })
-	elseif aim >= Fishing.TWO_PURPLE_AT then
-		table.insert(parts, { band = "green", size = green / 3 })
-		table.insert(parts, { band = "purple", size = purple / 2 })
-		table.insert(parts, { band = "green", size = green / 3 })
-		table.insert(parts, { band = "purple", size = purple / 2 })
-		table.insert(parts, { band = "green", size = green / 3 })
-	else
-		table.insert(parts, { band = "green", size = green / 2 })
-		table.insert(parts, { band = "purple", size = purple })
-		table.insert(parts, { band = "green", size = green / 2 })
+	local n = Fishing.AIM.segments
+	local counts: { [string]: number } = {}
+	local used = 0
+	local remainders: { { band: string, rem: number } } = {}
+	for _, band in CELL_ORDER do
+		local exact = share[band] * n
+		local whole = math.floor(exact + 1e-9)
+		counts[band] = whole
+		used += whole
+		table.insert(remainders, { band = band, rem = exact - whole })
 	end
-	table.insert(parts, { band = "neutral", size = neutral / 2 })
-	table.insert(parts, { band = "yellow", size = yellow / 2 })
-	table.insert(parts, { band = "red", size = red / 2 })
-	local total = 0
-	for _, p in parts do
-		total += p.size
+	table.sort(remainders, function(a, b)
+		if math.abs(a.rem - b.rem) > 1e-9 then
+			return a.rem > b.rem
+		end
+		return a.band < b.band
+	end)
+	local i = 1
+	while used < n do
+		local entry = remainders[((i - 1) % #remainders) + 1]
+		counts[entry.band] += 1
+		used += 1
+		i += 1
 	end
+	return counts
+end
+
+-- Gauge layout: one segment per cell, bottom (0) to top (1), in CELL_ORDER.
+function Fishing.aimLayout(aim: number): { AimSegment }
+	local counts = Fishing.aimCounts(aim)
+	local n = Fishing.AIM.segments
 	local out: { AimSegment } = {}
-	local x = 0
-	for _, p in parts do
-		local size = p.size / total
-		if size > 0 then
-			table.insert(out, { band = p.band, from = x, to = x + size })
-			x += size
+	local cell = 0
+	for _, band in CELL_ORDER do
+		for _ = 1, counts[band] do
+			table.insert(out, { band = band, from = cell / n, to = (cell + 1) / n })
+			cell += 1
 		end
 	end
-	out[#out].to = 1
 	return out
 end
 
--- Pointer position 0..1 after `elapsed` seconds (ping-pong, starts at 0).
+-- Gauge fill 0..1 after `elapsed` seconds: rises linearly, holds full, snaps back, repeats.
 function Fishing.aimPosition(elapsed: number): number
-	local sweep = Fishing.AIM.sweepSeconds
-	local t = math.max(0, if elapsed == elapsed then elapsed else 0) / sweep
-	local phase = t % 2
-	return if phase <= 1 then phase else 2 - phase
+	local fill = Fishing.AIM.fillSeconds
+	local cycle = fill + Fishing.AIM.holdSeconds
+	local t = math.max(0, if elapsed == elapsed then elapsed else 0) % cycle
+	return math.min(1, t / fill)
 end
 
+-- Band of the cell the fill is in (the top edge belongs to the top cell).
 function Fishing.bandAt(layout: { AimSegment }, position: number): string
-	for _, seg in layout do
-		if position >= seg.from and position <= seg.to then
-			return seg.band
-		end
+	local n = #layout
+	if n == 0 then
+		return "red"
 	end
-	return "red"
+	local index = math.clamp(math.floor(math.clamp(position, 0, 1) * n) + 1, 1, n)
+	return layout[index].band
 end
 
 -- Luck factor of a band for a rarity rank (1 = Common .. 6 = Mystic).

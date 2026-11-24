@@ -28,10 +28,12 @@ export type FishingUpdate = {
 	potentialCpm: number?, -- individual aquarium rate of this catch in cpm (no synergy), on "caught"
 	rewardCoins: number?, -- same as value, on "caught"
 	aquariumVersion: number?, -- aquarium version after this catch, on "caught"
-	odds: number?, -- real "1 in N" of this catch (rarity luck x dropWeight share), on "caught"; nil = don't show
+	odds: number?, -- real "1 in N" of this catch incl. the roulette bonus, on "caught"; nil = don't show
+	oddsBase: number?, -- "1 in N" of the creature alone (rarity luck x dropWeight share), on "caught"
 	-- Power bar (flag FishingPower; docs/PESCA-FORCA-CONTRATO.md):
 	aimStart: number?, -- "aim": workspace:GetServerTimeNow() when the pointer left 0
-	aimSweep: number?, -- "aim": seconds for one pass 0 -> 1 (ping-pong)
+	aimSweep: number?, -- "aim": seconds for the gauge to fill 0 -> 1 (then holds, snaps back, repeats)
+	aimHold: number?, -- "aim": seconds the gauge stays full before it snaps back
 	aimLevel: number?, -- "aim": 0..1, how trained the aim is (wider green/purple)
 	aimLayout: { { band: string, from: number, to: number } }?, -- "aim": bar segments 0..1
 	powerBand: string?, -- "cast": "red" | "yellow" | "neutral" | "green" | "purple"

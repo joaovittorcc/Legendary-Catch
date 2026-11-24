@@ -92,3 +92,10 @@ Perfil: `collection[id].bestMutation` (id da melhor mutação já pega) para o b
 - **Economia**: +18% moedas em média; acompanhar.
 - **Sensação de caixa-surpresa**: sem compra, sem re-roll pago, nada de Robux ligado à roleta.
 - **Peso enorme** quebra layout de números: usar formatação curta (K/M) no card.
+
+
+## 9. Atualização 23/11 (noite)
+
+- **Efeitos acumulam** (tamanho + mutação etc.): a roleta principal gira de novo depois de cada efeito, até NADA ou 4 giros; o peso de NADA sobe 40 por giro. Média de moedas ~x1,28.
+- **"1 em N" combinado** (ver `docs/PESCA-FORCA-CONTRATO.md` §7): bônus deixa mais raro, NADA/ENCOLHEU não.
+- **Sequência na tela** (`CatchShow`): silhueta preta em cima, roleta embaixo, contador "1 em N" no fim. O tamanho muda a silhueta de verdade; o **modelo da revelação** crescer de verdade fica com o Codex.
