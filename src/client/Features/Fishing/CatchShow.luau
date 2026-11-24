@@ -290,6 +290,19 @@ end
 function CatchShow.play(update: Update, info: Info)
 	local spins: { { wheel: string, result: string } } = update.spins or {}
 	local reduce = player:GetAttribute("ReduceEffects") == true
+	-- Pace: plain catches are most catches, so a Common/Uncommon where the roulette gave nothing
+	-- runs at about half the time; anything special keeps the full show.
+	local plain = true
+	local spinList: { { wheel: string, result: string } } = update.spins or {}
+	for _, spin in spinList do
+		if spin.result ~= "nothing" then
+			plain = false
+		end
+	end
+	local pace = if plain
+			and (info.rarity == "Common" or info.rarity == "Uncommon" or info.rarity == nil)
+		then 0.55
+		else 1
 	local state = { fast = false }
 	local camera = Workspace.CurrentCamera
 	local name = (Strings.creatureName :: any)[info.creatureId] or info.creatureId
@@ -843,7 +856,7 @@ function CatchShow.play(update: Update, info: Info)
 		end
 		s.Position = UDim2.fromScale(0.5 - K.CARD_W * 2.5, 0)
 		strip = s
-		local time = if state.fast then 0.35 else (K.SPIN_TIME :: any)[wheel] or 2
+		local time = if state.fast then 0.35 else ((K.SPIN_TIME :: any)[wheel] or 2) * pace
 		local tween = TweenService:Create(
 			s,
 			TweenInfo.new(time, Enum.EasingStyle.Quint, Enum.EasingDirection.Out),
@@ -959,7 +972,7 @@ function CatchShow.play(update: Update, info: Info)
 			title.Text = Strings.roulette.again
 			K.pop(title, 0.5, 1.15, 0.3)
 		end
-		task.wait(if state.fast then 0.25 else 0.65)
+		task.wait(if state.fast then 0.25 else 0.65 * pace)
 		s:Destroy()
 		table.clear(cards)
 	end
@@ -967,7 +980,7 @@ function CatchShow.play(update: Update, info: Info)
 	------------------------------------------------------------------ phase 1: silhouette in
 	K.pop(vp, 0.3, 1, 0.45)
 	TweenService:Create(vpScale, TweenInfo.new(0.5, Enum.EasingStyle.Back), { Scale = 1 }):Play()
-	task.wait(if state.fast then 0.3 else 0.7)
+	task.wait(if state.fast then 0.3 else 0.7 * pace)
 	-- ...then it floats to the top while the reel frame rises from below.
 	local topPos = UDim2.fromScale(0.5, 0.3)
 	TweenService:Create(vp, TweenInfo.new(0.5, Enum.EasingStyle.Quad), { Position = topPos }):Play()
@@ -978,7 +991,7 @@ function CatchShow.play(update: Update, info: Info)
 		TweenInfo.new(0.5, Enum.EasingStyle.Back),
 		{ Position = UDim2.fromScale(0.5, reelY) }
 	):Play()
-	task.wait(0.5)
+	task.wait(0.5 * pace)
 
 	------------------------------------------------------------------ phase 2: the reels
 	local mutationName: string? = nil
@@ -1014,7 +1027,7 @@ function CatchShow.play(update: Update, info: Info)
 		footer.Text = Strings.roulette.nothing
 		footer.TextColor3 = Color3.fromRGB(205, 210, 225)
 		K.pop(chip, 0.7, 1, 0.25)
-		task.wait(if state.fast then 0.3 else 0.6)
+		task.wait(if state.fast then 0.3 else 0.6 * pace)
 	else
 		local prefix = if footer.Text ~= "" then footer.Text .. "  ·  " else ""
 		footer.TextColor3 = if coin > 1 then Theme.gold else Color3.fromRGB(255, 150, 150)
@@ -1028,14 +1041,14 @@ function CatchShow.play(update: Update, info: Info)
 			task.wait(0.035)
 		end
 		K.pop(chip, 1.3, 1.08, 0.3)
-		task.wait(if state.fast then 0.4 else 0.8)
+		task.wait(if state.fast then 0.4 else 0.8 * pace)
 	end
 
 	------------------------------------------------------------------ phase 3: the odds
 	local odds = if info.odds then math.max(1, math.floor(info.odds)) else nil
 	if odds then
 		local finalTier = tierOf(odds)
-		local duration = TIER_TIME[finalTier]
+		local duration = TIER_TIME[finalTier] * pace
 		if info.short then
 			duration = math.min(duration, SHORT_CAP)
 		end
@@ -1067,7 +1080,7 @@ function CatchShow.play(update: Update, info: Info)
 				TweenService:Create(st, TweenInfo.new(0.3), { Transparency = 0 }):Play()
 			end
 		end
-		task.wait(0.45)
+		task.wait(0.45 * pace)
 
 		local function enterTier(newTier: number)
 			tier = newTier
@@ -1147,7 +1160,7 @@ function CatchShow.play(update: Update, info: Info)
 		K.pop(nameLabel, 1.3, 1, 0.3)
 		punch(TIER_ACCENT[tier], tier >= 4)
 		confetti(16 + finalTier * 4, true)
-		task.wait(if state.fast then 0.4 else 0.9)
+		task.wait(if state.fast then 0.4 else 0.9 * pace)
 	end
 
 	------------------------------------------------------------------ phase 4: it becomes the fish
@@ -1180,7 +1193,7 @@ function CatchShow.play(update: Update, info: Info)
 		for _, label in { word, counter } do
 			TweenService:Create(label, TweenInfo.new(0.4), { TextTransparency = 0.55 }):Play()
 		end
-		task.wait(0.5)
+		task.wait(0.5 * pace)
 
 		-- coins per minute above the creature, styled by rarity
 		local showing = true
@@ -1230,7 +1243,7 @@ function CatchShow.play(update: Update, info: Info)
 				return showing
 			end)
 			K.pop(income, 0.4, 1, 0.4)
-			local steps = if state.fast then 1 else 16
+			local steps = if state.fast then 1 elseif pace < 1 then 8 else 16
 			for i = 1, steps do
 				income.Text = string.format(Strings.incomePerMin, coinsText(cpm * (i / steps)))
 				task.wait(0.03)
@@ -1238,9 +1251,9 @@ function CatchShow.play(update: Update, info: Info)
 			K.pop(income, 1.35, 1, 0.3)
 			Audio.play("coins", 0.4, 1.1)
 			sparkles(TIER_ACCENT[tier], 14, UDim2.fromScale(0.5, 0.265))
-			task.wait(if state.fast then 0.5 else 1.2)
+			task.wait(if state.fast then 0.5 else 1.2 * pace)
 		else
-			task.wait(if state.fast then 0.3 else 0.7)
+			task.wait(if state.fast then 0.3 else 0.7 * pace)
 		end
 		showing = false
 
