@@ -17,6 +17,8 @@ local StarterGui = game:GetService("StarterGui")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
 
+local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
+
 local CastCutscene = {}
 
 local player = Players.LocalPlayer
@@ -352,6 +354,7 @@ function CastCutscene.windup(character: Model?)
 
 	hideHud(run)
 	run.bars = makeBars()
+	Audio.play("cast", 0.3, 0.55) -- slow pull back
 end
 
 -- The throw: eases the hold off while Line.castTo's swing starts, and the camera follows the
@@ -367,6 +370,7 @@ function CastCutscene.release(onHandover: (() -> ())?)
 	end
 	run.releaseAt = os.clock()
 	run.onHandover = onHandover
+	Audio.play("cast", 0.6, 1.25) -- the throw
 	local camera = Workspace.CurrentCamera
 	run.releaseCf = camera and camera.CFrame
 	if reduced() or not run.cameraBound then

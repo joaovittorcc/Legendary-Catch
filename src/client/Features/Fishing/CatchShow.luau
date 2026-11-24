@@ -23,6 +23,7 @@ local RouletteConfig = require(Shared:WaitForChild("Config"):WaitForChild("Roule
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Roulette = require(script.Parent:WaitForChild("Roulette"))
+local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 
 local CatchShow = {}
 
@@ -821,6 +822,25 @@ function CatchShow.play(update: Update, info: Info)
 		end
 		local finalX = 0.5 - K.CARD_W * (K.TARGET - 0.5)
 		local landX = finalX + (math.random() - 0.5) * K.CARD_W * 0.6
+		-- Near miss (suspense): a good result sometimes stops just short, on the edge of the
+		-- card before it, and creeps over; a "nothing" next to a good card sometimes overshoots
+		-- onto that card's edge and falls back. Only the path changes, never the result.
+		local tease = "none"
+		local nextCard = cards[K.TARGET + 1]
+		if not state.fast and not reduce then
+			if K.isGood(wheel, result) and math.random() < 0.6 then
+				tease = "creep"
+				landX = finalX + K.CARD_W * 0.47
+			elseif
+				result == "nothing"
+				and nextCard
+				and K.isGood(wheel, nextCard.frame.Name)
+				and math.random() < 0.45
+			then
+				tease = "back"
+				landX = finalX - K.CARD_W * 0.47
+			end
+		end
 		s.Position = UDim2.fromScale(0.5 - K.CARD_W * 2.5, 0)
 		strip = s
 		local time = if state.fast then 0.35 else (K.SPIN_TIME :: any)[wheel] or 2
@@ -833,20 +853,57 @@ function CatchShow.play(update: Update, info: Info)
 		)
 		tween:Play()
 		local started = os.clock()
+		local lastIndex = -1
+		local function tick()
+			-- a click each time a card passes the marker, like a real wheel
+			local index = math.floor((0.5 - s.Position.X.Scale) / K.CARD_W)
+			if index ~= lastIndex then
+				if lastIndex >= 0 then
+					Audio.play("click", 0.16, 1.05)
+				end
+				lastIndex = index
+			end
+		end
 		while tween.PlaybackState == Enum.PlaybackState.Playing do
 			if state.fast and os.clock() - started < time - 0.05 then
 				tween:Cancel()
 				s.Position = UDim2.fromScale(landX, 0)
 				break
 			end
+			tick()
 			task.wait()
 		end
-		TweenService:Create(
-			s,
-			TweenInfo.new(0.2, Enum.EasingStyle.Back),
-			{ Position = UDim2.fromScale(finalX, 0) }
-		):Play()
-		task.wait(0.2)
+		if tease ~= "none" and not state.fast then
+			-- hold on the edge for a breath, trembling, then fall onto the result
+			local edge = s.Position
+			local holdUntil = os.clock() + 0.42
+			while os.clock() < holdUntil and not state.fast do
+				s.Position = edge + UDim2.fromScale((math.random() - 0.5) * 0.004, 0)
+				task.wait()
+			end
+			s.Position = edge
+			local fall = TweenService:Create(
+				s,
+				TweenInfo.new(
+					if tease == "creep" then 0.5 else 0.35,
+					Enum.EasingStyle.Quad,
+					Enum.EasingDirection.InOut
+				),
+				{ Position = UDim2.fromScale(finalX, 0) }
+			)
+			fall:Play()
+			while fall.PlaybackState == Enum.PlaybackState.Playing do
+				tick()
+				task.wait()
+			end
+		else
+			TweenService:Create(
+				s,
+				TweenInfo.new(0.2, Enum.EasingStyle.Back),
+				{ Position = UDim2.fromScale(finalX, 0) }
+			):Play()
+			task.wait(0.2)
+		end
 		strip = nil
 
 		local card = cards[K.TARGET].frame
@@ -863,6 +920,7 @@ function CatchShow.play(update: Update, info: Info)
 		local big = K.isBig(wheel, result)
 		local bad = wheel == "worse" or result == "worse" or result == "nothing"
 		if bad then
+			Audio.play("miss", 0.3, 0.9)
 			TweenService:Create(card, TweenInfo.new(0.35, Enum.EasingStyle.Bounce), {
 				Position = card.Position + UDim2.fromScale(0, 0.06),
 			}):Play()
@@ -873,6 +931,11 @@ function CatchShow.play(update: Update, info: Info)
 				end
 			end)
 		else
+			if big then
+				Audio.play("chest", 0.5, 1)
+			else
+				Audio.play("hit", 0.45, if K.isGood(wheel, result) then 1.15 else 1)
+			end
 			punch(cardColor, big)
 			sparkles(
 				cardColor,
@@ -1026,6 +1089,9 @@ function CatchShow.play(update: Update, info: Info)
 				wordGradient.Color = K.RAINBOW
 			end
 			K.pop(word, 0.3, 1, 0.35)
+			if newTier >= 4 then
+				Audio.play("legendary", 0.3, 0.8 + newTier * 0.05)
+			end
 			raySpeed = 10 + newTier * 9
 			if not reduce then
 				if newTier >= 4 then
@@ -1065,6 +1131,7 @@ function CatchShow.play(update: Update, info: Info)
 			end
 			counter.Text = string.format(Strings.oddsOneIn, grouped(value))
 			K.pop(counter, 1.22, 1, 0.18)
+			Audio.play("click", 0.14, 0.85 + (i / tickCount) * 0.8)
 			local newTier = tierOf(value)
 			if newTier > tier then
 				enterTier(newTier)
@@ -1108,6 +1175,7 @@ function CatchShow.play(update: Update, info: Info)
 			:Play()
 		punch(TIER_ACCENT[tier], true)
 		confetti(26, true)
+		Audio.play("level", 0.45, 1)
 		nameLabel.Text = name
 		for _, label in { word, counter } do
 			TweenService:Create(label, TweenInfo.new(0.4), { TextTransparency = 0.55 }):Play()
@@ -1168,6 +1236,7 @@ function CatchShow.play(update: Update, info: Info)
 				task.wait(0.03)
 			end
 			K.pop(income, 1.35, 1, 0.3)
+			Audio.play("coins", 0.4, 1.1)
 			sparkles(TIER_ACCENT[tier], 14, UDim2.fromScale(0.5, 0.265))
 			task.wait(if state.fast then 0.5 else 1.2)
 		else

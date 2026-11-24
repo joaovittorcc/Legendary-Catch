@@ -19,6 +19,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 
 local PowerBar = {}
 
@@ -284,6 +285,10 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 					0.45
 				)
 			end
+			-- a soft tick per cell, higher as it climbs (rhythm to time the tap by ear)
+			if under > lastCell and Workspace:GetServerTimeNow() >= aimStart then
+				Audio.play("click", 0.12, 0.8 + under * 0.07)
+			end
 			lastCell = under
 			cells[under].rim.Color = WHITE
 			if not reduce then
@@ -355,6 +360,15 @@ function PowerBar.result(band: string, luck: number?)
 	local reduce = calm()
 	local color = BAND_COLORS[band] or WHITE
 	local root = screen:FindFirstChild("Root") :: Frame?
+	if band == "purple" then
+		Audio.play("level", 0.45, 1.15)
+	elseif band == "green" then
+		Audio.play("hit", 0.5, 1.1)
+	elseif band == "yellow" then
+		Audio.play("hit", 0.4, 0.9)
+	else
+		Audio.play("miss", 0.35, 1)
+	end
 
 	local word = label(
 		screen,
