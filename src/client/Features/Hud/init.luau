@@ -18,6 +18,7 @@ local Assets = require(script:WaitForChild("Assets"))
 local Motion = require(script:WaitForChild("Motion"))
 local RodHotbar = require(script:WaitForChild("RodHotbar"))
 local ZoneHud = require(script:WaitForChild("ZoneHud"))
+local FishingPower = require(script:WaitForChild("FishingPower"))
 local StarterOffer = require(script.Parent.Shop:WaitForChild("StarterOffer"))
 
 -- Width / height of the uploaded HUD art (art/hud-v2): containers must keep these.
@@ -1187,6 +1188,7 @@ function Hud.start()
 	local playerGui = player:WaitForChild("PlayerGui")
 	gui.Parent = playerGui
 	layout()
+	FishingPower.mount(gui, bar, Hud.menuChanged)
 	notifications.Parent = playerGui
 	task.spawn(
 		RodHotbar.mount,

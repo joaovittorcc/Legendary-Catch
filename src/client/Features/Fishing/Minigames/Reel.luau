@@ -143,6 +143,7 @@ function Reel.run(
 	local hit50 = false
 	local hit80 = false
 	local impactEnd = 0
+	local nextMissCue = 0
 	local zoneStroke = zone:FindFirstChildOfClass("UIStroke")
 	local meterScale = Instance.new("UIScale")
 	meterScale.Parent = meter
@@ -237,6 +238,10 @@ function Reel.run(
 			everOutside = true
 		end
 		zone.Position = UDim2.fromScale(0, 1 - pos)
+		if lastInside == true and not inside and elapsed >= nextMissCue then
+			nextMissCue = elapsed + 0.45
+			Ui.feedback(area, UDim2.fromScale(0.55, 0.25), color, false)
+		end
 		if inside ~= lastInside then
 			lastInside = inside
 			zone.BackgroundTransparency = if inside then 0.06 else 0.35
