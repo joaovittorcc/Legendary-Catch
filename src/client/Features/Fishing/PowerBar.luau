@@ -1,7 +1,7 @@
 --!strict
 -- Power bar on the cast (flag FishingPower): a tall, chunky VERTICAL gauge on the right made of
--- ten "gominhos" (rounded cells), bottom to top: grey, red, yellow, green, purple. The cells
--- are ALWAYS fully coloured; a white bar sweeps up over them (holds at the top, snaps back to
+-- one smooth pill (thick black outline, glossy shine, thin dividers per cell), bottom to top:
+-- grey, red, yellow, green, purple. The pill is ALWAYS fully coloured; a fat white bar sweeps up over it (holds at the top, snaps back to
 -- the bottom, repeats) and the tap confirms whichever cell it is over. The server owns the
 -- clock: the marker follows workspace:GetServerTimeNow() - aimStart through
 -- FishingConfig.aimPosition, exactly like the server reads the band.
@@ -92,15 +92,6 @@ function PowerBar.hide()
 	end
 end
 
-type Cell = {
-	frame: Frame,
-	band: string,
-	from: number,
-	to: number,
-	gradient: UIGradient,
-	rim: UIStroke,
-}
-
 -- Builds the gauge from the server layout (one segment per cell, bottom to top).
 function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	PowerBar.hide()
@@ -134,110 +125,131 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	tg.Rotation = 90
 	tg.Parent = title
 
-	-- Frame: wood + gold rim, with the ten cells inside a dark well.
+	-- Frame: thick black pill outline (the glossy colourful look), one smooth gradient fill inside.
 	local frame = Instance.new("Frame")
 	frame.Name = "Frame"
 	frame.AnchorPoint = Vector2.new(1, 0)
 	frame.Position = UDim2.fromScale(0.86, 0.08)
 	frame.Size = UDim2.fromScale(0.6, 0.86)
-	frame.BackgroundColor3 = Theme.wood
+	frame.BackgroundColor3 = INK
 	frame.BorderSizePixel = 0
-	corner(frame, 0.2)
-	stroke(frame, Theme.gold, 4)
+	corner(frame, 0.5)
 	frame.Parent = root
-	local wood = Instance.new("UIGradient")
-	wood.Color = ColorSequence.new(Color3.fromRGB(150, 92, 62), Color3.fromRGB(86, 48, 41))
-	wood.Parent = frame
 
 	local well = Instance.new("Frame")
 	well.Name = "Well"
 	well.AnchorPoint = Vector2.new(0.5, 0.5)
 	well.Position = UDim2.fromScale(0.5, 0.5)
-	well.Size = UDim2.new(1, -14, 1, -14)
-	well.BackgroundColor3 = INK
+	well.Size = UDim2.new(1, -18, 1, -18)
+	well.BackgroundColor3 = WHITE
 	well.BorderSizePixel = 0
-	corner(well, 0.16)
+	corner(well, 0.5)
 	well.Parent = frame
 
-	-- Cells: bottom cell is layout[1]. Each is a rounded "gominho" with a small gap.
+	-- One gradient for the whole fill: each run of equal bands blends from a lighter top to a
+	-- deeper bottom, with a hairline step between runs (ColorSequence time 0 = top).
 	local n = #layout
-	local gap = 0.012
-	local cells: { Cell } = {}
-	local labelsDone: { [string]: boolean } = {}
-	for i, seg in layout do
-		local color = BAND_COLORS[seg.band] or WHITE
-		local h = 1 / n
-		local f = Instance.new("Frame")
-		f.Name = "Cell" .. i .. "_" .. seg.band
-		f.AnchorPoint = Vector2.new(0.5, 1)
-		f.Position = UDim2.fromScale(0.5, 1 - (i - 1) * h - gap / 2)
-		f.Size = UDim2.fromScale(0.92, h - gap)
-		f.BackgroundColor3 = color
-		f.BorderSizePixel = 0
-		corner(f, 0.28)
-		f.Parent = well
-		local g = Instance.new("UIGradient")
-		g.Rotation = 90
-		g.Color = ColorSequence.new(color:Lerp(WHITE, 0.3), color:Lerp(INK, 0.2))
-		g.Parent = f
-		local rim = stroke(f, color:Lerp(WHITE, 0.45), 2)
+	local keys: { ColorSequenceKeypoint } = {}
+	local runTop = n
+	local i = n
+	while i >= 1 do
+		local band = layout[i].band
+		local runBottom = i
+		while runBottom > 1 and layout[runBottom - 1].band == band do
+			runBottom -= 1
+		end
+		local color = BAND_COLORS[band] or WHITE
+		local t0 = (n - runTop) / n
+		local t1 = (n - runBottom + 1) / n
 		table.insert(
-			cells,
-			{ frame = f, band = seg.band, from = seg.from, to = seg.to, gradient = g, rim = rim }
+			keys,
+			ColorSequenceKeypoint.new(
+				math.max(t0, if #keys == 0 then 0 else t0 + 0.0008),
+				color:Lerp(WHITE, 0.25)
+			)
 		)
+		table.insert(
+			keys,
+			ColorSequenceKeypoint.new(math.min(t1 - 0.0008, 1), color:Lerp(INK, 0.12))
+		)
+		runTop = runBottom - 1
+		i = runBottom - 1
+	end
+	keys[1] = ColorSequenceKeypoint.new(0, keys[1].Value)
+	keys[#keys] = ColorSequenceKeypoint.new(1, keys[#keys].Value)
+	local fill = Instance.new("UIGradient")
+	fill.Rotation = 90
+	fill.Color = ColorSequence.new(keys)
+	fill.Parent = well
 
-		-- Side label on the topmost cell of each labelled band.
-		local isTopOfBand = layout[i + 1] == nil or layout[i + 1].band ~= seg.band
+	-- Hairline dividers between cells (like the reference), dark and thin.
+	for k = 1, n - 1 do
+		local d = Instance.new("Frame")
+		d.Name = "Divider" .. k
+		d.AnchorPoint = Vector2.new(0.5, 0.5)
+		d.Position = UDim2.fromScale(0.5, 1 - k / n)
+		d.Size = UDim2.new(1, 0, 0, 3)
+		d.BackgroundColor3 = INK
+		d.BackgroundTransparency = 0.15
+		d.BorderSizePixel = 0
+		d.ZIndex = 2
+		d.Parent = well
+	end
+
+	-- Glossy shine strip down the left side.
+	local gloss = Instance.new("Frame")
+	gloss.Name = "Gloss"
+	gloss.AnchorPoint = Vector2.new(0, 0.5)
+	gloss.Position = UDim2.fromScale(0.1, 0.5)
+	gloss.Size = UDim2.fromScale(0.16, 0.94)
+	gloss.BackgroundColor3 = WHITE
+	gloss.BackgroundTransparency = 0.72
+	gloss.BorderSizePixel = 0
+	gloss.ZIndex = 3
+	corner(gloss, 0.5)
+	gloss.Parent = well
+
+	-- Band side labels (topmost cell of each labelled band).
+	local labelsDone: { [string]: boolean } = {}
+	for idx, seg in layout do
+		local isTopOfBand = layout[idx + 1] == nil or layout[idx + 1].band ~= seg.band
 		local text = Strings.powerLabel[seg.band]
 		if text and isTopOfBand and not labelsDone[seg.band] then
 			labelsDone[seg.band] = true
 			local tag = label(
 				root,
 				text,
-				color:Lerp(WHITE, 0.2),
+				(BAND_COLORS[seg.band] or WHITE):Lerp(WHITE, 0.2),
 				UDim2.fromScale(0.5, 0.05),
-				UDim2.fromScale(-0.36, 0.08 + 0.86 * (1 - (i - 0.5) * (1 / n)) - 0.025)
+				UDim2.fromScale(-0.36, 0.08 + 0.86 * (1 - (idx - 0.5) * (1 / n)) - 0.025)
 			)
 			tag.TextXAlignment = Enum.TextXAlignment.Right
 			tag.Rotation = -6
 		end
 	end
 
-	-- The white bar that sweeps over the cells (wider than the well so it reads as a "scanner").
+	-- The fat white pill that sweeps over the fill, wider than the bar so it reads at a glance.
 	local marker = Instance.new("Frame")
 	marker.Name = "Marker"
 	marker.AnchorPoint = Vector2.new(0.5, 0.5)
-	marker.Size = UDim2.new(1.08, 0, 0, 10)
+	marker.Size = UDim2.new(1.2, 0, 0, 26)
 	marker.Position = UDim2.fromScale(0.5, 1)
 	marker.BackgroundColor3 = WHITE
 	marker.BorderSizePixel = 0
 	marker.ZIndex = 6
 	corner(marker, 0.5)
-	local markerRim = stroke(marker, INK, 2.5)
+	stroke(marker, INK, 4)
 	marker.Parent = well
 	local markerGlow = Instance.new("Frame")
 	markerGlow.AnchorPoint = Vector2.new(0.5, 0.5)
 	markerGlow.Position = UDim2.fromScale(0.5, 0.5)
-	markerGlow.Size = UDim2.fromScale(1, 3.2)
+	markerGlow.Size = UDim2.fromScale(0.9, 2.2)
 	markerGlow.BackgroundColor3 = WHITE
-	markerGlow.BackgroundTransparency = 0.7
+	markerGlow.BackgroundTransparency = 0.75
 	markerGlow.BorderSizePixel = 0
 	markerGlow.ZIndex = 5
 	corner(markerGlow, 0.5)
 	markerGlow.Parent = marker
-	markerRim.Enabled = true
-
-	-- Arrow on the left of the frame, riding the marker.
-	local arrow = Instance.new("Frame")
-	arrow.Name = "Arrow"
-	arrow.AnchorPoint = Vector2.new(0.5, 0.5)
-	arrow.Size = UDim2.fromOffset(28, 28)
-	arrow.Rotation = 45
-	arrow.BackgroundColor3 = WHITE
-	arrow.BorderSizePixel = 0
-	arrow.ZIndex = 5
-	stroke(arrow, INK, 3)
-	arrow.Parent = frame
 
 	-- Tap hint bubble under the gauge.
 	local bubble = Instance.new("Frame")
@@ -273,34 +285,17 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 		end
 		local pos = FishingConfig.aimPosition(Workspace:GetServerTimeNow() - aimStart)
 		local t = os.clock() - t0
-		-- marker (and arrow) ride the position; the cell under it lights up
+		-- marker rides the position; a soft tick per cell, higher as it climbs
 		marker.Position = UDim2.fromScale(0.5, 1 - pos)
-		arrow.Position = UDim2.new(0, -2, 1 - math.clamp(pos, 0, 1) * 0.97 - 0.015, 0)
 		local under = math.clamp(math.floor(pos * n) + 1, 1, n)
 		if under ~= lastCell then
-			if lastCell > 0 then
-				cells[lastCell].rim.Thickness = 2
-				cells[lastCell].rim.Color = (BAND_COLORS[cells[lastCell].band] or WHITE):Lerp(
-					WHITE,
-					0.45
-				)
-			end
-			-- a soft tick per cell, higher as it climbs (rhythm to time the tap by ear)
 			if under > lastCell and Workspace:GetServerTimeNow() >= aimStart then
 				Audio.play("click", 0.12, 0.8 + under * 0.07)
 			end
 			lastCell = under
-			cells[under].rim.Color = WHITE
-			if not reduce then
-				TweenService
-					:Create(cells[under].frame, TweenInfo.new(0.08), { BackgroundTransparency = 0 })
-					:Play()
-			end
 		end
-		cells[under].rim.Thickness = 3 + (if reduce then 0 else math.abs(math.sin(t * 16)) * 2.5)
-		arrow.BackgroundColor3 = (BAND_COLORS[cells[under].band] or WHITE):Lerp(WHITE, 0.3)
 		if not reduce then
-			markerGlow.BackgroundTransparency = 0.62 + math.abs(math.sin(t * 10)) * 0.2
+			markerGlow.BackgroundTransparency = 0.7 + math.abs(math.sin(t * 10)) * 0.15
 			bubble.Rotation = math.sin(t * 6) * 4
 			local sc = 1 + math.abs(math.sin(t * 4)) * 0.06
 			bubble.Size = UDim2.fromScale(1.25 * sc, 0.075 * sc)
@@ -431,22 +426,17 @@ function PowerBar.result(band: string, luck: number?)
 		l.ZIndex = 15
 	end
 
-	-- Freeze on the stopped cell: its rim goes white and thick (the marker stays where it was).
-	-- Flash the whole gauge in the stopped band's colour.
+	-- Freeze: the marker stays where it was and flashes in the stopped band's colour.
 	if root then
 		local gauge = root:FindFirstChild("Frame")
 		local well = if gauge then gauge:FindFirstChild("Well") else nil
-		if well then
-			for _, d in well:GetChildren() do
-				if d:IsA("Frame") and string.find(d.Name, band, 1, true) then
-					local s = d:FindFirstChildOfClass("UIStroke")
-					if s then
-						s.Color = WHITE
-						s.Thickness = 4
-					end
-					d.BackgroundColor3 = color
-				end
-			end
+		local marker = if well then well:FindFirstChild("Marker") else nil
+		if marker and marker:IsA("Frame") then
+			marker.BackgroundColor3 = color:Lerp(WHITE, 0.35)
+			local sc = Instance.new("UIScale")
+			sc.Parent = marker
+			TweenService:Create(sc, TweenInfo.new(0.18, Enum.EasingStyle.Back), { Scale = 1.25 })
+				:Play()
 		end
 	end
 
