@@ -445,7 +445,8 @@ local function onCast(player: Player)
 		return
 	end
 	local zoneId = syncPlayerZone(player)
-	if zoneId == "" then
+	-- Hub pier: only from the ring at its end (the client turns the player out to sea).
+	if zoneId == "" or not FishingConfig.castSpotCheck(zoneId, root.Position) then
 		send(player, { event = "rejected", reason = "notInZone" })
 		return
 	end

@@ -135,7 +135,7 @@ Fishing.AIM = {
 	segments = 10, -- "gominhos" (cells) in the vertical gauge
 	timeoutSeconds = 3.5, -- no tap: casts in "red"
 	-- The cast cutscene (pull-back hold) plays first: the bar starts this long after the press.
-	windupSeconds = 0.6,
+	windupSeconds = 0.9,
 	maxLagSeconds = 0.2, -- a reported tap time may be at most this much before it arrived
 	suspectPurpleShare = 0.6, -- above this share of purple in the last `suspectWindow` casts,
 	suspectWindow = 20, -- the client's tap time stops being trusted (server time only)
@@ -276,6 +276,24 @@ end
 
 function Fishing.tierValue(list: { number }, tier: number): number
 	return list[math.clamp(tier, 1, #list)]
+end
+
+-- Cast spots: in a zone listed here you may only fish standing on its spot (the glowing ring
+-- at the end of the hub pier), and the character turns to face `facing` (out to sea) on the
+-- press. Zones not listed keep the whole zone. Positions are world space (studs).
+export type CastSpot = { center: Vector3, radius: number, facing: Vector3 }
+Fishing.CAST_SPOTS = {
+	lagoon = { center = Vector3.new(81, 10.1, 8), radius = 5.5, facing = Vector3.new(1, 0, 0) },
+} :: { [string]: CastSpot }
+
+-- The spot rule for `zoneId` at `position`: (allowed, spot or nil).
+function Fishing.castSpotCheck(zoneId: string, position: Vector3): (boolean, CastSpot?)
+	local spot = Fishing.CAST_SPOTS[zoneId]
+	if not spot then
+		return true, nil
+	end
+	local flat = (position - spot.center) * Vector3.new(1, 0, 1)
+	return flat.Magnitude <= spot.radius, spot
 end
 
 return Fishing

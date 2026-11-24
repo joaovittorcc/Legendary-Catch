@@ -156,6 +156,14 @@ local function onActivated()
 	if state ~= "idle" or not tool or not root then
 		return
 	end
+	-- On a cast spot (end of the hub pier) the player always faces out to sea.
+	for _, spot in FishingConfig.CAST_SPOTS do
+		local flat = (root.Position - spot.center) * Vector3.new(1, 0, 1)
+		if flat.Magnitude <= spot.radius then
+			root.CFrame = CFrame.lookAt(root.Position, root.Position + spot.facing)
+			break
+		end
+	end
 	state = "casting"
 	-- With the power bar, the cast cutscene's pull-back replaces the quick slash.
 	if not FishingConfig.powerEnabled() then
@@ -180,12 +188,28 @@ local function startCast(id: number)
 	local l = Line.create(attachment)
 	line = l
 	-- After the cast cutscene the fishing camera starts where its follow shot ends.
+	local fromCutscene = CastCutscene.active()
 	CastCutscene.release(function()
 		if line == l and l.bobber.Parent and root.Parent then
 			FishingCamera.start(root, l.bobber)
 		end
 	end)
 	local flat = (root.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+	if fromCutscene then
+		-- The cutscene plays the whole-body throw: launch the bobber on its strike and stop
+		-- Line's own short swing (castTo starts it synchronously, this runs right after).
+		task.wait(CastCutscene.LAUNCH_DELAY)
+		if line ~= l then
+			return
+		end
+		task.defer(function()
+			local stop = l.stopPose
+			if stop then
+				l.stopPose = nil
+				stop()
+			end
+		end)
+	end
 	Line.castTo(l, root.Position + flat * FishingConfig.CAST_DISTANCE)
 	-- castTo can return after the cast ended (bite, cancel): only hint while still waiting.
 	if currentState() == "waiting" and line == l then
