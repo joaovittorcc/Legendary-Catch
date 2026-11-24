@@ -355,7 +355,8 @@ local function onUpdate(update: Net.FishingUpdate)
 	elseif update.event == "cast" and (state == "casting" or state == "aiming") then
 		if update.powerBand then
 			-- Show what the band does to a Legendary (rank 5): the clearest "x2" to read.
-			PowerBar.result(update.powerBand, FishingConfig.powerFactor(update.powerBand, 5))
+			local band = update.powerBand
+			task.spawn(PowerBar.result, band, FishingConfig.powerFactor(band, 5))
 		end
 		startCast(update.castId or 0)
 	elseif update.castId ~= castId then

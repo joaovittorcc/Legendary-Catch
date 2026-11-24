@@ -360,6 +360,13 @@ function PowerBar.result(band: string, luck: number?)
 	local reduce = calm()
 	local color = BAND_COLORS[band] or WHITE
 	local root = screen:FindFirstChild("Root") :: Frame?
+	-- Hit-stop: the frozen gauge holds a beat before the word, so the tap feels heavy.
+	if not reduce and (band == "purple" or band == "green") then
+		task.wait(0.08)
+		if token ~= myToken then
+			return
+		end
+	end
 	if band == "purple" then
 		Audio.play("level", 0.45, 1.15)
 	elseif band == "green" then

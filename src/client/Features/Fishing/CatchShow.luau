@@ -1139,6 +1139,14 @@ function CatchShow.play(update: Update, info: Info)
 				break
 			end
 			local at = startClock + duration * (i / tickCount) ^ 0.85
+			-- Slow motion on the last numbers of a huge catch (IRREAL! and up): each of the final
+			-- ticks waits a little longer, so the final figure lands like a drum hit.
+			if finalTier >= 5 and not reduce then
+				local fromEnd = tickCount - i
+				if fromEnd < 3 then
+					at += (3 - fromEnd) * 0.22
+				end
+			end
 			while os.clock() < at and not state.fast do
 				task.wait()
 			end
