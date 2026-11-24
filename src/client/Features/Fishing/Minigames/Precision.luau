@@ -147,6 +147,8 @@ function Precision.run(
 	local timeWarning = false
 	local trailVisible = false
 	local cooldown = 0
+	local impactEnd = 0
+	local moveAfterImpact = false
 	local combo = 0
 	local finished = false
 	local pending: thread? = nil
@@ -203,20 +205,17 @@ function Precision.run(
 		cooldown = 0.18
 		local distance = math.abs(pos - zone.Position.X.Scale)
 		if distance <= zoneWidth / 2 then
+			local perfect = distance < zoneWidth * 0.15
 			hits += 1
 			pips[hits].BackgroundColor3 = Theme.gold
 			combo += 1
-			Ui.feedback(
-				dock,
-				UDim2.fromScale(0.5, -0.20),
-				color,
-				true,
-				distance < zoneWidth * 0.15,
-				combo
-			)
+			Ui.feedback(dock, UDim2.fromScale(0.5, -0.20), color, true, perfect, combo)
 			remaining = cfg.decisionSeconds
 			if hits >= cfg.hitsNeeded then
 				finish(true)
+			elseif perfect and not Ui.reduced() then
+				impactEnd = os.clock() + 0.06
+				moveAfterImpact = true
 			else
 				moveZone()
 			end
@@ -231,6 +230,13 @@ function Precision.run(
 		if lesson and lesson.active() then
 			lesson.update(dt)
 			return
+		end
+		if moveAfterImpact then
+			if not Ui.reduced() and os.clock() < impactEnd then
+				return
+			end
+			moveAfterImpact = false
+			moveZone()
 		end
 		cooldown = math.max(0, cooldown - dt)
 		remaining -= dt

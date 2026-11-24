@@ -21,6 +21,7 @@ local REWARD_FORMAT = Text.captureReward:gsub("%%%.2f", "%%s")
 local RECORD_FORMAT = Text.newRecord:gsub("%%%.2f", "%%s")
 
 export type CatchInfo = {
+	fromShow: boolean?,
 	weight: number?,
 	sizeMult: number?,
 	mutation: string?,

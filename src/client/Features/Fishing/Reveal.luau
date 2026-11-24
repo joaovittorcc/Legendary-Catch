@@ -237,11 +237,12 @@ function Reveal.play(
 	local level = math.max(1, Theme.rarityRank(rarity))
 
 	local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+	local fromShow = info ~= nil and info.fromShow == true
 	local shiny = info ~= nil and info.variant == "Shiny"
 	local creature = Creatures.get(creatureId)
 	local motif = if creature then creature.revealStyle else "splash"
 	local recipe = Cinematics.recipes[creatureId]
-	if recipe then
+	if recipe and not fromShow then
 		local repeatView = seen[creatureId] == true or (info ~= nil and info.isNew == false)
 		if
 			Cinematics.play(
@@ -276,19 +277,22 @@ function Reveal.play(
 	local function cancelled(): boolean
 		return skipped or not root:IsDescendantOf(Workspace)
 	end
-	if level >= 5 then
+	if level >= 5 and not fromShow then
 		Audio.play("legendary", 0.24, 0.74)
 	end
 	local restore: (() -> ())? = nil
 	local signature: Folder? = nil
-	if level == 6 and not reduced then
-		restore = mysticIntro(origin, color, cancelled)
-	elseif level == 5 and not reduced then
-		restore, signature = legendaryIntro(creatureId, origin, root.Position, accent, cancelled)
-	elseif level >= 4 and not reduced then
-		Effects.pillar(origin, color, 35, 1)
-		Effects.ripple(origin, color, 10, 0.9)
-		task.wait(0.45)
+	if not fromShow and not reduced then
+		if level == 6 then
+			restore = mysticIntro(origin, color, cancelled)
+		elseif level == 5 then
+			restore, signature =
+				legendaryIntro(creatureId, origin, root.Position, accent, cancelled)
+		elseif level >= 4 then
+			Effects.pillar(origin, color, 35, 1)
+			Effects.ripple(origin, color, 10, 0.9)
+			task.wait(0.45)
+		end
 	end
 
 	if cancelled() then
@@ -334,17 +338,21 @@ function Reveal.play(
 					FillColor = Theme.crystal,
 				}
 			):Play()
-			Effects.ripple(origin, Theme.rose, 9, 0.65)
-			Effects.ripple(origin, Theme.gold, 12, 0.9)
+			if not fromShow then
+				Effects.ripple(origin, Theme.rose, 9, 0.65)
+				Effects.ripple(origin, Theme.gold, 12, 0.9)
+			end
 		end
 	end
 	model.Parent = Workspace
 
-	RevealStyles.play(motif, origin, level, reduced)
-	Effects.splash(origin, accent, if reduced then 8 else 10 + level * 6)
-	Effects.ripple(origin, color, 4 + level * 2, 0.8)
-	if level >= 5 and not reduced then
-		Effects.shake(0.27, if level == 6 then 1.55 else 1.15)
+	if not fromShow then
+		RevealStyles.play(motif, origin, level, reduced)
+		Effects.splash(origin, accent, if reduced then 8 else 10 + level * 6)
+		Effects.ripple(origin, color, 4 + level * 2, 0.8)
+		if level >= 5 and not reduced then
+			Effects.shake(0.27, if level == 6 then 1.55 else 1.15)
+		end
 	end
 
 	-- The flight can turn. The final pose stays within a small sway of the viewer.
@@ -353,12 +361,18 @@ function Reveal.play(
 	local clearance = if visualScale > 1 then math.max(0, (model:GetExtentsSize().Y - 4) / 2) else 0
 	local display = root.Position + forward * (10 + clearance) + Vector3.yAxis * (3.2 + clearance)
 	local shotPadding = if visualScale < 1 then 1.48 else 1.25
-	local from = origin - Vector3.new(0, 1, 0)
-	local apex = (from + display) / 2 + Vector3.new(0, style.apex, 0)
+	local character = root.Parent
+	local hand = character
+		and (character:FindFirstChild("RightHand") or character:FindFirstChild("Right Arm"))
+	local handPoint = if hand and hand:IsA("BasePart")
+		then hand.Position
+		else root.CFrame:PointToWorldSpace(Vector3.new(1, 0.4, -0.7))
+	local from = if fromShow then handPoint else origin - Vector3.yAxis
+	local apex = (from + display) / 2 + Vector3.yAxis * (if fromShow then 1.1 else style.apex)
 	local viewer = -forward + forward:Cross(Vector3.yAxis) * 0.32 + Vector3.new(0, 0.08, 0)
 	local axes = CFrame.lookAt(Vector3.zero, -viewer)
 	local camera = Workspace.CurrentCamera
-	local flightCamera = if visualScale ~= 1 and not reduced then camera else nil
+	local flightCamera = if not fromShow and visualScale ~= 1 and not reduced then camera else nil
 	local restoreFlightCamera: (() -> ())? = nil
 	if flightCamera then
 		if restore then
@@ -380,17 +394,30 @@ function Reveal.play(
 		end
 	end
 	local start = os.clock()
-	local flight = if reduced then math.min(REDUCED_FLIGHT_MAX, style.flight) else style.flight
+	local flight = if fromShow
+		then 0.43
+		elseif reduced then math.min(REDUCED_FLIGHT_MAX, style.flight)
+		else style.flight
+	local finalScale = model:GetScale()
 	while not cancelled() do
 		local elapsed = os.clock() - start
-		local a = if reduced and visualScale ~= 1 then 1 else math.min(elapsed / flight, 1)
+		local a = if reduced and (visualScale ~= 1 or fromShow)
+			then 1
+			else math.min(elapsed / flight, 1)
 		if level >= 5 and not reduced then
 			a = TweenService:GetValue(a, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 		end
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
-		local turn = if reduced then 0 else (1 - a) ^ 2 * math.pi * 2
+		if fromShow then
+			model:ScaleTo(finalScale * (0.12 + 0.88 * a))
+		end
+		local turn = if reduced then 0 else (1 - a) ^ 2 * math.pi * (if fromShow then 0.5 else 2)
 		local pose = Framing.pose(bounds, p, viewer, turn)
-		model:PivotTo(pose)
+		model:PivotTo(
+			if fromShow
+				then pose + pose:VectorToWorldSpace(bounds.center) * (0.88 * (1 - a))
+				else pose
+		)
 		if flightCamera then
 			local viewport = flightCamera.ViewportSize
 			if viewport.X > 0 and viewport.Y > 0 then

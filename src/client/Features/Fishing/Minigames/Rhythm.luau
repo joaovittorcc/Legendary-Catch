@@ -85,6 +85,7 @@ function Rhythm.run(
 	local diameter = 60
 	local time = 0
 	local gap = 0.4
+	local impactEnd = 0
 	local previous: Vector2? = nil
 	local pending: thread? = nil
 	local step: RBXScriptConnection? = nil
@@ -127,8 +128,6 @@ function Rhythm.run(
 			return
 		end
 		active = false
-		disc.Visible = false
-		ring.Visible = false
 		if success then
 			hits += 1
 			combo += 1
@@ -146,7 +145,22 @@ function Rhythm.run(
 			combo
 		)
 		updateCounter()
+		local freeze = perfect and not Ui.reduced()
+		if freeze then
+			impactEnd = os.clock() + 0.06
+		else
+			disc.Visible = false
+			ring.Visible = false
+		end
 		if misses >= cfg.missesAllowed or hits >= total then
+			if freeze then
+				task.delay(0.06, function()
+					if disc.Parent then
+						disc.Visible = false
+						ring.Visible = false
+					end
+				end)
+			end
 			finish(hits >= total)
 		else
 			gap = interval
@@ -229,6 +243,11 @@ function Rhythm.run(
 			return
 		end
 		if not active then
+			if not Ui.reduced() and os.clock() < impactEnd then
+				return
+			end
+			disc.Visible = false
+			ring.Visible = false
 			gap -= dt
 			if gap <= 0 then
 				spawnTarget()

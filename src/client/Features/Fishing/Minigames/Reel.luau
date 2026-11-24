@@ -142,6 +142,7 @@ function Reel.run(
 	local percent = -1
 	local hit50 = false
 	local hit80 = false
+	local impactEnd = 0
 	local zoneStroke = zone:FindFirstChildOfClass("UIStroke")
 	local meterScale = Instance.new("UIScale")
 	meterScale.Parent = meter
@@ -151,7 +152,11 @@ function Reel.run(
 
 	local function popMeter(pitch: number)
 		Audio.play("hit", 0.14, pitch)
+		Audio.play("click", 0.12, pitch)
 		if not Ui.reduced() then
+			if math.abs(fishPos - pos) < width * 0.15 then
+				impactEnd = os.clock() + 0.06
+			end
 			meterScale.Scale = 1.18
 			TweenService:Create(
 				meterScale,
@@ -184,6 +189,9 @@ function Reel.run(
 		end
 		if lesson and lesson.active() then
 			lesson.update(dt)
+			return
+		end
+		if not Ui.reduced() and os.clock() < impactEnd then
 			return
 		end
 		elapsed += dt

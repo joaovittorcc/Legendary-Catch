@@ -8,6 +8,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Config = Shared:WaitForChild("Config")
 local Creatures = require(Config:WaitForChild("Creatures"))
 local Fishing = require(Config:WaitForChild("Fishing"))
+local Roulette = require(Config:WaitForChild("Roulette"))
 local Milestones = require(Config:WaitForChild("Milestones"))
 local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
@@ -25,6 +26,12 @@ local AquariumIncome = require(script.AquariumIncome)
 local Collection = {}
 type PreviewPose = { motion: CreatureMotion.Motion, base: CFrame }
 type Thumbnail = { holder: Frame, id: string, hidden: boolean, pose: PreviewPose? }
+
+local function storedSize(record: { bestWeight: number }): number?
+	-- Additive server field. Older snapshots do not carry it.
+	local value = (record :: any).bestSizeMult
+	return if typeof(value) == "number" and value > 0 then value else nil
+end
 
 local function preview(parent: Instance, creatureId: string, hidden: boolean): PreviewPose?
 	local library = ReplicatedStorage:FindFirstChild(Creatures.MODELS_FOLDER)
@@ -177,8 +184,18 @@ function Collection.start()
 	local newSpecies: { [string]: boolean } = {}
 	local newVariants: { [string]: boolean } = {}
 	local newAquariumVariants: { [string]: boolean } = {}
+	local sessionSizes: { [string]: number } = {}
+	local renderCollection: (() -> ())? = nil
 	local fishingUpdates = remotes:WaitForChild(Net.FISHING_UPDATE) :: RemoteEvent
 	fishingUpdates.OnClientEvent:Connect(function(update: Net.FishingUpdate)
+		local id, scale = update.creatureId, update.sizeMult
+		if update.event == "caught" and id and scale and scale > (sessionSizes[id] or 0) then
+			sessionSizes[id] = scale
+			local render = renderCollection
+			if gui.Enabled and selected and selected.id == id and render then
+				task.defer(render)
+			end
+		end
 		if
 			update.event == "caught"
 			and update.creatureId
@@ -231,7 +248,9 @@ function Collection.start()
 			if record then
 				table.insert(
 					values,
-					`{entry.id}:{record.count}:{record.bestWeight}:{record.shiny or 0}`
+					`{entry.id}:{record.count}:{record.bestWeight}:{record.shiny or 0}:{record.bestMutation or ""}:{storedSize(
+						record
+					) or 0}`
 				)
 			end
 		end
@@ -358,6 +377,30 @@ function Collection.start()
 					),
 					15
 				)
+				local recordCopy = Text.rouletteRecord
+				local mutation = record.bestMutation
+				if mutation and Roulette.mutation(mutation) then
+					local name = Strings.roulette.card[mutation] or mutation
+					local badge = Panel.label(
+						body,
+						string.format(recordCopy.mutation, name),
+						16,
+						Theme.ink:Lerp(Roulette.COLORS[mutation], 0.35)
+					)
+					badge.TextStrokeTransparency = 1
+				end
+				local savedSize = storedSize(record)
+				local currentSize = sessionSizes[creature.id]
+				local size = if savedSize and currentSize
+					then math.max(savedSize, currentSize)
+					else savedSize or currentSize
+				if size then
+					local readable = string.format("%.2f", size):gsub("0+$", ""):gsub("%.$", "")
+					readable = readable:gsub("%.", Strings.decimalSep)
+					local caption = if savedSize then recordCopy.size else recordCopy.sessionSize
+					local badge = Panel.label(body, string.format(caption, readable), 16)
+					badge.TextStrokeTransparency = 1
+				end
 				local copy = Text.aquariumPreview
 				for _, variant in aquarium.details(creature.id) do
 					local key = creature.id .. "/" .. variant.id
@@ -664,6 +707,7 @@ function Collection.start()
 		queuePreviews()
 	end
 
+	renderCollection = render
 	scroll:GetPropertyChangedSignal("AbsoluteSize"):Connect(function()
 		updateGrids()
 		queuePreviews()

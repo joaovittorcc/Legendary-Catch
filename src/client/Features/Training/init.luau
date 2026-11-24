@@ -3,6 +3,7 @@
 -- Owns the practice presentation and forwards drill results to the training server.
 -- Walking stops training (the server also stops it if the player leaves the spot).
 
+local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -21,6 +22,7 @@ local FishingFolder = script.Parent:WaitForChild("Fishing")
 local Effects = require(FishingFolder:WaitForChild("Effects"))
 local PressInput = require(FishingFolder:WaitForChild("PressInput"))
 local Drill = require(script:WaitForChild("Drill"))
+local Power = require(script:WaitForChild("Power"))
 local Practice = require(script:WaitForChild("Practice"))
 local Ui = require(FishingFolder:WaitForChild("Ui"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
@@ -308,7 +310,8 @@ local function refreshPreview()
 	if preview then
 		return
 	end
-	local frame = mountCard("TrainingPreview", 97, Theme.crystal)
+	local usePower = TrainingConfig.powerEnabled()
+	local frame = mountCard("TrainingPreview", if usePower then 147 else 97, Theme.crystal)
 	Ui.label(
 		frame,
 		"Title",
@@ -319,50 +322,79 @@ local function refreshPreview()
 	).TextStrokeTransparency =
 		1
 	addCards(frame, 30)
+	if usePower then
+		Power.fieldButton(frame, UDim2.new(0.04, 0, 0, 97), 0.92)
+	end
 	preview = frame
 	positionHud()
 end
 
 local function buildHud(color: Color3)
-	local frame = mountCard("TrainingHud", 146, color)
-	addCards(frame, 8)
-	local statLabel = Ui.label(
-		frame,
-		"ActiveLevel",
-		UDim2.new(0.63, 0, 0, 20),
-		UDim2.new(0.04, 0, 0, 72),
-		"",
-		Theme.ink
-	)
-	statLabel.TextStrokeTransparency = 1
-	levelLabel = statLabel
-	local milestone = Ui.label(
-		frame,
-		"Milestone",
-		UDim2.new(0.63, 0, 0, 18),
-		UDim2.new(0.04, 0, 0, 92),
-		"",
-		Theme.ink
-	)
-	milestone.TextStrokeTransparency = 1
-	milestoneLabel = milestone
-	local track = Ui.frame(
-		frame,
-		"ActiveXpTrack",
-		UDim2.new(0.63, 0, 0, 22),
-		UDim2.new(0.04, 0, 0, 114),
-		Theme.ink
-	)
-	Ui.corner(track, 0.35)
-	xpFill = Ui.frame(track, "Fill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
-	local count =
-		Ui.label(track, "Count", UDim2.fromScale(1, 0.84), UDim2.fromScale(0, 0.08), "", Theme.sand)
-	count.ZIndex = 3
-	xpLabel = count
+	local usePower = TrainingConfig.powerEnabled()
+	local frame = mountCard("TrainingHud", if usePower then 163 else 146, color)
+	if usePower then
+		local island = 1
+		local root = rootPart()
+		local nearest = math.huge
+		for _, spot in CollectionService:GetTagged(TrainingConfig.SPOT_TAG) do
+			if root and spot:IsA("BasePart") then
+				local distance = (root.Position - spot.Position).Magnitude
+				if distance < nearest then
+					nearest = distance
+					island = TrainingConfig.islandIndex(
+						spot:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE)
+					)
+				end
+			end
+		end
+		Power.mount(frame, activeStat, island)
+		Power.fieldButton(frame, UDim2.new(0.04, 0, 0, 113), 0.44)
+	else
+		addCards(frame, 8)
+		local statLabel = Ui.label(
+			frame,
+			"ActiveLevel",
+			UDim2.new(0.63, 0, 0, 20),
+			UDim2.new(0.04, 0, 0, 72),
+			"",
+			Theme.ink
+		)
+		statLabel.TextStrokeTransparency = 1
+		levelLabel = statLabel
+		local milestone = Ui.label(
+			frame,
+			"Milestone",
+			UDim2.new(0.63, 0, 0, 18),
+			UDim2.new(0.04, 0, 0, 92),
+			"",
+			Theme.ink
+		)
+		milestone.TextStrokeTransparency = 1
+		milestoneLabel = milestone
+		local track = Ui.frame(
+			frame,
+			"ActiveXpTrack",
+			UDim2.new(0.63, 0, 0, 22),
+			UDim2.new(0.04, 0, 0, 114),
+			Theme.ink
+		)
+		Ui.corner(track, 0.35)
+		xpFill = Ui.frame(track, "Fill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
+		local count = Ui.label(
+			track,
+			"Count",
+			UDim2.fromScale(1, 0.84),
+			UDim2.fromScale(0, 0.08),
+			"",
+			Theme.sand
+		)
+		count.ZIndex = 3
+		xpLabel = count
+	end
 	local button = Panel.button(frame, Strings.stop, Color3.fromRGB(247, 75, 91))
 	button.Name = "Stop"
-	button.Size = UDim2.new(0.25, 0, 0, 44)
-	button.Position = UDim2.new(0.71, 0, 0, 81)
+	button.Size = UDim2.new(if usePower then 0.44 else 0.25, 0, 0, 44)
+	button.Position = if usePower then UDim2.new(0.52, 0, 0, 113) else UDim2.new(0.71, 0, 0, 81)
 	button.Activated:Connect(function()
 		stopRemote:FireServer()
 	end)
@@ -639,6 +671,12 @@ local function onRing(update: Net.TrainingUpdate)
 end
 
 local function onUpdate(update: Net.TrainingUpdate)
+	if TrainingConfig.powerEnabled() then
+		Power.onUpdate(update)
+		if update.event == "levelUp" then
+			return
+		end
+	end
 	if update.event == "dailyBonus" then
 		local xp = update.bonusXp
 		local frame = hud
@@ -778,6 +816,7 @@ function Training.start()
 	stopRemote = remotes:WaitForChild(Net.STOP_TRAINING) :: RemoteEvent
 	ringRemote = remotes:WaitForChild(Net.TRAINING_RING_RESULT) :: RemoteEvent
 	local updateRemote = remotes:WaitForChild(Net.TRAINING_UPDATE) :: RemoteEvent
+	Power.start(remotes:WaitForChild(Net.TRAINING_BUY_FIELD) :: RemoteEvent)
 
 	Tutorial.layoutChanged:Connect(positionHud)
 	Hud.layoutChanged:Connect(positionHud)

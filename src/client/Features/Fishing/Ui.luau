@@ -309,6 +309,9 @@ function Ui.feedback(
 )
 	local streak = combo or 0
 	local reduced = Ui.reduced()
+	if success then
+		Audio.play("click", 0.14, if perfect then 1.3 else 1.1)
+	end
 	Audio.play(
 		if success then "hit" else "miss",
 		0.2,
@@ -376,6 +379,21 @@ function Ui.feedback(
 	state.sequence += 1
 	local sequence = state.sequence
 	if not reduced then
+		if not success then
+			badge.Rotation = -3
+			local shake = TweenService:Create(
+				badge,
+				TweenInfo.new(0.044, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut, 1, true),
+				{ Rotation = 3 }
+			)
+			table.insert(state.tweens, shake)
+			shake.Completed:Once(function()
+				if state.sequence == sequence and badge.Parent then
+					badge.Rotation = 0
+				end
+			end)
+			shake:Play()
+		end
 		-- Instant pop-in overshoot on the badge without distorting font aspect ratio.
 		state.badgeScale.Scale = if perfect then 1.32 else 1.18
 		local popTween = TweenService:Create(

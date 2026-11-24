@@ -225,6 +225,14 @@ function Line.castTo(self: Line, target: Vector3)
 	local apex = (from + to) / 2 + Vector3.new(0, 7, 0)
 	local duration = 0.7
 	local start = os.clock()
+	local trail = self.trail
+	local firstWidth, firstLifetime = trail.WidthScale, trail.Lifetime
+	trail.Lifetime = 0.34
+	trail.WidthScale = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 1.8),
+		NumberSequenceKeypoint.new(0.45, 0.84),
+		NumberSequenceKeypoint.new(1, 0),
+	})
 	while true do
 		local a = math.min((os.clock() - start) / duration, 1)
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(to, a), a)
@@ -237,8 +245,10 @@ function Line.castTo(self: Line, target: Vector3)
 	self.rest = to
 	self.mode = "floating"
 	self.trail.Enabled = false
-	Effects.ripple(to, Color3.fromRGB(220, 245, 255), 3.4, 0.65)
-	Effects.splash(to, Color3.fromRGB(205, 245, 255), 10)
+	trail.WidthScale, trail.Lifetime = firstWidth, firstLifetime
+	local quiet = reduced()
+	Effects.ripple(to, Color3.fromRGB(220, 245, 255), if quiet then 3.4 else 5.1, 0.65)
+	Effects.splash(to, Color3.fromRGB(205, 245, 255), if quiet then 10 else 19)
 end
 
 function Line.setColor(self: Line, color: Color3)
