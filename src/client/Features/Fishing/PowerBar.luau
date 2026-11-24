@@ -20,24 +20,111 @@ local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishin
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
+local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
 local PowerBar = {}
 
 local BAND_COLORS: { [string]: Color3 } = {
-	neutral = Color3.fromRGB(70, 175, 255),
-	red = Color3.fromRGB(255, 56, 84),
-	yellow = Color3.fromRGB(255, 226, 40),
-	green = Color3.fromRGB(70, 255, 96),
-	purple = Color3.fromRGB(206, 76, 255),
+	neutral = Color3.fromRGB(130, 150, 205),
+	red = Color3.fromRGB(255, 70, 85),
+	yellow = Color3.fromRGB(255, 205, 55),
+	green = Color3.fromRGB(90, 235, 110),
+	purple = Color3.fromRGB(190, 110, 255),
 }
--- Bottom tint of each band's blend: shifts the hue a little so the gauge reads as a rainbow.
+-- Bottom tint of each band's blend (top is the band colour, a touch lighter).
 local BAND_DEEP: { [string]: Color3 } = {
-	neutral = Color3.fromRGB(110, 90, 255),
-	red = Color3.fromRGB(255, 120, 40),
-	yellow = Color3.fromRGB(255, 150, 30),
-	green = Color3.fromRGB(20, 215, 170),
-	purple = Color3.fromRGB(255, 70, 200),
+	neutral = Color3.fromRGB(100, 115, 175),
+	red = Color3.fromRGB(230, 45, 75),
+	yellow = Color3.fromRGB(255, 160, 40),
+	green = Color3.fromRGB(40, 200, 110),
+	purple = Color3.fromRGB(150, 75, 245),
 }
+
+-- Gauge skins: the frame gets fancier as the player's Fishing Power grows (Training.tier).
+type Skin = {
+	key: string,
+	colors: ColorSequence,
+	stroke: Color3,
+	glow: Color3?,
+	shimmer: boolean, -- gradient slides up and down
+	spin: boolean, -- gradient rotates (rainbow)
+	sparkle: boolean, -- little stars pop around the frame
+}
+local function seq(list: { Color3 }): ColorSequence
+	local keys = {}
+	for i, c in list do
+		table.insert(keys, ColorSequenceKeypoint.new((i - 1) / (#list - 1), c))
+	end
+	return ColorSequence.new(keys)
+end
+local SKINS: { Skin } = {
+	{
+		key = "wood",
+		colors = seq({ Color3.fromRGB(196, 130, 82), Color3.fromRGB(110, 64, 40) }),
+		stroke = Color3.fromRGB(45, 24, 16),
+		glow = nil,
+		shimmer = false,
+		spin = false,
+		sparkle = false,
+	},
+	{
+		key = "crystal",
+		colors = seq({ Color3.fromRGB(170, 245, 255), Color3.fromRGB(40, 150, 255) }),
+		stroke = Color3.fromRGB(10, 45, 95),
+		glow = Color3.fromRGB(90, 205, 255),
+		shimmer = true,
+		spin = false,
+		sparkle = false,
+	},
+	{
+		key = "amethyst",
+		colors = seq({ Color3.fromRGB(225, 170, 255), Color3.fromRGB(125, 60, 225) }),
+		stroke = Color3.fromRGB(40, 12, 75),
+		glow = Color3.fromRGB(180, 110, 255),
+		shimmer = true,
+		spin = false,
+		sparkle = false,
+	},
+	{
+		key = "rose",
+		colors = seq({ Color3.fromRGB(255, 170, 230), Color3.fromRGB(240, 50, 160) }),
+		stroke = Color3.fromRGB(80, 5, 55),
+		glow = Color3.fromRGB(255, 95, 205),
+		shimmer = true,
+		spin = false,
+		sparkle = true,
+	},
+	{
+		key = "gold",
+		colors = seq({
+			Color3.fromRGB(255, 250, 190),
+			Color3.fromRGB(255, 205, 60),
+			Color3.fromRGB(220, 130, 20),
+		}),
+		stroke = Color3.fromRGB(95, 50, 0),
+		glow = Color3.fromRGB(255, 205, 70),
+		shimmer = true,
+		spin = false,
+		sparkle = true,
+	},
+	{
+		key = "cosmic",
+		colors = seq({
+			Color3.fromRGB(255, 90, 140),
+			Color3.fromRGB(255, 210, 80),
+			Color3.fromRGB(90, 240, 160),
+			Color3.fromRGB(80, 170, 255),
+			Color3.fromRGB(200, 110, 255),
+		}),
+		stroke = Color3.fromRGB(25, 15, 50),
+		glow = Color3.fromRGB(255, 255, 255),
+		shimmer = false,
+		spin = true,
+		sparkle = true,
+	},
+}
+local lastSkin = 0 -- per session: a new skin pops a "new bar" banner once
+
 local INK = Theme.ink
 local WHITE = Color3.new(1, 1, 1)
 
@@ -45,6 +132,22 @@ local player = Players.LocalPlayer
 local gui: ScreenGui? = nil
 local beat: RBXScriptConnection? = nil
 local token = 0
+
+-- Skin index from the player's Fishing Power (sum of the stats); "DevPowerBarSkin" forces one.
+local function skinIndex(): number
+	local forced = player:GetAttribute("DevPowerBarSkin")
+	if typeof(forced) == "number" then
+		return math.clamp(math.floor(forced), 1, #SKINS)
+	end
+	local sum = 0
+	for _, stat in TrainingConfig.STATS do
+		local v = player:GetAttribute(TrainingConfig.powerAttribute(stat))
+		if typeof(v) == "number" then
+			sum += v
+		end
+	end
+	return math.clamp(TrainingConfig.tier(sum), 1, #SKINS)
+end
 
 local function calm(): boolean
 	return player:GetAttribute("ReduceEffects") == true
@@ -126,32 +229,62 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	limit.Parent = root
 	root.Parent = screen
 
-	local title =
-		label(root, Strings.powerTitle, WHITE, UDim2.fromScale(1, 0.08), UDim2.fromScale(0, -0.02))
+	local title = label(
+		root,
+		Strings.powerTitle,
+		WHITE,
+		UDim2.fromScale(0.7, 0.08),
+		UDim2.fromScale(0.39, -0.02)
+	)
 	local tg = Instance.new("UIGradient")
 	tg.Color = ColorSequence.new(Theme.gold, Color3.fromRGB(255, 120, 80))
 	tg.Rotation = 90
 	tg.Parent = title
 
-	-- Frame: thick black pill outline (the glossy colourful look), one smooth gradient fill inside.
+	-- Frame: slim pill in the skin's colours, dark rim, optional glow behind.
+	local skinId = skinIndex()
+	local skin = SKINS[skinId]
+	local glow: Frame? = nil
+	if skin.glow then
+		local g = Instance.new("Frame")
+		g.Name = "Glow"
+		g.AnchorPoint = Vector2.new(1, 0)
+		g.Position = UDim2.new(0.95, 12, 0.08, -12)
+		g.Size = UDim2.new(0.42, 24, 0.86, 24)
+		g.BackgroundColor3 = skin.glow
+		g.BackgroundTransparency = 0.45
+		g.BorderSizePixel = 0
+		g.ZIndex = 1
+		corner(g, 0.5)
+		g.Parent = root
+		glow = g
+	end
+
 	local frame = Instance.new("Frame")
 	frame.Name = "Frame"
 	frame.AnchorPoint = Vector2.new(1, 0)
 	frame.Position = UDim2.fromScale(0.95, 0.08)
-	frame.Size = UDim2.fromScale(0.74, 0.86)
-	frame.BackgroundColor3 = INK
+	frame.Size = UDim2.fromScale(0.42, 0.86)
+	frame.BackgroundColor3 = WHITE
 	frame.BorderSizePixel = 0
-	corner(frame, 0.3)
+	frame.ZIndex = 2
+	corner(frame, 0.5)
+	stroke(frame, skin.stroke, 3)
+	local skinGradient = Instance.new("UIGradient")
+	skinGradient.Color = skin.colors
+	skinGradient.Rotation = 90
+	skinGradient.Parent = frame
 	frame.Parent = root
 
 	local well = Instance.new("Frame")
 	well.Name = "Well"
 	well.AnchorPoint = Vector2.new(0.5, 0.5)
 	well.Position = UDim2.fromScale(0.5, 0.5)
-	well.Size = UDim2.new(1, -18, 1, -18)
+	well.Size = UDim2.new(1, -20, 1, -20)
 	well.BackgroundColor3 = WHITE
 	well.BorderSizePixel = 0
-	corner(well, 0.27)
+	corner(well, 0.5)
+	stroke(well, skin.stroke, 2)
 	well.Parent = frame
 
 	-- One gradient for the whole fill: each run of equal bands blends from a lighter top to a
@@ -173,7 +306,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 			keys,
 			ColorSequenceKeypoint.new(
 				math.max(t0, if #keys == 0 then 0 else t0 + 0.0008),
-				color:Lerp(WHITE, 0.1)
+				color:Lerp(WHITE, 0.18)
 			)
 		)
 		table.insert(
@@ -196,9 +329,9 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 		d.Name = "Divider" .. k
 		d.AnchorPoint = Vector2.new(0.5, 0.5)
 		d.Position = UDim2.fromScale(0.5, 1 - k / n)
-		d.Size = UDim2.new(if k == 1 or k == n - 1 then 0.88 else 1, 0, 0, 3)
+		d.Size = UDim2.new(if k == 1 or k == n - 1 then 0.94 else 1, 0, 0, 2)
 		d.BackgroundColor3 = INK
-		d.BackgroundTransparency = 0.15
+		d.BackgroundTransparency = 0.35
 		d.BorderSizePixel = 0
 		d.ZIndex = 2
 		d.Parent = well
@@ -208,8 +341,8 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	local gloss = Instance.new("Frame")
 	gloss.Name = "Gloss"
 	gloss.AnchorPoint = Vector2.new(0, 0.5)
-	gloss.Position = UDim2.fromScale(0.1, 0.5)
-	gloss.Size = UDim2.fromScale(0.16, 0.94)
+	gloss.Position = UDim2.fromScale(0.12, 0.5)
+	gloss.Size = UDim2.fromScale(0.2, 0.92)
 	gloss.BackgroundColor3 = WHITE
 	gloss.BackgroundTransparency = 0.7
 	gloss.BorderSizePixel = 0
@@ -229,7 +362,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 				text,
 				(BAND_COLORS[seg.band] or WHITE):Lerp(WHITE, 0.2),
 				UDim2.fromScale(0.5, 0.05),
-				UDim2.fromScale(-0.36, 0.08 + 0.86 * (1 - (idx - 0.5) * (1 / n)) - 0.025)
+				UDim2.fromScale(-0.1, 0.08 + 0.86 * (1 - (idx - 0.5) * (1 / n)) - 0.025)
 			)
 			tag.TextXAlignment = Enum.TextXAlignment.Right
 			tag.Rotation = -6
@@ -240,13 +373,13 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	local marker = Instance.new("Frame")
 	marker.Name = "Marker"
 	marker.AnchorPoint = Vector2.new(0.5, 0.5)
-	marker.Size = UDim2.new(1.2, 0, 0, 26)
+	marker.Size = UDim2.new(1.55, 0, 0, 20)
 	marker.Position = UDim2.fromScale(0.5, 1)
 	marker.BackgroundColor3 = WHITE
 	marker.BorderSizePixel = 0
 	marker.ZIndex = 6
 	corner(marker, 0.5)
-	stroke(marker, INK, 4)
+	stroke(marker, INK, 3)
 	marker.Parent = well
 	local markerGlow = Instance.new("Frame")
 	markerGlow.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -279,6 +412,38 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 
 	screen.Parent = player:WaitForChild("PlayerGui")
 	gui = screen
+	if lastSkin > 0 and skinId > lastSkin then
+		local banner = label(
+			screen,
+			string.format(Strings.powerNewSkin, Strings.powerSkins[skin.key] or ""),
+			WHITE,
+			UDim2.fromScale(0.6, 0.07),
+			UDim2.fromScale(0.2, 0.12)
+		)
+		banner.ZIndex = 20
+		local bg = Instance.new("UIGradient")
+		bg.Color = skin.colors
+		bg.Parent = banner
+		local bscale = Instance.new("UIScale")
+		bscale.Scale = 0.3
+		bscale.Parent = banner
+		TweenService:Create(bscale, TweenInfo.new(0.35, Enum.EasingStyle.Back), { Scale = 1 })
+			:Play()
+		Audio.play("level", 0.4, 1.3)
+		task.delay(1.8, function()
+			if banner.Parent then
+				TweenService:Create(banner, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
+				local bs = banner:FindFirstChildOfClass("UIStroke")
+				if bs then
+					TweenService:Create(bs, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+				end
+				task.delay(0.35, function()
+					banner:Destroy()
+				end)
+			end
+		end)
+	end
+	lastSkin = skinId
 	TweenService:Create(
 		root,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back),
@@ -287,12 +452,45 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 
 	local t0 = os.clock()
 	local lastCell = 0
+	local lastSpark = 0
 	beat = RunService.RenderStepped:Connect(function()
 		if token ~= myToken then
 			return
 		end
 		local pos = FishingConfig.aimPosition(Workspace:GetServerTimeNow() - aimStart)
 		local t = os.clock() - t0
+		if not reduce then
+			if skin.spin then
+				skinGradient.Rotation = (t * 120) % 360
+			elseif skin.shimmer then
+				skinGradient.Offset = Vector2.new(0, math.sin(t * 2.4) * 0.25)
+			end
+			if glow then
+				glow.BackgroundTransparency = 0.4 + math.abs(math.sin(t * 3)) * 0.3
+			end
+			if skin.sparkle and t - lastSpark > 0.16 then
+				lastSpark = t
+				local star = Instance.new("Frame")
+				star.AnchorPoint = Vector2.new(0.5, 0.5)
+				star.Rotation = 45
+				star.Size = UDim2.fromOffset(7, 7)
+				star.Position =
+					UDim2.fromScale(if math.random() < 0.5 then -0.05 else 1.05, math.random())
+				star.BackgroundColor3 = skin.glow or WHITE
+				star.BorderSizePixel = 0
+				star.ZIndex = 4
+				star.Parent = frame
+				local up = TweenService:Create(star, TweenInfo.new(0.6), {
+					Position = star.Position - UDim2.fromScale(0, 0.06),
+					Size = UDim2.fromOffset(1, 1),
+					BackgroundTransparency = 1,
+				})
+				up:Play()
+				up.Completed:Once(function()
+					star:Destroy()
+				end)
+			end
+		end
 		-- marker rides the position; a soft tick per cell, higher as it climbs
 		marker.Position = UDim2.fromScale(0.5, 1 - pos)
 		local under = math.clamp(math.floor(pos * n) + 1, 1, n)

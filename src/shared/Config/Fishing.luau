@@ -129,9 +129,9 @@ end
 
 Fishing.POWER_FLAG = "FishingPower"
 Fishing.AIM = {
-	fillSeconds = 1.6, -- the gauge fills from 0 to full in this long (progressive, not ping-pong)
-	holdSeconds = 0.4, -- stays full this long, then snaps back to empty and fills again
-	sweepSeconds = 1.6, -- kept for older readers: same as fillSeconds
+	fillSeconds = 0.8, -- the gauge fills from 0 to full in this long (progressive, not ping-pong)
+	holdSeconds = 0.2, -- stays full this long, then snaps back to empty and fills again
+	sweepSeconds = 0.8, -- kept for older readers: same as fillSeconds
 	segments = 10, -- "gominhos" (cells) in the vertical gauge
 	timeoutSeconds = 3.5, -- no tap: casts in "red"
 	-- The cast cutscene (pull-back hold) plays first: the bar starts this long after the press.
