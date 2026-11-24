@@ -68,6 +68,7 @@ Training.DAILY_GAIN_SECONDS = 60 -- first training of the day
 Training.PRESTIGE_GAIN_STEP = 0.25 -- gain x(1 + 0.25 x prestige); prestige never resets power
 Training.FIELD_ATTRIBUTE = "TrainField"
 Training.ISLAND_ATTRIBUTE = "TrainingIsland" -- on a TrainingSpot part: which island (1..4)
+Training.STAT_ATTRIBUTE = "TrainingStat" -- on a TrainingSpot part: only this stat (optional)
 
 export type FieldLevel = { mult: number, cost: number, gate: number }
 

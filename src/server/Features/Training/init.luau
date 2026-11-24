@@ -192,7 +192,8 @@ local function start(player: Player, stat: string, spot: BasePart)
 	end
 	local island = TrainingConfig.islandIndex(spot:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE))
 	if
-		TrainingConfig.powerEnabled() and not TrainingConfig.islandAllowed(island, powerSum(player))
+		TrainingConfig.powerEnabled()
+		and not TrainingConfig.islandAllowed(island, powerSum(player))
 	then
 		update:FireClient(
 			player,
@@ -247,7 +248,13 @@ local function addPrompts(spot: Instance)
 	if not spot:IsA("BasePart") then
 		return
 	end
+	-- A spot can be dedicated to one stat (attribute TrainingStat, e.g. the Focus and Instinct
+	-- ponds of the training islands); without it the spot offers every stat.
+	local only = spot:GetAttribute(TrainingConfig.STAT_ATTRIBUTE)
 	for i, stat in TrainingConfig.STATS do
+		if typeof(only) == "string" and only ~= "" and only ~= stat then
+			continue
+		end
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "Train" .. stat
 		prompt.ActionText = `{Strings.trainAction} {Strings.stat[stat] or stat}`
@@ -257,7 +264,9 @@ local function addPrompts(spot: Instance)
 		prompt.HoldDuration = 0.3
 		prompt.MaxActivationDistance = 12
 		prompt.RequiresLineOfSight = false
-		prompt.UIOffset = Vector2.new(0, (i - 1) * -72)
+		prompt.UIOffset = if typeof(only) == "string" and only ~= ""
+			then Vector2.zero
+			else Vector2.new(0, (i - 1) * -72)
 		prompt.Triggered:Connect(function(player)
 			start(player, stat, spot)
 		end)

@@ -33,3 +33,21 @@ Texto para colar (um por conversa):
 ```text
 Leia docs/prompts-antigravity/<ARQUIVO>.md inteiro e faça só o que ele pede (4 imagens de conceito e a descrição). Não abra o Studio nem construa nada.
 ```
+
+
+## Ilhas de treino: construir (4 agentes, um por ilha)
+
+Conceitos escolhidos pelo João em `art/concept/escolhidas/`. Cada agente constrói a sua ilha igual à imagem.
+
+| Agente | Arquivo |
+|---|---|
+| 1 | `ILHA-CONSTRUIR-1-APRENDIZ.md` |
+| 2 | `ILHA-CONSTRUIR-2-RECIFE.md` |
+| 3 | `ILHA-CONSTRUIR-3-ABISMO-ESTELAR.md` |
+| 4 | `ILHA-CONSTRUIR-4-CELESTIAL.md` |
+
+Texto para colar (um por conversa):
+
+```text
+Leia docs/prompts-antigravity/<ARQUIVO>.md inteiro e execute. Siga o .studio-lock à risca: outros agentes usam o mesmo Studio.
+```
