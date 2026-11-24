@@ -31,6 +31,7 @@ local Effects = require(script.Parent:WaitForChild("Effects"))
 local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
 local Framing = require(script.Parent:WaitForChild("RevealFraming"))
+local Mutation = require(script.Parent.RevealMutation)
 local RevealCard = require(script.Parent:WaitForChild("RevealCard"))
 local Cinematics = require(script.Parent:WaitForChild("Cinematics"))
 
@@ -305,11 +306,15 @@ function Reveal.play(
 	local model = cloneCreature(creatureId)
 	local _, size = model:GetBoundingBox()
 	local biggest = math.max(size.X, size.Y, size.Z, 0.1)
-	model:ScaleTo(model:GetScale() * style.size / biggest)
+	local visualScale = Mutation.scale(info and info.sizeMult)
+	local mutation = info and info.mutation
+	model:ScaleTo(model:GetScale() * style.size / biggest * visualScale)
 	local bounds = Framing.measure(model)
+	local paintMutation = Mutation.paint(model, mutation)
+	local mutationSparks = Mutation.particles(model, mutation)
 	local motion = CreatureMotion.bind(model, motif)
 	local preview = cloneCreature(creatureId)
-	if (level >= 3 or shiny) and not reduced then
+	if not mutationSparks and (level >= 3 or shiny) and not reduced then
 		sparkles(model, color, shiny)
 	end
 	if shiny then
@@ -345,20 +350,62 @@ function Reveal.play(
 	-- The flight can turn. The final pose stays within a small sway of the viewer.
 	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	local forward = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
-	local display = root.Position + forward * 10 + Vector3.new(0, 3.2, 0)
+	local clearance = if visualScale > 1 then math.max(0, (model:GetExtentsSize().Y - 4) / 2) else 0
+	local display = root.Position + forward * (10 + clearance) + Vector3.yAxis * (3.2 + clearance)
+	local shotPadding = if visualScale < 1 then 1.48 else 1.25
 	local from = origin - Vector3.new(0, 1, 0)
 	local apex = (from + display) / 2 + Vector3.new(0, style.apex, 0)
 	local viewer = -forward + forward:Cross(Vector3.yAxis) * 0.32 + Vector3.new(0, 0.08, 0)
+	local axes = CFrame.lookAt(Vector3.zero, -viewer)
+	local camera = Workspace.CurrentCamera
+	local flightCamera = if visualScale ~= 1 and not reduced then camera else nil
+	local restoreFlightCamera: (() -> ())? = nil
+	if flightCamera then
+		if restore then
+			restore()
+			restore = nil
+		end
+		local oldType, oldCF, oldFocus, oldFov =
+			flightCamera.CameraType,
+			flightCamera.CFrame,
+			flightCamera.Focus,
+			flightCamera.FieldOfView
+		flightCamera.CameraType = Enum.CameraType.Scriptable
+		flightCamera.FieldOfView = SHOT_FOV
+		restoreFlightCamera = function()
+			flightCamera.CFrame = oldCF
+			flightCamera.Focus = oldFocus
+			flightCamera.FieldOfView = oldFov
+			flightCamera.CameraType = oldType
+		end
+	end
 	local start = os.clock()
 	local flight = if reduced then math.min(REDUCED_FLIGHT_MAX, style.flight) else style.flight
 	while not cancelled() do
-		local a = math.min((os.clock() - start) / flight, 1)
+		local elapsed = os.clock() - start
+		local a = if reduced and visualScale ~= 1 then 1 else math.min(elapsed / flight, 1)
 		if level >= 5 and not reduced then
 			a = TweenService:GetValue(a, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
 		end
 		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
 		local turn = if reduced then 0 else (1 - a) ^ 2 * math.pi * 2
-		model:PivotTo(Framing.pose(bounds, p, viewer, turn))
+		local pose = Framing.pose(bounds, p, viewer, turn)
+		model:PivotTo(pose)
+		if flightCamera then
+			local viewport = flightCamera.ViewportSize
+			if viewport.X > 0 and viewport.Y > 0 then
+				local region = RevealCard.subjectRegion(viewport)
+				flightCamera.CFrame =
+					Framing.camera(bounds, pose, axes, p, viewport, SHOT_FOV, region, shotPadding)
+				flightCamera.Focus = CFrame.new(p)
+			end
+		end
+		if paintMutation then
+			paintMutation(elapsed, reduced)
+		end
+		if mutationSparks then
+			mutationSparks.Enabled = not reduced
+		end
 		if a >= 1 then
 			break
 		end
@@ -371,7 +418,6 @@ function Reveal.play(
 	local photoButton: TextButton? = nil
 	local holdStart = os.clock()
 	local base = Framing.pose(bounds, display, viewer)
-	local camera = Workspace.CurrentCamera
 	local restoreCamera: (() -> ())? = nil
 	local restoreForeground: (() -> ())? = nil
 	local touchControls = GuiService.TouchControlsEnabled
@@ -401,7 +447,6 @@ function Reveal.play(
 		if camera then
 			local oldType, oldCFrame, oldFocus, oldFov =
 				camera.CameraType, camera.CFrame, camera.Focus, camera.FieldOfView
-			local axes = CFrame.lookAt(Vector3.zero, -viewer)
 			camera.CameraType = Enum.CameraType.Scriptable
 			local lastViewport = Vector2.zero
 			local shot = oldCFrame
@@ -418,7 +463,7 @@ function Reveal.play(
 						viewport,
 						SHOT_FOV,
 						region,
-						1.25
+						shotPadding
 					)
 					base = Framing.pose(bounds, display, shot.Position - display)
 					shot = Framing.camera(
@@ -429,21 +474,31 @@ function Reveal.play(
 						viewport,
 						SHOT_FOV,
 						region,
-						1.25
+						shotPadding
 					)
 				end
 				local elapsed = os.clock() - holdStart
-				local blend = if reduced then 1 else math.min(elapsed / SHOT_BLEND, 1)
+				local quiet = reduced or Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+				local blend = if quiet or flightCamera then 1 else math.min(elapsed / SHOT_BLEND, 1)
 				local eased =
 					TweenService:GetValue(blend, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
 				camera.CFrame = oldCFrame:Lerp(shot, eased)
 				camera.FieldOfView = oldFov + (SHOT_FOV - oldFov) * eased
 				camera.Focus = CFrame.new(display)
-				if not reduced then
+				if not quiet then
 					CreatureMotion.pose(motion, base, elapsed, false)
 					activeCard.preview(elapsed)
 				else
 					model:PivotTo(base)
+				end
+				if paintMutation then
+					paintMutation(flight + elapsed, quiet)
+				end
+				if mutationSparks then
+					if quiet and mutationSparks.Enabled then
+						mutationSparks:Clear()
+					end
+					mutationSparks.Enabled = not quiet
 				end
 			end)
 			restoreCamera = function()
@@ -464,6 +519,9 @@ function Reveal.play(
 	end
 	if restoreCamera then
 		restoreCamera()
+	end
+	if restoreFlightCamera then
+		restoreFlightCamera()
 	end
 	if skipButton then
 		skipButton:Destroy()

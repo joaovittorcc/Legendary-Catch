@@ -3,14 +3,13 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
-local Fishing = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
-local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Panel = require(script.Parent.Parent.Hud:WaitForChild("Panel"))
 local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local Framing = require(script.Parent:WaitForChild("RevealFraming"))
+local Mutation = require(script.Parent.RevealMutation)
 local Data = require(script.Parent.Parent.Parent.Data)
 local AquariumIncome = require(script.Parent.Parent.Collection.AquariumIncome)
 
@@ -18,9 +17,14 @@ local RevealCard = {}
 local CARD_TWEEN = 0.26
 local PREVIEW_FOV = 34
 local PREVIEW_SPEED = math.rad(15)
+local REWARD_FORMAT = Text.captureReward:gsub("%%%.2f", "%%s")
+local RECORD_FORMAT = Text.newRecord:gsub("%%%.2f", "%%s")
 
 export type CatchInfo = {
 	weight: number?,
+	sizeMult: number?,
+	mutation: string?,
+	odds: number?,
 	value: number?,
 	isNew: boolean?,
 	variant: string?,
@@ -33,11 +37,31 @@ export type CatchInfo = {
 	newVariant: boolean?,
 }
 
-type Row = { label: TextLabel, height: number }
+type Row = { label: TextLabel, height: number, pixels: number }
 export type Card = {
 	preview: (number) -> (),
 	close: (boolean) -> (),
 }
+
+local function formatOdds(odds: number): string
+	local digits = string.format("%.0f", odds)
+	local separator = Strings.thousandsSep
+	local grouped = digits:reverse():gsub("(%d%d%d)", "%1" .. separator)
+	if grouped:sub(-#separator) == separator then
+		grouped = grouped:sub(1, -#separator - 1)
+	end
+	return grouped:reverse()
+end
+
+local function formatWeight(weight: number): string
+	if weight < 1e3 then
+		return (string.format("%.2f", weight):gsub("%.", Strings.decimalSep))
+	end
+	local millions = math.round(weight / 100) >= 10000
+	local short = string.format("%.1f", weight / (if millions then 1e6 else 1e3))
+	short = short:gsub("%.0$", ""):gsub("%.", Strings.decimalSep)
+	return short .. (if millions then "M" else "K")
+end
 
 function RevealCard.action(gui: ScreenGui, name: string, caption: string, tint: Color3): TextButton
 	local button = Panel.button(gui, caption, tint)
@@ -170,7 +194,7 @@ function RevealCard.open(
 		label.TextTruncate = Enum.TextTruncate.AtEnd
 		label.Text = value
 		label.Parent = card
-		table.insert(rows, { label = label, height = height })
+		table.insert(rows, { label = label, height = height, pixels = pixels })
 		return label
 	end
 
@@ -186,16 +210,36 @@ function RevealCard.open(
 	tag.BackgroundColor3 = Theme.ink:Lerp(color, 0.23)
 	Theme.corner(tag, 8)
 	local rewardLabel: TextLabel? = nil
-	local rewardWeight: number? = nil
+	local rewardWeight: string? = nil
 	local rewardTarget: number? = nil
 	local rewardPopped = false
 	local reward = info and (info.rewardCoins or info.value)
-	if info and info.weight and reward then
-		local initialVal = if reduced then reward else 0
-		rewardLabel =
-			row("Reward", string.format(Text.captureReward, info.weight, initialVal), 15, 19)
-		rewardWeight = info.weight
+	if info and info.weight then
+		local weight = formatWeight(info.weight)
+		local caption = if reward
+			then string.format(REWARD_FORMAT, weight, if reduced then reward else 0)
+			else weight .. " kg"
+		rewardLabel = row("Reward", caption, 15, 19)
+		rewardWeight = weight
 		rewardTarget = reward
+	end
+	if info and info.odds then
+		row("Odds", string.format(Strings.odds, formatOdds(info.odds)), 14, 18)
+	end
+	local mutation = info and info.mutation
+	local mutationColor = Mutation.color(mutation)
+	local mutationName = mutation and Strings.roulette.card[mutation]
+	if mutationColor and mutationName then
+		local badge = row(
+			"Mutation",
+			string.format(Strings.roulette.mutation, mutationName),
+			14,
+			22,
+			Theme.cream
+		)
+		badge.BackgroundTransparency = 0
+		badge.BackgroundColor3 = Theme.ink:Lerp(mutationColor, 0.37)
+		Theme.corner(badge, 8)
 	end
 	local profile = Data.get()
 	local aquarium = profile and profile.aquarium
@@ -238,14 +282,15 @@ function RevealCard.open(
 	end
 	local lore = Strings.creatureLore[id] or Text.revealLore[rarity] or Text.revealLore.Common
 	local cutoff = utf8.offset(lore, 91)
-	row("Lore", if cutoff then string.sub(lore, 1, cutoff - 1) .. "…" else lore, 14, 36)
+	local loreLabel =
+		row("Lore", if cutoff then string.sub(lore, 1, cutoff - 1) .. "…" else lore, 14, 36)
 	if info and info.isRecord and info.previousBest and info.weight then
-		row("Record", string.format(Text.newRecord, info.previousBest, info.weight), 14, 19)
-	elseif rank >= 4 then
-		local odds = Fishing.baseOdds(rarity, #Creatures.ofRarity(rarity))
-		if odds > 0 then
-			row("Odds", string.format(Strings.odds, tostring(odds)), 14, 18)
-		end
+		row(
+			"Record",
+			string.format(RECORD_FORMAT, formatWeight(info.previousBest), formatWeight(info.weight)),
+			14,
+			19
+		)
 	end
 
 	local height = 0
@@ -264,7 +309,11 @@ function RevealCard.open(
 		local width = if portrait then size.X * 0.92 else math.min(size.X * 0.34, 326)
 		local compact = size.Y < 420
 		local cardHeight = math.min(size.Y * (if portrait then 0.41 else 0.76), height + 185)
-		local previewHeight = math.max(cardHeight - height - 16, 1)
+		loreLabel.Visible = cardHeight >= height + 56
+		local rowsHeight = if loreLabel.Visible then height else height - 36
+		local previewMin = math.min(48, cardHeight * 0.2)
+		local rowScale = math.min(1, math.max(1, cardHeight - previewMin - 16) / rowsHeight)
+		local previewHeight = math.max(cardHeight - rowsHeight * rowScale - 16, 1)
 		card.Size = UDim2.fromScale(width / size.X, cardHeight / size.Y)
 		target = UDim2.fromScale(
 			if portrait then 0.04 else 0.035,
@@ -282,9 +331,12 @@ function RevealCard.open(
 		aspect.AspectRatio = width * 0.94 / previewHeight
 		local y = previewHeight + 9
 		for _, item in rows do
-			item.label.Position = UDim2.fromScale(0.035, y / cardHeight)
-			item.label.Size = UDim2.fromScale(0.93, item.height / cardHeight)
-			y += item.height
+			if item.label.Visible then
+				item.label.TextSize = math.max(10, math.floor(item.pixels * rowScale))
+				item.label.Position = UDim2.fromScale(0.035, y / cardHeight)
+				item.label.Size = UDim2.fromScale(0.93, item.height * rowScale / cardHeight)
+				y += item.height * rowScale
+			end
 		end
 	end
 	card.Parent = gui
@@ -340,7 +392,7 @@ function RevealCard.open(
 				local progress = math.clamp(elapsed / 0.55, 0, 1)
 				local eased = 1 - (1 - progress) * (1 - progress)
 				local shown = math.floor(rewardTarget * eased + 0.5)
-				rewardLabel.Text = string.format(Text.captureReward, rewardWeight, shown)
+				rewardLabel.Text = string.format(REWARD_FORMAT, rewardWeight, shown)
 				if progress >= 1 then
 					rewardPopped = true
 					local pop = Instance.new("UIScale")

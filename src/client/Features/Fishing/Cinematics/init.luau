@@ -8,6 +8,7 @@ local Text = require(ReplicatedStorage.Shared.StringsUi)
 local Audio = require(script.Parent.Parent.Audio)
 local Motion = require(script.Parent.Parent.CreatureMotion)
 local Framing = require(script.Parent.RevealFraming)
+local Mutation = require(script.Parent.RevealMutation)
 local Card = require(script.Parent.RevealCard)
 local Photo = require(script.Parent.PhotoMode)
 local Recipes = require(script.Recipes)
@@ -99,7 +100,18 @@ function Cinematics.play(
 	lens.Parent = hero
 	hero.CurrentCamera = lens
 	local model = clone(id)
+	local visualScale = Mutation.scale(info and info.sizeMult)
+	local smallModelPadding = if visualScale < 1 then 1.18 else 1
+	local mutation = info and info.mutation
+	local modified = visualScale ~= 1 or Mutation.color(mutation) ~= nil
+	if visualScale ~= 1 then
+		model:ScaleTo(model:GetScale() * visualScale)
+	end
 	local bounds = Framing.measure(model)
+	local extent = model:GetExtentsSize()
+	local paintMutation = Mutation.paint(model, mutation)
+	local drawMutation = Mutation.viewport(hero, mutation)
+	local mutationSparks = Mutation.particles(model, mutation)
 	local base = Framing.pose(bounds, Vector3.zero, VIEWER)
 	local motion = Motion.bind(model, motif)
 	model:PivotTo(base)
@@ -174,6 +186,28 @@ function Cinematics.play(
 			+ right * (if portrait then 2.45 else 3.1)
 			+ forward * 0.7
 			+ Vector3.yAxis * 0.66
+		if visualScale ~= 1 and size.X > 1 and size.Y > 1 then
+			local clearance = math.max(0, extent.Y / 2 - 0.66)
+			local center = shoulder + forward * clearance + Vector3.yAxis * clearance
+			local facing = forward + right * 0.18 + Vector3.yAxis * 0.18
+			local pose = Framing.pose(bounds, center, facing)
+			local axes = CFrame.lookAt(Vector3.zero, -facing)
+			model:PivotTo(pose)
+			Motion.poseBones(motion, 8 + age * 0.45)
+			camera.CFrame = Framing.camera(
+				bounds,
+				pose,
+				axes,
+				center,
+				size,
+				FINAL_FOV,
+				Card.subjectRegion(size),
+				1.24 * smallModelPadding
+			)
+			camera.Focus = CFrame.new(center)
+			camera.FieldOfView = FINAL_FOV
+			return
+		end
 		local halfHeight = math.tan(math.rad(FINAL_FOV) / 2)
 		local distance = math.max(
 			13,
@@ -217,7 +251,7 @@ function Cinematics.play(
 			and gui.Parent ~= nil
 	end
 	local function run()
-		if kind and not reduced and camera then
+		if kind and not modified and not reduced and camera then
 			mystic = MysticShots.create(world, kind, id, origin, forward, character or root, clone)
 		end
 		if not reduced then
@@ -277,7 +311,16 @@ function Cinematics.play(
 				if size ~= previousSize then
 					previousSize = size
 					local padding = if kind == "orbit" then 1.28 else 1.02
-					fit = Framing.camera(bounds, base, AXES, Vector3.zero, area, FOV, FULL, padding)
+					fit = Framing.camera(
+						bounds,
+						base,
+						AXES,
+						Vector3.zero,
+						area,
+						FOV,
+						FULL,
+						padding * smallModelPadding
+					)
 				end
 			end
 			local shade = if worldAge >= 0
@@ -288,6 +331,18 @@ function Cinematics.play(
 				)
 				elseif reduced then settle
 				else 0.55 * math.min(t / 1.35, 1) + 0.45 * math.clamp((age + 1.4) / 1.65, 0, 1)
+			if paintMutation then
+				paintMutation(math.max(age, 0), reduced)
+			end
+			if drawMutation then
+				drawMutation(age, hero.Visible and worldAge < 0 and not reduced and progress > 0.4)
+			end
+			if mutationSparks then
+				if worldAge < 0 and mutationSparks.Enabled then
+					mutationSparks:Clear()
+				end
+				mutationSparks.Enabled = worldAge >= 0
+			end
 			sky.BackgroundTransparency = 1 - shade
 			if worldAge >= 0 then
 				showCatch(size, worldAge)
