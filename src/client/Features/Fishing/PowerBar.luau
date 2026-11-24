@@ -24,11 +24,19 @@ local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local PowerBar = {}
 
 local BAND_COLORS: { [string]: Color3 } = {
-	neutral = Color3.fromRGB(150, 158, 182),
-	red = Color3.fromRGB(255, 72, 92),
-	yellow = Color3.fromRGB(255, 208, 64),
-	green = Color3.fromRGB(88, 236, 128),
-	purple = Color3.fromRGB(196, 104, 255),
+	neutral = Color3.fromRGB(70, 175, 255),
+	red = Color3.fromRGB(255, 56, 84),
+	yellow = Color3.fromRGB(255, 226, 40),
+	green = Color3.fromRGB(70, 255, 96),
+	purple = Color3.fromRGB(206, 76, 255),
+}
+-- Bottom tint of each band's blend: shifts the hue a little so the gauge reads as a rainbow.
+local BAND_DEEP: { [string]: Color3 } = {
+	neutral = Color3.fromRGB(110, 90, 255),
+	red = Color3.fromRGB(255, 120, 40),
+	yellow = Color3.fromRGB(255, 150, 30),
+	green = Color3.fromRGB(20, 215, 170),
+	purple = Color3.fromRGB(255, 70, 200),
 }
 local INK = Theme.ink
 local WHITE = Color3.new(1, 1, 1)
@@ -113,8 +121,8 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	root.Size = UDim2.fromScale(0.23, 0.6)
 	root.BackgroundTransparency = 1
 	local limit = Instance.new("UISizeConstraint")
-	limit.MinSize = Vector2.new(170, 320)
-	limit.MaxSize = Vector2.new(250, 560)
+	limit.MinSize = Vector2.new(190, 320)
+	limit.MaxSize = Vector2.new(290, 520)
 	limit.Parent = root
 	root.Parent = screen
 
@@ -129,11 +137,11 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	local frame = Instance.new("Frame")
 	frame.Name = "Frame"
 	frame.AnchorPoint = Vector2.new(1, 0)
-	frame.Position = UDim2.fromScale(0.86, 0.08)
-	frame.Size = UDim2.fromScale(0.6, 0.86)
+	frame.Position = UDim2.fromScale(0.95, 0.08)
+	frame.Size = UDim2.fromScale(0.74, 0.86)
 	frame.BackgroundColor3 = INK
 	frame.BorderSizePixel = 0
-	corner(frame, 0.5)
+	corner(frame, 0.3)
 	frame.Parent = root
 
 	local well = Instance.new("Frame")
@@ -143,7 +151,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	well.Size = UDim2.new(1, -18, 1, -18)
 	well.BackgroundColor3 = WHITE
 	well.BorderSizePixel = 0
-	corner(well, 0.5)
+	corner(well, 0.27)
 	well.Parent = frame
 
 	-- One gradient for the whole fill: each run of equal bands blends from a lighter top to a
@@ -165,12 +173,12 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 			keys,
 			ColorSequenceKeypoint.new(
 				math.max(t0, if #keys == 0 then 0 else t0 + 0.0008),
-				color:Lerp(WHITE, 0.25)
+				color:Lerp(WHITE, 0.1)
 			)
 		)
 		table.insert(
 			keys,
-			ColorSequenceKeypoint.new(math.min(t1 - 0.0008, 1), color:Lerp(INK, 0.12))
+			ColorSequenceKeypoint.new(math.min(t1 - 0.0008, 1), (BAND_DEEP[band] or color))
 		)
 		runTop = runBottom - 1
 		i = runBottom - 1
@@ -188,7 +196,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 		d.Name = "Divider" .. k
 		d.AnchorPoint = Vector2.new(0.5, 0.5)
 		d.Position = UDim2.fromScale(0.5, 1 - k / n)
-		d.Size = UDim2.new(1, 0, 0, 3)
+		d.Size = UDim2.new(if k == 1 or k == n - 1 then 0.88 else 1, 0, 0, 3)
 		d.BackgroundColor3 = INK
 		d.BackgroundTransparency = 0.15
 		d.BorderSizePixel = 0
@@ -203,7 +211,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	gloss.Position = UDim2.fromScale(0.1, 0.5)
 	gloss.Size = UDim2.fromScale(0.16, 0.94)
 	gloss.BackgroundColor3 = WHITE
-	gloss.BackgroundTransparency = 0.72
+	gloss.BackgroundTransparency = 0.7
 	gloss.BorderSizePixel = 0
 	gloss.ZIndex = 3
 	corner(gloss, 0.5)
