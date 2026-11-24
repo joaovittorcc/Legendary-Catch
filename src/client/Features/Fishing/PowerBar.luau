@@ -217,7 +217,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	local markerGlow = Instance.new("Frame")
 	markerGlow.AnchorPoint = Vector2.new(0.5, 0.5)
 	markerGlow.Position = UDim2.fromScale(0.5, 0.5)
-	markerGlow.Size = UDim2.new(1, 0, 3.2, 0)
+	markerGlow.Size = UDim2.fromScale(1, 3.2)
 	markerGlow.BackgroundColor3 = WHITE
 	markerGlow.BackgroundTransparency = 0.7
 	markerGlow.BorderSizePixel = 0

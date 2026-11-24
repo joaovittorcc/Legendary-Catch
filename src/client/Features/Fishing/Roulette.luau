@@ -196,8 +196,8 @@ local function makeCard(parent: Instance, wheel: string, id: string, index: numb
 	local card = Instance.new("Frame")
 	card.Name = id
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
-	card.Size = UDim2.new(CARD_W * 0.9, 0, 0.84, 0)
-	card.Position = UDim2.new(CARD_W * (index - 0.5), 0, 0.5, 0)
+	card.Size = UDim2.fromScale(CARD_W * 0.9, 0.84)
+	card.Position = UDim2.fromScale(CARD_W * (index - 0.5), 0.5)
 	local color = cardColor(wheel, id)
 	card.BackgroundColor3 = color
 	card.BorderSizePixel = 0
@@ -343,7 +343,7 @@ function Roulette.play(update: Update)
 	sq.Parent = rayHolder
 	rayHolder.Parent = screen
 	local rays: { Frame } = {}
-	for i = 1, RAY_COUNT do
+	for _ = 1, RAY_COUNT do
 		local ray = Instance.new("Frame")
 		ray.AnchorPoint = Vector2.new(0.5, 0.5)
 		ray.Position = UDim2.fromScale(0.5, 0.5)
@@ -440,7 +440,7 @@ function Roulette.play(update: Update)
 	selector.Name = "Selector"
 	selector.AnchorPoint = Vector2.new(0.5, 0.5)
 	selector.Position = UDim2.fromScale(0.5, 0.5)
-	selector.Size = UDim2.new(CARD_W * 0.98, 0, 0.98, 0)
+	selector.Size = UDim2.fromScale(CARD_W * 0.98, 0.98)
 	selector.BackgroundTransparency = 1
 	selector.ZIndex = 10
 	local selCorner = Instance.new("UICorner")

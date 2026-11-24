@@ -220,7 +220,7 @@ function CatchShow.play(update: Update, info: Info)
 	sq.Parent = rayHolder
 	rayHolder.Parent = screen
 	local rays: { Frame } = {}
-	for i = 1, K.RAY_COUNT do
+	for _ = 1, K.RAY_COUNT do
 		local ray = Instance.new("Frame")
 		ray.AnchorPoint = Vector2.new(0.5, 0.5)
 		ray.Position = UDim2.fromScale(0.5, 0.5)
@@ -324,7 +324,7 @@ function CatchShow.play(update: Update, info: Info)
 	local selector = Instance.new("Frame")
 	selector.AnchorPoint = Vector2.new(0.5, 0.5)
 	selector.Position = UDim2.fromScale(0.5, 0.5)
-	selector.Size = UDim2.new(K.CARD_W * 0.98, 0, 0.98, 0)
+	selector.Size = UDim2.fromScale(K.CARD_W * 0.98, 0.98)
 	selector.BackgroundTransparency = 1
 	selector.ZIndex = 10
 	local selCorner = Instance.new("UICorner")
