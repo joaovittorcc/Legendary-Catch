@@ -19,6 +19,7 @@ end
 
 export type Line = {
 	bobber: BasePart,
+	band: BasePart,
 	beacon: BasePart,
 	beaconLight: PointLight,
 	trail: Trail,
@@ -28,14 +29,23 @@ export type Line = {
 	rest: Vector3,
 	fightColor: Color3,
 	nextFightFx: number,
-	mode: string, -- "flying" | "floating" | "fighting"
+	mode: string,
+	hookAt: number,
+	pulseAt: number,
+	pulse: number,
+	tipColor: Color3?,
+	tipLight: PointLight?,
+	tipLightColor: Color3?,
+	tipLightBrightness: number?,
+	recovery: Tween?,
 	conn: RBXScriptConnection?,
 	stopPose: (() -> ())?,
 }
 
 local Line = {}
+local localLine: Line? = nil
 
-local function newBobber(): (BasePart, BasePart, PointLight, Trail)
+local function newBobber(): (BasePart, BasePart, BasePart, PointLight, Trail)
 	local bobber = Instance.new("Part")
 	bobber.Name = "Bobber"
 	bobber.Shape = Enum.PartType.Ball
@@ -109,11 +119,11 @@ local function newBobber(): (BasePart, BasePart, PointLight, Trail)
 	trail.Enabled = not reduced()
 	trail.Parent = bobber
 
-	return bobber, beacon, beaconLight, trail
+	return bobber, band, beacon, beaconLight, trail
 end
 
 function Line.create(tip: Attachment): Line
-	local bobber, beacon, beaconLight, trail = newBobber()
+	local bobber, band, beacon, beaconLight, trail = newBobber()
 	bobber.CFrame = tip.WorldCFrame
 	local attachment = Instance.new("Attachment")
 	attachment.Parent = bobber
@@ -133,65 +143,94 @@ function Line.create(tip: Attachment): Line
 	beam.CurveSize1 = -1
 	beam.Parent = bobber
 
-	local tipPart = tip.Parent
+	local attachmentParent = tip.Parent
+	local tipPart = if attachmentParent and attachmentParent:IsA("BasePart")
+		then attachmentParent
+		else nil
+	local light = tipPart and tipPart:FindFirstChild("TipGlow")
+	local tipLight = if light and light:IsA("PointLight") then light else nil
 	local self: Line = {
 		bobber = bobber,
+		band = band,
 		beacon = beacon,
 		beaconLight = beaconLight,
 		trail = trail,
 		beam = beam,
 		tip = tip,
-		tipPart = if tipPart and tipPart:IsA("BasePart") then tipPart else nil,
+		tipPart = tipPart,
+		tipColor = if tipPart then tipPart.Color else nil,
+		tipLight = tipLight,
+		tipLightColor = if tipLight then tipLight.Color else nil,
+		tipLightBrightness = if tipLight then tipLight.Brightness else nil,
 		rest = bobber.Position,
 		fightColor = DEFAULT_LINE_COLOR,
 		nextFightFx = 0,
 		mode = "flying",
+		hookAt = -math.huge,
+		pulseAt = -math.huge,
+		pulse = 0,
+		recovery = nil,
 		conn = nil,
 		stopPose = nil,
 	}
 
 	local t = 0
+	local nextIdleRipple = 0
 	self.conn = RunService.RenderStepped:Connect(function(dt)
 		t += dt
-		-- Sideways axis across the line (from the rod tip out to the bobber), so the bobber
-		-- and the line sweep from one side to the other.
+		if not tip.Parent or not bobber.Parent then
+			return
+		end
+		local isReduced = reduced()
+		local now = os.clock()
 		local out = (self.rest - tip.WorldPosition) * Vector3.new(1, 0, 1)
 		local side = if out.Magnitude > 0.01 then out.Unit:Cross(Vector3.yAxis) else Vector3.xAxis
 		local forward = if out.Magnitude > 0.01 then out.Unit else Vector3.zAxis
 		if self.mode == "floating" then
-			-- Gentle drift with the current while waiting.
+			local drift = if isReduced then 0.38 else 1
 			bobber.Position = self.rest
-				+ side * (math.sin(t * 0.7) * 0.9)
-				+ Vector3.new(0, math.sin(t * 2.4) * 0.12, 0)
-			beam.CurveSize0 = 1.5 + math.sin(t * 0.7) * 0.4
+				+ side * (math.sin(t * 0.82) * 0.72 * drift)
+				+ Vector3.new(0, math.sin(t * 2.6) * 0.11 * drift, 0)
+			beam.CurveSize0 = 2.1 + math.sin(t * 0.82) * 0.48 * drift
+			beam.CurveSize1 = -1.8
+			if self == localLine and t >= nextIdleRipple then
+				nextIdleRipple = t + 2.1
+				local water = Vector3.new(bobber.Position.X, SEA_Y, bobber.Position.Z)
+				Effects.ripple(water, DEFAULT_LINE_COLOR, 1.65, 0.85, true)
+			end
 		elseif self.mode == "fighting" then
-			-- The fish pulls the line wide from side to side, with a quick tremble on top.
-			local sweep = math.sin(t * 1.6) * 3.2 + math.sin(t * 4.1) * 0.6
+			local hook = math.max(0, 1 - (now - self.hookAt) / 0.30)
+			local pulse = self.pulse * math.max(0, 1 - (now - self.pulseAt) / 0.38)
+			local energy = if isReduced then 0.34 else 1
+			local sweep = (math.sin(t * 1.6) * 2.55 + math.sin(t * 4.1) * 0.38) * energy
 			bobber.Position = self.rest
-				+ side * sweep
-				+ forward * (math.sin(t * 0.9) * 0.8)
-				+ Vector3.new(
-					math.sin(t * 13) * 0.2,
-					-0.35 + math.sin(t * 9) * 0.15,
-					math.cos(t * 11) * 0.2
-				)
-			-- Bend the line toward the pull and hum with tension.
-			beam.CurveSize0 = 1.2 + math.sin(t * 1.6) * 1.6
-			beam.CurveSize1 = -1 + math.cos(t * 1.6) * 0.8
-			local tension = math.abs(math.sin(t * 7.5))
-			beam.Width0 = 0.07 + tension * 0.035
-			beam.Width1 = 0.09 + tension * 0.045
-			if not reduced() and t >= self.nextFightFx then
-				self.nextFightFx = t + 0.58
-				local waterSpot = Vector3.new(bobber.Position.X, SEA_Y, bobber.Position.Z)
-				Effects.ripple(waterSpot, self.fightColor, 3.8, 0.55)
-				Effects.splash(waterSpot, self.fightColor, 8)
+				+ side * sweep * (1 - hook)
+				+ forward * ((math.sin(t * 0.9) * 0.68 + pulse * 0.55) * energy)
+				+ Vector3.yAxis
+					* (-0.28 - hook * 0.73 + (math.sin(t * 9) * 0.12 - pulse * 0.20) * energy)
+			beam.CurveSize0 = 0.22 + sweep * 0.36 + math.max(0, -pulse) * 1.7
+			beam.CurveSize1 = -0.28 - math.max(0, -pulse) * 0.8
+			beam.Width0 = 0.062 + (hook + math.abs(pulse)) * 0.026
+			beam.Width1 = 0.088 + (hook + math.abs(pulse)) * 0.028
+			if
+				self == localLine
+				and not isReduced
+				and now - self.hookAt >= 0.62
+				and t >= self.nextFightFx
+			then
+				self.nextFightFx = t + 0.85
+				local water = Vector3.new(bobber.Position.X, SEA_Y, bobber.Position.Z)
+				Effects.ripple(water, self.fightColor, 2.65, 0.50, true)
 			end
 		end
-		local band = bobber:FindFirstChild("Band")
-		if band and band:IsA("BasePart") then
-			band.CFrame = bobber.CFrame * CFrame.Angles(0, 0, math.rad(90))
+		if isReduced and trail.Enabled then
+			trail.Enabled = false
 		end
+		if self.mode == "floating" or self.mode == "fighting" then
+			local brightness = if self.mode == "fighting" then 2.1 else 1.1
+			beaconLight.Brightness = if isReduced then 0 else brightness
+		end
+		band.CFrame = bobber.CFrame * CFrame.Angles(0, 0, math.rad(90))
 		beacon.CFrame = bobber.CFrame * CFrame.new(0, 0.44, 0)
 	end)
 	return self
@@ -210,20 +249,20 @@ end
 
 -- Arcs the bobber from the rod tip to the water point; yields until it lands.
 function Line.castTo(self: Line, target: Vector3)
-	self.trail.Enabled = not reduced()
+	localLine = self
+	local to = Vector3.new(target.X, SEA_Y, target.Z)
+	self.rest = to
 	pose(self, function(t)
-		if t >= 0.68 then
+		if t >= 0.64 then
 			return nil
 		end
-		local angle = if t < 0.19
-			then -math.sin(t / 0.19 * math.pi / 2) * 0.95
-			else -0.95 * math.cos((t - 0.19) / 0.49 * math.pi * 1.5)
-		return CFrame.Angles(angle, 0.12, 0)
+		local angle = if t < 0.14
+			then -math.sin(t / 0.14 * math.pi / 2) * 0.82
+			elseif t < 0.28 then -0.82 + math.sin((t - 0.14) / 0.14 * math.pi / 2) * 1.78
+			else 0.96 * math.max(0, 1 - (t - 0.28) / 0.36) ^ 2
+		return CFrame.Angles(angle, 0.1, 0)
 	end)
 	local from = self.tip.WorldPosition
-	local to = Vector3.new(target.X, SEA_Y, target.Z)
-	local apex = (from + to) / 2 + Vector3.new(0, 7, 0)
-	local duration = 0.7
 	local start = os.clock()
 	local trail = self.trail
 	local firstWidth, firstLifetime = trail.WidthScale, trail.Lifetime
@@ -233,22 +272,32 @@ function Line.castTo(self: Line, target: Vector3)
 		NumberSequenceKeypoint.new(0.45, 0.84),
 		NumberSequenceKeypoint.new(1, 0),
 	})
-	while true do
-		local a = math.min((os.clock() - start) / duration, 1)
-		local p = from:Lerp(apex, a):Lerp(apex:Lerp(to, a), a)
-		self.bobber.Position = p
-		if a >= 1 then
-			break
+	while self.mode == "flying" and self.bobber.Parent and self.tip.Parent do
+		local elapsed = os.clock() - start
+		if elapsed < 0.14 then
+			from = self.tip.WorldPosition
+			self.bobber.Position = from
+			self.trail.Enabled = false
+		else
+			local progress = math.clamp((elapsed - 0.14) / 0.56, 0, 1)
+			local apex = (from + to) / 2 + Vector3.yAxis * 9
+			local travel = 1 - (1 - progress) ^ 1.35
+			self.bobber.Position = from:Lerp(apex, travel):Lerp(apex:Lerp(to, travel), travel)
+			self.trail.Enabled = not reduced()
+			if progress >= 1 then
+				self.mode = "floating"
+				self.trail.Enabled = false
+				local quiet = reduced()
+				Effects.ripple(to, Color3.fromRGB(220, 245, 255), if quiet then 3.1 else 5.1, 0.55)
+				Effects.splash(to, Color3.fromRGB(205, 245, 255), if quiet then 8 else 19)
+				break
+			end
 		end
 		RunService.RenderStepped:Wait()
 	end
-	self.rest = to
-	self.mode = "floating"
-	self.trail.Enabled = false
-	trail.WidthScale, trail.Lifetime = firstWidth, firstLifetime
-	local quiet = reduced()
-	Effects.ripple(to, Color3.fromRGB(220, 245, 255), if quiet then 3.4 else 5.1, 0.65)
-	Effects.splash(to, Color3.fromRGB(205, 245, 255), if quiet then 10 else 19)
+	if trail.Parent then
+		trail.WidthScale, trail.Lifetime = firstWidth, firstLifetime
+	end
 end
 
 function Line.setColor(self: Line, color: Color3)
@@ -263,23 +312,37 @@ function Line.setColor(self: Line, color: Color3)
 	local tipPart = self.tipPart
 	if tipPart then
 		tipPart.Color = color
-		local glow = tipPart:FindFirstChild("TipGlow")
-		if glow and glow:IsA("PointLight") then
+		local glow = self.tipLight
+		if glow then
 			glow.Color = color
-			glow.Brightness = 2.5
+			glow.Brightness = if reduced() then 0 else 2.1
 		end
 	end
 end
 
 function Line.bite(self: Line, color: Color3)
+	self.hookAt = os.clock()
 	pose(self, function(t)
-		return CFrame.Angles(-0.28 + math.sin(t * 9) * 0.16, 0.1, 0)
+		local impulse = math.max(0, 1 - t / 0.33)
+		local pulse = self.pulse * math.max(0, 1 - (os.clock() - self.pulseAt) / 0.36)
+		local energy = if reduced() then 0.28 else 1
+		return CFrame.Angles(-0.25 - (impulse * 0.47 + pulse * 0.23) * energy, 0.1, 0)
 	end)
 	Line.setColor(self, color)
+	self.trail.Enabled = false
 	self.nextFightFx = 0
 	self.mode = "fighting"
-	Effects.ripple(self.rest, color, 6.2, 0.85)
-	Effects.splash(self.rest, color, 18)
+	Effects.ripple(self.rest, color, 5.6, 0.72)
+	Effects.splash(self.rest, color, 14)
+end
+
+function Line.feedback(success: boolean, perfect: boolean?)
+	local line = localLine
+	if not line or line.mode ~= "fighting" then
+		return
+	end
+	line.pulseAt = os.clock()
+	line.pulse = if perfect then 1 elseif success then 0.62 else -0.72
 end
 
 function Line.reelIn(self: Line, duration: number)
@@ -289,7 +352,10 @@ function Line.reelIn(self: Line, duration: number)
 		end
 		return CFrame.Angles(-math.sin(t / 0.95 * math.pi) * 0.85, 0, math.sin(t * 5) * 0.16)
 	end)
-	self.mode = "flying"
+	self.mode = "reeling"
+	Effects.ripple(self.rest, self.fightColor:Lerp(Color3.new(1, 1, 1), 0.4), 3.4, 0.42, true)
+	self.beam.CurveSize0 = 0.4
+	self.beam.CurveSize1 = -0.32
 	self.trail.Enabled = not reduced()
 	local goal = self.tip.WorldPosition
 	local tween = TweenService:Create(
@@ -297,18 +363,19 @@ function Line.reelIn(self: Line, duration: number)
 		TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
 		{ Position = goal }
 	)
+	self.recovery = tween
 	tween:Play()
 	-- Once it reaches the rod the bobber and line get out of the reveal's way.
-	tween.Completed:Once(function()
+	tween.Completed:Once(function(state)
+		if state ~= Enum.PlaybackState.Completed or self.mode ~= "reeling" then
+			return
+		end
 		self.beam.Enabled = false
 		self.trail.Enabled = false
 		self.bobber.Transparency = 1
 		self.beacon.Transparency = 1
 		self.beaconLight.Brightness = 0
-		local band = self.bobber:FindFirstChild("Band")
-		if band and band:IsA("BasePart") then
-			band.Transparency = 1
-		end
+		self.band.Transparency = 1
 	end)
 end
 
@@ -317,14 +384,28 @@ function Line.snap(self: Line)
 		self.stopPose()
 		self.stopPose = nil
 	end
-	self.beam.Enabled = false
-	self.mode = "flying"
-	TweenService
-		:Create(self.bobber, TweenInfo.new(0.6), { Position = self.rest - Vector3.new(0, 1.5, 0) })
-		:Play()
+	self.mode = "recovering"
+	self.trail.Enabled = false
+	self.beam.CurveSize0 = 2.4
+	self.beam.CurveSize1 = -1.8
+	local tween = TweenService:Create(
+		self.bobber,
+		TweenInfo.new(0.45, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
+		{ Position = self.tip.WorldPosition }
+	)
+	self.recovery = tween
+	tween:Play()
 end
 
 function Line.destroy(self: Line)
+	self.mode = "destroyed"
+	if localLine == self then
+		localLine = nil
+	end
+	if self.recovery then
+		self.recovery:Cancel()
+		self.recovery = nil
+	end
 	if self.stopPose then
 		self.stopPose()
 		self.stopPose = nil
@@ -332,15 +413,18 @@ function Line.destroy(self: Line)
 	local conn = self.conn
 	if conn then
 		conn:Disconnect()
+		self.conn = nil
 	end
 	self.bobber:Destroy()
 	local tipPart = self.tipPart
-	if tipPart then
-		tipPart.Color = Color3.fromRGB(150, 230, 255)
-		local glow = tipPart:FindFirstChild("TipGlow")
-		if glow and glow:IsA("PointLight") then
-			glow.Color = tipPart.Color
-			glow.Brightness = 1.2
+	if tipPart and tipPart.Parent then
+		if self.tipColor then
+			tipPart.Color = self.tipColor
+		end
+		local glow = self.tipLight
+		if glow and glow.Parent and self.tipLightColor and self.tipLightBrightness then
+			glow.Color = self.tipLightColor
+			glow.Brightness = self.tipLightBrightness
 		end
 	end
 end

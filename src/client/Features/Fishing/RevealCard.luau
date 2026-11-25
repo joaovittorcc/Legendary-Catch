@@ -32,6 +32,9 @@ export type CatchInfo = {
 	isRecord: boolean?,
 	isGiant: boolean?,
 	previousBest: number?,
+	combo: number?,
+	comboBonus: number?,
+	comboMilestone: number?,
 	rewardCoins: number?,
 	potentialCpm: number?,
 	variantId: string?,
@@ -254,6 +257,21 @@ function RevealCard.open(
 			14,
 			19
 		)
+	end
+	local combo = info and info.combo
+	if combo and combo >= 2 then
+		local bonus = info and info.comboBonus
+		local caption = if bonus and bonus > 0
+			then string.format(Text.minigames.catchCombo, combo, math.round(bonus * 100))
+			else string.format(Text.minigames.catchComboCount, combo)
+		local milestone = info and info.comboMilestone ~= nil
+		local streak =
+			row("FishingCombo", caption, 14, 20, if milestone then Theme.sand else Theme.wood)
+		if milestone then
+			streak.BackgroundTransparency = 0
+			streak.BackgroundColor3 = Theme.ink:Lerp(Theme.gold, 0.22)
+			Theme.corner(streak, 7)
+		end
 	end
 	local badges = {}
 	if info then

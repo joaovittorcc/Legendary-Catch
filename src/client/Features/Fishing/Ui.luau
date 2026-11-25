@@ -10,6 +10,7 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local FishingCamera = require(script.Parent:WaitForChild("Camera"))
+local Line = require(script.Parent:WaitForChild("Line"))
 local Ui = {}
 local gui: ScreenGui
 local area: Frame
@@ -180,6 +181,13 @@ end
 function Ui.hidePanel()
 	area.Visible = false
 	area:ClearAllChildren()
+	for _, tween in edgeTweens do
+		tween:Cancel()
+	end
+	table.clear(edgeTweens)
+	for _, bar in edgeBars do
+		bar.BackgroundTransparency = 1
+	end
 end
 
 function Ui.reduced(): boolean
@@ -305,8 +313,12 @@ function Ui.feedback(
 	color: Color3,
 	success: boolean,
 	perfect: boolean?,
-	combo: number?
+	combo: number?,
+	messageOverride: string?
 )
+	if area and area.Visible and (target == area or target:IsDescendantOf(area)) then
+		Line.feedback(success, perfect)
+	end
 	local streak = combo or 0
 	local reduced = Ui.reduced()
 	if success then
@@ -318,7 +330,9 @@ function Ui.feedback(
 		if success then 1 + math.min(streak, 6) * 0.04 + (if perfect then 0.16 else 0) else 1
 	)
 	local text = Text.minigames
-	local message = if perfect then text.perfect elseif success then text.good else text.miss
+	local message = messageOverride
+		or (if perfect then text.perfect elseif success then text.good else text.miss)
+	local symbol = if perfect then "◆" elseif success then "✓" else "×"
 	local accent = if perfect
 		then Theme.gold:Lerp(Color3.new(1, 1, 1), 0.22)
 		elseif success then color:Lerp(Theme.sand, 0.28)
@@ -356,6 +370,9 @@ function Ui.feedback(
 			local current = feedbackByTarget[target]
 			if current and current.badge == badge then
 				feedbackByTarget[target] = nil
+				for _, tween in current.tweens do
+					tween:Cancel()
+				end
 			end
 		end)
 	end
@@ -368,7 +385,9 @@ function Ui.feedback(
 	end
 	state.ring.Visible = false
 	local badge = state.badge
-	badge.Text = string.upper(message)
+	badge.Text = symbol
+		.. "  "
+		.. string.upper(message)
 		.. (if streak > 1 then string.format(text.combo, streak) else "")
 	badge.TextColor3 = accent
 	badge.Position = at
@@ -376,6 +395,7 @@ function Ui.feedback(
 	badge.TextTransparency = 0
 	badge.TextStrokeTransparency = 0.2
 	badge.Visible = true
+	state.badgeScale.Scale = 1
 	state.sequence += 1
 	local sequence = state.sequence
 	if not reduced then

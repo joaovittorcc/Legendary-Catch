@@ -191,6 +191,14 @@ function Hud.showPanel(name: string)
 	panelChanged:Fire(name)
 end
 
+local showReward: ((number) -> ())? = nil
+
+function Hud.reward(amount: number)
+	if showReward then
+		showReward(amount)
+	end
+end
+
 function Hud.toast(message: string, tint: Color3?)
 	local label = toastLabel
 	if not label or fishingActive then
@@ -339,7 +347,6 @@ function Hud.start()
 		balance.Text = tostring(math.round(value))
 	end)
 	local coinTween: Tween? = nil
-	local previousAmount: number? = nil
 	local deltaLabel = Art.caption(coins, "CoinDelta", "", 20, Theme.gold)
 	deltaLabel.AnchorPoint = Vector2.new(0.5, 1)
 	deltaLabel.Position = UDim2.fromScale(0.76, 0.18)
@@ -351,22 +358,15 @@ function Hud.start()
 	deltaStroke.Parent = deltaLabel
 	local deltaTween: Tween? = nil
 	local deltaRevision = 0
-	local function updateCoins()
-		local amount = player:GetAttribute("Coins")
-		if typeof(amount) ~= "number" then
-			balance.Text = "—"
-			return
-		end
-		local before = previousAmount
-		previousAmount = amount
-		if before and amount > before then
+	local function pulseReward(amount: number)
+		if amount > 0 then
 			coinMotion.pulse(0.9)
 			deltaRevision += 1
 			local revision = deltaRevision
 			if deltaTween then
 				deltaTween:Cancel()
 			end
-			deltaLabel.Text = `+{math.round(amount - before)}`
+			deltaLabel.Text = `+{math.round(amount)}`
 			deltaLabel.Position = UDim2.fromScale(0.76, 0.22)
 			deltaLabel.TextTransparency = 0
 			deltaStroke.Transparency = 0
@@ -397,6 +397,14 @@ function Hud.start()
 					end
 				end)
 			end
+		end
+	end
+	showReward = pulseReward
+	local function updateCoins()
+		local amount = player:GetAttribute("Coins")
+		if typeof(amount) ~= "number" then
+			balance.Text = "—"
+			return
 		end
 		if coinTween then
 			coinTween:Cancel()
@@ -1078,6 +1086,7 @@ function Hud.start()
 		update.OnClientEvent:Connect(function(payload: Net.FishingUpdate)
 			local creature = if payload.creatureId then Creatures.get(payload.creatureId) else nil
 			if payload.event == "caught" and creature then
+				Hud.reward(payload.rewardCoins or payload.value or 0)
 				Art.setRarity(badgeArt, rarityText, creature.rarity)
 				hasRecent = true
 				refreshRarity()
@@ -1090,6 +1099,29 @@ function Hud.start()
 				refreshRarity()
 			end
 		end)
+	end)
+
+	task.spawn(function()
+		local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
+		local claims = remotes:WaitForChild(Net.CLAIM_RESULT) :: RemoteEvent
+		claims.OnClientEvent:Connect(function(payload: Net.ClaimResult)
+			if payload.ok and payload.reward then
+				Hud.reward(payload.reward)
+			end
+		end)
+		local aquarium = remotes:WaitForChild(Net.AQUARIUM_RESULT, 15)
+		if aquarium and aquarium:IsA("RemoteEvent") then
+			aquarium.OnClientEvent:Connect(function(payload: Net.AquariumResult)
+				if
+					payload.ok
+					and payload.kind == "claim"
+					and not payload.already
+					and payload.reward
+				then
+					Hud.reward(payload.reward.coins or 0)
+				end
+			end)
+		end
 	end)
 
 	local perks = Instance.new("TextLabel")

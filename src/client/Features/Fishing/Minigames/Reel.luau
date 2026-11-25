@@ -34,15 +34,15 @@ function Reel.run(
 	local dock = Ui.frame(
 		area,
 		"ReelDock",
-		UDim2.new(0, 116, 0.50, 0),
+		UDim2.new(0, 124, 0.50, 0),
 		UDim2.fromScale(0.76, 0.48),
 		Theme.ink,
 		1
 	)
 	dock.AnchorPoint = Vector2.new(0.5, 0.5)
 	local cap = Instance.new("UISizeConstraint")
-	cap.MinSize = Vector2.new(116, 116)
-	cap.MaxSize = Vector2.new(116, 370)
+	cap.MinSize = Vector2.new(124, 116)
+	cap.MaxSize = Vector2.new(124, 370)
 	cap.Parent = dock
 	local rail =
 		Ui.frame(dock, "Bar", UDim2.new(0, 56, 1, -10), UDim2.fromOffset(2, 5), Theme.outline)
@@ -54,10 +54,20 @@ function Reel.run(
 		"ReelControls",
 		UDim2.new(0.92, 0, 0, 22),
 		UDim2.new(0.5, 0, 1, -84),
-		if UserInputService.TouchEnabled then Text.reelControls else Text.reelKeyboard,
+		"",
 		Theme.sand
 	)
 	hint.AnchorPoint = Vector2.new(0.5, 1)
+	local function updateHint()
+		local input = UserInputService.PreferredInput
+		hint.Text = if input == Enum.PreferredInput.Touch
+			then Text.reelControls
+			elseif input == Enum.PreferredInput.Gamepad then Text.reelGamepad
+			else Text.reelKeyboard
+	end
+	updateHint()
+	local hintConnection = UserInputService:GetPropertyChangedSignal("PreferredInput")
+		:Connect(updateHint)
 	local zone = Ui.frame(
 		rail,
 		"Zone",
@@ -82,7 +92,7 @@ function Reel.run(
 		dock,
 		"ProgressRing",
 		UDim2.fromOffset(54, 54),
-		UDim2.new(0, 90, 0.5, 0),
+		UDim2.new(0, 91, 0.5, 0),
 		Theme.outline
 	)
 	meter.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -112,7 +122,7 @@ function Reel.run(
 		Theme.sand
 	)
 	local risk =
-		Ui.frame(dock, "FailBack", UDim2.fromOffset(50, 7), UDim2.new(0, 65, 0.5, 36), Theme.ink)
+		Ui.frame(dock, "FailBack", UDim2.fromOffset(50, 7), UDim2.new(0, 66, 0.5, 46), Theme.ink)
 	Ui.corner(risk, 0.5)
 	Ui.stroke(risk, Theme.rose, 1)
 	local riskFill = Ui.frame(
@@ -123,6 +133,24 @@ function Reel.run(
 		Color3.fromRGB(255, 89, 120)
 	)
 	Ui.corner(riskFill, 0.5)
+	local lineLabel = Ui.label(
+		dock,
+		"TensionLabel",
+		UDim2.fromOffset(58, 16),
+		UDim2.new(0, 63, 0.5, 28),
+		Text.reelRisk,
+		Theme.sand
+	)
+	local alignment = Ui.label(
+		dock,
+		"Alignment",
+		UDim2.fromOffset(64, 27),
+		UDim2.new(0, 59, 0.5, -56),
+		Text.reelTrack,
+		Theme.sand
+	)
+	alignment.TextWrapped = true
+	local critical = false
 
 	local lesson = Lesson.show("reel")
 	local controls = Input.bind(function(point)
@@ -168,6 +196,7 @@ function Reel.run(
 	end
 
 	local function stop()
+		hintConnection:Disconnect()
 		controls.stop()
 		step:Disconnect()
 		if lesson then
@@ -244,6 +273,8 @@ function Reel.run(
 		end
 		if inside ~= lastInside then
 			lastInside = inside
+			alignment.Text = if inside then "✓ " .. Text.reelTrack else Text.reelRecover
+			alignment.TextColor3 = if inside then Theme.sand else Theme.gold
 			zone.BackgroundTransparency = if inside then 0.06 else 0.35
 			eye.BackgroundColor3 = if inside then Theme.ink else Theme.wood
 			if zoneStroke then
@@ -259,6 +290,9 @@ function Reel.run(
 			local tilt = math.clamp(-fishVel * 18, -22, 22) + math.sin(elapsed * 14) * 5
 			fish.Rotation = tilt
 			tail.Rotation = 45 + math.sin(elapsed * 22) * 14
+		else
+			fish.Rotation = 0
+			tail.Rotation = 45
 		end
 		local ratio = math.clamp(progress, 0, 1)
 		if not hit50 and ratio >= 0.5 then
@@ -277,7 +311,13 @@ function Reel.run(
 		end
 		local failClamped = math.clamp(fail, 0, 1)
 		riskFill.Size = UDim2.fromScale(failClamped, 1)
-		if failClamped > 0.65 and not Ui.reduced() then
+		local highTension = failClamped > 0.65
+		if highTension ~= critical then
+			critical = highTension
+			lineLabel.Text = if critical then Text.reelCritical else Text.reelRisk
+			lineLabel.TextColor3 = if critical then Theme.rose else Theme.sand
+		end
+		if highTension and not Ui.reduced() then
 			risk.Position = riskBasePos + UDim2.fromOffset(math.sin(elapsed * 42) * 2.5, 0)
 		else
 			risk.Position = riskBasePos

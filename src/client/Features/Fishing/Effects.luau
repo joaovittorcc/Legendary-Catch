@@ -45,7 +45,13 @@ local function fx(
 end
 
 -- Layered neon wave rings (contrast halo + rarity wave + white-hot core) that expand on water.
-function Effects.ripple(center: Vector3, color: Color3, radius: number, duration: number)
+function Effects.ripple(
+	center: Vector3,
+	color: Color3,
+	radius: number,
+	duration: number,
+	quiet: boolean?
+)
 	local baseCf = CFrame.new(center + Vector3.new(0, 0.05, 0)) * CFrame.Angles(0, 0, math.rad(90))
 	local ring = fx(
 		"Ripple",
@@ -55,7 +61,7 @@ function Effects.ripple(center: Vector3, color: Color3, radius: number, duration
 		Enum.Material.Neon,
 		Enum.PartType.Cylinder
 	)
-	ring.Transparency = 0.2
+	ring.Transparency = if quiet or reduced() then 0.68 else 0.2
 	TweenService
 		:Create(ring, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.Out), {
 			Size = Vector3.new(0.08, radius * 2, radius * 2),
@@ -64,7 +70,7 @@ function Effects.ripple(center: Vector3, color: Color3, radius: number, duration
 		:Play()
 	Debris:AddItem(ring, duration + 0.1)
 
-	if reduced() then
+	if quiet or reduced() then
 		return
 	end
 

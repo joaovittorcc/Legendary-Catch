@@ -18,6 +18,8 @@ local Training = require(script.Parent:WaitForChild("Training"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 
+local Scenery = require(script.Scenery)
+
 local Events = {}
 local player = Players.LocalPlayer
 local colors: { [string]: Color3 } = {
@@ -288,6 +290,21 @@ function Events.start()
 	local waterTinted = false
 
 	local auroraModel: Model? = nil
+	local sceneryModel: Model? = nil
+	local sceneryAnchor: Instance? = nil
+	local sceneryId: string? = nil
+	local sceneryReduced: boolean? = nil
+	local function clearScenery(immediate: boolean?)
+		if sceneryModel then
+			Scenery.remove(
+				sceneryModel,
+				immediate == true or player:GetAttribute("ReduceEffects") == true
+			)
+			sceneryModel = nil
+		end
+		sceneryAnchor = nil
+		sceneryId = nil
+	end
 
 	local emitter = Instance.new("ParticleEmitter")
 	emitter.Name = "OceanEventMotes"
@@ -389,10 +406,26 @@ function Events.start()
 				icon.Text = icons[event.id] or "🌊"
 				title.Text = Strings.eventName[event.id] or event.id
 				local count = exclusives[event.id] or 0
-				exclusive.Visible = count > 0
-				exclusive.Text = if count == 1
-					then Text.eventExclusiveOne
-					else string.format(Text.eventExclusiveMany, count)
+				local perks = {}
+				if count > 0 then
+					table.insert(
+						perks,
+						if count == 1
+							then Text.eventExclusiveOne
+							else string.format(Text.eventExclusiveMany, count)
+					)
+				end
+				if event.valueMultiplier > 1 then
+					table.insert(
+						perks,
+						string.format(
+							Text.eventCoinBonus,
+							math.round((event.valueMultiplier - 1) * 100)
+						)
+					)
+				end
+				exclusive.Visible = #perks > 0
+				exclusive.Text = table.concat(perks, "  ·  ")
 				fill.BackgroundColor3 = tint
 				clearVisualExtras()
 				if event.id == "thunderStorm" then
@@ -452,8 +485,27 @@ function Events.start()
 				fill.Size = UDim2.fromScale(math.clamp(remaining / event.durationSeconds, 0, 1), 1)
 			end
 			anchor.Parent = if decorations then workspace.CurrentCamera else nil
+			local marker, pose = Scenery.anchor(event.id)
+			local reduced = player:GetAttribute("ReduceEffects") == true
+			if marker ~= sceneryAnchor or sceneryId ~= event.id or sceneryReduced ~= reduced then
+				clearScenery(sceneryId == event.id)
+				sceneryReduced = reduced
+				if marker and pose then
+					sceneryAnchor = marker
+					sceneryId = event.id
+					sceneryModel = Scenery.create(
+						pose,
+						title.Text,
+						Text.eventSceneryCaption,
+						tint,
+						event.id,
+						reduced
+					)
+				end
+			end
 		else
 			lastId = ""
+			clearScenery()
 			clearVisualExtras()
 			if anchor.Parent then
 				emitter:Clear()
@@ -471,26 +523,32 @@ function Events.start()
 			refresh()
 		end
 	end)
-	gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
-	Tutorial.layoutChanged:Connect(layout)
-	Hud.layoutChanged:Connect(layout)
-	Hud.panelChanged:Connect(updateVisibility)
+	local connections = {
+		gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout),
+		Tutorial.layoutChanged:Connect(layout),
+		Hud.layoutChanged:Connect(layout),
+		Hud.panelChanged:Connect(updateVisibility),
+		ReplicatedStorage:GetAttributeChangedSignal(Config.ACTIVE_ATTRIBUTE):Connect(refresh),
+		ReplicatedStorage:GetAttributeChangedSignal(Config.ENDS_AT_ATTRIBUTE):Connect(refresh),
+		player:GetAttributeChangedSignal(Seasons.DEV_ATTRIBUTE):Connect(refresh),
+		player:GetAttributeChangedSignal("ReduceEffects"):Connect(refresh),
+	}
 	gui.Destroying:Once(function()
+		for _, connection in connections do
+			connection:Disconnect()
+		end
+		clearScenery(true)
 		clearVisualExtras()
 		atmosphere:Destroy()
 		anchor:Destroy()
 	end)
-	ReplicatedStorage:GetAttributeChangedSignal(Config.ACTIVE_ATTRIBUTE):Connect(refresh)
-	ReplicatedStorage:GetAttributeChangedSignal(Config.ENDS_AT_ATTRIBUTE):Connect(refresh)
-	player:GetAttributeChangedSignal(Seasons.DEV_ATTRIBUTE):Connect(refresh)
-	player:GetAttributeChangedSignal("ReduceEffects"):Connect(refresh)
 	task.spawn(function()
 		local hudGui = player:WaitForChild("PlayerGui"):WaitForChild("AdventureHud", 5)
 		local ng = hudGui and hudGui:WaitForChild("NextGoal", 5)
-		if ng and ng:IsA("GuiObject") then
-			ng:GetPropertyChangedSignal("Visible"):Connect(layout)
-			ng:GetPropertyChangedSignal("AbsolutePosition"):Connect(layout)
-			ng:GetPropertyChangedSignal("AbsoluteSize"):Connect(layout)
+		if gui.Parent and ng and ng:IsA("GuiObject") then
+			for _, property in { "Visible", "AbsolutePosition", "AbsoluteSize" } do
+				table.insert(connections, ng:GetPropertyChangedSignal(property):Connect(layout))
+			end
 			layout()
 		end
 	end)

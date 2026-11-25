@@ -64,12 +64,28 @@ function Rhythm.run(
 		0.45
 	)
 	Ui.corner(gleam, 0.5)
-	local number =
-		Ui.label(disc, "Order", UDim2.fromScale(0.8, 0.8), UDim2.fromScale(0.1, 0.1), "", Theme.ink)
+	local number = Ui.label(
+		disc,
+		"Order",
+		UDim2.fromScale(0.8, 0.59),
+		UDim2.fromScale(0.1, 0.13),
+		"",
+		Theme.ink
+	)
 	number.TextStrokeTransparency = 1
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MaxTextSize = 46
 	limit.Parent = number
+	local nowCue = Ui.label(
+		disc,
+		"HitWindowCue",
+		UDim2.fromScale(0.78, 0.2),
+		UDim2.fromScale(0.11, 0.72),
+		Text.rhythmNow,
+		Theme.ink
+	)
+	nowCue.TextStrokeTransparency = 1
+	nowCue.Visible = false
 	local ring = Ui.frame(area, "Approach", UDim2.new(), UDim2.new(), color, 1)
 	ring.AnchorPoint = Vector2.new(0.5, 0.5)
 	ring.Visible = false
@@ -123,7 +139,7 @@ function Rhythm.run(
 		comboFill.Size = UDim2.fromScale(combo / total, 1)
 	end
 	updateCounter()
-	local function resolve(success: boolean, perfect: boolean)
+	local function resolve(success: boolean, perfect: boolean, cue: string?)
 		if not active or finished then
 			return
 		end
@@ -135,14 +151,16 @@ function Rhythm.run(
 			misses += 1
 			combo = 0
 		end
-		local feedbackX = math.clamp(center.X, 80, math.max(80, area.AbsoluteSize.X - 80))
+		local feedbackX = math.clamp(center.X, 88, math.max(88, area.AbsoluteSize.X - 88))
+		local feedbackY = math.max(top() + 14, center.Y - diameter / 2 - 16)
 		Ui.feedback(
 			area,
-			UDim2.fromOffset(feedbackX, center.Y - diameter / 2 - 16),
+			UDim2.fromOffset(feedbackX, feedbackY),
 			color,
 			success,
 			perfect,
-			combo
+			combo,
+			cue
 		)
 		updateCounter()
 		local freeze = perfect and not Ui.reduced()
@@ -180,7 +198,12 @@ function Rhythm.run(
 		local screenCenter = disc.AbsolutePosition + disc.AbsoluteSize / 2
 		local inside = point == nil or (point - screenCenter).Magnitude <= diameter * 0.6
 		local error = math.abs(time - shrink)
-		resolve(inside and error <= window, inside and error <= window * 0.3)
+		local cue = if not inside
+			then Text.rhythmAim
+			elseif time < shrink - window then Text.rhythmEarly
+			elseif time > shrink + window then Text.rhythmLate
+			else nil
+		resolve(inside and error <= window, inside and error <= window * 0.3, cue)
 	end)
 	local function bounds(): (Vector2, Vector2, number)
 		local size = area.AbsoluteSize
@@ -209,6 +232,8 @@ function Rhythm.run(
 		ring.Position = disc.Position
 		ring.Size = UDim2.fromOffset(diameter * 1.65, diameter * 1.65)
 		rim.Color = color
+		rim.Thickness = 4
+		nowCue.Visible = false
 		disc.Visible = true
 		ring.Visible = true
 		time = 0
@@ -257,12 +282,14 @@ function Rhythm.run(
 		time += dt
 		local scale = 1.65 - 0.65 * math.clamp(time / shrink, 0, 1)
 		ring.Size = UDim2.fromOffset(diameter * scale, diameter * scale)
-		local accent = if math.abs(time - shrink) <= window then Theme.sand else color
-		if rim.Color ~= accent then
-			rim.Color = accent
+		local ready = math.abs(time - shrink) <= window
+		if nowCue.Visible ~= ready then
+			nowCue.Visible = ready
+			rim.Color = if ready then Theme.sand else color
+			rim.Thickness = if ready then 6 else 4
 		end
 		if time > shrink + window then
-			resolve(false, false)
+			resolve(false, false, Text.rhythmLate)
 		end
 	end)
 	return function()

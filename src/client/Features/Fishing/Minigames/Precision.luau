@@ -78,7 +78,7 @@ function Precision.run(
 		Ui.frame(bar, "Zone", UDim2.fromScale(zoneWidth, 1), UDim2.fromScale(0.5, 0), color, 0.12)
 	zone.AnchorPoint = Vector2.new(0.5, 0)
 	Theme.surface(zone, color, 8)
-	Ui.stroke(zone, color:Lerp(Theme.sand, 0.5), 2)
+	Ui.stroke(zone, Theme.sand, 2.5)
 	local centerLine = Ui.frame(
 		zone,
 		"SweetSpot",
@@ -89,10 +89,19 @@ function Precision.run(
 	)
 	Ui.corner(centerLine, 0.5)
 	local marker =
-		Ui.frame(bar, "Marker", UDim2.new(0, 7, 1.35, 0), UDim2.fromScale(0.08, 0.5), Theme.sand)
+		Ui.frame(bar, "Marker", UDim2.new(0, 9, 1.45, 0), UDim2.fromScale(0.08, 0.5), Theme.sand)
 	marker.AnchorPoint = Vector2.new(0.5, 0.5)
 	Ui.corner(marker, 0.5)
 	Ui.stroke(marker, Theme.ink, 2)
+	local markerReady: boolean? = nil
+	local hitsLabel = Ui.label(
+		dock,
+		"HitsRemaining",
+		UDim2.fromScale(0.44, 0.2),
+		UDim2.fromScale(0.30, 0.77),
+		string.format(Text.precisionRemaining, cfg.hitsNeeded),
+		Theme.sand
+	)
 	local timer = Ui.label(
 		dock,
 		"DecisionTime",
@@ -136,6 +145,7 @@ function Precision.run(
 		)
 		Ui.corner(light, 0.5)
 		Ui.stroke(light, Theme.rose, 1)
+		light.ClipsDescendants = true
 		table.insert(lives, light)
 	end
 	local pos, direction = 0.08, 1
@@ -180,9 +190,14 @@ function Precision.run(
 		misses += 1
 		local life = lives[misses]
 		life.BackgroundColor3 = Color3.fromRGB(255, 83, 118)
+		Ui.label(life, "Used", UDim2.fromScale(1, 1), UDim2.fromScale(0, 0), "×", Theme.ink)
 		Ui.exitPulse(life, Theme.rose)
 		combo = 0
-		Ui.feedback(dock, UDim2.fromScale(0.5, -0.20), color, false)
+		local cue = if timedOut
+			then Text.timeUp
+			elseif misses < cfg.missesAllowed then Text.precisionRetry
+			else nil
+		Ui.feedback(dock, UDim2.fromScale(0.5, -0.20), color, false, nil, nil, cue)
 		if timedOut then
 			timer.Text = Text.timeUp
 			lastTenth = -1
@@ -207,6 +222,7 @@ function Precision.run(
 		if distance <= zoneWidth / 2 then
 			local perfect = distance < zoneWidth * 0.15
 			hits += 1
+			hitsLabel.Text = string.format(Text.precisionRemaining, cfg.hitsNeeded - hits)
 			pips[hits].BackgroundColor3 = Theme.gold
 			combo += 1
 			Ui.feedback(dock, UDim2.fromScale(0.5, -0.20), color, true, perfect, combo)
@@ -279,6 +295,11 @@ function Precision.run(
 			pos, direction = 0, 1
 		end
 		marker.Position = UDim2.fromScale(pos, 0.5)
+		local ready = math.abs(pos - zone.Position.X.Scale) <= zoneWidth / 2
+		if ready ~= markerReady then
+			markerReady = ready
+			marker.BackgroundColor3 = if ready then Theme.gold else Theme.sand
+		end
 		local showTrail = not Ui.reduced()
 		if showTrail ~= trailVisible then
 			trailVisible = showTrail

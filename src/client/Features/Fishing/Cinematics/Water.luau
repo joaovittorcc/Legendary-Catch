@@ -60,6 +60,54 @@ function Water.create(
 				end
 			end
 		end
+	elseif kind == "surge" then
+		local arcs = {}
+		for i = 1, n do
+			local pieces = {}
+			for j = 1, 5 do
+				pieces[j] = segment(group, if j >= 4 then recipe.light else recipe.accent)
+			end
+			arcs[i] = pieces
+		end
+		return function(t)
+			for i, pieces in arcs do
+				local progress = math.clamp(t * 1.82 - (i - 1) * 0.24, 0, 1)
+				local lift = math.sin(progress * math.pi)
+				local heading = i * TAU / n + t * 0.65
+				local previous = origin + offset(heading, 1.7 + i * 0.8, 0.22)
+				for j, piece in pieces do
+					local fraction = j / #pieces
+					local nextPoint = origin
+						+ offset(
+							heading + fraction * 0.57,
+							1.7 + i * 0.8 + fraction * 4.2,
+							0.22 + math.sin(fraction * math.pi * 0.70) * lift * (3.5 + i * 0.45)
+						)
+					beam(piece, previous, nextPoint, 0.31 - fraction * 0.13)
+					piece.Transparency = 1 - lift * 0.64
+					previous = nextPoint
+				end
+			end
+		end
+	elseif kind == "lantern" then
+		local rays = {}
+		for i = 1, 5 do
+			rays[i] = segment(group, if i == 3 then recipe.light else recipe.accent)
+		end
+		local glow = segment(group, recipe.light)
+		glow.Shape = Enum.PartType.Ball
+		glow.Size = Vector3.one * 0.65
+		return function(t)
+			local intensity = math.sin(t * math.pi) ^ 0.65
+			local source = origin + Vector3.new(1.7 * math.sin(t * 3), 0.6 + t * 6.1, -1.9)
+			glow.Position = source
+			glow.Transparency = 1 - intensity * 0.86
+			for i, ray in rays do
+				local angle = -1.1 + 2.0 * t + (i - 3) * 0.12
+				beam(ray, source, origin + offset(angle, 8 + 5 * t, 0.3), 0.10 + intensity * 0.13)
+				ray.Transparency = 1 - intensity * (if i == 3 then 0.65 else 0.44)
+			end
+		end
 	elseif kind == "freeze" then
 		local branches = {}
 		for i = 1, n do

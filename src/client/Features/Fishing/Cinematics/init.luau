@@ -16,7 +16,8 @@ local Beats = require(script.Beats)
 local MysticShots = require(script.MysticShots)
 
 local Cinematics = { recipes = Recipes }
-local FIRST_SKIP = 2
+local FIRST_MYSTIC_SKIP = 2
+local SKIPPED_CARD_HOLD = 2.6
 local REDUCED_DURATION = 3.25
 local EMERGENCE = 1.15
 local FOV = 36
@@ -25,6 +26,25 @@ local AXES = CFrame.lookAt(Vector3.zero, -VIEWER)
 local FULL = Rect.new(0.04, 0.04, 0.96, 0.96)
 local HANDOFF_FADE = 0.65
 local FINAL_FOV = 52
+
+local function mixPose(a: Recipes.PoseKey, b: Recipes.PoseKey, t: number): Recipes.PoseKey
+	return {
+		offset = a.offset:Lerp(b.offset, t),
+		yaw = a.yaw + (b.yaw - a.yaw) * t,
+		pitch = a.pitch + (b.pitch - a.pitch) * t,
+		roll = a.roll + (b.roll - a.roll) * t,
+		pullback = a.pullback + (b.pullback - a.pullback) * t,
+	}
+end
+
+local function shotPose(shot: Recipes.Shot, age: number): Recipes.PoseKey
+	local progress = math.clamp(age / shot.settle, 0, 1)
+	local half = if progress < 0.55 then progress / 0.55 else (progress - 0.55) / 0.45
+	local smooth = half * half * (3 - 2 * half)
+	return if progress < 0.55
+		then mixPose(shot.entry, shot.apex, smooth)
+		else mixPose(shot.apex, shot.hold, smooth)
+end
 
 local function frame(parent: Instance, name: string): Frame
 	local f = Instance.new("Frame")
@@ -122,16 +142,23 @@ function Cinematics.play(
 	hero.Parent = canvas
 	hero.ZIndex = 3
 	local kind = recipe.mysticShot
+	local shot = recipe.shot
 	local handoff = recipe.handoff
 	gui.Parent = player:WaitForChild("PlayerGui")
 
-	local skipped, photo = false, false
+	local skippedAt: number? = nil
+	local card: Card.Card? = nil
+	local dismissed, photo = false, false
 	local skip = Card.action(gui, "SkipReveal", Text.skip, tint)
 	skip.Visible = repeatView
 	skip.Activated:Connect(function()
-		skipped = true
+		if skippedAt then
+			dismissed = card ~= nil
+		else
+			skippedAt = os.clock()
+			skip.Text = Text.close
+		end
 	end)
-	local card: Card.Card? = nil
 	local active: { [number]: Beats.Beat } = {}
 	local cameraMotion: Beats.CameraMotion = { push = 0, roll = 0, speed = 1 }
 	local nextCue = 1
@@ -250,6 +277,7 @@ function Cinematics.play(
 			and (hum == nil or hum.Health > 0)
 			and gui.Parent ~= nil
 	end
+	local skipApplied = false
 	local function run()
 		if kind and not modified and not reduced and camera then
 			mystic = MysticShots.create(world, kind, id, origin, forward, character or root, clone)
@@ -257,7 +285,7 @@ function Cinematics.play(
 		if not reduced then
 			Audio.play("legendary", 0.24, 0.74)
 		end
-		while alive() and not skipped and not photo do
+		while alive() and not dismissed and not photo do
 			local now = os.clock()
 			local delta = now - lastTime
 			lastTime = now
@@ -283,14 +311,40 @@ function Cinematics.play(
 				start = now
 				t = 0
 			end
+			local skipTime = skippedAt
+			local jumped = skipTime ~= nil
+			if jumped and not skipApplied then
+				skipApplied = true
+				clearBeats()
+				if mystic then
+					mystic.hide()
+				end
+				if finale then
+					model.Parent = viewportWorld
+					finale = false
+				end
+				Motion.reset(motion, base)
+				if camera then
+					camera.CFrame = oldCF
+					camera.Focus = oldFocus
+					camera.CameraType = oldType
+					camera.FieldOfView = oldFov
+				end
+			end
+			local quiet = reduced or jumped
 			local entrance = if reduced then 0 else recipe.entrance
 			local duration = if reduced then REDUCED_DURATION else recipe.duration
-			local age = t - entrance
-			local worldAge = if handoff and not reduced and camera then t - handoff else -1
-			local progress = math.clamp(age / (if reduced then 0.28 else EMERGENCE), 0, 1)
+			local age = if jumped then EMERGENCE else t - entrance
+			if shot and age >= 0 and not quiet then
+				poseTime = math.min(age, poseTime + delta * cameraMotion.speed)
+			end
+			local worldAge = if handoff and not quiet and camera then t - handoff else -1
+			local progress = math.clamp(age / (if quiet then 0.28 else EMERGENCE), 0, 1)
 			local settle = 1 - (1 - progress) ^ 3
-			skip.Visible = repeatView or now - firstFrame >= FIRST_SKIP
-			if camera and not reduced and not mystic then
+			skip.Visible = repeatView
+				or jumped
+				or (kind ~= nil and now - firstFrame >= FIRST_MYSTIC_SKIP)
+			if camera and not quiet and not mystic then
 				camera.CFrame = oldCF:Lerp(waterShot, math.min(t / 0.6, 1))
 					* CFrame.new(0, 0, -cameraMotion.push)
 					* CFrame.Angles(0, 0, cameraMotion.roll)
@@ -301,14 +355,25 @@ function Cinematics.play(
 				local region = Card.subjectRegion(size)
 				local center = (region.Min + region.Max) / 2
 				local intro = Vector2.new(0.5, 0.49)
-				local position = intro:Lerp(center, if reduced then 1 else settle)
+				local position = intro:Lerp(center, if quiet then 1 else settle)
 				local area = Vector2.new(region.Width * size.X, region.Height * size.Y)
 				local diameter = math.min(area.X, area.Y) * 1.12
 				stage.Position = UDim2.fromScale(position.X, position.Y)
 				stage.Size = UDim2.fromScale(diameter / size.X, diameter / size.Y)
 				hero.Position = stage.Position
 				hero.Size = UDim2.fromScale(region.Width, region.Height)
-				if size ~= previousSize then
+				if shot and age >= 0 then
+					local key = if quiet then shot.hold else shotPose(shot, poseTime)
+					hero.Position += UDim2.fromScale(
+						key.offset.X * region.Width,
+						key.offset.Y * region.Height
+					)
+					local pose = CFrame.Angles(key.pitch, 0, key.roll)
+						* Framing.pose(bounds, Vector3.zero, VIEWER, key.yaw)
+					model:PivotTo(pose)
+					fit = Framing.camera(bounds, pose, AXES, Vector3.zero, area, FOV, FULL, 1.08)
+					fit *= CFrame.new(0, 0, key.pullback * fit.Position.Magnitude)
+				elseif size ~= previousSize then
 					previousSize = size
 					local padding = if kind == "orbit" then 1.28 else 1.02
 					fit = Framing.camera(
@@ -325,11 +390,11 @@ function Cinematics.play(
 			end
 			local shade = if worldAge >= 0
 				then 1 - math.clamp(worldAge / HANDOFF_FADE, 0, 1)
-				elseif mystic and handoff and not reduced then math.max(
+				elseif mystic and handoff and not quiet then math.max(
 					1 - math.clamp(t / 0.45, 0, 1),
 					math.clamp((t - handoff + 0.25) / 0.25, 0, 1)
 				)
-				elseif reduced then settle
+				elseif quiet then settle
 				else 0.55 * math.min(t / 1.35, 1) + 0.45 * math.clamp((age + 1.4) / 1.65, 0, 1)
 			if paintMutation then
 				paintMutation(math.max(age, 0), reduced)
@@ -346,9 +411,9 @@ function Cinematics.play(
 			sky.BackgroundTransparency = 1 - shade
 			if worldAge >= 0 then
 				showCatch(size, worldAge)
-			elseif mystic and camera and not reduced then
+			elseif mystic and camera and not quiet then
 				mystic.draw(t, camera, size)
-			elseif not reduced then
+			elseif not quiet then
 				while nextCue <= #recipe.cues and recipe.cues[nextCue].at <= t do
 					local cue = recipe.cues[nextCue]
 					if t < cue.at + cue.duration then
@@ -369,28 +434,30 @@ function Cinematics.play(
 					end
 				end
 			end
-			if age >= 0 and worldAge < 0 and (not mystic or reduced) then
+			if age >= 0 and worldAge < 0 and (not mystic or quiet) then
 				hero.Visible = true
-				hero.ImageTransparency = if reduced then 1 - settle else 0
+				hero.ImageTransparency = if quiet then 1 - settle else 0
 				hero.ImageColor3 = Color3.fromRGB(31, 24, 51)
-					:Lerp(Color3.new(1, 1, 1), if reduced then 1 else progress ^ 1.4)
+					:Lerp(Color3.new(1, 1, 1), if quiet then 1 else progress ^ 1.4)
 				lens.CFrame = fit
 					* CFrame.new(
 						0,
 						0,
-						if reduced then 0 else (1 - settle) * fit.Position.Magnitude * 3.2
+						if quiet or shot then 0 else (1 - settle) * fit.Position.Magnitude * 3.2
 					)
-				if not reduced then
+				if not quiet and not shot then
 					poseTime += delta * cameraMotion.speed
 					Motion.pose(motion, base, poseTime, false)
 				end
 				dial.Visible = true
-				drawHalo(if reduced then 0 else age, settle)
+				drawHalo(if quiet then 0 else age, settle)
 			end
-			local cardReady = if handoff and camera
-				then worldAge >= HANDOFF_FADE * 0.55
+			local cardReady = if quiet
+				then true
+				elseif handoff and camera then worldAge >= HANDOFF_FADE * 0.55
+				elseif shot then poseTime >= shot.settle
 				else progress >= 0.55
-			if age >= 0 and card == nil and (reduced or cardReady) then
+			if age >= 0 and card == nil and cardReady then
 				Audio.capture(rarity, info ~= nil and info.variant == "Shiny")
 				card = Card.open(gui, clone(id), id, name, rarity, tint, info, reduced)
 				local button = Card.action(gui, "TakePhoto", Text.photo, recipe.light)
@@ -399,9 +466,18 @@ function Cinematics.play(
 				end)
 			end
 			if card and not reduced then
-				card.preview(if worldAge >= 0 then worldAge else age)
+				card.preview(
+					if skipTime
+						then now - skipTime
+						elseif worldAge >= 0 then worldAge
+						elseif shot then math.max(0, poseTime - shot.settle)
+						else age
+				)
 			end
-			if t >= duration then
+			if
+				(skipTime and now - skipTime >= SKIPPED_CARD_HOLD)
+				or (not skipTime and t >= duration)
+			then
 				completed = true
 				break
 			end
@@ -449,6 +525,6 @@ function Cinematics.play(
 	if not ok then
 		error(err)
 	end
-	return completed or skipped or takePhoto
+	return completed or dismissed or takePhoto
 end
 return Cinematics
