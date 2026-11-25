@@ -54,11 +54,11 @@ local SOUND_IDS: { [string]: string } = {
 	-- Fishing loop
 	rod_equip = "rbxassetid://0 -- TROCAR: som leve de madeira/vara de pesca sendo equipada",
 	charge_loop = "rbxassetid://0 -- TROCAR: zumbido mágico suave crescente de carga de energia (loop)",
-	charge_perfect_ding = "rbxassetid://0 -- TROCAR: sino cristalino agudo e satisfatório de acerto perfeito",
+	charge_perfect_ding = "rbxassetid://9048764475", -- APMOfficial "Magical Meetup - Hit2"
 	cast_whoosh = "rbxassetid://0 -- TROCAR: whoosh rápido de linha e vara cortando o ar",
-	water_splash_small = "rbxassetid://0 -- TROCAR: plop/splash pequeno de boia caindo na água",
-	water_splash_big = "rbxassetid://0 -- TROCAR: splash encorpado e alegre de arremesso forte na água",
-	bobber_dip = "rbxassetid://0 -- TROCAR: borbulho curto e suave de boia afundando",
+	water_splash_small = "rbxassetid://9125702803", -- ProSoundEffects splash 13
+	water_splash_big = "rbxassetid://9125703162", -- ProSoundEffects splash 19
+	bobber_dip = "rbxassetid://9125702439", -- ProSoundEffects splash 6
 	bite_common = "rbxassetid://0 -- TROCAR: alerta curto e amigável de fisgada comum",
 	bite_uncommon = "rbxassetid://0 -- TROCAR: alerta borbulhante com brilho azul para fisgada incomum",
 	bite_rare = "rbxassetid://0 -- TROCAR: alerta mágico com acorde roxo para fisgada rara",
@@ -67,7 +67,7 @@ local SOUND_IDS: { [string]: string } = {
 
 	-- Minigames
 	minigame_hit = "rbxassetid://0 -- TROCAR: clique musical pop satisfatório ao acertar minigame",
-	minigame_perfect = "rbxassetid://0 -- TROCAR: chime brilhante com harmonia para acerto PERFEITO",
+	minigame_perfect = "rbxassetid://9048764475", -- APMOfficial "Magical Meetup - Hit2"
 	minigame_miss = "rbxassetid://0 -- TROCAR: som abafado suave de erro (não assustador)",
 	minigame_win = "rbxassetid://0 -- TROCAR: fanfarra curta alegre de vitória no minigame",
 	minigame_lose = "rbxassetid://0 -- TROCAR: som descendente suave de peixe escapando na água",
@@ -87,7 +87,7 @@ local SOUND_IDS: { [string]: string } = {
 
 	-- World, portals, aquarium, training, ocean events
 	portal_ambient = "rbxassetid://0 -- TROCAR: sussurro mágico suave de vórtice de portal (loop)",
-	portal_teleport = "rbxassetid://0 -- TROCAR: whoosh cristalino de teletransporte mágico",
+	portal_teleport = "rbxassetid://10128766965", -- Roblox "RBLX UI Swipe"
 	aquarium_bubbles = "rbxassetid://0 -- TROCAR: bolhas calmas de aquário",
 	aquarium_coin_pop = "rbxassetid://0 -- TROCAR: plim suave de moeda saindo do aquário",
 	aquarium_level_up = "rbxassetid://0 -- TROCAR: acorde aquático ascendente de upgrade de tanque",
