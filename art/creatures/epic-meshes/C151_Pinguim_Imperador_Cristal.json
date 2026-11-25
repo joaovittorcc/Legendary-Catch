@@ -1,0 +1,20 @@
+{
+  "id": "C151_Pinguim_Imperador_Cristal",
+  "parts": {
+    "Body": 916,
+    "Head": 1288,
+    "FinL": 212,
+    "FinR": 212,
+    "Legs": 328,
+    "Tail": 164,
+    "Extra_1": 160,
+    "Extra_2": 164,
+    "Extra_3": 284,
+    "Extra_4": 192
+  },
+  "total": 3920,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

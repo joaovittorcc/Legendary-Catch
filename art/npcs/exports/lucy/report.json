@@ -1,0 +1,93 @@
+{
+  "npc": "Lucy",
+  "total_tris": 36116,
+  "bounds_min": [
+    -1.7927,
+    -1.4341,
+    -0.0203
+  ],
+  "bounds_max": [
+    3.0256,
+    1.4309,
+    5.38
+  ],
+  "size_studs": [
+    4.8183,
+    2.8651,
+    5.4003
+  ],
+  "parts": {
+    "Legs": {
+      "tris": 2116,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Torso": {
+      "tris": 17988,
+      "location": [
+        0.0,
+        0.0,
+        2.5921
+      ]
+    },
+    "Head": {
+      "tris": 6824,
+      "location": [
+        0.0,
+        0.0,
+        3.7408
+      ]
+    },
+    "Props": {
+      "tris": 4216,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Glass_Jars": {
+      "tris": 912,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Glow_Cyan_Bucket": {
+      "tris": 700,
+      "location": [
+        0.0,
+        0.0,
+        2.5921
+      ]
+    },
+    "Glow_Cyan_Jar": {
+      "tris": 1120,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Glow_Pink_Jar": {
+      "tris": 1120,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    },
+    "Glow_Gold_Jar": {
+      "tris": 1120,
+      "location": [
+        0.0,
+        0.0,
+        0.0
+      ]
+    }
+  }
+}

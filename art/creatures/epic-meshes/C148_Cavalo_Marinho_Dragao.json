@@ -1,0 +1,20 @@
+{
+  "id": "C148_Cavalo_Marinho_Dragao",
+  "parts": {
+    "Body": 640,
+    "Head": 406,
+    "Tail": 356,
+    "Wings": 352,
+    "Fins": 352,
+    "Extra_1": 608,
+    "Extra_2": 194,
+    "Extra_3": 244,
+    "Extra_4": 188
+  },
+  "total": 3340,
+  "neon": [
+    "Extra_1",
+    "Extra_2"
+  ],
+  "size_studs": 3.14
+}

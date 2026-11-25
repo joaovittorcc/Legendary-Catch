@@ -1,0 +1,20 @@
+{
+  "id": "C152_Manta_Solar",
+  "parts": {
+    "Body": 612,
+    "Head": 492,
+    "Tail": 216,
+    "FinL": 176,
+    "FinR": 176,
+    "Fins": 352,
+    "Extra_1": 480,
+    "Extra_2": 140,
+    "Extra_3": 608
+  },
+  "total": 3252,
+  "neon": [
+    "Extra_1",
+    "Extra_2"
+  ],
+  "size_studs": 3.14
+}

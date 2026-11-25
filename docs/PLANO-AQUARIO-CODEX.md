@@ -19,14 +19,24 @@ Colocar os sistemas e a arte no fluxo jogável, do arremesso ao aquário. O clie
 - Auditar desktop e toque nos três minigames atuais. Registrar duração, acerto, falha, primeira tentativa, leitura dos alvos, entrada e saída. Levar casos de balanceamento para Claude.
 - Com Antigravity, definir pontos do tanque, vista de inspeção e onde aparecem rótulos, botões e transição visual de expansão.
 
+### O que dá para adiantar em paralelo
+
+- Montar o card, a lista de vagas e a comparação com exemplos do plano, incluindo taxa potencial, troca com perda de sinergia e perfil carregando. Quando chegar o contrato S0, substituir a fonte de demonstração pelos dados publicados pelo Claude.
+- Auditar Reel, Precision e Rhythm e começar pelos problemas de leitura, toque e feedback com os parâmetros atuais. Preservar as assinaturas dos minigames e `Control.ease()`. Registrar no Mural mudanças de tolerância, entrada ou controlador que precisem do Claude.
+- Usar os nomes e IDs fornecidos pelo Antigravity para vincular o aquário à interação, a câmera e os caminhos de nado. Encaixar a primeira exposição no tutorial com os estados fornecidos pelo Claude.
+
+### Ligação com o servidor no primeiro lote
+
+Mostrar separadamente carregamento, recurso desligado e tanque vazio. A prévia usa a taxa e a versão enviadas pelo servidor. Enquanto a confirmação está pendente, preservar a montagem e o saldo exibidos. Se a versão mudar, atualizar a montagem e abrir uma nova comparação antes de confirmar. Conferir se resposta fora de ordem mantém o estado mais recente. Exibir o prêmio da captura e a renda potencial como valores distintos no card.
+
 ## C1 — Primeiro ciclo jogável
 
 1. Na Coleção, mostrar modelo, raridade, quantidade, recorde, taxa base, variante e taxa efetiva quando a criatura estiver em exibição. Distinguir renda potencial de renda recebida.
 2. Sobre as criaturas, mostrar moedas/s nas cores de renda aprovadas. **Comum branco, Incomum verde, Rara azul, Épica roxa, Lendária dourada e Mística arco-íris.** Usar fundo/contorno contrastante, gradiente estático com Reduzir Efeitos e prioridade pra criatura em foco quando dois rótulos se sobrepuserem.
-3. Ao expor, listar criaturas elegíveis, quantidades, vagas e estado bloqueado. Mostrar prévia confirmada pelo servidor com antes/depois por vaga, total e sinergia. Tratar confirmação, rejeição, carregamento e troca concorrente. Atualizar a taxa após receber o resultado.
+3. Ao expor, listar criaturas elegíveis, quantidades, vagas e estado bloqueado. Mostrar prévia calculada pelo servidor com antes/depois por vaga, total e sinergia. Tratar confirmação, rejeição, carregamento e troca concorrente. Atualizar a taxa após receber o resultado.
 4. Animar o contador quando o saldo confirmado mudar. Agrupar ticks contínuos e reservar moedas voando para capturas, metas e outros pagamentos pontuais.
 
-**Aceite:** capturar, equipar, ver a taxa e o saldo avançarem, comparar uma troca e confirmar. Conferir ganho e perda de renda com coleção antiga, variante e tanque cheio.
+**Aceite:** capturar, colocar em uma vaga, ver a taxa e o saldo avançarem, comparar uma troca e confirmar. Conferir ganho e perda de renda com coleção antiga, variante e tanque cheio.
 
 ## C2 — Aquário vivo e progressão
 

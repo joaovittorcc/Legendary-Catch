@@ -1,0 +1,19 @@
+{
+  "id": "C153_Peixe_Boi_Encantado",
+  "parts": {
+    "Body": 628,
+    "Head": 1202,
+    "Tail": 348,
+    "FinL": 176,
+    "FinR": 176,
+    "Fins": 352,
+    "Extra_1": 1314,
+    "Extra_2": 608,
+    "Extra_3": 456
+  },
+  "total": 5260,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

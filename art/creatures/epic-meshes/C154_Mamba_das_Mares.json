@@ -1,0 +1,19 @@
+{
+  "id": "C154_Mamba_das_Mares",
+  "parts": {
+    "Body": 852,
+    "Head": 752,
+    "Tail": 284,
+    "Fins": 178,
+    "Shell": 192,
+    "Extra_1": 456,
+    "Extra_2": 256,
+    "Extra_3": 216
+  },
+  "total": 3186,
+  "neon": [
+    "Extra_1",
+    "Extra_2"
+  ],
+  "size_studs": 3.14
+}

@@ -1,0 +1,19 @@
+{
+  "id": "C146_Crocodilo_de_Jade",
+  "parts": {
+    "Body": 548,
+    "Head": 1056,
+    "Tail": 348,
+    "Legs": 544,
+    "Claws": 384,
+    "Shell": 320,
+    "Extra_1": 608,
+    "Extra_2": 320,
+    "Extra_3": 320
+  },
+  "total": 4448,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

@@ -1,0 +1,18 @@
+{
+  "id": "C156_Albatroz_das_Nuvens",
+  "parts": {
+    "Body": 492,
+    "Head": 856,
+    "Tail": 360,
+    "Wings": 952,
+    "Legs": 244,
+    "Extra_1": 152,
+    "Extra_2": 212,
+    "Extra_3": 580
+  },
+  "total": 3848,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

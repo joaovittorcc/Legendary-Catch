@@ -1,0 +1,19 @@
+{
+  "id": "C149_Foca_de_Gelo_Mistico",
+  "parts": {
+    "Body": 548,
+    "Head": 622,
+    "Tail": 360,
+    "FinL": 176,
+    "FinR": 176,
+    "Shell": 320,
+    "Extra_1": 320,
+    "Extra_2": 396,
+    "Extra_3": 608
+  },
+  "total": 3526,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

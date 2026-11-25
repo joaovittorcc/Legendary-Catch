@@ -1,0 +1,19 @@
+{
+  "id": "C150_Tartaruga_Relampago",
+  "parts": {
+    "Body": 356,
+    "Head": 406,
+    "Tail": 220,
+    "FinL": 176,
+    "FinR": 176,
+    "Legs": 352,
+    "Shell": 1496,
+    "Extra_1": 160,
+    "Extra_2": 608
+  },
+  "total": 3950,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

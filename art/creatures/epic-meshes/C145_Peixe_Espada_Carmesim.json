@@ -1,0 +1,20 @@
+{
+  "id": "C145_Peixe_Espada_Carmesim",
+  "parts": {
+    "Body": 512,
+    "Head": 306,
+    "Tail": 424,
+    "Fins": 212,
+    "FinL": 176,
+    "FinR": 176,
+    "Extra_1": 136,
+    "Extra_2": 188,
+    "Extra_3": 608
+  },
+  "total": 2738,
+  "neon": [
+    "Extra_1",
+    "Extra_2"
+  ],
+  "size_studs": 3.14
+}

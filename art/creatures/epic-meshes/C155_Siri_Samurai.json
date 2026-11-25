@@ -1,0 +1,19 @@
+{
+  "id": "C155_Siri_Samurai",
+  "parts": {
+    "Body": 392,
+    "Head": 870,
+    "Legs": 456,
+    "Claws": 792,
+    "Shell": 1032,
+    "Extra_1": 140,
+    "Extra_2": 492,
+    "Extra_3": 216,
+    "Extra_4": 172
+  },
+  "total": 4562,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}

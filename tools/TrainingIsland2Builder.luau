@@ -533,7 +533,7 @@ local function buildHexCrystal(
 		end
 	end
 
-	-- Top hexagonal pyramid (6 wedges converging to sharp point)
+	-- Top hexagonal pyramid (6 wedges with vertical +Z backs meeting at exact center r = 0 apex!)
 	for s = 0, 5 do
 		local ang = math.rad(s * 60)
 		local tipW = makeWedge(
@@ -541,8 +541,8 @@ local function buildHexCrystal(
 			"HexTip_" .. tostring(s + 1),
 			baseCf
 				* CFrame.Angles(0, ang, 0)
-				* CFrame.new(0, botTipH + shaftH + topTipH * 0.5, -radius * 0.44),
-			Vector3.new(flatWidth * 0.96, topTipH, radius * 0.92),
+				* CFrame.new(0, botTipH + shaftH + topTipH * 0.5, -radius * 0.50),
+			Vector3.new(flatWidth * 1.00, topTipH, radius * 1.00),
 			outerColor,
 			Enum.Material.SmoothPlastic,
 			false,
@@ -552,7 +552,7 @@ local function buildHexCrystal(
 		tipW.Reflectance = 0.28
 	end
 
-	-- Optional lower inverted pyramid (for floating crystals in Focus Pond)
+	-- Optional lower inverted pyramid (for floating crystals in Focus Pond: +Z stays at center r = 0!)
 	if hasBottomTip then
 		for s = 0, 5 do
 			local ang = math.rad(s * 60)
@@ -561,9 +561,9 @@ local function buildHexCrystal(
 				"HexBotTip_" .. tostring(s + 1),
 				baseCf
 					* CFrame.Angles(0, ang, 0)
-					* CFrame.new(0, botTipH * 0.5, -radius * 0.44)
+					* CFrame.new(0, botTipH * 0.5, -radius * 0.50)
 					* CFrame.Angles(0, 0, math.rad(180)),
-				Vector3.new(flatWidth * 0.96, botTipH, radius * 0.92),
+				Vector3.new(flatWidth * 1.00, botTipH, radius * 1.00),
 				outerColor,
 				Enum.Material.SmoothPlastic,
 				false,
@@ -600,8 +600,8 @@ local function buildHexCrystal(
 			"CoreTip_" .. tostring(s + 1),
 			baseCf
 				* CFrame.Angles(0, ang, 0)
-				* CFrame.new(0, botTipH + shaftH + topTipH * 0.36, -coreR * 0.42),
-			Vector3.new(coreFlat, topTipH * 0.78, coreR * 0.86),
+				* CFrame.new(0, botTipH + shaftH + topTipH * 0.38, -coreR * 0.50),
+			Vector3.new(coreFlat, topTipH * 0.80, coreR * 1.00),
 			gemCoreCol,
 			Enum.Material.Neon,
 			false,
@@ -1021,21 +1021,21 @@ local function makePalm(
 		)
 	end
 
-	-- 9 gracefully arching fanned palm fronds (central rib + angled V-blade pairs in 3 greens)
+	-- 10 gracefully arching lush fanned palm fronds (curved rib + overlapping smooth tropical leaflets in 3 greens)
 	local leafColors = { PALETTE.PalmLeaf2, PALETTE.PalmLeaf1, PALETTE.PalmLeaf3 }
-	local fronds = 9
+	local fronds = 10
 	for i = 1, fronds do
-		local a = (i / fronds) * math.pi * 2 + rng:NextNumber(-0.14, 0.14)
+		local a = (i / fronds) * math.pi * 2 + rng:NextNumber(-0.10, 0.10)
 		local col = leafColors[((i - 1) % #leafColors) + 1]
-		local startPitch = if i % 3 == 0 then math.rad(-32) else math.rad(-18)
+		local startPitch = if i % 3 == 0 then math.rad(-36) else math.rad(-14)
 		local fCf = curCf * CFrame.Angles(0, a, 0) * CFrame.Angles(startPitch, 0, 0)
 
 		for s = 1, 4 do
-			local segLen = (2.25 - s * 0.26) * scale
-			local leafW = (1.18 - s * 0.18) * scale
+			local segLen = (2.65 - s * 0.30) * scale
+			local leafW = (1.58 - s * 0.24) * scale
 			local nextCf = fCf
 				* CFrame.new(0, 0, segLen)
-				* CFrame.Angles(math.rad(19 + s * 3), 0, 0)
+				* CFrame.Angles(math.rad(18 + s * 4), 0, 0)
 
 			-- Central stem rib
 			makeSegment(
@@ -1050,19 +1050,20 @@ local function makePalm(
 				false,
 				false
 			)
-			-- Left & right angled leaf blades forming a tropical fan V-shape
+			-- Smooth arched overlapping leaflet pair forming a lush tropical fan
 			local midCf = fCf * CFrame.new(0, 0, segLen * 0.5)
 			for side = -1, 1, 2 do
-				makeWedge(
+				makeEllipsoid(
 					m,
 					"FrondBlade_" .. i .. "_" .. s .. "_" .. side,
 					midCf
-						* CFrame.new(side * leafW * 0.45, -0.06 * scale, 0)
-						* CFrame.Angles(0, side * math.rad(18), side * math.rad(-26)),
-					Vector3.new(leafW * 0.92, 0.14 * scale, segLen * 1.18),
+						* CFrame.new(side * leafW * 0.38, -0.05 * scale, 0)
+						* CFrame.Angles(0, side * math.rad(16), side * math.rad(-22)),
+					Vector3.new(leafW * 0.96, 0.18 * scale, segLen * 1.24),
 					jitterColor(col, rng, 0.04),
 					Enum.Material.SmoothPlastic,
 					false,
+					0,
 					false
 				)
 			end
@@ -1690,7 +1691,8 @@ local function buildIslandTopTerrain(root: Model, origin: Vector3)
 				local inInstinct =
 					isInsideEllipse(x, z, INSTINCT_CENTER, INSTINCT_RX, INSTINCT_RZ, -0.45)
 				if not inFocus and not inInstinct then
-					if r <= edgeR - beachW and not isOnCentralSandPath(x, z) then
+					-- Pull grass strips inward 1.6 studs from beach border so smooth curved GrassEdge covers 100% of stair-steps!
+					if r <= edgeR - beachW - 1.6 and not isOnCentralSandPath(x, z) then
 						cellKind = "Grass"
 					else
 						cellKind = "Sand"
@@ -1777,21 +1779,21 @@ local function buildIslandTopTerrain(root: Model, origin: Vector3)
 		local localMidZ = gMid.Z - origin.Z
 		if
 			not isOnCentralSandPath(localMidX, localMidZ)
-			and not isInsideEllipse(localMidX, localMidZ, FOCUS_CENTER, FOCUS_RX, FOCUS_RZ, 0.8)
+			and not isInsideEllipse(localMidX, localMidZ, FOCUS_CENTER, FOCUS_RX, FOCUS_RZ, 0.6)
 			and not isInsideEllipse(
 				localMidX,
 				localMidZ,
 				INSTINCT_CENTER,
 				INSTINCT_RX,
 				INSTINCT_RZ,
-				0.8
+				0.6
 			)
 		then
 			makePart(
 				rimFolder,
 				"GrassEdge_" .. i,
-				gCf * CFrame.new(1.85, -0.18, 0) * CFrame.Angles(0, 0, math.rad(5)),
-				Vector3.new(4.4, 0.36, gLen),
+				gCf * CFrame.new(2.55, -0.18, 0) * CFrame.Angles(0, 0, math.rad(4)),
+				Vector3.new(5.8, 0.36, gLen * 1.15),
 				if i % 3 == 0 then PALETTE.GrassWarm else PALETTE.GrassMain,
 				Enum.Material.Grass,
 				false,
@@ -1884,11 +1886,11 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 		{
 			count = 30,
 			rScale = 1.015,
-			yMin = -3.9,
-			yMax = -3.1,
+			yMin = -4.2,
+			yMax = -3.6,
 			widthScale = 1.08,
-			height = 4.6,
-			depth = 8.0,
+			height = 4.4,
+			depth = 7.8,
 			inwardTilt = 10,
 			colors = { PALETTE.RockLight, PALETTE.RockMid },
 		},
@@ -2041,106 +2043,132 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 		return CFrame.lookAt(p, p + dir) * CFrame.Angles(math.rad(-pitchDeg), 0, math.rad(rollDeg))
 	end
 
-	-- 1. Hero Large Pleated Fan Corals across front & sides (big visual impact!)
+	-- 1. Hero Large Pleated Fan Corals oriented UPWARD/OUTWARD against the cliff face so their broad veined fans showcase brightly!
+	local function cliffFanCf(
+		ang: number,
+		rScale: number,
+		y: number,
+		tiltBackDeg: number,
+		rollDeg: number
+	): CFrame
+		local ex, ez = islandEdgeAtAngle(ang)
+		local p = origin + Vector3.new(ex * rScale, y, ez * rScale)
+		local dir = Vector3.new(ex, 0, ez).Unit
+		-- Face fan (+Z of fan) outward along dir, standing mostly upright with gentle natural outward tilt
+		return CFrame.lookAt(p, p - dir)
+			* CFrame.Angles(math.rad(-tiltBackDeg), 0, math.rad(rollDeg))
+	end
+
 	local heroFans = {
 		{
-			ang = 2.02,
-			rS = 0.96,
-			y = -5.6,
-			s = 2.15,
+			ang = 2.06,
+			rS = 1.01,
+			y = -8.2,
+			s = 2.25,
 			col = PALETTE.CoralPink,
-			pitch = 72,
-			roll = -12,
+			tilt = 22,
+			roll = -14,
 		},
 		{
-			ang = 1.84,
-			rS = 0.94,
-			y = -7.6,
-			s = 2.05,
+			ang = 1.88,
+			rS = 0.99,
+			y = -10.2,
+			s = 2.15,
 			col = PALETTE.CoralOrange,
-			pitch = 78,
-			roll = 8,
+			tilt = 26,
+			roll = 10,
 		},
 		{
-			ang = 1.66,
-			rS = 0.97,
-			y = -6.0,
-			s = 2.35,
+			ang = 1.69,
+			rS = 1.01,
+			y = -8.4,
+			s = 2.45,
 			col = PALETTE.CoralPeach,
-			pitch = 70,
+			tilt = 20,
 			roll = 4,
 		},
 		{
-			ang = 1.44,
-			rS = 0.92,
-			y = -8.2,
-			s = 2.10,
+			ang = 1.48,
+			rS = 0.97,
+			y = -10.5,
+			s = 2.25,
 			col = PALETTE.CoralPurple,
-			pitch = 80,
-			roll = -6,
+			tilt = 28,
+			roll = -8,
 		},
 		{
-			ang = 1.24,
-			rS = 0.95,
-			y = -7.4,
-			s = 2.25,
+			ang = 1.28,
+			rS = 0.99,
+			y = -9.6,
+			s = 2.40,
 			col = PALETTE.CoralLavender,
-			pitch = 76,
+			tilt = 24,
 			roll = 12,
 		},
 		{
-			ang = 1.04,
-			rS = 0.98,
-			y = -5.6,
-			s = 1.95,
+			ang = 1.06,
+			rS = 1.01,
+			y = -8.0,
+			s = 2.10,
 			col = PALETTE.CoralPink,
-			pitch = 68,
-			roll = -10,
+			tilt = 20,
+			roll = -12,
 		},
 		{
-			ang = 2.48,
-			rS = 0.99,
-			y = -5.2,
-			s = 1.80,
+			ang = 2.44,
+			rS = 1.02,
+			y = -7.6,
+			s = 1.95,
 			col = PALETTE.CoralRose,
-			pitch = 72,
-			roll = -15,
+			tilt = 24,
+			roll = -16,
 		},
 		{
-			ang = 0.62,
-			rS = 0.99,
-			y = -5.4,
-			s = 1.85,
+			ang = 0.66,
+			rS = 1.02,
+			y = -7.8,
+			s = 2.00,
 			col = PALETTE.CoralOrange,
-			pitch = 70,
-			roll = 15,
+			tilt = 22,
+			roll = 16,
+		},
+		-- Upper overlapping smaller fan corals for lush reef layering
+		{
+			ang = 1.80,
+			rS = 1.03,
+			y = -6.2,
+			s = 1.65,
+			col = PALETTE.CoralRose,
+			tilt = 18,
+			roll = -6,
+		},
+		{
+			ang = 1.18,
+			rS = 1.03,
+			y = -6.4,
+			s = 1.65,
+			col = PALETTE.CoralOrange,
+			tilt = 18,
+			roll = 8,
 		},
 		-- Side/back accents for 360 views
-		{
-			ang = 3.55,
-			rS = 0.98,
-			y = -5.5,
-			s = 1.75,
-			col = PALETTE.CoralPink,
-			pitch = 74,
-			roll = 0,
-		},
+		{ ang = 3.55, rS = 1.01, y = -8.0, s = 1.85, col = PALETTE.CoralPink, tilt = 24, roll = 0 },
 		{
 			ang = 4.65,
-			rS = 0.98,
-			y = -5.8,
-			s = 1.80,
+			rS = 1.01,
+			y = -8.2,
+			s = 1.90,
 			col = PALETTE.CoralPurple,
-			pitch = 74,
+			tilt = 24,
 			roll = 6,
 		},
 		{
 			ang = 5.65,
-			rS = 0.98,
-			y = -5.4,
-			s = 1.75,
+			rS = 1.01,
+			y = -7.8,
+			s = 1.85,
 			col = PALETTE.CoralOrange,
-			pitch = 72,
+			tilt = 22,
 			roll = -6,
 		},
 	}
@@ -2148,7 +2176,7 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 		makeFanCoral(
 			coralFolder,
 			"HeroFanCoral_" .. idx,
-			cliffOutCf(f.ang, f.rS, f.y, f.pitch, f.roll),
+			cliffFanCf(f.ang, f.rS, f.y, f.tilt, f.roll),
 			f.s,
 			f.col,
 			rng
@@ -2157,16 +2185,16 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 
 	-- 2. Tube Sponge Clusters (signature orange/coral tube clusters on front-left & front-right)
 	local tubeSpecs = {
-		{ ang = 2.18, rS = 0.97, y = -5.2, s = 1.65, col = PALETTE.CoralOrange },
-		{ ang = 2.08, rS = 0.92, y = -7.8, s = 1.50, col = PALETTE.CoralYellow },
-		{ ang = 0.88, rS = 0.96, y = -6.2, s = 1.55, col = PALETTE.CoralOrange },
-		{ ang = 1.74, rS = 0.90, y = -9.4, s = 1.35, col = PALETTE.CoralPeach },
+		{ ang = 2.22, rS = 1.02, y = -5.2, s = 1.65, col = PALETTE.CoralOrange },
+		{ ang = 2.12, rS = 0.98, y = -7.8, s = 1.50, col = PALETTE.CoralYellow },
+		{ ang = 0.86, rS = 1.01, y = -6.0, s = 1.60, col = PALETTE.CoralOrange },
+		{ ang = 1.72, rS = 0.96, y = -9.6, s = 1.40, col = PALETTE.CoralPeach },
 	}
 	for idx, ts in ipairs(tubeSpecs) do
 		makeTubeCoral(
 			coralFolder,
 			"CliffTubeCoral_" .. idx,
-			cliffOutCf(ts.ang, ts.rS, ts.y, 76, 0),
+			cliffOutCf(ts.ang, ts.rS, ts.y, 72, 0),
 			ts.s,
 			ts.col,
 			rng
@@ -2192,81 +2220,81 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 			ang = math.pi + 0.45 + ((i - 23) / 6) * (math.pi - 0.9)
 		end
 		local yTier = if i % 3 == 0 then rng:NextNumber(-9.5, -7.2) else rng:NextNumber(-6.4, -3.4)
-		local rScale = if yTier < -7.0 then 0.91 else 1.00
+		local rScale = if yTier < -7.0 then 0.96 else 1.03
 		local col = branchColors[((i - 1) % #branchColors) + 1]
 		makeBranchCoral(
 			coralFolder,
 			"CliffBranch_" .. i,
-			cliffOutCf(ang, rScale, yTier, rng:NextNumber(60, 82), rng:NextNumber(-20, 20)),
-			rng:NextNumber(1.25, 1.95),
+			cliffOutCf(ang, rScale, yTier, rng:NextNumber(58, 78), rng:NextNumber(-20, 20)),
+			rng:NextNumber(1.30, 1.95),
 			col,
 			rng
 		)
 	end
 
-	-- 4. Fluffy Reef Anemones nestled in central & side rock crevices
+	-- 4. Fluffy Reef Anemones nestled prominently ON the front rock surface (never buried inside boulders!)
 	local anemoneSpecs = {
 		{
-			ang = 1.52,
-			rS = 0.97,
-			y = -6.2,
-			s = 1.65,
+			ang = 1.54,
+			rS = 1.03,
+			y = -6.0,
+			s = 1.75,
 			col = PALETTE.CoralPink,
 			tip = PALETTE.ShellCream,
 		},
 		{
-			ang = 1.34,
-			rS = 0.99,
-			y = -5.0,
-			s = 1.45,
+			ang = 1.36,
+			rS = 1.04,
+			y = -4.8,
+			s = 1.50,
 			col = PALETTE.CoralYellow,
 			tip = PALETTE.CoralOrange,
 		},
 		{
-			ang = 1.40,
-			rS = 0.94,
+			ang = 1.42,
+			rS = 1.00,
 			y = -7.6,
-			s = 1.40,
+			s = 1.50,
 			col = PALETTE.CoralTeal,
 			tip = PALETTE.CoralYellow,
 		},
 		{
-			ang = 1.94,
-			rS = 0.95,
-			y = -8.4,
-			s = 1.35,
+			ang = 1.96,
+			rS = 1.01,
+			y = -7.2,
+			s = 1.45,
 			col = PALETTE.CoralPurple,
 			tip = PALETTE.CoralPink,
 		},
 		{
-			ang = 1.14,
-			rS = 0.95,
-			y = -8.6,
-			s = 1.35,
+			ang = 1.12,
+			rS = 1.01,
+			y = -7.6,
+			s = 1.45,
 			col = PALETTE.CoralOrange,
 			tip = PALETTE.CoralYellow,
 		},
 		{
 			ang = 2.38,
-			rS = 0.96,
-			y = -6.8,
-			s = 1.35,
+			rS = 1.02,
+			y = -6.6,
+			s = 1.40,
 			col = PALETTE.CoralPink,
 			tip = PALETTE.CoralYellow,
 		},
 		{
-			ang = 0.78,
-			rS = 0.97,
-			y = -6.8,
-			s = 1.40,
+			ang = 0.76,
+			rS = 1.03,
+			y = -6.4,
+			s = 1.45,
 			col = PALETTE.CoralLavender,
 			tip = PALETTE.ShellCream,
 		},
 		{
 			ang = 2.66,
-			rS = 0.99,
+			rS = 1.03,
 			y = -4.2,
-			s = 1.25,
+			s = 1.30,
 			col = PALETTE.CoralOrange,
 			tip = PALETTE.CoralYellow,
 		},
@@ -2275,7 +2303,7 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 		makeAnemone(
 			coralFolder,
 			"CliffAnemone_" .. idx,
-			cliffOutCf(an.ang, an.rS, an.y, 76, 0),
+			cliffOutCf(an.ang, an.rS, an.y, 74, 0),
 			an.s,
 			an.col,
 			an.tip,
@@ -2283,22 +2311,22 @@ local function buildRockAndReefWall(root: Model, origin: Vector3, rng: Random)
 		)
 	end
 
-	-- 5. Hero Glowing Aqua Hex Crystals embedded in the cliff (big left/right jutting clusters + lower accents!)
+	-- 5. Hero Glowing Aqua Hex Crystals embedded in the cliff (crisp pointed spikes on flanks + front accents!)
 	local crystalSpecs = {
 		-- Prominent Left Flank Hero Crystal Cluster (jutting out just like the reference!)
-		{ ang = 2.84, rS = 1.02, y = -3.8, rad = 1.55, h = 6.2, pitch = 74, light = true },
-		{ ang = 2.62, rS = 0.99, y = -5.6, rad = 1.15, h = 4.4, pitch = 78, light = false },
+		{ ang = 2.86, rS = 1.03, y = -3.8, rad = 1.65, h = 6.8, pitch = 74, light = true },
+		{ ang = 2.64, rS = 1.01, y = -5.6, rad = 1.25, h = 4.8, pitch = 78, light = false },
 		-- Prominent Right Flank Hero Crystal Cluster (jutting out just like the reference!)
-		{ ang = 0.28, rS = 1.02, y = -3.6, rad = 1.60, h = 6.4, pitch = 74, light = true },
-		{ ang = 0.46, rS = 0.99, y = -5.5, rad = 1.15, h = 4.5, pitch = 76, light = false },
-		-- Lower-front glowing aqua gems peeking between colorful corals
-		{ ang = 2.26, rS = 0.98, y = -4.4, rad = 1.05, h = 3.8, pitch = 72, light = false },
-		{ ang = 1.72, rS = 0.93, y = -8.6, rad = 1.15, h = 4.2, pitch = 82, light = true },
-		{ ang = 1.22, rS = 0.98, y = -5.2, rad = 1.25, h = 4.6, pitch = 74, light = true },
-		{ ang = 0.96, rS = 0.91, y = -8.8, rad = 1.00, h = 3.8, pitch = 82, light = false },
+		{ ang = 0.26, rS = 1.03, y = -3.6, rad = 1.70, h = 7.0, pitch = 74, light = true },
+		{ ang = 0.44, rS = 1.01, y = -5.5, rad = 1.25, h = 4.9, pitch = 76, light = false },
+		-- Front glowing aqua gems peeking brightly between colorful corals
+		{ ang = 2.28, rS = 1.02, y = -4.6, rad = 1.15, h = 4.2, pitch = 72, light = false },
+		{ ang = 1.76, rS = 0.99, y = -8.4, rad = 1.25, h = 4.6, pitch = 80, light = true },
+		{ ang = 1.22, rS = 1.02, y = -5.2, rad = 1.35, h = 5.0, pitch = 74, light = true },
+		{ ang = 0.98, rS = 0.98, y = -8.4, rad = 1.10, h = 4.2, pitch = 80, light = false },
 		-- Back accents
-		{ ang = 3.90, rS = 0.99, y = -4.8, rad = 1.25, h = 4.6, pitch = 74, light = false },
-		{ ang = 5.40, rS = 0.99, y = -4.8, rad = 1.25, h = 4.6, pitch = 74, light = false },
+		{ ang = 3.90, rS = 1.01, y = -4.8, rad = 1.25, h = 4.6, pitch = 74, light = false },
+		{ ang = 5.40, rS = 1.01, y = -4.8, rad = 1.25, h = 4.6, pitch = 74, light = false },
 	}
 	for idx, cs in ipairs(crystalSpecs) do
 		local cCf = cliffOutCf(cs.ang, cs.rS - 0.04, cs.y, cs.pitch, 0)
@@ -2398,23 +2426,68 @@ local function buildPortal(root: Model, origin: Vector3, rng: Random)
 		end
 	end
 
-	-- Thick horseshoe stone arch (13 sculpted blocks around a horseshoe curve with dark mortar joints)
+	-- Solid stacked vertical stone pillar bases supporting the arch down to ground Y = 0!
+	for side = -1, 1, 2 do
+		for b = 1, 3 do
+			local by = 1.05 + (b - 1) * 2.05
+			local bx = side * (5.35 + rng:NextNumber(-0.12, 0.12))
+			local bw = if b == 1 then 3.55 else 3.10 + rng:NextNumber(-0.12, 0.14)
+			local bd = if b == 1 then 3.85 else 3.45
+			local pCf = CFrame.new(base + Vector3.new(bx, by, rng:NextNumber(-0.08, 0.08)))
+				* CFrame.Angles(0, rng:NextNumber(-0.04, 0.04), rng:NextNumber(-0.03, 0.03))
+			makePart(
+				portalFolder,
+				"PillarBase_" .. side .. "_" .. b,
+				pCf,
+				Vector3.new(bw, 2.00, bd),
+				if b % 2 == 0 then PALETTE.StoneLight else PALETTE.StoneMid,
+				Enum.Material.Concrete,
+				false,
+				0,
+				true
+			)
+			makeEllipsoid(
+				portalFolder,
+				"PillarBevel_" .. side .. "_" .. b,
+				pCf * CFrame.new(0, 0, 0.18),
+				Vector3.new(bw * 1.05, 2.15, bd * 0.90),
+				if b % 2 == 0 then PALETTE.StoneMid else PALETTE.StoneLight,
+				Enum.Material.Concrete,
+				false,
+				0,
+				false
+			)
+			makePart(
+				portalFolder,
+				"PillarJoint_" .. side .. "_" .. b,
+				pCf * CFrame.new(0, 1.02, 0),
+				Vector3.new(bw * 0.90, 0.18, bd * 0.88),
+				PALETTE.StoneJoint,
+				Enum.Material.Concrete,
+				false,
+				0,
+				false
+			)
+		end
+	end
+
+	-- Thick horseshoe stone arch (13 sculpted blocks curving seamlessly from the pillar bases)
 	local archSteps = 13
 	for i = 1, archSteps do
 		local t = (i - 1) / (archSteps - 1)
-		local theta = math.rad(194 - t * 208) -- wraps slightly inward at the feet
+		local theta = math.rad(185 - t * 190)
 		local rx = 5.45
 		local ry = 7.45
 		local cx = math.cos(theta) * rx
-		local cy = 7.55 + math.sin(theta) * ry
+		local cy = 7.25 + math.sin(theta) * ry
 		local isKey = (i == 7)
 		local isFoot = (i == 1 or i == archSteps)
 
-		local blockCf = CFrame.new(base + Vector3.new(cx, cy, rng:NextNumber(-0.12, 0.12)))
-			* CFrame.Angles(0, rng:NextNumber(-0.05, 0.05), theta - math.rad(90))
-		local bw = if isKey then 3.25 elseif isFoot then 3.55 else 2.75 + rng:NextNumber(-0.15, 0.2)
-		local bh = if isKey then 3.15 else 2.55 + rng:NextNumber(-0.12, 0.16)
-		local bd = if isKey then 3.65 else 3.25
+		local blockCf = CFrame.new(base + Vector3.new(cx, cy, rng:NextNumber(-0.10, 0.10)))
+			* CFrame.Angles(0, rng:NextNumber(-0.04, 0.04), theta - math.rad(90))
+		local bw = if isKey then 3.25 elseif isFoot then 3.35 else 2.75 + rng:NextNumber(-0.12, 0.18)
+		local bh = if isKey then 3.15 else 2.55 + rng:NextNumber(-0.10, 0.14)
+		local bd = if isKey then 3.65 else 3.35
 
 		makePart(
 			portalFolder,
@@ -2431,7 +2504,7 @@ local function buildPortal(root: Model, origin: Vector3, rng: Random)
 		makeEllipsoid(
 			portalFolder,
 			"ArchBevel_" .. i,
-			blockCf * CFrame.new(0, 0, 0.25),
+			blockCf * CFrame.new(0, 0, 0.22),
 			Vector3.new(bw * 1.06, bh * 1.02, bd * 0.88),
 			if i % 3 == 0 then PALETTE.StoneMid else PALETTE.StoneLight,
 			Enum.Material.Concrete,
@@ -2454,27 +2527,28 @@ local function buildPortal(root: Model, origin: Vector3, rng: Random)
 			)
 		end
 
-		-- 3 Glowing Aqua Diamond Gems embedded on Left Pillar (i=3), Keystone (i=7), Right Pillar (i=11)
-		if i == 3 or i == 7 or i == 11 then
-			local gemCf = blockCf * CFrame.new(0, 0, bd * 0.52)
-			local gScale = if i == 7 then 1.15 else 0.92
-			-- Dark carved socket
+		-- 3 Upright Glowing Aqua Diamond Gems embedded on Left Pillar (i=2), Keystone (i=7), Right Pillar (i=12)
+		if i == 2 or i == 7 or i == 12 then
+			local gemWorldPos = (blockCf * CFrame.new(0, 0, bd * 0.54)).Position
+			local uprightCf = CFrame.new(gemWorldPos) -- always vertical upright diamond!
+			local gScale = if i == 7 then 1.15 else 0.94
+			-- Dark carved diamond socket
 			makePart(
 				portalFolder,
 				"GemSocket_" .. i,
-				gemCf * CFrame.Angles(0, 0, math.rad(45)),
-				Vector3.new(1.35 * gScale, 1.35 * gScale, 0.28),
+				uprightCf * CFrame.Angles(0, 0, math.rad(45)),
+				Vector3.new(1.32 * gScale, 1.32 * gScale, 0.28),
 				PALETTE.StoneJoint,
 				Enum.Material.Concrete,
 				false,
 				0,
 				false
 			)
-			-- Faceted glowing aqua diamond gem
+			-- Faceted glowing aqua diamond gem standing upright
 			buildHexCrystal(
 				portalFolder,
 				"ArchGem_" .. i,
-				gemCf * CFrame.new(0, -1.0 * gScale, 0.14),
+				uprightCf * CFrame.new(0, -1.0 * gScale, 0.14),
 				0.58 * gScale,
 				2.05 * gScale,
 				PALETTE.CrystalCyan,
@@ -2605,24 +2679,24 @@ local function buildPortal(root: Model, origin: Vector3, rng: Random)
 		PALETTE.ShellCream
 	)
 
-	-- Glowing Aqua-White Spiral Vortex Interior (Island 1 premium technique — NO flat white oval!)
-	local vortexCf = CFrame.new(base + Vector3.new(0, 7.6, 0))
+	-- Glowing Aqua-White Spiral Vortex Interior (crisp radiant spiral visible straight-on AND from angles!)
+	local vortexCf = CFrame.new(base + Vector3.new(0, 7.2, 0))
 	makeEllipsoid(
 		portalFolder,
 		"PortalBackdrop",
-		vortexCf,
-		Vector3.new(8.2, 12.2, 0.24),
-		Color3.fromRGB(48, 212, 242),
+		vortexCf * CFrame.new(0, 0, -0.25),
+		Vector3.new(8.6, 12.6, 0.22),
+		Color3.fromRGB(36, 198, 236),
 		Enum.Material.SmoothPlastic,
 		false,
-		0.42,
+		0.36,
 		false
 	)
 	makeEllipsoid(
 		portalFolder,
 		"PortalInnerGlow",
-		vortexCf,
-		Vector3.new(6.8, 10.4, 0.32),
+		vortexCf * CFrame.new(0, 0, -0.14),
+		Vector3.new(7.2, 10.8, 0.26),
 		PALETTE.CrystalCyan,
 		Enum.Material.Neon,
 		false,
@@ -2632,16 +2706,16 @@ local function buildPortal(root: Model, origin: Vector3, rng: Random)
 	makeEllipsoid(
 		portalFolder,
 		"PortalWhiteCore",
-		vortexCf,
-		Vector3.new(3.8, 6.4, 0.38),
+		vortexCf * CFrame.new(0, 0, -0.06),
+		Vector3.new(3.4, 5.6, 0.24),
 		PALETTE.PortalWhite,
 		Enum.Material.Neon,
 		false,
-		0.18,
+		0.42,
 		false
 	)
 
-	-- 2 luminous swirling spiral arms from bright center out to aqua rim
+	-- 2 luminous swirling spiral arms placed cleanly IN FRONT of the backdrop so they always pop!
 	for arm = 0, 1 do
 		local armModel = makeModel(portalFolder, "PortalSpiralArm_" .. (arm + 1))
 		local hub = makePart(
@@ -2659,31 +2733,31 @@ local function buildPortal(root: Model, origin: Vector3, rng: Random)
 		armModel.PrimaryPart = hub
 		armModel:SetAttribute("VortexIndex", arm + 1)
 
-		local steps = 26
+		local steps = 28
 		local prevPt: Vector3? = nil
 		for sIdx = 0, steps do
 			local t = sIdx / steps
-			local ang = t * math.pi * 3.8 + arm * math.pi
-			local rx = 0.20 + t * 3.45
-			local ry = 0.28 + t * 5.20
-			local curPt = (vortexCf * CFrame.new(math.cos(ang) * rx, math.sin(ang) * ry, 0.16)).Position
+			local ang = t * math.pi * 4.0 + arm * math.pi
+			local rx = 0.22 + t * 3.55
+			local ry = 0.30 + t * 5.25
+			local curPt = (vortexCf * CFrame.new(math.cos(ang) * rx, math.sin(ang) * ry, 0.22)).Position
 			if prevPt then
-				local col = if t < 0.36
+				local col = if t < 0.34
 					then PALETTE.PortalWhite
-					elseif t < 0.72 then PALETTE.CrystalCore
+					elseif t < 0.70 then PALETTE.CrystalCore
 					else PALETTE.CrystalCyan
 				makeSegment(
 					armModel,
 					"Swirl_" .. sIdx,
 					prevPt,
 					curPt,
-					0.36 + (1 - t) * 0.22,
+					0.34 + (1 - t) * 0.22,
 					col,
 					Enum.Material.Neon,
 					true,
 					false,
 					false,
-					0.06 + t * 0.18
+					0.04 + t * 0.16
 				)
 			end
 			prevPt = curPt
@@ -3026,7 +3100,7 @@ local function buildFocusPond(root: Model, origin: Vector3, rng: Random): Model
 			"BankSlope_" .. i,
 			cf * CFrame.new(0.65, -1.15, 0) * CFrame.Angles(0, 0, math.rad(-18)),
 			Vector3.new(2.0, 2.3, segLen),
-			PALETTE.SandMain,
+			PALETTE.SandLight,
 			Enum.Material.Sand,
 			true,
 			0,
@@ -3034,16 +3108,16 @@ local function buildFocusPond(root: Model, origin: Vector3, rng: Random): Model
 		)
 	end
 
-	-- Crystal-clear translucent water surface (SmoothPlastic reveals islets, coral rings & sand floor!)
+	-- Crystal-clear translucent Caribbean aqua water surface (SmoothPlastic reveals islets, coral rings & sand floor!)
 	local water = makeEllipsoid(
 		pond,
 		"WaterSurface",
 		CFrame.new(center + Vector3.new(0, -0.32, 0)),
 		Vector3.new(FOCUS_RX * 2.02, 0.20, FOCUS_RZ * 2.02),
-		PALETTE.WaterFocus,
+		Color3.fromRGB(116, 234, 240),
 		Enum.Material.SmoothPlastic,
 		false,
-		0.68,
+		0.62,
 		false
 	)
 	water.Reflectance = 0.08
@@ -3135,9 +3209,9 @@ local function buildFocusPond(root: Model, origin: Vector3, rng: Random): Model
 			makeEllipsoid(
 				pond,
 				"CoralRing_" .. idx .. "_" .. s,
-				CFrame.new(rPos + Vector3.new(math.cos(a) * rad, 0.25, math.sin(a) * rad)),
-				Vector3.new(0.75, 0.65, 0.75),
-				if s % 2 == 0 then PALETTE.CoralOrange else PALETTE.CoralPeach,
+				CFrame.new(rPos + Vector3.new(math.cos(a) * rad, 0.28, math.sin(a) * rad)),
+				Vector3.new(0.78, 0.60, 0.78),
+				if s % 2 == 0 then Color3.fromRGB(238, 86, 54) else PALETTE.CoralOrange,
 				Enum.Material.SmoothPlastic,
 				false,
 				0,
@@ -3389,12 +3463,12 @@ local function buildRuneStone(
 	local stone = makeModel(parent, name)
 	local cf = CFrame.lookAt(pos, Vector3.new(faceTarget.X, pos.Y, faceTarget.Z))
 
-	-- Sculpted angular standing rune rock (tapered boulder + top bevel)
-	local body = makePart(
+	-- Organic sculpted standing rune monolith (chunky tapered stone boulder + angled cap, no boxy corners!)
+	local body = makeEllipsoid(
 		stone,
 		"StoneBody",
-		cf * CFrame.new(0, size.Y * 0.44, 0) * CFrame.Angles(math.rad(-4), 0, math.rad(3)),
-		Vector3.new(size.X * 0.86, size.Y * 0.88, size.Z * 0.76),
+		cf * CFrame.new(0, size.Y * 0.42, 0) * CFrame.Angles(math.rad(-4), 0, math.rad(3)),
+		Vector3.new(size.X * 1.06, size.Y * 1.02, size.Z * 0.92),
 		PALETTE.StoneRune,
 		Enum.Material.Concrete,
 		false,
@@ -3404,37 +3478,39 @@ local function buildRuneStone(
 	stone.PrimaryPart = body
 	makeEllipsoid(
 		stone,
-		"StoneMass",
-		cf * CFrame.new(0, size.Y * 0.44, 0),
-		size,
+		"StoneShoulderL",
+		cf * CFrame.new(-size.X * 0.24, size.Y * 0.28, 0.08),
+		Vector3.new(size.X * 0.78, size.Y * 0.68, size.Z * 0.84),
 		PALETTE.StoneMid,
 		Enum.Material.Concrete,
 		false,
 		0,
-		true
+		false
 	)
-	makeWedge(
+	makeEllipsoid(
 		stone,
-		"StoneCrown",
-		cf * CFrame.new(0, size.Y * 0.90, 0) * CFrame.Angles(0, math.rad(180), 0),
-		Vector3.new(size.X * 0.72, size.Y * 0.28, size.Z * 0.68),
+		"StonePeak",
+		cf * CFrame.new(size.X * 0.08, size.Y * 0.78, -0.04) * CFrame.Angles(0, 0, math.rad(-10)),
+		Vector3.new(size.X * 0.72, size.Y * 0.48, size.Z * 0.76),
 		PALETTE.StoneLight,
 		Enum.Material.Concrete,
 		false,
+		0,
 		false
 	)
 
-	-- Glowing 3D Neon cyan rune strokes carved on front face (-Z of cf)
-	local faceCf = cf * CFrame.new(0, size.Y * 0.48, -size.Z * 0.49)
-	local rw = size.X * 0.24
-	local rh = size.Y * 0.24
+	-- Glowing 3D Neon cyan rune strokes carved on front face (-Z of cf; note +X in lookAt is viewer-left, so negate X for viewer-right!)
+	local faceCf = cf * CFrame.new(0, size.Y * 0.46, -size.Z * 0.46)
+	local rw = size.X * 0.23
+	local rh = size.Y * 0.23
 	local strokes: { { Vector2 } }
 	if glyphKind == "R" then
+		-- Properly oriented "R" facing viewer (+X = viewer-left, -X = viewer-right)
 		strokes = {
-			{ Vector2.new(-rw * 0.62, -rh), Vector2.new(-rw * 0.62, rh) },
-			{ Vector2.new(-rw * 0.62, rh), Vector2.new(rw * 0.72, rh * 0.34) },
-			{ Vector2.new(rw * 0.72, rh * 0.34), Vector2.new(-rw * 0.56, -rh * 0.04) },
-			{ Vector2.new(-rw * 0.40, -rh * 0.04), Vector2.new(rw * 0.76, -rh) },
+			{ Vector2.new(rw * 0.60, -rh), Vector2.new(rw * 0.60, rh) },
+			{ Vector2.new(rw * 0.60, rh), Vector2.new(-rw * 0.72, rh * 0.34) },
+			{ Vector2.new(-rw * 0.72, rh * 0.34), Vector2.new(rw * 0.54, -rh * 0.04) },
+			{ Vector2.new(rw * 0.36, -rh * 0.04), Vector2.new(-rw * 0.74, -rh) },
 		}
 	elseif glyphKind == "TRI" then
 		strokes = {
@@ -3586,21 +3662,22 @@ end
 local function buildGiantClam(parent: Instance, cf: CFrame): Model
 	local clam = makeModel(parent, "GiantClam")
 
-	-- Helper to build one scalloped multi-ribbed clam valve
+	-- Helper to build one scalloped multi-ribbed clam valve (prominent lilac outer ribs + soft pink inner shell!)
 	local function buildValve(prefix: string, valveCf: CFrame, isTop: boolean)
 		local signY = if isTop then -1 else 1
 		local ribs = 7
+		local baseLen = if isTop then 5.8 else 5.2
 		for i = 1, ribs do
 			local t = (i - 1) / (ribs - 1) - 0.5
-			local yaw = t * 1.25
-			local len = (5.0 - math.abs(t) * 1.2)
-			local rCf = valveCf * CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, len * 0.45)
+			local yaw = t * 1.28
+			local len = (baseLen - math.abs(t) * 1.15)
+			local rCf = valveCf * CFrame.Angles(0, yaw, 0) * CFrame.new(0, 0, len * 0.48)
 			-- Outer lilac ribbed shell
 			makeEllipsoid(
 				clam,
 				prefix .. "_Outer_" .. i,
-				rCf * CFrame.new(0, -0.18 * signY, 0),
-				Vector3.new(1.55, 0.82, len),
+				rCf * CFrame.new(0, -0.22 * signY, 0),
+				Vector3.new(1.65, 0.88, len),
 				PALETTE.ClamOuter,
 				Enum.Material.SmoothPlastic,
 				false,
@@ -3611,8 +3688,8 @@ local function buildGiantClam(parent: Instance, cf: CFrame): Model
 			makeEllipsoid(
 				clam,
 				prefix .. "_Inner_" .. i,
-				rCf * CFrame.new(0, 0.16 * signY, 0.12),
-				Vector3.new(1.32, 0.52, len * 0.90),
+				rCf * CFrame.new(0, 0.20 * signY, 0.14),
+				Vector3.new(1.36, 0.54, len * 0.90),
 				PALETTE.ClamInner,
 				Enum.Material.SmoothPlastic,
 				false,
@@ -3622,15 +3699,15 @@ local function buildGiantClam(parent: Instance, cf: CFrame): Model
 		end
 	end
 
-	buildValve("Bottom", cf * CFrame.new(0, 0.45, -1.8) * CFrame.Angles(math.rad(-8), 0, 0), false)
-	buildValve("Top", cf * CFrame.new(0, 1.05, -2.0) * CFrame.Angles(math.rad(66), 0, 0), true)
+	buildValve("Bottom", cf * CFrame.new(0, 0.45, -1.9) * CFrame.Angles(math.rad(6), 0, 0), false)
+	buildValve("Top", cf * CFrame.new(0, 1.15, -2.0) * CFrame.Angles(math.rad(-64), 0, 0), true)
 
-	-- Soft cushion bed & radiant glowing Pearl in the center
+	-- Soft cushion bed & crisp radiant Pearl (never blown out into a blinding white cloud!)
 	makeEllipsoid(
 		clam,
 		"PearlCushion",
-		cf * CFrame.new(0, 0.92, 0.2),
-		Vector3.new(3.2, 0.65, 2.8),
+		cf * CFrame.new(0, 0.88, 0.2),
+		Vector3.new(3.4, 0.65, 3.0),
 		PALETTE.ShellPink,
 		Enum.Material.SmoothPlastic,
 		false,
@@ -3640,32 +3717,44 @@ local function buildGiantClam(parent: Instance, cf: CFrame): Model
 	local pearl = makeEllipsoid(
 		clam,
 		"GiantPearl",
-		cf * CFrame.new(0, 1.95, 0.35),
-		Vector3.new(2.25, 2.25, 2.25),
-		PALETTE.PearlGlow,
-		Enum.Material.Neon,
+		cf * CFrame.new(0, 1.92, 0.35),
+		Vector3.new(1.88, 1.88, 1.88),
+		Color3.fromRGB(228, 246, 252),
+		Enum.Material.SmoothPlastic,
 		false,
-		0.02,
+		0,
 		false
 	)
+	pearl.Reflectance = 0.25
 	clam.PrimaryPart = pearl
-	-- Soft translucent aura shell around pearl
+	-- Inner subtle pearlescent glow core + soft thin aqua aura
 	makeEllipsoid(
 		clam,
-		"PearlHalo",
-		cf * CFrame.new(0, 1.95, 0.35),
-		Vector3.new(3.10, 3.10, 3.10),
-		PALETTE.CrystalCyan,
+		"PearlInnerGlow",
+		cf * CFrame.new(0, 1.92, 0.35),
+		Vector3.new(1.96, 1.96, 1.96),
+		PALETTE.PearlGlow,
 		Enum.Material.Neon,
 		false,
 		0.72,
 		false
 	)
+	makeEllipsoid(
+		clam,
+		"PearlHalo",
+		cf * CFrame.new(0, 1.92, 0.35),
+		Vector3.new(2.45, 2.45, 2.45),
+		PALETTE.CrystalCyan,
+		Enum.Material.Neon,
+		false,
+		0.88,
+		false
+	)
 
 	local pearlLight = Instance.new("PointLight")
 	pearlLight.Color = PALETTE.CrystalCore
-	pearlLight.Brightness = 1.25
-	pearlLight.Range = 13
+	pearlLight.Brightness = 0.95
+	pearlLight.Range = 11
 	pearlLight.Parent = pearl
 
 	return clam
@@ -3675,7 +3764,7 @@ local function buildInstinctPond(root: Model, origin: Vector3, rng: Random): Mod
 	local pond = makeModel(root, "InstinctPond")
 	local center = origin + Vector3.new(INSTINCT_CENTER.X, 0, INSTINCT_CENTER.Y)
 
-	-- 5-layer deep violet -> royal purple -> indigo -> teal -> luminous turquoise core gradient floor!
+	-- 7-layer dreamy nebula gradient: deep violet -> royal purple -> magenta-indigo -> ocean blue -> soft turquoise glow!
 	local outerFloor = makeEllipsoid(
 		pond,
 		"PondFloorOuter",
@@ -3692,45 +3781,67 @@ local function buildInstinctPond(root: Model, origin: Vector3, rng: Random): Mod
 	makeEllipsoid(
 		pond,
 		"PondFloorViolet",
-		CFrame.new(center + Vector3.new(0, -1.58, 0)),
-		Vector3.new(INSTINCT_RX * 1.88, 0.42, INSTINCT_RZ * 1.88),
+		CFrame.new(center + Vector3.new(0, -1.62, 0)),
+		Vector3.new(INSTINCT_RX * 1.90, 0.42, INSTINCT_RZ * 1.90),
 		PALETTE.InstinctOuter,
 		Enum.Material.Neon,
 		false,
-		0.46,
+		0.50,
 		false
 	)
 	makeEllipsoid(
 		pond,
 		"PondFloorIndigo",
-		CFrame.new(center + Vector3.new(0.4, -1.40, -0.3)),
-		Vector3.new(INSTINCT_RX * 1.46, 0.34, INSTINCT_RZ * 1.46),
+		CFrame.new(center + Vector3.new(0.4, -1.46, -0.3)),
+		Vector3.new(INSTINCT_RX * 1.62, 0.36, INSTINCT_RZ * 1.62),
 		PALETTE.InstinctMid,
 		Enum.Material.SmoothPlastic,
 		false,
-		0.16,
+		0.32,
+		false
+	)
+	makeEllipsoid(
+		pond,
+		"PondFloorBlueViolet",
+		CFrame.new(center + Vector3.new(0.8, -1.32, -0.5)),
+		Vector3.new(INSTINCT_RX * 1.32, 0.30, INSTINCT_RZ * 1.32),
+		Color3.fromRGB(72, 118, 224),
+		Enum.Material.SmoothPlastic,
+		false,
+		0.36,
 		false
 	)
 	makeEllipsoid(
 		pond,
 		"PondFloorTeal",
-		CFrame.new(center + Vector3.new(0.8, -1.22, -0.5)),
-		Vector3.new(INSTINCT_RX * 1.12, 0.28, INSTINCT_RZ * 1.12),
+		CFrame.new(center + Vector3.new(1.0, -1.18, -0.6)),
+		Vector3.new(INSTINCT_RX * 1.04, 0.26, INSTINCT_RZ * 1.04),
 		PALETTE.InstinctTeal,
 		Enum.Material.SmoothPlastic,
 		false,
-		0.18,
+		0.40,
 		false
 	)
 	local coreGlow = makeEllipsoid(
 		pond,
 		"PondFloorTurquoise",
-		CFrame.new(center + Vector3.new(1.0, -1.04, -0.6)),
-		Vector3.new(INSTINCT_RX * 0.78, 0.24, INSTINCT_RZ * 0.78),
+		CFrame.new(center + Vector3.new(1.1, -1.04, -0.6)),
+		Vector3.new(INSTINCT_RX * 0.72, 0.22, INSTINCT_RZ * 0.72),
 		PALETTE.InstinctCore,
 		Enum.Material.Neon,
 		false,
-		0.16,
+		0.44,
+		false
+	)
+	makeEllipsoid(
+		pond,
+		"PondFloorCyanHeart",
+		CFrame.new(center + Vector3.new(1.1, -0.96, -0.6)),
+		Vector3.new(INSTINCT_RX * 0.42, 0.18, INSTINCT_RZ * 0.42),
+		PALETTE.CrystalCyan,
+		Enum.Material.Neon,
+		false,
+		0.48,
 		false
 	)
 
@@ -4082,15 +4193,15 @@ end
 local function buildThatchedHut(parent: Instance, hutCf: CFrame, rng: Random): Model
 	local hut = makeModel(parent, "ThatchedHut")
 
-	-- 4 dark timber corner stilts
+	-- 4 dark timber corner stilts (tucked cleanly under the thatched roof eaves — never poking through!)
 	for sx = -1, 1, 2 do
 		for sz = -1, 1, 2 do
 			makeCylinderY(
 				hut,
 				"HutPost_" .. sx .. "_" .. sz,
-				hutCf * CFrame.new(sx * 3.1, 3.8, sz * 2.5),
+				hutCf * CFrame.new(sx * 3.1, 3.0, sz * 2.5),
 				0.64,
-				7.6,
+				6.0,
 				PALETTE.WoodDark,
 				Enum.Material.Wood,
 				false,
@@ -4176,14 +4287,14 @@ local function buildThatchedHut(parent: Instance, hutCf: CFrame, rng: Random): M
 		)
 	end
 
-	-- Layered golden thatched gabled roof with fringed straw eaves
+	-- Layered golden thatched gabled roof with fringed straw eaves (warm golden straw Sand/Fabric, not green Grass!)
 	makeWedge(
 		hut,
 		"RoofSlopeFront",
 		hutCf * CFrame.new(0, 7.65, 1.85) * CFrame.Angles(0, math.rad(180), 0),
 		Vector3.new(8.2, 3.3, 3.9),
 		PALETTE.StrawMain,
-		Enum.Material.Grass,
+		Enum.Material.Sand,
 		false,
 		true
 	)
@@ -4193,7 +4304,7 @@ local function buildThatchedHut(parent: Instance, hutCf: CFrame, rng: Random): M
 		hutCf * CFrame.new(0, 7.65, -1.85),
 		Vector3.new(8.2, 3.3, 3.9),
 		PALETTE.StrawMain,
-		Enum.Material.Grass,
+		Enum.Material.Sand,
 		false,
 		true
 	)
@@ -4205,7 +4316,7 @@ local function buildThatchedHut(parent: Instance, hutCf: CFrame, rng: Random): M
 		0.72,
 		8.6,
 		PALETTE.StrawDark,
-		Enum.Material.Grass,
+		Enum.Material.Sand,
 		false,
 		0,
 		false
@@ -4226,7 +4337,7 @@ local function buildThatchedHut(parent: Instance, hutCf: CFrame, rng: Random): M
 					),
 				Vector3.new(0.88, rng:NextNumber(0.85, 1.25), 0.42),
 				if i % 2 == 0 then PALETTE.StrawLight else PALETTE.StrawDark,
-				Enum.Material.Grass,
+				Enum.Material.Sand,
 				false,
 				false
 			)
@@ -4301,10 +4412,14 @@ local function buildPinkCoralTree(parent: Instance, basePos: Vector3, rng: Rando
 		)
 	end
 
-	-- Recursive 3-tier organic branching Pink Coral Canopy (lush & feathery like reference!)
+	-- Recursive 3-tier organic branching Pink Coral Canopy (rich saturated coral-pink & full sculpted crown!)
 	local canopyOrigin = tPts[#tPts]
-	local coralShades =
-		{ PALETTE.CoralPink, PALETTE.CoralRose, PALETTE.CoralPeach, PALETTE.ShellPink }
+	local coralShades = {
+		PALETTE.CoralPink,
+		Color3.fromRGB(240, 88, 134),
+		PALETTE.CoralRose,
+		Color3.fromRGB(246, 126, 152),
+	}
 
 	local function growBranch(
 		startPos: Vector3,
@@ -4332,8 +4447,8 @@ local function buildPinkCoralTree(parent: Instance, basePos: Vector3, rng: Rando
 			tree,
 			"CoralNode_" .. tag,
 			CFrame.new(endPos),
-			Vector3.new(thick * 1.18, thick * 1.18, thick * 1.18),
-			col:Lerp(PALETTE.ShellPink, 0.25),
+			Vector3.new(thick * 1.22, thick * 1.22, thick * 1.22),
+			col:Lerp(PALETTE.CoralRose, 0.20),
 			Enum.Material.SmoothPlastic,
 			false,
 			0,
@@ -4343,21 +4458,21 @@ local function buildPinkCoralTree(parent: Instance, basePos: Vector3, rng: Rando
 		if depth < 3 then
 			local children = if depth == 1 then 3 else 2
 			for c = 1, children do
-				local spreadYaw = ((c - (children + 1) * 0.5) * 1.05) + rng:NextNumber(-0.35, 0.35)
-				local lift = rng:NextNumber(0.52, 0.95)
+				local spreadYaw = ((c - (children + 1) * 0.5) * 1.15) + rng:NextNumber(-0.32, 0.32)
+				local lift = rng:NextNumber(0.45, 0.92)
 				local baseHoriz = Vector3.new(dir.X, 0, dir.Z)
 				if baseHoriz.Magnitude < 0.08 then
 					baseHoriz = Vector3.new(math.cos(c * 2.1), 0, math.sin(c * 2.1))
 				end
 				local rotated = (
-					CFrame.Angles(0, spreadYaw, 0):VectorToWorldSpace(baseHoriz.Unit) * 0.85
+					CFrame.Angles(0, spreadYaw, 0):VectorToWorldSpace(baseHoriz.Unit) * 0.92
 					+ Vector3.new(0, lift, 0)
 				).Unit
 				growBranch(
 					endPos,
 					rotated,
-					len * rng:NextNumber(0.62, 0.78),
-					thick * 0.66,
+					len * rng:NextNumber(0.65, 0.80),
+					thick * 0.68,
 					depth + 1,
 					tag .. "_" .. c
 				)
@@ -4365,12 +4480,13 @@ local function buildPinkCoralTree(parent: Instance, basePos: Vector3, rng: Rando
 		end
 	end
 
-	-- 6 primary coral boughs radiating from the top of the trunk
-	for b = 1, 6 do
-		local a = (b / 6) * math.pi * 2 + 0.25
-		local bDir =
-			Vector3.new(math.cos(a) * 0.82, rng:NextNumber(0.68, 1.05), math.sin(a) * 0.82).Unit
-		growBranch(canopyOrigin, bDir, rng:NextNumber(3.4, 4.4), 1.12, 1, tostring(b))
+	-- 8 primary coral boughs radiating smoothly for a full, iconic branching coral tree silhouette!
+	for b = 1, 8 do
+		local a = (b / 8) * math.pi * 2 + 0.15
+		local horiz = if b % 2 == 0 then 0.95 else 0.68
+		local lift = if b % 2 == 0 then rng:NextNumber(0.55, 0.85) else rng:NextNumber(0.85, 1.20)
+		local bDir = Vector3.new(math.cos(a) * horiz, lift, math.sin(a) * horiz).Unit
+		growBranch(canopyOrigin, bDir, rng:NextNumber(3.3, 4.4), 1.18, 1, tostring(b))
 	end
 
 	-- Falling pink petals + golden fireflies around the coral tree

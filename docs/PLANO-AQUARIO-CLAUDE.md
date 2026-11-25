@@ -19,6 +19,17 @@ Entregar a economia que sustenta o ciclo **pescar → expor → receber moedas �
 3. Definir taxa por espécie, incluindo evento e Natal. Começar nas faixas do plano principal. Fatores iniciais de teste: Base ×1,00, Gigante ×1,30, Dourada ×1,60 e combinação ×1,90.
 4. Publicar exemplos de perfil novo e migrado, captura, montagem, prévia e rejeição. O cliente precisa saber se os campos estão ausentes porque o perfil ainda carrega ou porque o recurso está desligado. Confirmar IDs de níveis e vagas com Antigravity.
 
+### Contrato mínimo para integrar o primeiro tanque
+
+| Etapa | O que o Claude entrega ao Codex |
+|---|---|
+| Carregar | Exemplos de perfil ainda carregando, perfil com o recurso desligado, veterano migrado e tanque ativo. No tanque ativo, incluir nível, versão da montagem, vagas, quantidade disponível por variante, saldo, taxas e sinergias. Informar a unidade de cada valor monetário. |
+| Capturar | Manter os campos atuais de `FishingUpdate`. Na captura confirmada, fornecer a identificação da variante, a descoberta de espécie e de variante quando aplicável, o prêmio imediato e a taxa potencial. No sinal anterior à captura, liberar somente a raridade necessária à encenação. |
+| Comparar | A prévia usa a montagem do servidor e traz ocupante, candidato, taxa efetiva anterior e nova, total anterior e novo, sinergias que entram ou saem e versão usada. Incluir caso com vaga vazia e caso com perda de sinergia. |
+| Confirmar | Colocar, trocar, retirar, comprar e resgatar retornam o resultado da ação. Documentar como identificar a solicitação, qual estado prevalece se o snapshot e a resposta chegarem fora de ordem e os motivos de rejeição que a UI precisa mostrar. |
+
+Publicar o contrato implementado na seção 4 da [Coordenação](COORDENACAO.md). No primeiro lote, fechar o caminho da primeira captura até a primeira exposição com o tutorial atual. O Claude decide checkpoints, persistência e regras de reentrada. O Codex encaixa os avisos, o card e o atalho visual ao aquário.
+
 ## S1 — Perfil, renda e troca
 
 - Separar histórico da Coleção de quantidades por espécie e combinação de variante. Preservar saldo, recordes e progressão. Decidir com João como mapear Cintilantes antigas. Peso recorde pode mostrar um recorde histórico, mas é insuficiente para reconstruir quantidade de Gigantes ou combinações. Marcar versão da migração e verificar que uma segunda execução resulta no mesmo estado.

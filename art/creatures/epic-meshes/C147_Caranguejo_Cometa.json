@@ -1,0 +1,19 @@
+{
+  "id": "C147_Caranguejo_Cometa",
+  "parts": {
+    "Body": 356,
+    "Head": 100,
+    "Legs": 608,
+    "Claws": 792,
+    "Shell": 384,
+    "Tail": 164,
+    "Extra_1": 366,
+    "Extra_2": 608,
+    "Extra_3": 128
+  },
+  "total": 3506,
+  "neon": [
+    "Extra_1"
+  ],
+  "size_studs": 3.14
+}
