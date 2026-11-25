@@ -468,6 +468,14 @@ function Ambient.start()
 		local island = Workspace:FindFirstChild("Island")
 		local campfire = island and island:FindFirstChild("Campfire")
 		local emberPart = campfire and campfire:FindFirstChild("Embers")
+		-- Hub V2 builds the fire as loose parts; its flame carries the light.
+		local flame = if emberPart
+			then nil
+			else island and island:FindFirstChild("CampfireFlame", true)
+		if flame and flame:IsA("BasePart") then
+			emberPart = flame
+			campfireCenter = flame.Position - Vector3.new(0, 1.1, 0)
+		end
 		local pl = emberPart and emberPart:FindFirstChildOfClass("PointLight")
 		if pl then
 			campfireLight = pl

@@ -63,9 +63,19 @@ local function rootOf(player: Player): (Model?, BasePart?, Humanoid?)
 end
 
 local function resolveMainSpawn(): CFrame
-	local island = Workspace:FindFirstChild("Island")
-	local plaza = island and island:FindFirstChild("CentralPlaza")
-	local spawnPart = plaza and plaza:FindFirstChild("PlayerSpawn")
+	-- The hub tags its plaza spawn "PlayerSpawn"; fall back to the old hub layout.
+	local spawnPart: Instance? = nil
+	for _, tagged in CollectionService:GetTagged("PlayerSpawn") do
+		if tagged:IsA("BasePart") and tagged:IsDescendantOf(Workspace) then
+			spawnPart = tagged
+			break
+		end
+	end
+	if not spawnPart then
+		local island = Workspace:FindFirstChild("Island")
+		local plaza = island and island:FindFirstChild("CentralPlaza")
+		spawnPart = plaza and plaza:FindFirstChild("PlayerSpawn")
+	end
 	if spawnPart and spawnPart:IsA("BasePart") then
 		local pos = spawnPart.Position
 		-- Face north (-Z) toward the central plaza & Workshop.
@@ -96,7 +106,7 @@ local function resolveDestination(destination: string): CFrame?
 	local probeXZ = chosen.Position + offset
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = candidates
+	params.FilterDescendantsInstances = candidates :: { any }
 	local hit = Workspace:Raycast(
 		Vector3.new(probeXZ.X, chosen.Position.Y + 6, probeXZ.Z),
 		Vector3.new(0, -24, 0),
