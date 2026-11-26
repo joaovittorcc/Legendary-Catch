@@ -35,14 +35,14 @@ function Reel.run(
 		area,
 		"ReelDock",
 		UDim2.new(0, 124, 0.50, 0),
-		UDim2.fromScale(0.76, 0.48),
+		UDim2.fromScale(0.76, 0.66),
 		Theme.ink,
 		1
 	)
 	dock.AnchorPoint = Vector2.new(0.5, 0.5)
 	local cap = Instance.new("UISizeConstraint")
-	cap.MinSize = Vector2.new(124, 116)
-	cap.MaxSize = Vector2.new(124, 370)
+	cap.MinSize = Vector2.new(124, 150)
+	cap.MaxSize = Vector2.new(124, 520)
 	cap.Parent = dock
 	local rail =
 		Ui.frame(dock, "Bar", UDim2.new(0, 56, 1, -10), UDim2.fromOffset(2, 5), Theme.outline)

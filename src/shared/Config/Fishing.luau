@@ -18,7 +18,9 @@ Fishing.MIN_FIGHT_SECONDS = {
 	rhythm = 1.5,
 } :: { [string]: number }
 
-Fishing.MINIGAMES = { "reel", "precision", "rhythm" }
+-- Only the side-bar reel is rolled (decision 2026-11-25). "precision" and "rhythm" stay
+-- playable through DevForceMinigame; add them back here to bring them to players again.
+Fishing.MINIGAMES = { "reel" }
 
 -- Shiny ("Cintilante") variant: rare sparkly version of any creature, worth more.
 Fishing.SHINY_CHANCE = 1 / 40
