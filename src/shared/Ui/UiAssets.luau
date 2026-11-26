@@ -6,7 +6,7 @@
 
 	How to activate uploaded images:
 	- Upload the PNGs from art/ui-generated/ in Roblox Studio / Creator Dashboard.
-	- Replace each "" marked with "-- TROCAR:" by its "rbxassetid://<id>".
+	- Uploaded 2026-11-25: each entry notes the source PNG; re-upload and swap the id to change art.
 	- Until replaced, every Panel.*, Art.*, and control renders its glossy 3D cartoon Luau
 	  fallback automatically with zero errors or missing-image warnings.
 ]]
@@ -204,7 +204,7 @@ UiAssets.BUTTONS = {
 } :: { [string]: ButtonPalette }
 
 -- ============================================================================
--- UPLOADED / PLACEHOLDER ASSET IDS (replace "" with "rbxassetid://<id>")
+-- UPLOADED ASSET IDS (an empty "" falls back to the drawn Luau art)
 -- ============================================================================
 
 local PANEL_BODY_SLICE = Rect.new(128, 128, 384, 384)
@@ -239,100 +239,100 @@ end
 
 -- A.1 — Panel Bodies & Headers
 UiAssets.panelBodies = {
-	cyan = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_cyan.png
-	orange = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_orange.png
-	lime = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_lime.png
-	gold = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_gold.png
-	purple = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_purple.png
-	pink = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_pink.png
-	steel = sliceSpec("", PANEL_BODY_SLICE, 0.52), -- TROCAR: art/ui-generated/panel_body_steel.png
+	cyan = sliceSpec("rbxassetid://114641663334792", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_cyan.png
+	orange = sliceSpec("rbxassetid://129047226061752", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_orange.png
+	lime = sliceSpec("rbxassetid://70587724234846", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_lime.png
+	gold = sliceSpec("rbxassetid://116175927552327", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_gold.png
+	purple = sliceSpec("rbxassetid://100676369008372", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_purple.png
+	pink = sliceSpec("rbxassetid://136839910760749", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_pink.png
+	steel = sliceSpec("rbxassetid://128168361720209", PANEL_BODY_SLICE, 0.34), -- art/ui-generated/panel_body_steel.png
 } :: { [string]: SliceSpec }
 
 UiAssets.panelHeaders = {
-	cyan = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_cyan.png
-	orange = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_orange.png
-	lime = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_lime.png
-	gold = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_gold.png
-	purple = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_purple.png
-	pink = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_pink.png
-	steel = sliceSpec("", PANEL_HEADER_SLICE, 0.54), -- TROCAR: art/ui-generated/panel_header_steel.png
+	cyan = sliceSpec("rbxassetid://132377480208126", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_cyan.png
+	orange = sliceSpec("rbxassetid://111205726417021", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_orange.png
+	lime = sliceSpec("rbxassetid://78837329016613", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_lime.png
+	gold = sliceSpec("rbxassetid://77404958556043", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_gold.png
+	purple = sliceSpec("rbxassetid://101177018100736", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_purple.png
+	pink = sliceSpec("rbxassetid://114212612989955", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_pink.png
+	steel = sliceSpec("rbxassetid://96072460067085", PANEL_HEADER_SLICE, 0.42), -- art/ui-generated/panel_header_steel.png
 } :: { [string]: SliceSpec }
 
 -- A.2 — Plump 9-Slice Buttons (normal / pressed / disabled)
 UiAssets.buttons = {
-	green_normal = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_green_normal.png
-	green_pressed = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_green_pressed.png
-	green_disabled = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_green_disabled.png
-	blue_normal = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_blue_normal.png
-	blue_pressed = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_blue_pressed.png
-	blue_disabled = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_blue_disabled.png
-	orange_normal = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_orange_normal.png
-	orange_pressed = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_orange_pressed.png
-	orange_disabled = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_orange_disabled.png
-	pink_normal = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_pink_normal.png
-	pink_pressed = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_pink_pressed.png
-	pink_disabled = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_pink_disabled.png
-	red_normal = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_red_normal.png
-	red_pressed = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_red_pressed.png
-	red_disabled = sliceSpec("", BUTTON_SLICE, 0.52), -- TROCAR: art/ui-generated/btn_red_disabled.png
+	green_normal = sliceSpec("rbxassetid://100825507065343", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_green_normal.png
+	green_pressed = sliceSpec("rbxassetid://73335273890732", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_green_pressed.png
+	green_disabled = sliceSpec("rbxassetid://90975455436322", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_green_disabled.png
+	blue_normal = sliceSpec("rbxassetid://123471305726307", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_blue_normal.png
+	blue_pressed = sliceSpec("rbxassetid://77831083468574", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_blue_pressed.png
+	blue_disabled = sliceSpec("rbxassetid://114618171976181", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_blue_disabled.png
+	orange_normal = sliceSpec("rbxassetid://88050746915934", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_orange_normal.png
+	orange_pressed = sliceSpec("rbxassetid://90703077125468", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_orange_pressed.png
+	orange_disabled = sliceSpec("rbxassetid://85033617211002", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_orange_disabled.png
+	pink_normal = sliceSpec("rbxassetid://109365644068439", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_pink_normal.png
+	pink_pressed = sliceSpec("rbxassetid://81312874436352", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_pink_pressed.png
+	pink_disabled = sliceSpec("rbxassetid://74762584500500", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_pink_disabled.png
+	red_normal = sliceSpec("rbxassetid://99987388704229", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_red_normal.png
+	red_pressed = sliceSpec("rbxassetid://82444618775489", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_red_pressed.png
+	red_disabled = sliceSpec("rbxassetid://91243223046643", BUTTON_SLICE, 0.36), -- art/ui-generated/btn_red_disabled.png
 } :: { [string]: SliceSpec }
 
 -- A.3 — Controls & Components
 UiAssets.controls = {
-	closeX = fitSpec(""), -- TROCAR: art/ui-generated/btn_close_x.png
-	closeXPressed = fitSpec(""), -- TROCAR: art/ui-generated/btn_close_x_pressed.png
-	tabActive = sliceSpec("", TAB_SLICE, 0.52), -- TROCAR: art/ui-generated/tab_active.png
-	tabInactive = sliceSpec("", TAB_SLICE, 0.52), -- TROCAR: art/ui-generated/tab_inactive.png
-	cardNormal = sliceSpec("", CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_normal.png
-	cardSelected = sliceSpec("", CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_selected.png
-	cardLocked = sliceSpec("", CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_locked.png
-	progressTrack = sliceSpec("", PROGRESS_TRACK_SLICE, 0.58), -- TROCAR: art/ui-generated/progress_track.png
-	progressFillLime = sliceSpec("", PROGRESS_FILL_SLICE, 0.58), -- TROCAR: art/ui-generated/progress_fill.png
-	progressFillGold = sliceSpec("", PROGRESS_FILL_SLICE, 0.58), -- TROCAR: art/ui-generated/progress_fill_gold.png
-	progressFillCyan = sliceSpec("", PROGRESS_FILL_SLICE, 0.58), -- TROCAR: art/ui-generated/progress_fill_cyan.png
-	toggleOn = sliceSpec("", TOGGLE_SLICE, 0.52), -- TROCAR: art/ui-generated/toggle_on.png
-	toggleOff = sliceSpec("", TOGGLE_SLICE, 0.52), -- TROCAR: art/ui-generated/toggle_off.png
-	toggleThumb = fitSpec(""), -- TROCAR: art/ui-generated/toggle_thumb.png
-	sliderTrack = sliceSpec("", SLIDER_TRACK_SLICE, 0.60), -- TROCAR: art/ui-generated/slider_track.png
-	sliderFill = sliceSpec("", SLIDER_FILL_SLICE, 0.60), -- TROCAR: art/ui-generated/slider_fill.png
-	sliderThumb = fitSpec(""), -- TROCAR: art/ui-generated/slider_thumb.png
-	badgeDot = fitSpec(""), -- TROCAR: art/ui-generated/badge_dot.png
+	closeX = fitSpec("rbxassetid://80805256297866"), -- art/ui-generated/btn_close_x.png
+	closeXPressed = fitSpec("rbxassetid://118053011647351"), -- art/ui-generated/btn_close_x_pressed.png
+	tabActive = sliceSpec("rbxassetid://97690070534166", TAB_SLICE, 0.52), -- art/ui-generated/tab_active.png
+	tabInactive = sliceSpec("rbxassetid://88458911982480", TAB_SLICE, 0.52), -- art/ui-generated/tab_inactive.png
+	cardNormal = sliceSpec("rbxassetid://81504339340093", CARD_SLICE, 0.3), -- art/ui-generated/card_normal.png
+	cardSelected = sliceSpec("rbxassetid://100172648517334", CARD_SLICE, 0.3), -- art/ui-generated/card_selected.png
+	cardLocked = sliceSpec("rbxassetid://91035373498444", CARD_SLICE, 0.3), -- art/ui-generated/card_locked.png
+	progressTrack = sliceSpec("rbxassetid://76761912027017", PROGRESS_TRACK_SLICE, 0.24), -- art/ui-generated/progress_track.png
+	progressFillLime = sliceSpec("rbxassetid://108295112670004", PROGRESS_FILL_SLICE, 0.24), -- art/ui-generated/progress_fill.png
+	progressFillGold = sliceSpec("rbxassetid://118775279424211", PROGRESS_FILL_SLICE, 0.24), -- art/ui-generated/progress_fill_gold.png
+	progressFillCyan = sliceSpec("rbxassetid://134032089416626", PROGRESS_FILL_SLICE, 0.24), -- art/ui-generated/progress_fill_cyan.png
+	toggleOn = sliceSpec("rbxassetid://92864858107872", TOGGLE_SLICE, 0.52), -- art/ui-generated/toggle_on.png
+	toggleOff = sliceSpec("rbxassetid://112838929397457", TOGGLE_SLICE, 0.52), -- art/ui-generated/toggle_off.png
+	toggleThumb = fitSpec("rbxassetid://133947810168631"), -- art/ui-generated/toggle_thumb.png
+	sliderTrack = sliceSpec("rbxassetid://139173064178781", SLIDER_TRACK_SLICE, 0.60), -- art/ui-generated/slider_track.png
+	sliderFill = sliceSpec("rbxassetid://131517534422423", SLIDER_FILL_SLICE, 0.60), -- art/ui-generated/slider_fill.png
+	sliderThumb = fitSpec("rbxassetid://71764900152476"), -- art/ui-generated/slider_thumb.png
+	badgeDot = fitSpec("rbxassetid://75805975401627"), -- art/ui-generated/badge_dot.png
 } :: { [string]: SliceSpec }
 
 -- A.5 — Rarity Creature Card Frames
 UiAssets.rarityCards = {
-	Common = sliceSpec("", RARITY_CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_rarity_common.png
-	Uncommon = sliceSpec("", RARITY_CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_rarity_uncommon.png
-	Rare = sliceSpec("", RARITY_CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_rarity_rare.png
-	Epic = sliceSpec("", RARITY_CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_rarity_epic.png
-	Legendary = sliceSpec("", RARITY_CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_rarity_legendary.png
-	Mystic = sliceSpec("", RARITY_CARD_SLICE, 0.48), -- TROCAR: art/ui-generated/card_rarity_mythic.png
+	Common = sliceSpec("rbxassetid://71731122924712", RARITY_CARD_SLICE, 0.48), -- art/ui-generated/card_rarity_common.png
+	Uncommon = sliceSpec("rbxassetid://93095200202262", RARITY_CARD_SLICE, 0.48), -- art/ui-generated/card_rarity_uncommon.png
+	Rare = sliceSpec("rbxassetid://76070411099501", RARITY_CARD_SLICE, 0.48), -- art/ui-generated/card_rarity_rare.png
+	Epic = sliceSpec("rbxassetid://138579123847833", RARITY_CARD_SLICE, 0.48), -- art/ui-generated/card_rarity_epic.png
+	Legendary = sliceSpec("rbxassetid://72861312287558", RARITY_CARD_SLICE, 0.48), -- art/ui-generated/card_rarity_legendary.png
+	Mystic = sliceSpec("rbxassetid://70872650348019", RARITY_CARD_SLICE, 0.48), -- art/ui-generated/card_rarity_mythic.png
 } :: { [string]: SliceSpec }
 
 -- A.4 — Cartoon 3D Icons (already-uploaded menu icons from art/hud-v2 can serve as fallback too)
 UiAssets.icons = {
-	aquarium = "", -- TROCAR: art/ui-generated/icon_aquarium.png
-	arrow_right = "", -- TROCAR: art/ui-generated/icon_arrow_right.png
-	book = "", -- TROCAR: art/ui-generated/icon_book.png
-	check = "", -- TROCAR: art/ui-generated/icon_check.png
-	chest = "", -- TROCAR: art/ui-generated/icon_chest.png
-	clock = "", -- TROCAR: art/ui-generated/icon_clock.png
-	coin = "", -- TROCAR: art/ui-generated/icon_coin.png
-	crown = "", -- TROCAR: art/ui-generated/icon_crown.png
-	fish = "", -- TROCAR: art/ui-generated/icon_fish.png
-	gear = "", -- TROCAR: art/ui-generated/icon_gear.png
-	gem = "", -- TROCAR: art/ui-generated/icon_gem.png
-	gift = "", -- TROCAR: art/ui-generated/icon_gift.png
-	lock = "", -- TROCAR: art/ui-generated/icon_lock.png
-	reduce_effects = "", -- TROCAR: art/ui-generated/icon_reduce_effects.png
-	rod = "", -- TROCAR: art/ui-generated/icon_rod.png
-	sound_off = "", -- TROCAR: art/ui-generated/icon_sound_off.png
-	sound_on = "", -- TROCAR: art/ui-generated/icon_sound_on.png
-	sparkle = "", -- TROCAR: art/ui-generated/icon_sparkle.png
-	star = "", -- TROCAR: art/ui-generated/icon_star.png
-	trophy = "", -- TROCAR: art/ui-generated/icon_trophy.png
-	wheel = "", -- TROCAR: art/ui-generated/icon_wheel.png
-	xp = "", -- TROCAR: art/ui-generated/icon_xp.png
+	aquarium = "rbxassetid://86737706560212", -- art/ui-generated/icon_aquarium.png
+	arrow_right = "rbxassetid://72353695529298", -- art/ui-generated/icon_arrow_right.png
+	book = "rbxassetid://79648730819802", -- art/ui-generated/icon_book.png
+	check = "rbxassetid://117772942508530", -- art/ui-generated/icon_check.png
+	chest = "rbxassetid://83854424490059", -- art/ui-generated/icon_chest.png
+	clock = "rbxassetid://125529200434416", -- art/ui-generated/icon_clock.png
+	coin = "rbxassetid://139452881800915", -- art/ui-generated/icon_coin.png
+	crown = "rbxassetid://78128772787891", -- art/ui-generated/icon_crown.png
+	fish = "rbxassetid://72313867723637", -- art/ui-generated/icon_fish.png
+	gear = "rbxassetid://108466297432437", -- art/ui-generated/icon_gear.png
+	gem = "rbxassetid://87469097303098", -- art/ui-generated/icon_gem.png
+	gift = "rbxassetid://94248858736872", -- art/ui-generated/icon_gift.png
+	lock = "rbxassetid://87240931742291", -- art/ui-generated/icon_lock.png
+	reduce_effects = "rbxassetid://102366851378730", -- art/ui-generated/icon_reduce_effects.png
+	rod = "rbxassetid://75297200015382", -- art/ui-generated/icon_rod.png
+	sound_off = "rbxassetid://124359994219347", -- art/ui-generated/icon_sound_off.png
+	sound_on = "rbxassetid://106012829859873", -- art/ui-generated/icon_sound_on.png
+	sparkle = "rbxassetid://136231561802133", -- art/ui-generated/icon_sparkle.png
+	star = "rbxassetid://106356186985410", -- art/ui-generated/icon_star.png
+	trophy = "rbxassetid://83489552816898", -- art/ui-generated/icon_trophy.png
+	wheel = "rbxassetid://115983767998971", -- art/ui-generated/icon_wheel.png
+	xp = "rbxassetid://132514227846886", -- art/ui-generated/icon_xp.png
 } :: { [string]: string }
 
 -- Existing already-uploaded Roblox menu icons (art/hud-v2/ASSET_IDS.md) so panels get real art immediately!

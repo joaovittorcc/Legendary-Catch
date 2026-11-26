@@ -467,7 +467,10 @@ function Panel.progressBar(parent: Instance, fillVariant: string?, height: numbe
 	trackArt.Size = UDim2.fromScale(1, 1)
 	trackArt.BackgroundTransparency = 1
 	trackArt.ZIndex = 1
-	local hasTrackArt = UiAssets.applySpec(trackArt, UiAssets.controls.progressTrack)
+	-- The bar art has thick transparent margins: below 24 px it collapses and the fill
+	-- disappears, so thin bars keep the drawn version.
+	local useArt = barH >= 24
+	local hasTrackArt = useArt and UiAssets.applySpec(trackArt, UiAssets.controls.progressTrack)
 	trackArt.Parent = track
 
 	if hasTrackArt then
@@ -508,7 +511,7 @@ function Panel.progressBar(parent: Instance, fillVariant: string?, height: numbe
 	fillArt.Size = UDim2.fromScale(1, 1)
 	fillArt.BackgroundTransparency = 1
 	fillArt.ZIndex = 2
-	local hasFillArt = UiAssets.applySpec(fillArt, fillSpec)
+	local hasFillArt = useArt and UiAssets.applySpec(fillArt, fillSpec)
 	fillArt.Parent = fill
 
 	if hasFillArt then
@@ -1239,8 +1242,19 @@ function Panel.create(
 		tab.Position = UDim2.new(if compact then 0.27 elseif narrow then 0.44 else 0.5, 0, 0, 6)
 		local sidePad = if compact then 12 elseif narrow then 14 else 22
 		local topPad = if compact then 34 else 56
+		local bottomPad = if compact then 10 else 14
+		if hasBodyArt then
+			-- The art's frame is about 83 source pixels thick: thin it on compact screens and
+			-- keep the content clear of it on every side.
+			local frameScale = if compact then 0.24 else 0.34
+			bodyArt.SliceScale = frameScale
+			local frame = math.ceil(83 * frameScale) + 4
+			local innerInset = inner.Position.X.Offset
+			sidePad = math.max(sidePad, frame - innerInset)
+			bottomPad = math.max(bottomPad, frame - innerInset)
+		end
 		scroll.Position = UDim2.fromOffset(sidePad, topPad)
-		scroll.Size = UDim2.new(1, -(sidePad * 2), 1, -topPad - (if compact then 10 else 14))
+		scroll.Size = UDim2.new(1, -(sidePad * 2), 1, -topPad - bottomPad)
 	end
 
 	local resizeConn = gui:GetPropertyChangedSignal("AbsoluteSize"):Connect(fit)
