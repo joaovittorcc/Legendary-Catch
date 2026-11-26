@@ -44,7 +44,8 @@ local function onInspect(player: Player, userId: unknown)
 	local species = 0
 	local shinies = 0
 
-	for creatureId, entry in profile.collection or {} do
+	local collection: { [string]: any } = profile.collection or {}
+	for creatureId, entry in collection do
 		if Creatures.get(creatureId) and typeof(entry) == "table" then
 			species += 1
 			table.insert(discovered, creatureId)

@@ -26,7 +26,8 @@ local lastRedeem: { [Player]: number } = {}
 
 local function metrics(profile: PlayerData.Profile): { [string]: number }
 	local species, mystic = 0, 0
-	for id in profile.collection or {} do
+	local collection: { [string]: any } = profile.collection or {}
+	for id in collection do
 		species += 1
 		local creature = Creatures.get(id)
 		if creature and creature.rarity == "Mystic" then
@@ -34,7 +35,8 @@ local function metrics(profile: PlayerData.Profile): { [string]: number }
 		end
 	end
 	local training = 0
-	for _, t in profile.training or {} do
+	local trainingStats: { [string]: any } = profile.training or {}
+	for _, t in trainingStats do
 		training = math.max(training, t.level or 0)
 	end
 	local stats = profile.stats

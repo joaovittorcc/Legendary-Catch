@@ -332,7 +332,7 @@ function Juice.start()
 		scale.Parent = coin
 		coin.Visible = false
 		coin.Parent = gui
-		table.insert(coinPool, {
+		local flight: CoinFlight = {
 			image = coin,
 			scale = scale,
 			startPos = Vector2.zero,
@@ -342,9 +342,10 @@ function Juice.start()
 			startedAt = 0,
 			duration = 0.55,
 			index = 1,
-			target = coin,
+			target = coin :: GuiObject,
 			active = false,
-		})
+		}
+		table.insert(coinPool, flight)
 	end
 	player:GetAttributeChangedSignal("ReduceEffects"):Connect(function()
 		if Ui.reduced() then

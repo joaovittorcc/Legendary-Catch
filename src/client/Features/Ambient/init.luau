@@ -44,7 +44,7 @@ type SeaJumper = {
 }
 
 type ShoalMember = {
-	part: BasePart,
+	part: Part,
 	offsetAngle: number,
 	radial: number,
 	depth: number,
@@ -52,7 +52,7 @@ type ShoalMember = {
 }
 
 type PilingRipple = {
-	ring: BasePart,
+	ring: Part,
 	pos: Vector3,
 	phase: number,
 	period: number,
@@ -60,7 +60,7 @@ type PilingRipple = {
 }
 
 type Firefly = {
-	part: BasePart,
+	part: Part,
 	anchor: Vector3,
 	rx: number,
 	ry: number,
@@ -82,7 +82,7 @@ type CrystalPartTarget = {
 }
 
 type EmberMote = {
-	part: BasePart,
+	part: Part,
 	phase: number,
 	speed: number,
 	driftX: number,

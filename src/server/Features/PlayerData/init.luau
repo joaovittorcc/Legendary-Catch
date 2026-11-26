@@ -399,7 +399,9 @@ function PlayerData.update(player: Player, mutate: (Profile) -> ()): boolean
 		return false
 	end
 	local draft = deepClone(profile) :: Profile
-	local ok, err = pcall(mutate, draft)
+	local ok, err = pcall(function()
+		mutate(draft)
+	end)
 	if not ok then
 		warn(`[PlayerData] update failed for {player.Name}: {err}`)
 		return false
