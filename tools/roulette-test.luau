@@ -81,6 +81,49 @@ local ok, err = pcall(function()
 	assert(R.combinedOdds(3900, 31.6) > 1000000, "legendary + big combo passes 1 in a million")
 	assert(R.combinedOdds(0, 10) == 0, "no base odds, no result")
 	table.insert(report, "combo 3.9k -> " .. R.combinedOdds(3900, 31.6))
+
+	-- exact outcome odds: every reachable result sums to 1
+	local sizes: { [number]: boolean } = { [1] = true }
+	for _ = 1, R.MAX_MAIN do
+		local nextSizes: { [number]: boolean } = {}
+		for s in sizes do
+			nextSizes[s] = true
+			for _, e in R.SIZE do
+				nextSizes[s * e.mult] = true
+			end
+			for _, e in R.WORSE do
+				nextSizes[s * e.mult] = true
+			end
+		end
+		sizes = nextSizes
+	end
+	local exactSum = 0
+	local seen: { [string]: boolean } = {}
+	for s in sizes do
+		for i = 0, #R.MUTATIONS do
+			local m = if i == 0 then nil else R.MUTATIONS[i].id
+			local key = string.format("%.6f|%s", s, m or "")
+			if not seen[key] then
+				seen[key] = true
+				exactSum += R.exactProbability(s, m)
+			end
+		end
+	end
+	assert(math.abs(exactSum - 1) < 1e-9, "exact outcomes sum to 1, got " .. exactSum)
+	assert(R.exactProbability(1, nil) > 0.4, "plain result is the common one")
+	assert(R.exactOdds(50, 1, nil, nil) == 50, "plain catch keeps creature odds")
+	assert(R.exactOdds(50, 0.8, nil, nil) == 50, "shrunk catch keeps creature odds")
+	assert(R.exactOdds(50, 1, nil, 1 / 40) == 2000, "shiny x40")
+	local star = R.exactOdds(50, 10, "rainbow", 1 / 40)
+	assert(star > R.exactOdds(50, 10, "rainbow", nil), "shiny makes it rarer")
+	assert(R.exactOdds(50, 10, nil, nil) > 50, "growth makes it rarer")
+	table.insert(report, "star x10 rainbow shiny -> 1 in " .. star)
+	table.insert(report, "star x10 -> 1 in " .. R.exactOdds(50, 10, nil, nil))
+	table.insert(report, "star neon -> 1 in " .. R.exactOdds(50, 1, "neon", nil))
+	table.insert(
+		report,
+		"legend 3.9k x100 cosmic -> 1 in " .. R.exactOdds(3900, 100, "cosmic", nil)
+	)
 end)
 
 return if ok then "ALL OK | " .. table.concat(report, " | ") else "FAIL: " .. tostring(err)

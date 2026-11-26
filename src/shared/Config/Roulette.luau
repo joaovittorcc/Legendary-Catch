@@ -267,6 +267,105 @@ function Roulette.combinedOdds(baseOdds: number, coinMult: number): number
 	return math.max(1, math.floor(baseOdds / Roulette.tailProbability(coinMult) + 0.5))
 end
 
+-- Exact distribution of the FINAL result (size multiplier + best mutation) over the whole
+-- chain, summing every path that ends there (e.g. size then mutation, or mutation then size).
+-- Keyed by `outcomeKey`. Built once and cached.
+local exactTable: { [string]: number }? = nil
+
+local function outcomeKey(size: number, mutation: string?): string
+	return string.format("%.6f|%s", size, mutation or "")
+end
+
+local function buildExact(): { [string]: number }
+	local out: { [string]: number } = {}
+	local function walk(mains: number, size: number, rank: number, prob: number)
+		local total = 0
+		for _, e in Roulette.MAIN do
+			total += mainWeight(e, mains)
+		end
+		for _, e in Roulette.MAIN do
+			local w = mainWeight(e, mains)
+			if w <= 0 then
+				continue
+			end
+			local pe = prob * w / total
+			if e.id == "nothing" then
+				local key = outcomeKey(size, if rank > 0 then Roulette.MUTATIONS[rank].id else nil)
+				out[key] = (out[key] or 0) + pe
+			elseif e.id == "again" then
+				walk(mains + 1, size, rank, pe)
+			else
+				local list: { Entry } = if e.id == "size"
+					then Roulette.SIZE
+					elseif e.id == "worse" then Roulette.WORSE
+					else Roulette.MUTATIONS
+				local sub = 0
+				for _, x in list do
+					sub += x.weight
+				end
+				for i, x in list do
+					local px = pe * x.weight / sub
+					local nextSize, nextRank = size, rank
+					if e.id == "mutation" then
+						nextRank = math.max(rank, i)
+					else
+						nextSize = size * x.mult
+					end
+					if mains >= Roulette.MAX_MAIN then
+						local key = outcomeKey(
+							nextSize,
+							if nextRank > 0 then Roulette.MUTATIONS[nextRank].id else nil
+						)
+						out[key] = (out[key] or 0) + px
+					else
+						walk(mains + 1, nextSize, nextRank, px)
+					end
+				end
+			end
+		end
+	end
+	walk(1, 1, 0, 1)
+	return out
+end
+
+-- Real probability that a catch's roulette ends with exactly this size multiplier and this
+-- mutation (0 if the chain can never produce it).
+function Roulette.exactProbability(sizeMult: number, mutation: string?): number
+	local t = exactTable
+	if not t then
+		t = buildExact()
+		exactTable = t
+	end
+	return (t :: { [string]: number })[outcomeKey(sizeMult, mutation)] or 0
+end
+
+-- Real "1 in N" of THIS exact catch: the creature (`baseOdds`, already "1 in N"), times the
+-- exact roulette result when it brought a bonus (any growth or any mutation), times the shiny
+-- roll when the catch is shiny (`shinyChance` = chance of a shiny). A plain or shrunk catch
+-- keeps the creature odds, so a common result never looks rarer than the creature itself.
+function Roulette.exactOdds(
+	baseOdds: number,
+	sizeMult: number?,
+	mutation: string?,
+	shinyChance: number?
+): number
+	if baseOdds <= 0 then
+		return 0
+	end
+	local p = 1 / baseOdds
+	local size = sizeMult or 1
+	if size > 1.000001 or mutation ~= nil then
+		local q = Roulette.exactProbability(size, mutation)
+		if q > 0 then
+			p *= q
+		end
+	end
+	if shinyChance and shinyChance > 0 then
+		p *= shinyChance
+	end
+	return math.max(1, math.floor(1 / p + 0.5))
+end
+
 -- The table of a wheel name (for the UI to draw the cards).
 function Roulette.wheel(name: string): { Entry }
 	if name == "size" then

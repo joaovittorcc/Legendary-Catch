@@ -682,10 +682,15 @@ local function payCatch(
 		comboMilestone = if not isAuto and COMBO_MILESTONES[combo] then combo else nil,
 		eventId = if event then event.id else nil,
 		auto = if isAuto then true else nil,
-		-- "1 in N" of the creature together with the roulette bonus (see Roulette.combinedOdds);
-		-- oddsBase is the creature alone.
+		-- Real "1 in N" of this exact catch: creature x exact roulette result (size + mutation)
+		-- x shiny (see Roulette.exactOdds); oddsBase is the creature alone.
 		odds = if odds and odds > 0
-			then (if roulette then RouletteConfig.combinedOdds(odds, roulette.coinMult) else odds)
+			then RouletteConfig.exactOdds(
+				odds,
+				if roulette then roulette.sizeMult else nil,
+				if roulette then roulette.mutation else nil,
+				if shiny then FishingConfig.SHINY_CHANCE else nil
+			)
 			else nil,
 		oddsBase = if odds and odds > 0 then odds else nil,
 		spins = if roulette then roulette.spins else nil,
