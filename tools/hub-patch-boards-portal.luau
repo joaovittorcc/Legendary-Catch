@@ -16,8 +16,8 @@ local report = {}
 -- 1. Scoreboards ---------------------------------------------------------------------------
 local S = 1.3
 local GAP = 22
-local CENTER = Vector3.new(-78, 40, 31)
-local FACE = Vector3.new(-10, 40, 36)
+local CENTER = Vector3.new(-78, 48, 31) -- high enough to clear the lagoon palm
+local FACE = Vector3.new(-10, 48, 36)
 local SCREENS =
 	{ "LeaderboardScreen_Catches", "LeaderboardScreen_Species", "LeaderboardScreen_Level" }
 local SCALED = {
@@ -120,12 +120,18 @@ else
 			removed += 1
 		end
 	end
-	-- Its sign (high above) and progress star (on the base front) were built next to it.
+	-- Its sign (main part + "Trim" frame pieces, high above) and progress star (base front).
+	-- Neighbour signs start about 6.6 studs away, so signs use a tighter radius than the star.
 	for _, d in (sanctuary :: Instance):GetChildren() do
-		if d:IsA("BasePart") or d:IsA("Model") then
-			local pos = if d:IsA("Model") then d:GetPivot().Position else (d :: BasePart).Position
-			local flat = Vector3.new(pos.X - base.Position.X, 0, pos.Z - base.Position.Z).Magnitude
-			if (d.Name == "TrainingSign" or d.Name == "ProgressStar") and flat < 7 then
+		if d:IsA("BasePart") then
+			local flat = Vector3.new(
+				d.Position.X - base.Position.X,
+				0,
+				d.Position.Z - base.Position.Z
+			).Magnitude
+			local isSign = string.sub(d.Name, 1, 12) == "TrainingSign" and flat < 5.6
+			local isStar = d.Name == "ProgressStar" and flat < 5
+			if isSign or isStar then
 				d:Destroy()
 				removed += 1
 			end

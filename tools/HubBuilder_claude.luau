@@ -8823,8 +8823,8 @@ end
 
 -- Scoreboards side by side (decision 2026-11-25): one row facing the plaza, centred here,
 -- each board BOARD_SCALE times the original 14 x 9 and BOARD_GAP studs apart centre to centre.
-local LEADERBOARD_CENTER = Vector3.new(-78, 40, 31)
-local LEADERBOARD_FACE = Vector3.new(-10, 40, 36)
+local LEADERBOARD_CENTER = Vector3.new(-78, 48, 31) -- clears the lagoon palm
+local LEADERBOARD_FACE = Vector3.new(-10, 48, 36)
 local BOARD_SCALE = 1.3
 local BOARD_GAP = 22
 
@@ -9412,8 +9412,8 @@ function Builder.selfTest(origin: Vector3?, modelName: string?): { string }
 		)
 	end
 	for _, b in boards do
-		if (b.Position - R(-70, 36, 27)).Magnitude > 25 then
-			fail("LeaderboardBoard too far from (-70, 36, 27)")
+		if (b.Position - (O + LEADERBOARD_CENTER)).Magnitude > BOARD_GAP + 2 then
+			fail("LeaderboardBoard too far from its row centre")
 		end
 	end
 
