@@ -343,6 +343,16 @@ function Line.feedback(success: boolean, perfect: boolean?)
 	end
 	line.pulseAt = os.clock()
 	line.pulse = if perfect then 1 elseif success then 0.62 else -0.72
+	-- World echo of the UI feedback at the bobber: the water answers every hit and slip.
+	local at = Vector3.new(line.bobber.Position.X, line.rest.Y, line.bobber.Position.Z)
+	if perfect then
+		Effects.ripple(at, Color3.fromRGB(255, 214, 110), 3.2, 0.5)
+		Effects.splash(at, Color3.fromRGB(255, 236, 170), 6)
+	elseif success then
+		Effects.ripple(at, line.fightColor:Lerp(Color3.new(1, 1, 1), 0.35), 2.2, 0.4, true)
+	else
+		Effects.splash(at, Color3.fromRGB(220, 236, 248), 4)
+	end
 end
 
 function Line.reelIn(self: Line, duration: number)
