@@ -14,6 +14,7 @@ local Hud = require(script.Parent:WaitForChild("Hud"))
 local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Assets = require(script.Parent.Hud:WaitForChild("Assets"))
 local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
+local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
 local Juice = require(script.Parent:WaitForChild("Juice"))
 local Tutorial = require(script.Parent:WaitForChild("Tutorial"))
 
@@ -73,14 +74,8 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
 	panel.Position = UDim2.fromScale(0.5, 0.5)
 	panel.Size = UDim2.new(0.92, 0, 0, height)
-	panel.BackgroundColor3 = Theme.gold
-	panel.BorderSizePixel = 0
 	panel.ZIndex = 22
-	Theme.corner(panel, 24)
-	local outline = Instance.new("UIStroke")
-	outline.Color = Theme.outline
-	outline.Thickness = 5
-	outline.Parent = panel
+	Art.panel(panel, Theme.gold, "gold")
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(290, 210)
 	bounds.MaxSize = Vector2.new(620, 340)
@@ -88,12 +83,11 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 
 	local cream = Instance.new("Frame")
 	cream.Name = "Cream"
-	cream.Position = UDim2.fromOffset(7, 7)
-	cream.Size = UDim2.new(1, -14, 1, -14)
-	cream.BackgroundColor3 = Theme.cream
+	cream.Position = UDim2.fromOffset(12, 12)
+	cream.Size = UDim2.new(1, -24, 1, -24)
+	cream.BackgroundTransparency = 1
 	cream.BorderSizePixel = 0
 	cream.ZIndex = 23
-	Theme.corner(cream, 18)
 	cream.Parent = panel
 
 	local titleText = if streak == 1 and (gift.days or 1) == 1
@@ -245,22 +239,12 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 		yCursor += 42
 	end
 
-	local okBtn = Instance.new("TextButton")
+	local okBtn = Panel.button(cream, Text.streak.collectOk, Color3.fromRGB(46, 212, 58))
 	okBtn.Name = "CollectClose"
 	okBtn.AnchorPoint = Vector2.new(0.5, 1)
-	okBtn.Position = UDim2.new(0.5, 0, 1, -10)
-	okBtn.Size = UDim2.new(0.46, 0, 0, 44)
-	okBtn.Text = Text.streak.collectOk
-	okBtn.Font = Theme.font
-	okBtn.TextSize = 18
-	okBtn.TextColor3 = Theme.sand
-	okBtn.TextStrokeColor3 = Theme.outline
-	okBtn.TextStrokeTransparency = 0.06
-	okBtn.AutoButtonColor = false
+	okBtn.Position = UDim2.new(0.5, 0, 1, -6)
+	okBtn.Size = UDim2.new(0.46, 0, 0, 46)
 	okBtn.ZIndex = 25
-	Theme.surface(okBtn, Theme.crystal, 14)
-	Motion.mount(okBtn)
-	okBtn.Parent = cream
 
 	panel.Parent = gui
 	if not reduced then

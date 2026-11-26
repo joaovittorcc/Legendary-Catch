@@ -6,6 +6,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 local Panel = require(script.Parent.Parent.Hud:WaitForChild("Panel"))
 local CreatureMotion = require(script.Parent.Parent:WaitForChild("CreatureMotion"))
 local Framing = require(script.Parent:WaitForChild("RevealFraming"))
@@ -114,15 +115,69 @@ function RevealCard.open(
 ): Card
 	local card = Instance.new("CanvasGroup")
 	card.Name = "RevealCard"
-	card.BackgroundColor3 = Theme.cream
+	card.BackgroundColor3 = Color3.new(1, 1, 1)
 	card.BorderSizePixel = 0
 	card.AnchorPoint = Vector2.new(0, 0.5)
-	Theme.corner(card, 17)
-	local outline = Instance.new("UIStroke")
+	Theme.corner(card, 22)
+
 	local rank = math.max(1, Theme.rarityRank(rarity))
-	outline.Color = if rank >= 4 then Theme.outline:Lerp(color, 0.45) else Theme.outline
-	outline.Thickness = if rank >= 5 then 3.5 else 3
-	outline.Parent = card
+	-- Native 9-slice rarity card frame (A.5: Common -> Mythic) with glossy 3D candy fallback!
+	local rarityFrameArt = Instance.new("ImageLabel")
+	rarityFrameArt.Name = "RarityCardArt"
+	rarityFrameArt.Size = UDim2.fromScale(1, 1)
+	rarityFrameArt.BackgroundTransparency = 1
+	rarityFrameArt.ZIndex = 0
+	local hasRarityArt = UiAssets.applySpec(rarityFrameArt, UiAssets.rarityCards[rarity])
+	rarityFrameArt.Parent = card
+
+	if hasRarityArt then
+		card.BackgroundTransparency = 1
+	else
+		local outerGrad = Instance.new("UIGradient")
+		outerGrad.Rotation = 90
+		if rank >= 6 then
+			Theme.iridescent(card)
+		else
+			outerGrad.Color = ColorSequence.new({
+				ColorSequenceKeypoint.new(0, color:Lerp(Color3.new(1, 1, 1), 0.35)),
+				ColorSequenceKeypoint.new(0.5, color),
+				ColorSequenceKeypoint.new(1, color:Lerp(UiAssets.OUTLINE, 0.32)),
+			})
+			outerGrad.Parent = card
+		end
+		local outline = Instance.new("UIStroke")
+		outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+		outline.Color = UiAssets.OUTLINE
+		outline.Thickness = if rank >= 5 then 5 elseif rank >= 3 then 4 else 3.5
+		outline.Parent = card
+
+		local innerTrim = Instance.new("Frame")
+		innerTrim.Name = "RarityInnerTrim"
+		innerTrim.Position = UDim2.fromOffset(6, 6)
+		innerTrim.Size = UDim2.new(1, -12, 1, -12)
+		innerTrim.BackgroundColor3 = if rank >= 3 then UiAssets.GOLD_MID else UiAssets.CREAM_CARD
+		innerTrim.BorderSizePixel = 0
+		innerTrim.ZIndex = 0
+		Theme.corner(innerTrim, 17)
+		if rank >= 3 then
+			local gg = Instance.new("UIGradient")
+			gg.Rotation = 90
+			gg.Color = ColorSequence.new(UiAssets.GOLD_TOP, UiAssets.GOLD_BOT)
+			gg.Parent = innerTrim
+		end
+		innerTrim.Parent = card
+
+		local innerField = Instance.new("Frame")
+		innerField.Name = "RarityField"
+		local pad = if rank >= 3 then 9 else 7
+		innerField.Position = UDim2.fromOffset(pad, pad)
+		innerField.Size = UDim2.new(1, -(pad * 2), 1, -(pad * 2))
+		innerField.BackgroundColor3 = UiAssets.CREAM_CARD
+		innerField.BorderSizePixel = 0
+		innerField.ZIndex = 0
+		Theme.corner(innerField, 14)
+		innerField.Parent = card
+	end
 
 	local preview = Instance.new("ViewportFrame")
 	preview.Name = "CreaturePreview"

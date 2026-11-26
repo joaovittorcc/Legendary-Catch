@@ -4,6 +4,7 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Net = require(Shared:WaitForChild("Net"))
 local Types = require(Shared:WaitForChild("Types"))
@@ -15,7 +16,7 @@ local Settings = {}
 local player = Players.LocalPlayer
 
 function Settings.start()
-	local settingsAccent = Color3.fromRGB(174, 116, 239)
+	local settingsAccent = Panel.themeColor("Settings")
 	local _, body = Panel.create("Settings", Text.settings, settingsAccent, 0.85, 490)
 	Panel.stack(body)
 	local topGap = Instance.new("Frame")
@@ -51,18 +52,11 @@ function Settings.start()
 	end
 
 	local function volume(name: string, group: SoundGroup)
-		local row = Instance.new("Frame")
-		row.Size = UDim2.new(1, 0, 0, 76)
-		row.BackgroundColor3 = Theme.cream
-		row.BorderSizePixel = 0
-		Theme.corner(row, 12)
-		local rowStroke = Instance.new("UIStroke")
-		rowStroke.Color = settingsAccent
-		rowStroke.Thickness = 2
-		rowStroke.Parent = row
+		local row = Panel.card(body, settingsAccent, 80)
 		local label = Panel.label(row, "", 16)
 		label.Size = UDim2.new(1, -24, 0, 28)
-		label.Position = UDim2.fromOffset(12, 0)
+		label.Position = UDim2.fromOffset(12, 2)
+		label.TextStrokeTransparency = 1
 		local function refresh()
 			label.Text = string.format("%s  ·  %d%%", name, math.round(group.Volume * 100))
 		end
@@ -70,39 +64,97 @@ function Settings.start()
 		refresh()
 		local hitArea = Instance.new("Frame")
 		hitArea.Name = "VolumeHitArea"
-		hitArea.Position = UDim2.fromOffset(12, 29)
-		hitArea.Size = UDim2.new(1, -24, 0, 44)
+		hitArea.Position = UDim2.fromOffset(16, 30)
+		hitArea.Size = UDim2.new(1, -32, 0, 44)
 		hitArea.BackgroundTransparency = 1
 		hitArea.Active = true
 		hitArea.Parent = row
+
 		local track = Instance.new("Frame")
 		track.Name = "VolumeTrack"
 		track.AnchorPoint = Vector2.new(0, 0.5)
 		track.Position = UDim2.fromScale(0, 0.5)
-		track.Size = UDim2.new(1, 0, 0, 16)
-		track.BackgroundColor3 = Color3.fromRGB(223, 207, 189)
+		track.Size = UDim2.new(1, 0, 0, 18)
+		track.BackgroundColor3 = Color3.fromRGB(46, 28, 86)
 		track.BorderSizePixel = 0
 		track.Active = true
-		Theme.corner(track, 8)
+		Theme.corner(track, 9)
+		local trackArt = Instance.new("ImageLabel")
+		trackArt.Name = "SliderTrackArt"
+		trackArt.Size = UDim2.fromScale(1, 1)
+		trackArt.BackgroundTransparency = 1
+		trackArt.ZIndex = 1
+		if UiAssets.applySpec(trackArt, UiAssets.controls.sliderTrack) then
+			track.BackgroundTransparency = 1
+		else
+			local ts = Instance.new("UIStroke")
+			ts.Color = UiAssets.OUTLINE
+			ts.Thickness = 3
+			ts.Parent = track
+		end
+		trackArt.Parent = track
+
 		local fill = Instance.new("Frame")
 		fill.Name = "Fill"
-		fill.Size = UDim2.fromScale(group.Volume, 1)
-		fill.BackgroundColor3 = settingsAccent
+		fill.Position = UDim2.fromOffset(2, 2)
+		fill.Size = UDim2.new(group.Volume, -4, 1, -4)
+		fill.BackgroundColor3 = Color3.fromRGB(20, 186, 255)
 		fill.BorderSizePixel = 0
-		Theme.corner(fill, 8)
+		fill.ZIndex = 2
+		Theme.corner(fill, 7)
+		local fillArt = Instance.new("ImageLabel")
+		fillArt.Name = "SliderFillArt"
+		fillArt.Size = UDim2.fromScale(1, 1)
+		fillArt.BackgroundTransparency = 1
+		fillArt.ZIndex = 2
+		if UiAssets.applySpec(fillArt, UiAssets.controls.sliderFill) then
+			fill.BackgroundTransparency = 1
+		else
+			local fg = Instance.new("UIGradient")
+			fg.Rotation = 90
+			fg.Color = ColorSequence.new(Color3.fromRGB(125, 251, 255), Color3.fromRGB(0, 108, 230))
+			fg.Parent = fill
+		end
+		fillArt.Parent = fill
 		fill.Parent = track
+
 		local knob = Instance.new("Frame")
 		knob.Name = "Knob"
 		knob.AnchorPoint = Vector2.new(0.5, 0.5)
 		knob.Position = UDim2.fromScale(group.Volume, 0.5)
-		knob.Size = UDim2.fromOffset(32, 32)
-		knob.BackgroundColor3 = Color3.new(1, 1, 1)
+		knob.Size = UDim2.fromOffset(34, 34)
+		knob.BackgroundColor3 = UiAssets.GOLD_MID
 		knob.BorderSizePixel = 0
-		Theme.corner(knob, 16)
-		local knobStroke = Instance.new("UIStroke")
-		knobStroke.Color = Theme.outline
-		knobStroke.Thickness = 3
-		knobStroke.Parent = knob
+		knob.ZIndex = 4
+		Theme.corner(knob, 17)
+		local knobArt = Instance.new("ImageLabel")
+		knobArt.Name = "SliderThumbArt"
+		knobArt.Size = UDim2.fromScale(1, 1)
+		knobArt.BackgroundTransparency = 1
+		knobArt.ZIndex = 5
+		if UiAssets.applySpec(knobArt, UiAssets.controls.sliderThumb) then
+			knob.BackgroundTransparency = 1
+		else
+			local knobStroke = Instance.new("UIStroke")
+			knobStroke.Color = UiAssets.OUTLINE
+			knobStroke.Thickness = 3.5
+			knobStroke.Parent = knob
+			local gem = Instance.new("Frame")
+			gem.Name = "GemCenter"
+			gem.AnchorPoint = Vector2.new(0.5, 0.5)
+			gem.Position = UDim2.fromScale(0.5, 0.5)
+			gem.Size = UDim2.fromOffset(18, 18)
+			gem.BackgroundColor3 = Color3.fromRGB(38, 212, 255)
+			gem.BorderSizePixel = 0
+			gem.ZIndex = 5
+			Theme.corner(gem, 9)
+			local gs = Instance.new("UIStroke")
+			gs.Color = UiAssets.OUTLINE
+			gs.Thickness = 2
+			gs.Parent = gem
+			gem.Parent = knob
+		end
+		knobArt.Parent = knob
 		knob.Parent = track
 		track.Parent = hitArea
 		local dragging = false
@@ -111,7 +163,7 @@ function Settings.start()
 			local value =
 				math.clamp((x - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
 			group.Volume = math.round(value * 20) / 20
-			fill.Size = UDim2.fromScale(group.Volume, 1)
+			fill.Size = UDim2.new(group.Volume, -4, 1, -4)
 			knob.Position = UDim2.fromScale(group.Volume, 0.5)
 			changed()
 		end
@@ -161,35 +213,32 @@ function Settings.start()
 	end
 	volume(Text.music, music)
 	volume(Text.effects, effects)
-	local reduced = Panel.button(body, "", settingsAccent)
-	reduced.Size = UDim2.new(1, 0, 0, 52)
-	local function setToggleColor()
-		local active = player:GetAttribute("ReduceEffects") == true
-		local tint = if active then Color3.fromRGB(88, 193, 112) else Color3.fromRGB(173, 163, 174)
-		Panel.tintButton(reduced, tint)
+	local reducedRow = Panel.card(body, settingsAccent, 60)
+	reducedRow.Name = "ReduceEffectsRow"
+	local reducedLabel = Panel.label(reducedRow, Text.reduced, 17, Theme.ink)
+	reducedLabel.Position = UDim2.fromOffset(14, 0)
+	reducedLabel.Size = UDim2.new(1, -104, 1, 0)
+	reducedLabel.TextXAlignment = Enum.TextXAlignment.Left
+	reducedLabel.TextStrokeTransparency = 1
+	local toggleBtn, setToggle = Panel.toggle(
+		reducedRow,
+		player:GetAttribute("ReduceEffects") == true,
+		function(nextVal: boolean)
+			player:SetAttribute("ReduceEffects", nextVal)
+			changed()
+		end
+	)
+	toggleBtn.AnchorPoint = Vector2.new(1, 0.5)
+	toggleBtn.Position = UDim2.new(1, -12, 0.5, 0)
+	local function refreshReduced()
+		setToggle(player:GetAttribute("ReduceEffects") == true)
 	end
-	local function refresh()
-		reduced.Text = Text.reduced
-			.. "  ·  "
-			.. (
-				if player:GetAttribute("ReduceEffects") == true
-					then "●  " .. Text.on
-					else "○  " .. Text.off
-			)
-		setToggleColor()
-	end
-	player:GetAttributeChangedSignal("ReduceEffects"):Connect(refresh)
-	reduced.Activated:Connect(function()
-		player:SetAttribute("ReduceEffects", player:GetAttribute("ReduceEffects") ~= true)
-		changed()
-	end)
-	refresh()
+	player:GetAttributeChangedSignal("ReduceEffects"):Connect(refreshReduced)
+	refreshReduced()
 
-	local codes = Instance.new("Frame")
+	local codes = Panel.card(body, settingsAccent, 140)
 	codes.Name = "PromoCodes"
 	codes.LayoutOrder = 10
-	codes.Size = UDim2.new(1, 0, 0, 136)
-	Theme.surface(codes, settingsAccent, 12, Theme.sand)
 	local heading = Panel.label(codes, Text.codes.title, 16)
 	heading.Size = UDim2.new(1, 0, 0, 30)
 	heading.TextStrokeTransparency = 1

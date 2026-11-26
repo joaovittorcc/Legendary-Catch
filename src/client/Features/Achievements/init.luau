@@ -76,23 +76,21 @@ local function card(
 	order: number
 ): (number, boolean) -> ()
 	local copy = Text.achievements[achievement.id]
-	local frame = Instance.new("Frame")
+	local frame = Panel.card(grid, Theme.gold, 118)
 	frame.Name = achievement.id
 	frame.LayoutOrder = order
-	Theme.surface(frame, Theme.crystal, 14, Color3.fromRGB(252, 245, 228))
-	local stroke = frame:FindFirstChildOfClass("UIStroke")
 
 	local icon = Panel.label(frame, Icons[achievement.metric] or "🏅", 24)
 	icon.Name = "Icon"
 	icon.Position = UDim2.fromOffset(10, 10)
-	icon.Size = UDim2.fromOffset(40, 40)
+	icon.Size = UDim2.fromOffset(42, 42)
 	icon.BackgroundTransparency = 0
-	icon.BackgroundColor3 = Color3.fromRGB(216, 238, 252)
+	icon.BackgroundColor3 = Color3.fromRGB(224, 242, 255)
 	icon.TextStrokeTransparency = 1
-	Theme.corner(icon, 12)
+	Theme.corner(icon, 14)
 	local iconStroke = Instance.new("UIStroke")
 	iconStroke.Color = Theme.outline
-	iconStroke.Thickness = 1.5
+	iconStroke.Thickness = 2.5
 	iconStroke.Parent = icon
 
 	leftLabel(
@@ -117,7 +115,7 @@ local function card(
 		Color3.fromRGB(74, 44, 34),
 		14
 	)
-	local badge = leftLabel(frame, "Status", "", 15, 74, 22, 12, Theme.ink, 14)
+	local badge = leftLabel(frame, "Status", "", 15, 72, 22, 12, Theme.ink, 14)
 	badge.Size = UDim2.new(0.56, -12, 0, 22)
 	local reward = Panel.label(
 		frame,
@@ -126,41 +124,27 @@ local function card(
 		Color3.fromRGB(134, 66, 12)
 	)
 	reward.Name = "Reward"
-	reward.Position = UDim2.new(1, -94, 0, 74)
+	reward.Position = UDim2.new(1, -94, 0, 72)
 	reward.Size = UDim2.fromOffset(82, 22)
 	reward.TextXAlignment = Enum.TextXAlignment.Right
 	reward.TextStrokeTransparency = 1
 
-	local track = Instance.new("Frame")
+	local track, fill = Panel.progressBar(frame, "gold", 12)
 	track.Name = "Progress"
-	track.BackgroundColor3 = Color3.fromRGB(214, 200, 192)
-	track.BorderSizePixel = 0
-	track.Position = UDim2.fromOffset(12, 100)
-	track.Size = UDim2.new(1, -24, 0, 8)
-	Theme.corner(track, 4)
-	local fill = Instance.new("Frame")
-	fill.Name = "Fill"
-	fill.BorderSizePixel = 0
-	Theme.corner(fill, 4)
-	fill.Parent = track
-	track.Parent = frame
-	frame.Parent = grid
+	track.Position = UDim2.fromOffset(12, 96)
+	track.Size = UDim2.new(1, -24, 0, 12)
 
 	return function(value: number, unlocked: boolean)
 		local progress = if unlocked
 			then achievement.target
 			else math.min(value, achievement.target)
-		local color = if unlocked then Theme.gold else Theme.track
 		badge.Text = if unlocked
 			then "✓ " .. Text.achievementUi.unlocked
 			else string.format("%d / %d", progress, achievement.target)
 		badge.TextColor3 = if unlocked then Color3.fromRGB(18, 108, 62) else Theme.ink
-		icon.BackgroundColor3 = if unlocked then Theme.gold else Color3.fromRGB(216, 238, 252)
-		fill.BackgroundColor3 = color
+		icon.BackgroundColor3 = if unlocked then Theme.gold else Color3.fromRGB(224, 242, 255)
 		fill.Size = UDim2.fromScale(progress / achievement.target, 1)
-		if stroke then
-			stroke.Color = if unlocked then Theme.wood else Color3.fromRGB(174, 152, 144)
-		end
+		Panel.setCardState(frame, if unlocked then "selected" else "normal", Theme.gold)
 	end
 end
 

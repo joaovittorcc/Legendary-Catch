@@ -23,6 +23,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RouletteConfig = require(Shared:WaitForChild("Config"):WaitForChild("Roulette"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 
 local Roulette = {}
 
@@ -206,10 +207,23 @@ local function makeCard(parent: Instance, wheel: string, id: string, index: numb
 	c.CornerRadius = UDim.new(0.16, 0)
 	c.Parent = card
 	local s = Instance.new("UIStroke")
-	s.Color = WHITE
-	s.Thickness = 3
+	s.Color = UiAssets.OUTLINE
+	s.Thickness = 4
 	s.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	s.Parent = card
+	local glossTop = Instance.new("Frame")
+	glossTop.Name = "CandyDome"
+	glossTop.AnchorPoint = Vector2.new(0.5, 0)
+	glossTop.Position = UDim2.new(0.5, 0, 0, 4)
+	glossTop.Size = UDim2.fromScale(0.86, 0.28)
+	glossTop.BackgroundColor3 = WHITE
+	glossTop.BackgroundTransparency = 0.56
+	glossTop.BorderSizePixel = 0
+	glossTop.ZIndex = 5
+	local gc = Instance.new("UICorner")
+	gc.CornerRadius = UDim.new(0.45, 0)
+	gc.Parent = glossTop
+	glossTop.Parent = card
 	local g = Instance.new("UIGradient")
 	g.Rotation = 90
 	local spin: UIGradient? = nil
@@ -387,23 +401,31 @@ function Roulette.play(update: Update)
 	gg.Parent = glow
 	glow.Parent = screen
 
-	-- Reel frame: wood + gold rim + inner window.
+	-- Reel frame: plump 3D cartoon gold/plum candy frame + inner window.
 	local frame = Instance.new("Frame")
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	frame.Position = UDim2.fromScale(0.5, 0.48)
 	frame.Size = UDim2.fromScale(0.94, 0.27)
-	frame.BackgroundColor3 = Theme.wood
+	frame.BackgroundColor3 = Color3.new(1, 1, 1)
 	frame.BorderSizePixel = 0
 	frame.ZIndex = 3
 	local fc = Instance.new("UICorner")
-	fc.CornerRadius = UDim.new(0.14, 0)
+	fc.CornerRadius = UDim.new(0.18, 0)
 	fc.Parent = frame
+	local frameGrad = Instance.new("UIGradient")
+	frameGrad.Rotation = 90
+	frameGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, UiAssets.GOLD_TOP),
+		ColorSequenceKeypoint.new(0.45, UiAssets.GOLD_MID),
+		ColorSequenceKeypoint.new(1, UiAssets.GOLD_BOT),
+	})
+	frameGrad.Parent = frame
 	local rim = Instance.new("UIStroke")
-	rim.Color = Theme.gold
+	rim.Color = UiAssets.OUTLINE
 	rim.Thickness = 6
 	rim.Parent = frame
 	local rimGradient = Instance.new("UIGradient")
-	rimGradient.Color = ColorSequence.new(Theme.gold, Color3.fromRGB(255, 255, 210))
+	rimGradient.Color = ColorSequence.new(UiAssets.OUTLINE, Color3.fromRGB(84, 34, 130))
 	rimGradient.Parent = rim
 	local limit = Instance.new("UISizeConstraint")
 	limit.MaxSize = Vector2.new(840, 250)

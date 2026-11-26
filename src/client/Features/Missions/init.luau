@@ -31,7 +31,8 @@ end
 
 function Missions.start()
 	local remotes = ReplicatedStorage:WaitForChild(Net.FOLDER)
-	local gui, scroll = Panel.create("Missions", Text.missions.title, Theme.rose)
+	local missionAccent = Panel.themeColor("Missions")
+	local gui, scroll = Panel.create("Missions", Text.missions.title, missionAccent)
 	Panel.stack(scroll)
 	local clock = Panel.label(scroll, "", 15, Theme.wood)
 	clock.TextStrokeTransparency = 1
@@ -118,20 +119,20 @@ function Missions.start()
 		scroll.CanvasPosition = Vector2.zero
 		for index, mission in daily.list do
 			rowIds[index] = mission.id
-			local row = Panel.card(rows, Theme.rose, 100)
+			local row = Panel.card(rows, missionAccent, 104)
 			row.Name = "Challenge" .. index
 			row.LayoutOrder = index
 			local emblem = Instance.new("Frame")
 			emblem.Name = "MissionIcon"
 			emblem.AnchorPoint = Vector2.new(0, 0.5)
 			emblem.Position = UDim2.new(0, 10, 0.5, 0)
-			emblem.Size = UDim2.fromOffset(42, 42)
-			emblem.BackgroundColor3 = Color3.fromRGB(255, 225, 240)
+			emblem.Size = UDim2.fromOffset(44, 44)
+			emblem.BackgroundColor3 = Color3.fromRGB(224, 252, 206)
 			emblem.BorderSizePixel = 0
-			Theme.corner(emblem, 21)
+			Theme.corner(emblem, 22)
 			local emblemStroke = Instance.new("UIStroke")
-			emblemStroke.Color = Theme.rose
-			emblemStroke.Thickness = 2
+			emblemStroke.Color = Theme.outline
+			emblemStroke.Thickness = 2.5
 			emblemStroke.Parent = emblem
 			local icon = Panel.label(emblem, "🐟", 22, Theme.ink)
 			icon.Size = UDim2.fromScale(1, 1)
@@ -139,23 +140,16 @@ function Missions.start()
 			emblem.Parent = row
 			local outline = row:FindFirstChildWhichIsA("UIStroke")
 			local title = Panel.label(row, "", 15)
-			title.Size = UDim2.new(0.63, -62, 0.52, 0)
-			title.Position = UDim2.fromOffset(56, 0)
+			title.Size = UDim2.new(0.63, -64, 0.46, 0)
+			title.Position = UDim2.fromOffset(60, 4)
 			title.TextStrokeTransparency = 1
 			local status = Panel.label(row, "", 14, Theme.wood)
-			status.Size = UDim2.new(0.63, -62, 0.23, 0)
-			status.Position = UDim2.new(0, 56, 0.51, 0)
+			status.Size = UDim2.new(0.63, -64, 0.22, 0)
+			status.Position = UDim2.new(0, 60, 0.49, 0)
 			status.TextStrokeTransparency = 1
-			local bar = Instance.new("Frame")
-			bar.Size = UDim2.new(0.63, -62, 0.07, 0)
-			bar.Position = UDim2.new(0, 56, 0.8, 0)
-			bar.BackgroundColor3 = Color3.fromRGB(232, 219, 200)
-			Theme.corner(bar, 4)
-			local fill = Instance.new("Frame")
-			fill.BackgroundColor3 = Theme.rose
-			Theme.corner(fill, 4)
-			fill.Parent = bar
-			bar.Parent = row
+			local bar, fill = Panel.progressBar(row, "lime", 14)
+			bar.Size = UDim2.new(0.63, -64, 0, 14)
+			bar.Position = UDim2.new(0, 60, 0.76, 0)
 
 			local button = Panel.button(row, "", Theme.muted)
 			button.Name = "Claim"

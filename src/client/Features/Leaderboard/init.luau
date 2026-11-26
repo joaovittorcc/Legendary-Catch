@@ -115,7 +115,8 @@ function Leaderboard.start()
 	local inspectRemote = remotes:WaitForChild(Net.INSPECT_PLAYER) :: RemoteEvent
 	local inspectResultRemote = remotes:WaitForChild(Net.INSPECT_RESULT) :: RemoteEvent
 
-	local gui, scroll, heading = Panel.create("Leaderboard", Text.leaderboard.title, Theme.crystal)
+	local gui, scroll, heading =
+		Panel.create("Leaderboard", Text.leaderboard.title, Panel.themeColor("Leaderboard"))
 	local titleRibbon = gui:FindFirstChild("TitleRibbon", true)
 	local titleIconHolder = titleRibbon and titleRibbon:FindFirstChild("TitleIcon")
 	local titleIcon = titleIconHolder and titleIconHolder:FindFirstChildWhichIsA("TextLabel")

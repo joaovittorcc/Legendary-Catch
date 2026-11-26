@@ -19,6 +19,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local FishingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
@@ -125,7 +126,7 @@ local SKINS: { Skin } = {
 }
 local lastSkin = 0 -- per session: a new skin pops a "new bar" banner once
 
-local INK = Theme.ink
+local INK = UiAssets.OUTLINE
 local WHITE = Color3.new(1, 1, 1)
 
 local player = Players.LocalPlayer

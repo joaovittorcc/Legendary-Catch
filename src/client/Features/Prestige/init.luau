@@ -23,12 +23,12 @@ local function formatNumber(n: number): string
 	return s:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
 end
 
-local function makeBar(parent: Instance, order: number, accent: Color3): (TextLabel, Frame)
+local function makeBar(parent: Instance, order: number, variant: string): (TextLabel, Frame)
 	local wrap = Instance.new("Frame")
 	wrap.Name = "Requirement_" .. tostring(order)
 	wrap.LayoutOrder = order
 	wrap.BackgroundTransparency = 1
-	wrap.Size = UDim2.new(1, 0, 0, 42)
+	wrap.Size = UDim2.new(1, 0, 0, 44)
 	wrap.Parent = parent
 
 	local caption = Panel.label(wrap, "", 15, Theme.ink)
@@ -38,22 +38,10 @@ local function makeBar(parent: Instance, order: number, accent: Color3): (TextLa
 	caption.TextXAlignment = Enum.TextXAlignment.Left
 	caption.TextStrokeTransparency = 1
 
-	local track = Instance.new("Frame")
+	local track, fill = Panel.progressBar(wrap, variant, 14)
 	track.Name = "Track"
-	track.BackgroundColor3 = Color3.fromRGB(215, 204, 198)
-	track.BorderSizePixel = 0
 	track.Position = UDim2.fromOffset(0, 26)
-	track.Size = UDim2.new(1, 0, 0, 12)
-	Theme.corner(track, 6)
-
-	local fill = Instance.new("Frame")
-	fill.Name = "Fill"
-	fill.BackgroundColor3 = accent
-	fill.BorderSizePixel = 0
-	fill.Size = UDim2.fromScale(0, 1)
-	Theme.corner(fill, 6)
-	fill.Parent = track
-	track.Parent = wrap
+	track.Size = UDim2.new(1, 0, 0, 14)
 
 	return caption, fill
 end
@@ -94,12 +82,13 @@ local function cardLine(parent: Instance, order: number, size: number, color: Co
 end
 
 function Screen.start()
-	local gui, body = Panel.create("Prestige", Labels.prestigeUi.title, Theme.rose)
+	local prestigeAccent = Panel.themeColor("Prestige")
+	local gui, body = Panel.create("Prestige", Labels.prestigeUi.title, prestigeAccent)
 	Panel.stack(body)
 
 	-- 1. Hero & Bonuses Card
-	local heroCard = paddedCard(body, Theme.rose, 1, 0)
-	local levelLabel = cardLine(heroCard, 1, 22, Color3.fromRGB(154, 24, 92))
+	local heroCard = paddedCard(body, prestigeAccent, 1, 0)
+	local levelLabel = cardLine(heroCard, 1, 22, Color3.fromRGB(106, 26, 214))
 	local bonusTitle = cardLine(heroCard, 2, 15, Theme.wood)
 	bonusTitle.Text = Labels.prestigeUi.bonusesTitle
 	local coinsBonusLabel = cardLine(heroCard, 3, 16, Theme.ink)
@@ -129,8 +118,8 @@ function Screen.start()
 	local reqCard = paddedCard(body, Theme.crystal, 2, 0)
 	local reqTitle = cardLine(reqCard, 1, 17, Theme.ink)
 	reqTitle.Text = Labels.prestigeUi.reqTitle
-	local coinsCaption, coinsFill = makeBar(reqCard, 2, Theme.gold)
-	local speciesCaption, speciesFill = makeBar(reqCard, 3, Theme.crystal)
+	local coinsCaption, coinsFill = makeBar(reqCard, 2, "gold")
+	local speciesCaption, speciesFill = makeBar(reqCard, 3, "cyan")
 
 	-- 3. Reset vs Keep Card
 	local infoCard = paddedCard(body, Theme.gold, 3, 0)

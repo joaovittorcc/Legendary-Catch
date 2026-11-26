@@ -28,18 +28,22 @@ end
 
 function Candy.button(parent: Instance, caption: string, tone: Color3): TextButton
 	local button = Panel.button(parent, caption, tone)
-	glaze(button, tone)
-	button.TextColor3 = if darkText(tone) then Candy.ink else Candy.pearl
-	button.TextStrokeTransparency = 1
+	button.TextColor3 = Color3.fromRGB(255, 253, 240)
+	button.TextStrokeTransparency = 0.06
 	return button
 end
 
 function Candy.card(parent: Instance, tone: Color3, height: number): Frame
 	local card = Panel.card(parent, tone, height)
-	glaze(card, tone)
-	local stroke = card:FindFirstChildOfClass("UIStroke")
-	if stroke then
-		stroke.Color = tone:Lerp(Candy.ink, 0.50)
+	if tone ~= Candy.pearl then
+		local cardArt = card:FindFirstChild("CardArt")
+		if not (cardArt and cardArt:IsA("ImageLabel") and cardArt.Visible) then
+			glaze(card, tone)
+		end
+		local stroke = card:FindFirstChildOfClass("UIStroke")
+		if stroke then
+			stroke.Color = tone:Lerp(Candy.ink, 0.50)
+		end
 	end
 	return card
 end
@@ -78,30 +82,15 @@ function Candy.row(parent: Instance, height: number, columns: number, gap: numbe
 end
 
 function Candy.styleShell(gui: ScreenGui, heading: TextLabel)
-	local ribbon = heading.Parent
 	local shell = gui:FindFirstChild("CandyPanel")
-	if not ribbon or not ribbon:IsA("Frame") or not shell or not shell:IsA("Frame") then
+	if not shell or not shell:IsA("Frame") then
 		return
 	end
-	glaze(shell, Candy.cyan)
-	glaze(ribbon, Candy.cobalt)
-	heading.TextStrokeTransparency = 1
 	local bounds = shell:FindFirstChildOfClass("UISizeConstraint")
 	if bounds then
 		bounds.MaxSize = Vector2.new(1000, bounds.MaxSize.Y)
 	end
-	local inner = shell:FindFirstChild("CreamInterior")
-	if inner and inner:IsA("Frame") then
-		inner.BackgroundColor3 = Candy.pearl
-		local border = Instance.new("UIStroke")
-		border.Color = Color3.fromRGB(115, 93, 222)
-		border.Thickness = 2
-		border.Parent = inner
-	end
-	local close = shell:FindFirstChild("CloseButton")
-	if close and close:IsA("TextButton") then
-		glaze(close, Candy.coral)
-	end
+	heading.TextStrokeTransparency = 0
 end
 
 return Candy

@@ -264,15 +264,9 @@ end
 
 function Shop.start()
 	Robux.start()
-	local gui, scroll, heading = Panel.create("Shop", Text.workshopTitle, CRYSTAL, 1, 650, true)
+	local shopAccent = Panel.themeColor("Shop")
+	local gui, scroll, heading = Panel.create("Shop", Text.workshopTitle, shopAccent, 1, 650, true)
 	local ribbon = heading.Parent
-	if ribbon and ribbon:IsA("Frame") then
-		ribbon.BackgroundColor3 = NAVY
-		local stroke = ribbon:FindFirstChildOfClass("UIStroke")
-		if stroke then
-			stroke.Color = Theme.gold
-		end
-	end
 	gui.ScreenInsets = Enum.ScreenInsets.CoreUISafeInsets
 	local body = frame(scroll, "Workshop")
 	body.Size = UDim2.fromScale(1, 0)
