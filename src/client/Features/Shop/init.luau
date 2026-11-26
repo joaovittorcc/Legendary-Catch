@@ -3,6 +3,7 @@ local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local RunService = game:GetService("RunService")
+local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
 local Text = require(Shared:WaitForChild("StringsUi"))
@@ -354,6 +355,62 @@ function Shop.start()
 		refreshDetails()
 	end
 
+	-- Roblox only drag-scrolls a ScrollingFrame by touch, so the mouse gets its own
+	-- click-and-drag and wheel here. A real drag must not also select the tile under it.
+	local catalogDragged = false
+	local dragStartX: number? = nil
+	local dragStartCanvas = 0
+	local function isOverCatalog(position: Vector3): boolean
+		local playerGui = Players.LocalPlayer:FindFirstChildOfClass("PlayerGui")
+		if not gui.Enabled or not playerGui then
+			return false
+		end
+		for _, object in playerGui:GetGuiObjectsAtPosition(position.X, position.Y) do
+			if object == catalog or object:IsDescendantOf(catalog) then
+				return true
+			end
+		end
+		return false
+	end
+	local function scrollCatalogTo(x: number)
+		local limit = math.max(0, catalog.AbsoluteCanvasSize.X - catalog.AbsoluteWindowSize.X)
+		catalog.CanvasPosition = Vector2.new(math.clamp(x, 0, limit), 0)
+	end
+	UserInputService.InputBegan:Connect(function(input: InputObject)
+		local kind = input.UserInputType
+		if kind ~= Enum.UserInputType.MouseButton1 and kind ~= Enum.UserInputType.Touch then
+			return
+		end
+		catalogDragged = false
+		if kind == Enum.UserInputType.MouseButton1 and isOverCatalog(input.Position) then
+			dragStartX = input.Position.X
+			dragStartCanvas = catalog.CanvasPosition.X
+		end
+	end)
+	UserInputService.InputChanged:Connect(function(input: InputObject)
+		if input.UserInputType == Enum.UserInputType.MouseMovement then
+			local startX = dragStartX
+			if startX then
+				local moved = input.Position.X - startX
+				if math.abs(moved) > 6 then
+					catalogDragged = true
+				end
+				if catalogDragged then
+					scrollCatalogTo(dragStartCanvas - moved)
+				end
+			end
+		elseif
+			input.UserInputType == Enum.UserInputType.MouseWheel and isOverCatalog(input.Position)
+		then
+			scrollCatalogTo(catalog.CanvasPosition.X - input.Position.Z * 90)
+		end
+	end)
+	UserInputService.InputEnded:Connect(function(input: InputObject)
+		if input.UserInputType == Enum.UserInputType.MouseButton1 then
+			dragStartX = nil
+		end
+	end)
+
 	for index, rod in Rods.LIST do
 		local tile = Instance.new("TextButton")
 		tile.Name = rod.id
@@ -367,7 +424,9 @@ function Shop.start()
 		local view = frame(tile, "Miniature")
 		view.Size = UDim2.new(1, -4, 1, -5)
 		tile.Activated:Connect(function()
-			selectRod(index)
+			if not catalogDragged then
+				selectRod(index)
+			end
 		end)
 		table.insert(slots, { holder = view, rod = rod })
 		tile.Parent = catalog
