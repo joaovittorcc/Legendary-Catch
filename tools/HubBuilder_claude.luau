@@ -2491,156 +2491,6 @@ local function makeCampfire(parent: Instance, name: string, base: Vector3)
 end
 
 -- Symmetrical stone basin with water and a strictly vertical, centered main crystal (plaza centerpiece).
-local function makeCrystalFountain(parent: Instance, name: string, base: Vector3)
-	-- Outer stepped stone plinth firmly seated on the plaza floor.
-	makeCylinderY(
-		parent,
-		name .. "PlinthStep",
-		CFrame.new(base + Vector3.new(0, 0.2, 0)),
-		0.4,
-		9.6,
-		PALETTE.stoneDark,
-		Enum.Material.Slate,
-		true
-	)
-	flatRing(
-		parent,
-		name .. "Basin",
-		CFrame.new(base + Vector3.new(0, 0.72, 0)),
-		4.15,
-		1.15,
-		1.05,
-		24,
-		PALETTE.stoneMid,
-		Enum.Material.Slate,
-		true
-	)
-	flatRing(
-		parent,
-		name .. "BasinCap",
-		CFrame.new(base + Vector3.new(0, 1.32, 0)),
-		4.15,
-		1.35,
-		0.16,
-		24,
-		PALETTE.stoneWarm,
-		Enum.Material.Slate,
-		false
-	)
-	makeCylinderY(
-		parent,
-		name .. "Water",
-		CFrame.new(base + Vector3.new(0, 0.88, 0)),
-		0.28,
-		7.4,
-		PALETTE.water,
-		Enum.Material.Glass,
-		false,
-		0.24
-	)
-	-- Uniform cyan glow ring strictly inside the basin water (slowly rotating!).
-	local glowRingModel = makeModel(parent, name .. "GlowRing")
-	local grPivot = makePart(
-		glowRingModel,
-		"Pivot",
-		CFrame.new(base + Vector3.new(0, 1.06, 0)),
-		Vector3.new(0.2, 0.2, 0.2),
-		PALETTE.cyan,
-		Enum.Material.SmoothPlastic,
-		false,
-		1
-	)
-	glowRingModel.PrimaryPart = grPivot
-	glowRingModel.WorldPivot = grPivot.CFrame
-	makeNeonRing(
-		glowRingModel,
-		name .. "Glow",
-		CFrame.new(base + Vector3.new(0, 1.06, 0)),
-		3.15,
-		0.22,
-		24,
-		PALETTE.cyan,
-		0.32
-	)
-	tagSpin(glowRingModel, 12, "Y", 0)
-	-- Centered multi-tier stone pedestal supporting the crystals.
-	makeCylinderY(
-		parent,
-		name .. "PedestalFoot",
-		CFrame.new(base + Vector3.new(0, 1.0, 0)),
-		1.2,
-		3.8,
-		PALETTE.stoneMid,
-		Enum.Material.Slate,
-		true
-	)
-	makeCylinderY(
-		parent,
-		name .. "Pedestal",
-		CFrame.new(base + Vector3.new(0, 1.9, 0)),
-		1.5,
-		3.0,
-		PALETTE.stone,
-		Enum.Material.Slate,
-		true
-	)
-	makeCylinderY(
-		parent,
-		name .. "PedestalTop",
-		CFrame.new(base + Vector3.new(0, 2.75, 0)),
-		0.22,
-		3.4,
-		PALETTE.gold,
-		Enum.Material.SmoothPlastic,
-		false
-	)
-	-- Strictly vertical main crystal dead-center on the pedestal (slow mystical rotation!).
-	local crownBase = base + Vector3.new(0, 2.75, 0)
-	local crystalSpinModel = makeModel(parent, name .. "MainCrystalSpin")
-	local csPivot = makePart(
-		crystalSpinModel,
-		"Pivot",
-		CFrame.new(crownBase + Vector3.new(0, 3.6, 0)),
-		Vector3.new(0.2, 0.2, 0.2),
-		PALETTE.crystalCyan,
-		Enum.Material.SmoothPlastic,
-		false,
-		1
-	)
-	crystalSpinModel.PrimaryPart = csPivot
-	crystalSpinModel.WorldPivot = csPivot.CFrame
-	makeCrystal(
-		crystalSpinModel,
-		name .. "MainCrystal",
-		CFrame.new(crownBase),
-		7.2,
-		1.08,
-		PALETTE.crystalCyan,
-		true
-	)
-	tagSpin(crystalSpinModel, 10, "Y", 0)
-	-- 4 symmetrical companion crystals evenly spaced at 90 degrees, seated cleanly inside the pedestal crown.
-	for i = 0, 3 do
-		local a = math.rad(45 + i * 90)
-		local dir = Vector3.new(math.cos(a), 0, math.sin(a))
-		local sideBase = crownBase + dir * 0.92 - Vector3.new(0, 0.08, 0)
-		local sideCf = CFrame.lookAt(sideBase, sideBase + dir) * CFrame.Angles(math.rad(-18), 0, 0)
-		local col = if i % 2 == 0 then PALETTE.crystalLilac else PALETTE.crystalPink
-		makeCrystal(parent, name .. "SideCrystal", sideCf, 3.4, 0.56, col, false)
-	end
-	local sparkle = makePart(
-		parent,
-		name .. "Sparkles",
-		CFrame.new(base + Vector3.new(0, 6.2, 0)),
-		Vector3.new(3.5, 4.5, 3.5),
-		PALETTE.cyan,
-		Enum.Material.SmoothPlastic,
-		false,
-		1
-	)
-	addSparkles(sparkle, PALETTE.crystalCyan, 6, 0.5, 1.2)
-end
-
 -- Arrow sign board pointing along `dir` (horizontal), text readable from both sides.
 local function makeArrowSign(
 	parent: Instance,
@@ -2860,7 +2710,7 @@ local function buildPlaza(root: Instance)
 			false
 		)
 	end
-	makeCrystalFountain(m, "CentralCrystal", V(-6, Y, 1))
+	-- The crystal fountain in the middle of the plaza was removed (decision 2026-11-25).
 	task.wait()
 
 	-- Campfire rest deck (around the contract fire at (-16, 10.3, 11)).
@@ -7208,12 +7058,13 @@ local function buildSanctuary(root: Instance, contract: Instance)
 	addSparkles(coreSpark, PALETTE.crystalCyan, 8, 0.5, 1.4)
 	task.wait()
 
-	-- Four training portals evenly spaced in a balanced semicircle (42 deg apart, >= 8 studs clear gap, all facing center!).
+	-- Three paid training portals centred on the axis opposite the stairs (215 deg), 54 deg apart,
+	-- all facing the centre; lanterns sit in the gaps and at both ends.
 	-- The Apprentice island is reached only through the lagoon gate (decision 2026-11-25),
 	-- so the sanctuary keeps the three paid islands.
 	local defs = {
 		{
-			ang = 194,
+			ang = 161,
 			style = "reef",
 			primary = Color3.fromRGB(90, 230, 200),
 			accent = PALETTE.coralLight,
@@ -7225,7 +7076,7 @@ local function buildSanctuary(root: Instance, contract: Instance)
 			beam = false,
 		},
 		{
-			ang = 236,
+			ang = 215,
 			style = "abyss",
 			primary = Color3.fromRGB(236, 140, 255),
 			accent = PALETTE.crystalLilac,
@@ -7237,7 +7088,7 @@ local function buildSanctuary(root: Instance, contract: Instance)
 			beam = false,
 		},
 		{
-			ang = 278,
+			ang = 269,
 			style = "gold",
 			primary = Color3.fromRGB(255, 220, 110),
 			accent = PALETTE.white,
@@ -7293,7 +7144,7 @@ local function buildSanctuary(root: Instance, contract: Instance)
 			)
 		end
 	end
-	for idx, ang in { 118, 173, 215, 257, 306 } do
+	for idx, ang in { 124, 188, 242, 306 } do
 		local a = math.rad(ang)
 		makeStoneLantern(
 			m,
@@ -8821,12 +8672,14 @@ local function contractPart(
 	return p
 end
 
--- Scoreboards side by side (decision 2026-11-25): one row facing the plaza, centred here,
--- each board BOARD_SCALE times the original 14 x 9 and BOARD_GAP studs apart centre to centre.
-local LEADERBOARD_CENTER = Vector3.new(-78, 48, 31) -- clears the lagoon palm
-local LEADERBOARD_FACE = Vector3.new(-10, 48, 36)
-local BOARD_SCALE = 1.3
-local BOARD_GAP = 22
+-- Scoreboards as three angled screens on an arc around the plaza (decision 2026-11-25), so the
+-- row "hugs" the island: each board sits on a circle of radius BOARD_ARC_R around
+-- BOARD_ARC_CENTER, BOARD_ARC_STEP degrees apart, and faces the centre. Boards are
+-- BOARD_SCALE times the original 14 x 9.
+local BOARD_ARC_CENTER = Vector3.new(-8, 44, 14)
+local BOARD_ARC_MID = Vector3.new(-66.9, 44, 65.2) -- middle board: 139 deg, radius 78 (left of the lagoon palm)
+local BOARD_ARC_STEP = 19
+local BOARD_SCALE = 1.6
 
 local LEADERBOARD_SCREENS = {
 	"LeaderboardScreen_Catches",
@@ -8874,12 +8727,15 @@ local function buildContract(contract: Instance, decor: Instance)
 	CollectionService:AddTag(boardModel, "LeaderboardBoard")
 	boardModel.Parent = contract
 	local S = BOARD_SCALE
-	-- One shared facing for the row, so the three boards stand side by side (never one behind
-	-- the other) and read together from the plaza.
-	local rowCf = faceTo(O + LEADERBOARD_CENTER, O + LEADERBOARD_FACE)
+	-- Boards on an arc around the plaza, each turned to face it (three curved-row screens).
+	local arcCenter = O + BOARD_ARC_CENTER
+	local toMid = (O + BOARD_ARC_MID) - arcCenter
+	local arcR = Vector3.new(toMid.X, 0, toMid.Z).Magnitude
+	local midAng = math.atan2(toMid.Z, toMid.X)
 	for i = 1, #LEADERBOARD_SCREENS do
-		-- Strictly upright, facing cleanly toward the plaza & arrival vista (zero awkward tilt).
-		local cf = rowCf * CFrame.new((i - 2) * BOARD_GAP, 0, 0)
+		local ang = midAng + math.rad((2 - i) * BOARD_ARC_STEP)
+		local pos = arcCenter + Vector3.new(math.cos(ang) * arcR, 0, math.sin(ang) * arcR)
+		local cf = faceTo(pos, arcCenter)
 		local board = Instance.new("Part")
 		board.Name = LEADERBOARD_SCREENS[i]
 		board.Size = Vector3.new(14 * S, 9 * S, 0.6)
@@ -9412,8 +9268,8 @@ function Builder.selfTest(origin: Vector3?, modelName: string?): { string }
 		)
 	end
 	for _, b in boards do
-		if (b.Position - (O + LEADERBOARD_CENTER)).Magnitude > BOARD_GAP + 2 then
-			fail("LeaderboardBoard too far from its row centre")
+		if (b.Position - (O + BOARD_ARC_MID)).Magnitude > 30 then
+			fail("LeaderboardBoard too far from the middle board")
 		end
 	end
 
