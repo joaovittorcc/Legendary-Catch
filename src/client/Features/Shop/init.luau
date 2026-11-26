@@ -284,7 +284,12 @@ function Shop.start()
 	robux.Name = "RobuxTab"
 	robux.AnchorPoint = Vector2.new(1, 0)
 	robux.Position = UDim2.fromScale(1, 0)
-	robux.Size = UDim2.fromOffset(128, 44)
+	robux.Size = UDim2.fromOffset(146, 44)
+	robux.TextScaled = true
+	local robuxCaption = robux:FindFirstChild("ButtonCaption")
+	if robuxCaption and robuxCaption:IsA("TextLabel") then
+		fitLabel(robuxCaption, 16, 11)
+	end
 	robux.Activated:Connect(function()
 		Hud.showPanel("Robux")
 	end)

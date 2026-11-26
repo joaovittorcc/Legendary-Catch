@@ -1123,12 +1123,12 @@ function Panel.create(
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.new(1, 4, 0, -10)
 	close.Size = UDim2.fromOffset(48, 48)
-	close.Text = "×"
-	close.TextSize = 36
+	close.Text = "X"
+	close.TextSize = 26
 	close.Font = Theme.font
 	close.TextColor3 = Color3.new(1, 1, 1)
 	close.TextStrokeColor3 = UiAssets.OUTLINE
-	close.TextStrokeTransparency = 0
+	close.TextStrokeTransparency = 0.15
 	close.BackgroundColor3 = Color3.new(1, 1, 1)
 	close.AutoButtonColor = false
 	close.BorderSizePixel = 0
@@ -1147,6 +1147,8 @@ function Panel.create(
 	closeStroke.Color = UiAssets.OUTLINE
 	closeStroke.Thickness = 4
 	closeStroke.Enabled = not hasCloseArt
+	-- Border, not Contextual: on a TextButton the default outlines the glyph and blobs the X.
+	closeStroke.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
 	closeStroke.Parent = close
 
 	if hasCloseArt then
@@ -1213,7 +1215,9 @@ function Panel.create(
 			return
 		end
 		local insetTop = GuiService:GetGuiInset()
-		local compact = wide == true and size.X > size.Y
+		-- Short landscape screens (phones) give every panel the compact frame, so the content
+		-- gets the height instead of the margins and header gap.
+		local compact = size.X > size.Y and (wide == true or size.Y < 450)
 		local topSafe = if compact then 21 else math.max(math.round(insetTop.Y) + 18, 66)
 		local availHeight = if compact
 			then math.max(1, size.Y - topSafe - 12)
