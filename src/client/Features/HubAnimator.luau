@@ -7,7 +7,7 @@
 	Integration:
 	- Automatically loaded by the client Feature Loader via `order` + `start()`.
 	- Animates any map instance tagged via CollectionService with ZERO Scripts inside map models:
-	    * HubSpin    -> Attributes: Speed (rad/s), Axis ("X"|"Y"|"Z"), Phase (number)
+	    * HubSpin    -> Attributes: Speed (deg/s), Axis ("X"|"Y"|"Z"), Phase (number)
 	    * HubBob     -> Attributes: Amplitude (studs), Speed (rad/s), Phase (number)
 	    * HubPulse   -> Attributes: Min (number), Max (number), Speed (rad/s), Target (string: "Transparency"|"Brightness"|"Size"|"Range")
 	    * HubFlicker -> Attributes: Intensity (number, 0..1)
@@ -313,7 +313,9 @@ local function step(dt: number)
 			end
 
 			if tags.HubSpin then
-				local spd = numAttr(inst, "Speed", 1.0) * (if reducedEffects then 0.5 else 1.0)
+				-- The hub builder writes HubSpin Speed in degrees per second (8..36).
+				local spd = math.rad(numAttr(inst, "Speed", 20))
+					* (if reducedEffects then 0.5 else 1.0)
 				local axis = string.upper(strAttr(inst, "Axis", "Y"))
 				local phase = numAttr(inst, "Phase", 0)
 				local angle = t * spd + phase
