@@ -7209,19 +7209,9 @@ local function buildSanctuary(root: Instance, contract: Instance)
 	task.wait()
 
 	-- Four training portals evenly spaced in a balanced semicircle (42 deg apart, >= 8 studs clear gap, all facing center!).
+	-- The Apprentice island is reached only through the lagoon gate (decision 2026-11-25),
+	-- so the sanctuary keeps the three paid islands.
 	local defs = {
-		{
-			ang = 152,
-			style = "stoneArch",
-			primary = Color3.fromRGB(255, 192, 92),
-			accent = PALETTE.white,
-			title = "ILHA DO APRENDIZ",
-			sub = "Treino x1 · Grátis",
-			dest = "training_1",
-			pid = "main_to_training_1",
-			island = 1,
-			beam = false,
-		},
 		{
 			ang = 194,
 			style = "reef",
@@ -7260,7 +7250,8 @@ local function buildSanctuary(root: Instance, contract: Instance)
 		},
 	}
 	local subColors = { PALETTE.goldLight, PALETTE.crystalCyan, PALETTE.crystalLilac, PALETTE.gold }
-	for i, d in defs do
+	for _, d in defs do
+		local i = d.island
 		local a = math.rad(d.ang)
 		local pos = center + Vector3.new(math.cos(a) * 16.6, 0, math.sin(a) * 16.6)
 		local cf = faceTo(pos, center)
@@ -8830,11 +8821,12 @@ local function contractPart(
 	return p
 end
 
-local LEADERBOARD_POS = {
-	Vector3.new(-92, 39, 25),
-	Vector3.new(-78, 39, 31),
-	Vector3.new(-64, 39, 35),
-}
+-- Scoreboards side by side (decision 2026-11-25): one row facing the plaza, centred here,
+-- each board BOARD_SCALE times the original 14 x 9 and BOARD_GAP studs apart centre to centre.
+local LEADERBOARD_CENTER = Vector3.new(-78, 40, 31)
+local LEADERBOARD_FACE = Vector3.new(-10, 40, 36)
+local BOARD_SCALE = 1.3
+local BOARD_GAP = 22
 
 local LEADERBOARD_SCREENS = {
 	"LeaderboardScreen_Catches",
@@ -8881,13 +8873,16 @@ local function buildContract(contract: Instance, decor: Instance)
 	boardModel.Name = "LeaderboardBoard"
 	CollectionService:AddTag(boardModel, "LeaderboardBoard")
 	boardModel.Parent = contract
-	for i, rel in LEADERBOARD_POS do
-		local pos = O + rel
+	local S = BOARD_SCALE
+	-- One shared facing for the row, so the three boards stand side by side (never one behind
+	-- the other) and read together from the plaza.
+	local rowCf = faceTo(O + LEADERBOARD_CENTER, O + LEADERBOARD_FACE)
+	for i = 1, #LEADERBOARD_SCREENS do
 		-- Strictly upright, facing cleanly toward the plaza & arrival vista (zero awkward tilt).
-		local cf = faceTo(pos, V(-10, rel.Y, 36))
+		local cf = rowCf * CFrame.new((i - 2) * BOARD_GAP, 0, 0)
 		local board = Instance.new("Part")
 		board.Name = LEADERBOARD_SCREENS[i]
-		board.Size = Vector3.new(14, 9, 0.6)
+		board.Size = Vector3.new(14 * S, 9 * S, 0.6)
 		board.CFrame = cf
 		board.Anchored = true
 		board.CanCollide = false
@@ -8905,7 +8900,7 @@ local function buildContract(contract: Instance, decor: Instance)
 			decor,
 			"BoardFrame",
 			cf * CFrame.new(0, 0, 0.45),
-			Vector3.new(15.4, 10.4, 0.45),
+			Vector3.new(15.4 * S, 10.4 * S, 0.45),
 			PALETTE.gold,
 			Enum.Material.SmoothPlastic,
 			false
@@ -8914,7 +8909,7 @@ local function buildContract(contract: Instance, decor: Instance)
 			decor,
 			"BoardGlowRim",
 			cf * CFrame.new(0, 0, 0.36),
-			Vector3.new(14.7, 9.7, 0.2),
+			Vector3.new(14.7 * S, 9.7 * S, 0.2),
 			if i == 2 then PALETTE.goldLight else PALETTE.cyan,
 			Enum.Material.Neon,
 			false,
@@ -8925,7 +8920,7 @@ local function buildContract(contract: Instance, decor: Instance)
 			decor,
 			"BoardBack",
 			cf * CFrame.new(0, 0, 0.78),
-			Vector3.new(14.4, 9.4, 0.35),
+			Vector3.new(14.4 * S, 9.4 * S, 0.35),
 			PALETTE.navy,
 			Enum.Material.SmoothPlastic,
 			false
@@ -8933,8 +8928,8 @@ local function buildContract(contract: Instance, decor: Instance)
 		makePart(
 			decor,
 			"BoardCrest",
-			cf * CFrame.new(0, 5.75, 0.45),
-			Vector3.new(4.6, 1.35, 0.55),
+			cf * CFrame.new(0, 5.75 * S, 0.45),
+			Vector3.new(4.6 * S, 1.35 * S, 0.55),
 			PALETTE.gold,
 			Enum.Material.SmoothPlastic,
 			false
@@ -8942,8 +8937,8 @@ local function buildContract(contract: Instance, decor: Instance)
 		local boardGem = makePart(
 			decor,
 			"BoardGem",
-			cf * CFrame.new(0, 5.85, 0.12) * CFrame.Angles(0, 0, math.rad(45)),
-			Vector3.new(1.05, 1.05, 0.32),
+			cf * CFrame.new(0, 5.85 * S, 0.12) * CFrame.Angles(0, 0, math.rad(45)),
+			Vector3.new(1.05 * S, 1.05 * S, 0.32),
 			if i == 2 then PALETTE.goldLight else PALETTE.cyan,
 			Enum.Material.Neon,
 			false,
@@ -8951,7 +8946,7 @@ local function buildContract(contract: Instance, decor: Instance)
 		)
 		tagBob(boardGem, 0.18, 1.6, i * 1.1)
 		-- Floating hexagonal pedestal base + glowing inverted crystal under each board (gently bobbing!).
-		local under = (cf * CFrame.new(0, -6.4, 0.4)).Position
+		local under = (cf * CFrame.new(0, -6.4 * S, 0.4)).Position
 		local pedModel = makeModel(decor, "BoardPedestal" .. i)
 		local pedPivot = makePart(
 			pedModel,
@@ -9289,7 +9284,6 @@ function Builder.selfTest(origin: Vector3?, modelName: string?): { string }
 	local expected: { [string]: Expect } = {
 		main_to_coral = { zone = "coral", dest = "coral", island = nil, guide = false },
 		main_to_abyss = { zone = "abyss", dest = "abyss", island = nil, guide = false },
-		main_to_training_1 = { zone = "lagoon", dest = "training_1", island = 1, guide = false },
 		main_to_training_reef = {
 			zone = "lagoon",
 			dest = "training_reef",
@@ -9312,8 +9306,8 @@ function Builder.selfTest(origin: Vector3?, modelName: string?): { string }
 	}
 	local seen: { [string]: boolean } = {}
 	local portals = tagged("ZonePortal")
-	if #portals ~= 7 then
-		fail("expected 7 ZonePortal triggers, found " .. #portals)
+	if #portals ~= 6 then
+		fail("expected 6 ZonePortal triggers, found " .. #portals)
 	end
 	for _, p in portals do
 		local id = p:GetAttribute("PortalId")
