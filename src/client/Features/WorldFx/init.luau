@@ -43,7 +43,12 @@ end
 -- Portals
 -- ---------------------------------------------------------------------------
 
-type PortalFxEntry = { part: BasePart, emitter: ParticleEmitter, color: Color3 }
+type PortalFxEntry = {
+	part: BasePart,
+	attachment: Attachment,
+	emitter: ParticleEmitter,
+	color: Color3,
+}
 local portals: { [BasePart]: PortalFxEntry } = {}
 
 local function addPortal(inst: Instance)
@@ -81,13 +86,13 @@ local function addPortal(inst: Instance)
 	e.Acceleration = Vector3.zero
 	e.Parent = att
 	att.Parent = inst
-	portals[inst] = { part = inst, emitter = e, color = primary }
+	portals[inst] = { part = inst, attachment = att, emitter = e, color = primary }
 end
 
 local function removePortal(inst: Instance)
 	local entry = portals[inst :: BasePart]
 	if entry then
-		entry.emitter:Destroy()
+		entry.attachment:Destroy()
 		portals[inst :: BasePart] = nil
 	end
 end
@@ -127,13 +132,20 @@ local function teleportBurst(pos: Vector3, color: Color3)
 	SfxKit.playAt("portal_teleport", pos)
 end
 
+local lastCharacter: Model? = nil
 local lastRootPos: Vector3? = nil
 local function watchTeleports()
 	RunService.Heartbeat:Connect(function()
 		local character = player.Character
 		local root = character and character:FindFirstChild("HumanoidRootPart")
-		if not root or not root:IsA("BasePart") then
+		if not character or not root or not root:IsA("BasePart") then
+			lastCharacter = nil
 			lastRootPos = nil
+			return
+		end
+		if character ~= lastCharacter then
+			lastCharacter = character
+			lastRootPos = root.Position
 			return
 		end
 		local pos = root.Position
@@ -152,7 +164,7 @@ end
 -- Aquarium
 -- ---------------------------------------------------------------------------
 
-local aquariums: { [Instance]: { emitters: { ParticleEmitter } } } = {}
+local aquariums: { [Instance]: { attachment: Attachment, emitters: { ParticleEmitter } } } = {}
 
 local function addAquarium(tank: Instance)
 	if aquariums[tank] then
@@ -205,15 +217,13 @@ local function addAquarium(tank: Instance)
 	})
 	shimmer.Parent = att
 	att.Parent = surface
-	aquariums[tank] = { emitters = { bubbles, shimmer } }
+	aquariums[tank] = { attachment = att, emitters = { bubbles, shimmer } }
 end
 
 local function removeAquarium(tank: Instance)
 	local entry = aquariums[tank]
 	if entry then
-		for _, e in entry.emitters do
-			e:Destroy()
-		end
+		entry.attachment:Destroy()
 		aquariums[tank] = nil
 	end
 end

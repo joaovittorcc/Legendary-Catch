@@ -188,10 +188,11 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 		iconLbl.Size = UDim2.fromScale(1, 0.36)
 		iconLbl.ZIndex = 26
 
+		local formattedReward = Theme.formatInt(reward)
 		local footerText = if isNext
-			then Text.streak.nextBadge .. "\n" .. tostring(reward)
-			elseif isDay7 then "🎁 " .. tostring(reward)
-			else tostring(reward)
+			then Text.streak.nextBadge .. "\n" .. formattedReward
+			elseif isDay7 then "🎁 " .. formattedReward
+			else formattedReward
 		local amtLbl = makeLabel(slot, footerText, 13, Theme.wood, 1, 8)
 		amtLbl.Name = "Reward"
 		amtLbl.Position = UDim2.fromScale(0.04, 0.62)
@@ -282,7 +283,7 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 	end
 	okBtn.Activated:Connect(dismiss)
 	backdrop.Activated:Connect(dismiss)
-	task.delay(8, dismiss)
+	task.delay(14, dismiss)
 end
 
 local function show(playerGui: PlayerGui, gift: Types.Daily, busy: () -> boolean)

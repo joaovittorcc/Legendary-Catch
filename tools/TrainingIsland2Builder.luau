@@ -236,8 +236,10 @@ local function makePart(
 	p.Color = color
 	p.Material = material
 	p.CanCollide = canCollide
+	p.CanTouch = false
+	p.CanQuery = canCollide
 	p.Transparency = transparency or 0
-	p.CastShadow = if castShadow ~= nil then castShadow else true
+	p.CastShadow = if castShadow ~= nil then castShadow else canCollide
 	p.Size = size
 	p.CFrame = cf
 	p.Parent = parent
@@ -263,8 +265,10 @@ local function makeWedge(
 	w.Color = color
 	w.Material = material
 	w.CanCollide = canCollide
+	w.CanTouch = false
+	w.CanQuery = canCollide
 	w.Transparency = transparency or 0
-	w.CastShadow = if castShadow ~= nil then castShadow else true
+	w.CastShadow = if castShadow ~= nil then castShadow else canCollide
 	w.Size = size
 	w.CFrame = cf
 	w.Parent = parent
@@ -292,8 +296,10 @@ local function makeCylinderY(
 	p.Color = color
 	p.Material = material
 	p.CanCollide = canCollide
+	p.CanTouch = false
+	p.CanQuery = canCollide
 	p.Transparency = transparency or 0
-	p.CastShadow = if castShadow ~= nil then castShadow else true
+	p.CastShadow = if castShadow ~= nil then castShadow else canCollide
 	p.Size = Vector3.new(height, diameter, diameter)
 	p.CFrame = cf * CFrame.Angles(0, 0, math.rad(90))
 	p.Parent = parent
@@ -319,6 +325,8 @@ local function makeEllipsoid(
 	p.Color = color
 	p.Material = material
 	p.CanCollide = canCollide
+	p.CanTouch = false
+	p.CanQuery = canCollide
 	p.Transparency = transparency or 0
 	p.CastShadow = if castShadow ~= nil then castShadow else false
 	p.Size = size
@@ -5031,6 +5039,8 @@ local function buildContractParts(root: Model, origin: Vector3)
 		1,
 		false
 	)
+	portal.CanTouch = true
+	portal.CanQuery = true
 	portal.CanTouch = true
 	portal.CanQuery = true
 	CollectionService:AddTag(portal, "ZonePortal")

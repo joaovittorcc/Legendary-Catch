@@ -366,17 +366,18 @@ function Collection.start()
 					)
 					shinyLbl.TextStrokeTransparency = 1
 				end
-				Panel.label(
+				local statsLbl = Panel.label(
 					body,
 					string.format(
 						Text.collectionStats,
 						Text.captures,
-						record.count,
+						Theme.formatInt(record.count),
 						Text.bestWeight,
-						record.bestWeight
+						(string.format("%.2f", record.bestWeight):gsub("%.", Strings.decimalSep))
 					),
 					15
 				)
+				statsLbl.TextStrokeTransparency = 1
 				local recordCopy = Text.rouletteRecord
 				local mutation = record.bestMutation
 				if mutation and Roulette.mutation(mutation) then

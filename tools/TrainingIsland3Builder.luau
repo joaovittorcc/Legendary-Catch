@@ -235,8 +235,10 @@ local function makePart(
 	p.Color = color
 	p.Material = material
 	p.CanCollide = canCollide
+	p.CanTouch = false
+	p.CanQuery = canCollide
 	p.Transparency = transparency or 0
-	p.CastShadow = if castShadow ~= nil then castShadow else true
+	p.CastShadow = if castShadow ~= nil then castShadow else canCollide
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = parent
@@ -262,8 +264,10 @@ local function makeWedge(
 	w.Color = color
 	w.Material = material
 	w.CanCollide = canCollide
+	w.CanTouch = false
+	w.CanQuery = canCollide
 	w.Transparency = transparency or 0
-	w.CastShadow = if castShadow ~= nil then castShadow else true
+	w.CastShadow = if castShadow ~= nil then castShadow else canCollide
 	w.TopSurface = Enum.SurfaceType.Smooth
 	w.BottomSurface = Enum.SurfaceType.Smooth
 	w.Parent = parent
@@ -291,8 +295,10 @@ local function makeCylinderY(
 	p.Color = color
 	p.Material = material
 	p.CanCollide = canCollide
+	p.CanTouch = false
+	p.CanQuery = canCollide
 	p.Transparency = transparency or 0
-	p.CastShadow = if castShadow ~= nil then castShadow else true
+	p.CastShadow = if castShadow ~= nil then castShadow else canCollide
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Parent = parent
@@ -318,6 +324,8 @@ local function makeEllipsoid(
 	p.Color = color
 	p.Material = material
 	p.CanCollide = canCollide
+	p.CanTouch = false
+	p.CanQuery = canCollide
 	p.Transparency = transparency or 0
 	p.CastShadow = if castShadow ~= nil then castShadow else false
 	p.TopSurface = Enum.SurfaceType.Smooth
@@ -4424,6 +4432,8 @@ local function buildContractParts(root: Model, origin: Vector3)
 		1,
 		false
 	)
+	portal.CanTouch = true
+	portal.CanQuery = true
 	portal.CanTouch = true
 	portal.CanQuery = true
 	CollectionService:AddTag(portal, "ZonePortal")

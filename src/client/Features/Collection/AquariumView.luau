@@ -178,9 +178,9 @@ local function showSpecimen(
 		string.format(
 			Text.collectionStats,
 			Text.captures,
-			specimen.count,
+			Theme.formatInt(specimen.count),
 			Text.bestWeight,
-			specimen.bestWeight
+			(string.format("%.2f", specimen.bestWeight):gsub("%.", Strings.decimalSep))
 		),
 		15
 	)
@@ -420,11 +420,19 @@ function AquariumView.mount(
 				local option = AquariumView.button(
 					options,
 					"Candidate" .. index,
-					string.format(
-						Copy.candidate,
-						name(specimen),
-						specimen.variant,
-						specimen.available
+					(
+						if specimen.available == 1
+							then string.format(
+								Copy.candidateSingle,
+								name(specimen),
+								specimen.variant
+							)
+							else string.format(
+								Copy.candidate,
+								name(specimen),
+								specimen.variant,
+								specimen.available
+							)
 					)
 						.. "\n"
 						.. Income.rate(specimen.potential),

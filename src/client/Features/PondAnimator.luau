@@ -217,6 +217,8 @@ type PondState = {
 	fireflyParts: { BasePart },
 	fireflyEmitters: { ParticleEmitter },
 	pondLights: { PointLight },
+	rippleParts: { BasePart },
+	causticParts: { BasePart },
 
 	-- Reusable per-frame buffers
 	partsBuf: { BasePart },
@@ -643,8 +645,13 @@ local function registerOrbitCreature(
 	-- Keep orbit speeds calm and elegant
 	orbitSpeed = math.clamp(orbitSpeed, -0.75, 0.75)
 
-	local dx = origPos.X - state.centerPos.X
-	local dz = origPos.Z - state.centerPos.Z
+	local orbitCenter = state.centerPos
+	local centerAttr = model:GetAttribute("OrbitCenter")
+	if typeof(centerAttr) == "Vector3" then
+		orbitCenter = centerAttr
+	end
+	local dx = origPos.X - orbitCenter.X
+	local dz = origPos.Z - orbitCenter.Z
 	local actualDist = math.sqrt(dx * dx + dz * dz)
 
 	-- Safe elliptical margin so creatures never leave the water or clip the deck
@@ -666,8 +673,8 @@ local function registerOrbitCreature(
 	local attrPhase = model:GetAttribute("OrbitPhase")
 	local orbitPhase = actualAngle
 	if type(attrPhase) == "number" then
-		local testX = state.centerPos.X + math.cos(attrPhase) * effectiveRadius
-		local testZ = state.centerPos.Z + math.sin(attrPhase) * effectiveRadius
+		local testX = orbitCenter.X + math.cos(attrPhase) * effectiveRadius
+		local testZ = orbitCenter.Z + math.sin(attrPhase) * effectiveRadius
 		local diff = Vector2.new(testX - origPos.X, testZ - origPos.Z).Magnitude
 		if diff <= 2.5 then
 			orbitPhase = attrPhase
@@ -713,6 +720,8 @@ local function registerOrbitCreature(
 					kind = "FinL"
 				elseif name == "FinR" then
 					kind = "FinR"
+				elseif string.find(name, "Fin") then
+					kind = if relCF.Position.X < 0 then "FinL" else "FinR"
 				end
 
 				-- Hinge point halfway between body center and appendage keeps parts attached
@@ -2603,7 +2612,172 @@ local AbyssInstinctProfile: PondProfile = {
 	end,
 }
 
--- Profile Registry (Add Island 4 Celestial entries here without rewriting the engine)
+-- ============================================================================
+-- Island 4: Celestial — FocusPond & InstinctPond
+-- Note: FocusHalos (HubBob), FocusConstellation (HubSpin), FocusBedGlow (HubPulse),
+-- WaterGlowAura (HubPulse), and Fireflies (HubBob) are already animated by HubAnimator,
+-- so PondAnimator intentionally leaves them untouched to prevent transform fights.
+-- ============================================================================
+
+local CelestialFocusProfile: PondProfile = {
+	islandName = "TrainingIsland_Celestial",
+	islandIndex = 4,
+	pondName = "FocusPond",
+	statName = "Control",
+
+	scan = function(state: PondState)
+		table.clear(state.rippleParts)
+		table.clear(state.existingEmitters)
+		table.clear(state.pondLights)
+
+		for _, desc in state.model:GetDescendants() do
+			if desc:IsA("BasePart") then
+				if desc.Name == "Ripple" then
+					getPartOrig(desc)
+					table.insert(state.rippleParts, desc)
+				end
+			elseif desc:IsA("ParticleEmitter") then
+				if string.sub(desc.Name, 1, 1) ~= "_" then
+					getEmitterOrig(desc)
+					table.insert(state.existingEmitters, desc)
+				end
+			elseif desc:IsA("PointLight") then
+				getLightOrig(desc)
+				table.insert(state.pondLights, desc)
+			end
+		end
+
+		ensureAmbientEmitter(
+			state,
+			"_CelestialFocusMotes",
+			Color3.fromRGB(255, 224, 152),
+			4,
+			0.5,
+			1.4,
+			0.28,
+			0.35
+		)
+	end,
+
+	update = function(state, t, _dt, frame, _partsOut, _cframesOut)
+		local amp = getAmpScale()
+		local awake = state.awake
+
+		-- Gentle champagne-gold surface ripple breathing (30 Hz on even frames)
+		if frame % 2 == 0 then
+			local freq = (TWO_PI / 3.4) * (1 + awake * 0.45)
+			for i, rp in state.rippleParts do
+				if rp.Parent ~= nil then
+					local orig = getPartOrig(rp)
+					local distFromCenter = (orig.cframe.Position - state.centerPos).Magnitude
+					local wave = 0.5 + 0.5 * math.sin(t * freq - distFromCenter * 0.65 + i * 0.08)
+					rp.Transparency = math.clamp(
+						orig.transparency + (0.24 * (1 - wave) - awake * 0.10) * amp,
+						0.08,
+						0.94
+					)
+				end
+			end
+		end
+
+		-- Existing sparkle emitter ramps smoothly when someone trains Focus
+		for _, em in state.existingEmitters do
+			if em.Parent ~= nil then
+				local orig = getEmitterOrig(em)
+				em.Enabled = not reduceEffects
+				em.Rate = orig.rate * (1 + awake * 0.85 + state.comboPulse * 1.2)
+			end
+		end
+
+		-- Pond glow light breathes warmly
+		for i, light in state.pondLights do
+			if light.Parent ~= nil then
+				local orig = getLightOrig(light)
+				local pulse = 0.5 + 0.5 * math.sin(t * 1.4 + i)
+				light.Brightness = orig.brightness
+					* (1 + (pulse * 0.22 + awake * 0.35 + state.comboPulse * 0.4) * amp)
+			end
+		end
+	end,
+}
+
+local CelestialInstinctProfile: PondProfile = {
+	islandName = "TrainingIsland_Celestial",
+	islandIndex = 4,
+	pondName = "InstinctPond",
+	statName = "Instinct",
+
+	scan = function(state: PondState)
+		table.clear(state.creatures)
+		table.clear(state.causticParts)
+		table.clear(state.pondLights)
+
+		local fishFolder = state.model:FindFirstChild("LegendaryFish")
+		if fishFolder then
+			for _, child in fishFolder:GetChildren() do
+				if child:IsA("Model") and string.sub(child.Name, 1, 13) == "LegendaryFish" then
+					registerOrbitCreature(state, child, false, true)
+				end
+			end
+		end
+
+		for _, desc in state.model:GetDescendants() do
+			if desc:IsA("BasePart") and desc.Name == "WaterCaustic" then
+				getPartOrig(desc)
+				table.insert(state.causticParts, desc)
+			elseif desc:IsA("PointLight") then
+				getLightOrig(desc)
+				table.insert(state.pondLights, desc)
+			end
+		end
+
+		ensureAmbientEmitter(
+			state,
+			"_CelestialInstinctMotes",
+			Color3.fromRGB(246, 178, 214),
+			3,
+			0.4,
+			1.2,
+			0.26,
+			0.35
+		)
+	end,
+
+	update = function(state, t, dt, frame, partsOut, cframesOut)
+		local amp = getAmpScale()
+		local awake = state.awake
+
+		-- 4 legendary fish swimming gracefully inside the Instinct pond (no jump so they stay underwater)
+		updateOrbitCreatures(state, t, dt, false, partsOut, cframesOut)
+
+		-- Shimmering surface caustics (30 Hz on odd frames)
+		if frame % 2 == 1 then
+			local freq = (TWO_PI / 3.8) * (1 + awake * 0.4)
+			for i, ca in state.causticParts do
+				if ca.Parent ~= nil then
+					local orig = getPartOrig(ca)
+					local wave = 0.5 + 0.5 * math.sin(t * freq + i * 0.55)
+					ca.Transparency = math.clamp(
+						orig.transparency + (0.26 * (1 - wave) - awake * 0.08) * amp,
+						0.25,
+						0.94
+					)
+				end
+			end
+		end
+
+		for i, light in state.pondLights do
+			if light.Parent ~= nil then
+				local orig = getLightOrig(light)
+				local pulse = 0.5 + 0.5 * math.sin(t * 1.25 + i * 1.1)
+				light.Brightness = orig.brightness
+					* (1 + (pulse * 0.24 + awake * 0.35 + state.comboPulse * 0.4) * amp)
+			end
+		end
+	end,
+}
+
+-- Profile Registry
 local POND_PROFILES: { PondProfile } = {
 	ApprenticeFocusProfile,
 	ApprenticeInstinctProfile,
@@ -2611,6 +2785,8 @@ local POND_PROFILES: { PondProfile } = {
 	ReefInstinctProfile,
 	AbyssFocusProfile,
 	AbyssInstinctProfile,
+	CelestialFocusProfile,
+	CelestialInstinctProfile,
 }
 
 local PROFILE_LOOKUP: { [string]: PondProfile } = {}
@@ -2624,13 +2800,24 @@ end
 
 local function updatePondGeometry(state: PondState): ()
 	local ws = state.model:FindFirstChild("WaterSurface", true)
+		or state.model:FindFirstChild("Water", true)
 	if ws and ws:IsA("BasePart") then
 		state.waterSurface = ws
 		local orig = getPartOrig(ws)
 		state.centerPos = orig.cframe.Position
-		state.waterY = orig.cframe.Position.Y
-		state.radiusX = math.max(10, orig.size.X * 0.5)
-		state.radiusZ = math.max(10, orig.size.Z * 0.5)
+		-- Cylinders laid flat (rotated 90 deg on Z) store height in Size.X and diameter in Size.Y/Z.
+		local isFlatCylinder = ws:IsA("Part")
+			and (ws :: Part).Shape == Enum.PartType.Cylinder
+			and math.abs(orig.cframe.RightVector.Y) > 0.7
+		if isFlatCylinder then
+			state.waterY = orig.cframe.Position.Y + orig.size.X * 0.5
+			state.radiusX = math.max(10, orig.size.Y * 0.5)
+			state.radiusZ = math.max(10, orig.size.Z * 0.5)
+		else
+			state.waterY = orig.cframe.Position.Y
+			state.radiusX = math.max(10, orig.size.X * 0.5)
+			state.radiusZ = math.max(10, orig.size.Z * 0.5)
+		end
 	else
 		local pivot = state.model:GetPivot()
 		state.centerPos = pivot.Position
@@ -2786,6 +2973,8 @@ local function registerPond(islandModel: Instance, pondModel: Model): ()
 		fireflyParts = {},
 		fireflyEmitters = {},
 		pondLights = {},
+		rippleParts = {},
+		causticParts = {},
 
 		partsBuf = {},
 		cframesBuf = {},

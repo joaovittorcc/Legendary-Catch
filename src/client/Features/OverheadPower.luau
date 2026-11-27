@@ -22,6 +22,27 @@ local MAX_DISTANCE = 70
 
 local localPlayer = Players.LocalPlayer
 local watching: { [Player]: { RBXScriptConnection } } = {}
+local OVERLAY_GUIS: { [string]: boolean } = {
+	CatchShow = true,
+	Roulette = true,
+	OddsMoment = true,
+	CatchPhoto = true,
+}
+
+local function overlayBlocking(): boolean
+	if localPlayer:GetAttribute("CatchRevealActive") == true then
+		return true
+	end
+	local pg = localPlayer:FindFirstChildOfClass("PlayerGui")
+	if pg then
+		for name in OVERLAY_GUIS do
+			if pg:FindFirstChild(name) ~= nil then
+				return true
+			end
+		end
+	end
+	return false
+end
 
 local function build(head: BasePart): (BillboardGui, TextLabel, UIScale)
 	local billboard = Instance.new("BillboardGui")
@@ -80,8 +101,8 @@ local function watch(player: Player)
 		local total = control + instinct
 		text.Text = "⚡ " .. Training.formatPower(total, Strings.decimalSep)
 		text.TextColor3 = Training.TIER_COLORS[Training.tier(total)]
-		-- The catch reveal owns the screen; hide overhead power while it plays.
-		gui.Enabled = localPlayer:GetAttribute("CatchRevealActive") ~= true
+		-- Fullscreen catch overlays own the screen; hide overhead power while they play.
+		gui.Enabled = not overlayBlocking()
 
 		local pop = scale
 		if
@@ -123,6 +144,12 @@ local function watch(player: Player)
 		refresh()
 	end
 
+	local playerGui = localPlayer:WaitForChild("PlayerGui")
+	local function onOverlayChange(child: Instance)
+		if OVERLAY_GUIS[child.Name] then
+			refresh()
+		end
+	end
 	watching[player] = {
 		player.CharacterAdded:Connect(onCharacter),
 		player.CharacterRemoving:Connect(function()
@@ -134,6 +161,8 @@ local function watch(player: Player)
 		player:GetAttributeChangedSignal(controlAttribute):Connect(refresh),
 		player:GetAttributeChangedSignal(instinctAttribute):Connect(refresh),
 		localPlayer:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh),
+		playerGui.ChildAdded:Connect(onOverlayChange),
+		playerGui.ChildRemoved:Connect(onOverlayChange),
 		player.AncestryChanged:Connect(function(_, parent: Instance?)
 			if parent then
 				return

@@ -172,7 +172,10 @@ local function makePart(
 	p.BottomSurface = Enum.SurfaceType.Smooth
 	p.Color = color
 	p.Material = material or Enum.Material.SmoothPlastic
-	p.CanCollide = if canCollide == nil then true else canCollide
+	local col = if canCollide == nil then true else canCollide
+	p.CanCollide = col
+	p.CanTouch = false
+	p.CanQuery = col
 	p.Transparency = transparency or 0
 	p.Size = size
 	p.CFrame = cf
@@ -197,7 +200,10 @@ local function makeWedge(
 	w.BottomSurface = Enum.SurfaceType.Smooth
 	w.Color = color
 	w.Material = material or Enum.Material.SmoothPlastic
-	w.CanCollide = if canCollide == nil then true else canCollide
+	local col = if canCollide == nil then true else canCollide
+	w.CanCollide = col
+	w.CanTouch = false
+	w.CanQuery = col
 	w.Transparency = transparency or 0
 	w.Size = size
 	w.CFrame = cf
@@ -4532,6 +4538,8 @@ local function buildGameplayZones(root: Model, origin: Vector3, portalCf: CFrame
 		1
 	)
 	returnPortal.CastShadow = false
+	returnPortal.CanTouch = true
+	returnPortal.CanQuery = true
 	returnPortal:SetAttribute("PortalId", "training_1_return")
 	returnPortal:SetAttribute("ZoneId", "lagoon")
 	returnPortal:SetAttribute("Destination", "main")

@@ -153,6 +153,7 @@ function Power.mount(frame: Frame, activeStat: string, island: number)
 		"",
 		Theme.ink
 	)
+	gain.TextStrokeTransparency = 1
 	local multipliers = Ui.label(
 		frame,
 		"Multipliers",
@@ -161,6 +162,7 @@ function Power.mount(frame: Frame, activeStat: string, island: number)
 		"",
 		Theme.ink
 	)
+	multipliers.TextStrokeTransparency = 1
 	local milestone = Ui.label(
 		frame,
 		"PowerMilestone",
@@ -187,6 +189,7 @@ function Power.mount(frame: Frame, activeStat: string, island: number)
 		local color = if stat == "Control" then Theme.crystal else Color3.fromRGB(199, 144, 255)
 		local caption =
 			Ui.label(frame, stat, UDim2.new(0.44, 0, 0, 20), UDim2.new(x, 0, 0, 77), "", Theme.ink)
+		caption.TextStrokeTransparency = 1
 		local track = Ui.frame(
 			frame,
 			stat .. "Track",

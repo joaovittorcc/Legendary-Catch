@@ -18,7 +18,7 @@ local RevealCard = {}
 local CARD_TWEEN = 0.26
 local PREVIEW_FOV = 34
 local PREVIEW_SPEED = math.rad(15)
-local REWARD_FORMAT = Text.captureReward:gsub("%%%.2f", "%%s")
+local REWARD_FORMAT = Text.captureReward:gsub("%%%.2f", "%%s"):gsub("%%d", "%%s")
 local RECORD_FORMAT = Text.newRecord:gsub("%%%.2f", "%%s")
 
 export type CatchInfo = {
@@ -257,7 +257,12 @@ function RevealCard.open(
 		return label
 	end
 
-	row("CreatureName", name, 18, 24)
+	local nameRow = row("CreatureName", name, 18, 24)
+	nameRow.TextScaled = true
+	local nameCap = Instance.new("UITextSizeConstraint")
+	nameCap.MinTextSize = 10
+	nameCap.MaxTextSize = 18
+	nameCap.Parent = nameRow
 	local tag = row(
 		"Rarity",
 		Theme.rarityLabel(rarity) .. "  " .. string.rep("★", rank),
@@ -276,14 +281,23 @@ function RevealCard.open(
 	if info and info.weight then
 		local weight = formatWeight(info.weight)
 		local caption = if reward
-			then string.format(REWARD_FORMAT, weight, if reduced then reward else 0)
+			then string.format(
+				REWARD_FORMAT,
+				weight,
+				Theme.formatInt(if reduced then reward else 0)
+			)
 			else weight .. " kg"
 		rewardLabel = row("Reward", caption, 15, 19)
 		rewardWeight = weight
 		rewardTarget = reward
 	end
 	if info and info.odds then
-		row("Odds", string.format(Strings.odds, formatOdds(info.odds)), 14, 18)
+		local oddsRow = row("Odds", string.format(Strings.odds, formatOdds(info.odds)), 14, 18)
+		oddsRow.TextScaled = true
+		local oddsCap = Instance.new("UITextSizeConstraint")
+		oddsCap.MinTextSize = 10
+		oddsCap.MaxTextSize = 14
+		oddsCap.Parent = oddsRow
 	end
 	local mutation = info and info.mutation
 	local mutationColor = Mutation.color(mutation)
@@ -382,16 +396,31 @@ function RevealCard.open(
 		portrait = size.Y > size.X
 		local width = if portrait then size.X * 0.92 else math.min(size.X * 0.34, 326)
 		local compact = size.Y < 420
-		local cardHeight = math.min(size.Y * (if portrait then 0.41 else 0.76), height + 185)
-		loreLabel.Visible = cardHeight >= height + 56
+		-- Keep preview and rows clear of the 9-slice rarity card frame (57px L/R, 75px top, 65px bottom in source).
+		local padX = 11
+		local padTop = 9
+		local padBottom = 9
+		if hasRarityArt then
+			local sliceScale = if portrait or compact then 0.26 else 0.34
+			rarityFrameArt.SliceScale = sliceScale
+			padX = math.ceil(57 * sliceScale) + 4
+			padTop = math.ceil((if rank >= 5 then 75 else 66) * sliceScale) + 3
+			padBottom = math.ceil(65 * sliceScale) + 3
+		end
+		local chromeY = padTop + padBottom + 6
+		local cardHeight =
+			math.min(size.Y * (if portrait then 0.44 else 0.78), height + 185 + chromeY)
+		loreLabel.Visible = cardHeight - chromeY >= height + 54
 		local rowsHeight = if loreLabel.Visible then height else height - 36
-		local previewMin = math.min(48, cardHeight * 0.2)
-		local rowScale = math.min(1, math.max(1, cardHeight - previewMin - 16) / rowsHeight)
-		local previewHeight = math.max(cardHeight - rowsHeight * rowScale - 16, 1)
+		local innerHeight = math.max(1, cardHeight - chromeY)
+		local previewMin = math.min(48, innerHeight * 0.22)
+		local rowScale = math.min(1, math.max(1, innerHeight - previewMin) / rowsHeight)
+		local previewHeight = math.max(innerHeight - rowsHeight * rowScale, 1)
+		local innerWidth = math.max(1, width - padX * 2)
 		card.Size = UDim2.fromScale(width / size.X, cardHeight / size.Y)
 		target = UDim2.fromScale(
 			if portrait then 0.04 else 0.035,
-			if portrait then 0.73 elseif compact then 0.58 else 0.49
+			if portrait then 0.72 elseif compact then 0.56 else 0.49
 		)
 		if enter then
 			enter:Cancel()
@@ -399,16 +428,17 @@ function RevealCard.open(
 			card.GroupTransparency = 0
 		end
 		card.Position = target
-		backdrop.Size = UDim2.fromScale(0.94, previewHeight / cardHeight)
-		backdrop.Position = UDim2.fromScale(0.03, 7 / cardHeight)
+		backdrop.Size = UDim2.fromScale(innerWidth / width, previewHeight / cardHeight)
+		backdrop.Position = UDim2.fromScale(padX / width, padTop / cardHeight)
 		preview.Size = UDim2.fromScale(1, 1)
-		aspect.AspectRatio = width * 0.94 / previewHeight
-		local y = previewHeight + 9
+		aspect.AspectRatio = innerWidth / previewHeight
+		local y = padTop + previewHeight + 4
 		for _, item in rows do
 			if item.label.Visible then
 				item.label.TextSize = math.max(10, math.floor(item.pixels * rowScale))
-				item.label.Position = UDim2.fromScale(0.035, y / cardHeight)
-				item.label.Size = UDim2.fromScale(0.93, item.height * rowScale / cardHeight)
+				item.label.Position = UDim2.fromScale(padX / width, y / cardHeight)
+				item.label.Size =
+					UDim2.fromScale(innerWidth / width, item.height * rowScale / cardHeight)
 				y += item.height * rowScale
 			end
 		end
@@ -466,7 +496,8 @@ function RevealCard.open(
 				local progress = math.clamp(elapsed / 0.55, 0, 1)
 				local eased = 1 - (1 - progress) * (1 - progress)
 				local shown = math.floor(rewardTarget * eased + 0.5)
-				rewardLabel.Text = string.format(REWARD_FORMAT, rewardWeight, shown)
+				rewardLabel.Text =
+					string.format(REWARD_FORMAT, rewardWeight, Theme.formatInt(shown))
 				if progress >= 1 then
 					rewardPopped = true
 					local pop = Instance.new("UIScale")

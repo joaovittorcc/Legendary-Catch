@@ -33,27 +33,27 @@ local TAU = math.pi * 2
 
 local PALETTE = {
 	-- Warm, grounded palette calibrated for normal game Lighting (Brightness=3, cool OutdoorAmbient, Bloom)
-	grass = Color3.fromRGB(84, 108, 30),
-	grassDark = Color3.fromRGB(58, 80, 22),
-	grassLight = Color3.fromRGB(112, 134, 38),
-	grassBlade = Color3.fromRGB(70, 94, 26),
-	marble = Color3.fromRGB(204, 184, 158),
-	marbleShade = Color3.fromRGB(178, 158, 134),
-	marbleDark = Color3.fromRGB(140, 122, 100),
-	gold = Color3.fromRGB(172, 120, 40),
-	goldLight = Color3.fromRGB(202, 152, 64),
-	goldDeep = Color3.fromRGB(122, 78, 22),
-	goldGlow = Color3.fromRGB(236, 206, 146),
-	ringCream = Color3.fromRGB(240, 224, 186),
-	rockTop = Color3.fromRGB(136, 106, 82),
-	rockHighlight = Color3.fromRGB(166, 134, 104),
-	rockBottom = Color3.fromRGB(82, 64, 56),
-	rockCore = Color3.fromRGB(58, 44, 42),
-	rockCrack = Color3.fromRGB(52, 38, 36),
-	crystalGold = Color3.fromRGB(214, 154, 42),
-	crystalCyan = Color3.fromRGB(68, 188, 212),
-	crystalPale = Color3.fromRGB(146, 214, 228),
-	crystalPink = Color3.fromRGB(212, 128, 182),
+	grass = Color3.fromRGB(92, 118, 36),
+	grassDark = Color3.fromRGB(68, 92, 26),
+	grassLight = Color3.fromRGB(116, 140, 44),
+	grassBlade = Color3.fromRGB(76, 102, 30),
+	marble = Color3.fromRGB(208, 188, 162),
+	marbleShade = Color3.fromRGB(182, 162, 138),
+	marbleDark = Color3.fromRGB(142, 124, 102),
+	gold = Color3.fromRGB(178, 126, 44),
+	goldLight = Color3.fromRGB(210, 158, 68),
+	goldDeep = Color3.fromRGB(124, 80, 24),
+	goldGlow = Color3.fromRGB(242, 202, 124),
+	ringCream = Color3.fromRGB(246, 214, 148),
+	rockTop = Color3.fromRGB(164, 132, 104),
+	rockHighlight = Color3.fromRGB(192, 160, 128),
+	rockBottom = Color3.fromRGB(110, 86, 70),
+	rockCore = Color3.fromRGB(84, 64, 54),
+	rockCrack = Color3.fromRGB(72, 54, 46),
+	crystalGold = Color3.fromRGB(236, 174, 44),
+	crystalCyan = Color3.fromRGB(64, 198, 224),
+	crystalPale = Color3.fromRGB(152, 218, 232),
+	crystalPink = Color3.fromRGB(218, 132, 188),
 	focusWater = Color3.fromRGB(88, 172, 194),
 	focusDeep = Color3.fromRGB(48, 118, 148),
 	focusGlow = Color3.fromRGB(154, 218, 226),
@@ -199,9 +199,14 @@ local function finishPart(
 	p.CanQuery = collide
 	p.TopSurface = Enum.SurfaceType.Smooth
 	p.BottomSurface = Enum.SurfaceType.Smooth
+	local noShadow = string.sub(name, 1, 5) == "Cloud"
+		or string.sub(name, 1, 4) == "Rock"
+		or string.sub(name, 1, 5) == "Islet"
+		or string.sub(name, 1, 7) == "Crystal"
 	p.CastShadow = collide
 		or (
-			t < 0.05
+			not noShadow
+			and t < 0.05
 			and material ~= Enum.Material.Neon
 			and material ~= Enum.Material.Glass
 			and size.X * size.Y * size.Z > 40
@@ -660,7 +665,7 @@ local function makeCrystal(
 	color: Color3,
 	glow: boolean?
 ): BasePart
-	local shaftLen = length * 0.78
+	local shaftLen = length * 0.72
 	local mid = baseCF * CFrame.new(0, shaftLen / 2, 0)
 	local first: BasePart? = nil
 	for k = 0, 2 do
@@ -672,39 +677,39 @@ local function makeCrystal(
 			color,
 			Enum.Material.Glass,
 			false,
-			0.24
+			0.18
 		)
 		if first == nil then
 			first = p
 		end
 	end
 	-- Dual corner-up cubes rotated 60 deg form a true 6-faced pointed pyramid flush with the hex shaft (zero arrowhead overhang!)
-	local edge = radius * 1.15
+	local edge = radius * 1.12
 	for k = 0, 1 do
 		makePart(
 			parent,
 			name .. "Tip",
 			baseCF
-				* CFrame.new(0, shaftLen - edge * 0.12, 0)
+				* CFrame.new(0, shaftLen - edge * 0.08, 0)
 				* CFrame.Angles(0, math.pi / 6 + k * math.pi / 3, 0)
 				* CORNER_UP,
 			v3(edge, edge, edge),
-			color:Lerp(PALETTE.ringCream, 0.12),
+			color:Lerp(Color3.fromRGB(255, 248, 220), 0.24),
 			Enum.Material.Glass,
 			false,
-			0.22
+			0.14
 		)
 	end
 	if glow ~= false then
 		return makePart(
 			parent,
 			name .. "Core",
-			baseCF * CFrame.new(0, shaftLen * 0.52, 0),
-			v3(radius * 0.52, shaftLen * 0.84, radius * 0.52),
-			color:Lerp(PALETTE.ringCream, 0.22),
+			baseCF * CFrame.new(0, shaftLen * 0.56, 0),
+			v3(radius * 0.62, shaftLen * 0.88, radius * 0.62),
+			color:Lerp(Color3.fromRGB(255, 246, 210), 0.28),
 			Enum.Material.Neon,
 			false,
-			0.34
+			0.22
 		)
 	end
 	return first :: BasePart
@@ -717,27 +722,27 @@ local function makeCrystalCluster(
 	color: Color3,
 	count: number
 )
-	-- Chunky central hexagonal gem prism embedded into the common base
-	local mainLen = 2.45 * scale * rand(0.92, 1.12)
-	local mainRad = 0.74 * scale
+	-- Chunky central hexagonal gem prism emerging proudly from the rock
+	local mainLen = 3.15 * scale * rand(0.94, 1.12)
+	local mainRad = 0.86 * scale
 	makeCrystal(
 		parent,
 		"Crystal",
-		baseCF * CFrame.new(0, -0.45 * scale, 0),
+		baseCF * CFrame.new(0, -0.35 * scale, 0),
 		mainLen,
 		mainRad,
 		color,
 		true
 	)
-	-- Tight tuft of varied thick prisms emerging from the same base at gentle angles (6..19 deg, never arrows!)
+	-- Tight tuft of varied thick prisms emerging from the same base at gentle angles (8..22 deg)
 	for i = 1, count - 1 do
-		local a = (i / math.max(1, count - 1)) * TAU + rand(-0.28, 0.28)
-		local tilt = rand(0.11, 0.33)
-		local lenMul = if i <= 2 then rand(0.68, 0.84) else rand(0.46, 0.64)
-		local radMul = if i <= 2 then rand(0.62, 0.78) else rand(0.46, 0.62)
+		local a = (i / math.max(1, count - 1)) * TAU + rand(-0.25, 0.25)
+		local tilt = rand(0.14, 0.36)
+		local lenMul = if i <= 2 then rand(0.70, 0.86) else rand(0.48, 0.66)
+		local radMul = if i <= 2 then rand(0.66, 0.80) else rand(0.50, 0.66)
 		local cf = baseCF
 			* CFrame.Angles(0, a, 0)
-			* CFrame.new(0.42 * scale, -0.55 * scale, 0)
+			* CFrame.new(0.46 * scale, -0.45 * scale, 0)
 			* CFrame.Angles(0, 0, -tilt)
 		makeCrystal(
 			parent,
@@ -1133,25 +1138,32 @@ local function makeSign(parent: Instance, pos: Vector3, facing: Vector3, text: s
 		PALETTE.goldLight,
 		Enum.Material.SmoothPlastic
 	)
-	local gui = Instance.new("SurfaceGui")
-	gui.Name = "SignGui"
-	gui.Face = Enum.NormalId.Front
-	gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
-	gui.PixelsPerStud = 60
-	gui.LightInfluence = 0.5
-	local label = Instance.new("TextLabel")
-	label.Name = "Text"
-	label.BackgroundTransparency = 1
-	label.Size = UDim2.fromScale(0.88, 0.42)
-	label.Position = UDim2.fromScale(0.06, 0.06)
-	label.Font = Enum.Font.FredokaOne
-	label.Text = text
-	label.TextScaled = true
-	label.TextColor3 = PALETTE.runeInk
-	label.TextStrokeColor3 = PALETTE.goldLight
-	label.TextStrokeTransparency = 0.35
-	label.Parent = gui
-	gui.Parent = board
+	for _, face in { Enum.NormalId.Front, Enum.NormalId.Back } do
+		local gui = Instance.new("SurfaceGui")
+		gui.Name = if face == Enum.NormalId.Front then "SignGui" else "SignGuiBack"
+		gui.Face = face
+		gui.SizingMode = Enum.SurfaceGuiSizingMode.PixelsPerStud
+		gui.PixelsPerStud = 60
+		gui.LightInfluence = 0.5
+		local label = Instance.new("TextLabel")
+		label.Name = "Text"
+		label.BackgroundTransparency = 1
+		if face == Enum.NormalId.Front then
+			label.Size = UDim2.fromScale(0.84, 0.34)
+			label.Position = UDim2.fromScale(0.08, 0.13)
+		else
+			label.Size = UDim2.fromScale(0.84, 0.52)
+			label.Position = UDim2.fromScale(0.08, 0.24)
+		end
+		label.Font = Enum.Font.FredokaOne
+		label.Text = text
+		label.TextScaled = true
+		label.TextColor3 = PALETTE.runeInk
+		label.TextStrokeColor3 = PALETTE.goldLight
+		label.TextStrokeTransparency = 0.35
+		label.Parent = gui
+		gui.Parent = board
+	end
 	addZone(pos, nil, 2.2)
 end
 
@@ -1521,27 +1533,29 @@ local function makeGrassTuft(parent: Instance, pos: Vector3, scale: number)
 end
 
 local function makeBush(parent: Instance, pos: Vector3, s: number)
-	local shades = { PALETTE.grassDark, PALETTE.grassBlade, PALETTE.grassLight }
-	for i = 1, 3 do
-		local a = i / 3 * TAU + rand(-0.4, 0.4)
-		local r = rand(0.9, 1.3) * s
-		local p = pos + v3(math.cos(a) * 0.55 * s, r * 0.55, math.sin(a) * 0.55 * s)
+	local shades = { PALETTE.grassDark, PALETTE.grassBlade, PALETTE.grass }
+	for i = 1, 5 do
+		local a = i / 5 * TAU + rand(-0.35, 0.35)
+		local r = rand(0.75, 1.15) * s
+		local dist = if i == 1 then 0 else rand(0.45, 0.72) * s
+		local p = pos
+			+ v3(math.cos(a) * dist, r * (if i == 1 then 0.65 else 0.46), math.sin(a) * dist)
 		makeEllipsoid(
 			parent,
 			"Bush",
 			CFrame.new(p) * CFrame.Angles(0, rand(0, TAU), 0),
-			v3(r * 1.6, r * 1.3, r * 1.5),
+			v3(r * 1.5, r * 1.15, r * 1.45),
 			jitter(pickColor(shades), 0.02),
-			Enum.Material.SmoothPlastic
+			Enum.Material.Grass
 		)
 	end
 	for _ = 1, 3 do
-		local dir = v3(rand(-1, 1), rand(0.3, 1), rand(-1, 1)).Unit
+		local dir = v3(rand(-1, 1), rand(0.35, 1), rand(-1, 1)).Unit
 		makeBall(
 			parent,
 			"BushFlower",
-			pos + v3(0, 0.9 * s, 0) + dir * 1.15 * s,
-			0.38 * s,
+			pos + v3(0, 0.82 * s, 0) + dir * 1.05 * s,
+			0.34 * s,
 			pickColor({ PALETTE.blossomLight, PALETTE.pastelLemon, PALETTE.fabric }),
 			Enum.Material.SmoothPlastic
 		)
@@ -1759,35 +1773,35 @@ local function makeIslet(parent: Instance, name: string, center: Vector3, s: num
 		PALETTE.marbleShade,
 		Enum.Material.SmoothPlastic
 	)
-	makeEllipsoid(
+	makePart(
 		m,
 		"IsletRock",
-		CFrame.new(center + v3(0, -2.9 * s, 0)),
-		v3(7.4, 5.2, 7.4) * s,
-		PALETTE.rockCore:Lerp(PALETTE.rockBottom, 0.35),
-		Enum.Material.SmoothPlastic
+		CFrame.new(center + v3(0, -2.8 * s, 0)) * CFrame.Angles(0, 0.3, 0),
+		v3(6.6, 3.8, 6.2) * s,
+		PALETTE.rockCore:Lerp(PALETTE.rockBottom, 0.45),
+		Enum.Material.Concrete
 	)
-	makeEllipsoid(
+	makeWedge(
 		m,
-		"IsletRock",
-		CFrame.new(center + v3(0.2 * s, -5.2 * s, 0.15 * s)),
-		v3(4.2, 4.0, 4.2) * s,
+		"IsletKeel",
+		CFrame.new(center + v3(0, -5.6 * s, 0)) * CFrame.Angles(math.pi, 0.5, 0),
+		v3(4.6, 3.6, 4.4) * s,
 		PALETTE.rockBottom,
-		Enum.Material.SmoothPlastic
+		Enum.Material.Concrete
 	)
-	for i = 0, 4 do
-		local a = i / 5 * TAU + rand(-0.15, 0.15)
+	for i = 0, 5 do
+		local a = i / 6 * TAU + rand(-0.14, 0.14)
 		local p = center
-			+ v3(math.cos(a) * 2.4 * s, -2.5 * s + rand(-0.25, 0.25) * s, math.sin(a) * 2.4 * s)
+			+ v3(math.cos(a) * 2.5 * s, -2.6 * s + rand(-0.3, 0.3) * s, math.sin(a) * 2.5 * s)
 		local cf = CFrame.lookAt(p, p + v3(math.cos(a), 0, math.sin(a)))
-			* CFrame.Angles(-0.24, rand(-0.15, 0.15), rand(-0.1, 0.1))
-		makeEllipsoid(
+			* CFrame.Angles(-0.32, rand(-0.18, 0.18), rand(-0.14, 0.14))
+		makePart(
 			m,
 			"IsletChunk",
 			cf,
-			v3(3.8, 3.6, 3.0) * s * rand(0.92, 1.08),
-			jitter(PALETTE.rockTop:Lerp(PALETTE.rockBottom, 0.25), 0.025),
-			Enum.Material.SmoothPlastic
+			v3(3.4, 3.6, 2.8) * s * rand(0.92, 1.08),
+			jitter(PALETTE.rockTop:Lerp(PALETTE.rockBottom, 0.3), 0.025),
+			Enum.Material.Concrete
 		)
 	end
 	makeCrystalCluster(
@@ -2020,14 +2034,18 @@ local function makeFalls(parent: Instance, e: Vector3, n: Vector3, width: number
 		beam.CurveSize1 = vs.c1
 		beam.Segments = 18
 		beam.FaceCamera = false
+		beam.Texture = "rbxasset://textures/particles/smoke_main.dds"
+		beam.TextureMode = Enum.TextureMode.Stretch
+		beam.TextureLength = if idx == 1 then 1.8 else 2.6
+		beam.TextureSpeed = if idx == 1 then 1.35 else (1.75 + (idx % 3) * 0.3)
 		beam.LightEmission = vs.em
-		beam.LightInfluence = 0.62
+		beam.LightInfluence = 0.55
 		beam.Color = ColorSequence.new(vs.colA, vs.colB)
 		beam.Transparency = NumberSequence.new({
-			NumberSequenceKeypoint.new(0, vs.t0),
-			NumberSequenceKeypoint.new(0.18, vs.t0 + 0.10),
-			NumberSequenceKeypoint.new(0.52, vs.tMid),
-			NumberSequenceKeypoint.new(0.82, math.min(0.92, vs.tMid + 0.24)),
+			NumberSequenceKeypoint.new(0, math.min(0.88, vs.t0 + 0.06)),
+			NumberSequenceKeypoint.new(0.18, math.min(0.90, vs.t0 + 0.16)),
+			NumberSequenceKeypoint.new(0.54, math.min(0.94, vs.tMid + 0.10)),
+			NumberSequenceKeypoint.new(0.82, math.min(0.97, vs.tMid + 0.26)),
 			NumberSequenceKeypoint.new(1, 1),
 		})
 		beam.Parent = anchor
@@ -2150,22 +2168,32 @@ local function buildGround(walk: Instance, decor: Instance)
 			true
 		)
 	end
+	-- Dark warm stone under-cap sealing the underside of the grass plate so zero green peeks under RimLip
+	makeEllipsoid(
+		decor,
+		"RockUndersideCap",
+		CFrame.new(0, -3.2, 0),
+		v3(RX * 1.98, 4.2, RZ * 1.98),
+		PALETTE.rockCore,
+		Enum.Material.Concrete
+	)
 	-- soft grass patches (tone variation)
 	local patchF = makeFolder(decor, "GrassPatches")
 	local made = 0
 	local tries = 0
-	while made < 26 and tries < 400 do
+	while made < 24 and tries < 400 do
 		tries += 1
 		local p = v3(rand(-RX, RX), 0, rand(-RZ, RZ))
 		if insideIsland(p, 6) and isFree(p, 2.5) then
-			local s = rand(3.5, 8)
+			local s = rand(4.0, 8.5)
 			makeEllipsoid(
 				patchF,
 				"GrassPatch",
-				CFrame.new(p + v3(0, 0.02, 0)) * CFrame.Angles(0, rand(0, TAU), 0),
-				v3(s, 0.12, s * rand(0.6, 0.9)),
-				pickColor({ PALETTE.grassDark, PALETTE.grassLight }),
-				Enum.Material.SmoothPlastic
+				CFrame.new(p + v3(0, 0.015, 0)) * CFrame.Angles(0, rand(0, TAU), 0),
+				v3(s, 0.06, s * rand(0.6, 0.9)),
+				PALETTE.grass:Lerp(pickColor({ PALETTE.grassDark, PALETTE.grassLight }), 0.45),
+				Enum.Material.Grass,
+				0
 			)
 			made += 1
 		end
@@ -2239,14 +2267,40 @@ local function buildRim(walk: Instance, decor: Instance)
 			Enum.Material.SmoothPlastic
 		)
 	end
+	-- Invisible outer safety rail along the marble curb so players never fall 160 studs into the ocean.
+	-- Placed in Walkable with CanCollide=true, CanQuery=false, CanTouch=false, CastShadow=false.
+	local railSegs = 36
+	for i = 0, railSegs - 1 do
+		local a0 = i / railSegs * TAU
+		local a1 = (i + 1) / railSegs * TAU
+		local p0, p1 = edgePoint(a0), edgePoint(a1)
+		local t = p1 - p0
+		local len = t.Magnitude + 0.8
+		local tangent = t.Unit
+		local n = v3(tangent.Z, 0, -tangent.X)
+		local mid = (p0 + p1) / 2
+		local wall = makePart(
+			walk,
+			"SafetyBarrier",
+			edgeFrame(mid + n * 0.65 + v3(0, 7.5, 0), tangent),
+			v3(len, 15, 1.2),
+			PALETTE.marble,
+			Enum.Material.SmoothPlastic,
+			true,
+			1
+		)
+		wall.CanQuery = false
+		wall.CanTouch = false
+		wall.CastShadow = false
+	end
 end
 
 type RockLayer = { y: number, h: number, s: number, n: number, phase: number }
 local ROCK_LAYERS: { RockLayer } = {
-	{ y = -8.2, h = 9.4, s = 0.96, n = 14, phase = 0 },
-	{ y = -15.4, h = 10.2, s = 0.80, n = 11, phase = 0.5 },
-	{ y = -22.2, h = 9.8, s = 0.59, n = 8, phase = 0.25 },
-	{ y = -28.0, h = 8.4, s = 0.36, n = 5, phase = 0.6 },
+	{ y = -8.4, h = 10.6, s = 0.98, n = 18, phase = 0 },
+	{ y = -16.2, h = 11.4, s = 0.83, n = 14, phase = 0.45 },
+	{ y = -23.6, h = 10.8, s = 0.62, n = 10, phase = 0.2 },
+	{ y = -30.0, h = 9.4, s = 0.39, n = 7, phase = 0.5 },
 }
 
 local function buildRock(decor: Instance)
@@ -2254,14 +2308,13 @@ local function buildRock(decor: Instance)
 	local crystF = makeFolder(decor, "RockCrystals")
 	local avgR = (RX + RZ) / 2
 
-	-- Continuous dark warm-umber inner crevice core (eliminates gaps and gives deep natural grooves
-	-- between the large plump outer boulders)
+	-- Recessed warm-umber core sealing inner gaps without ever protruding past the outer rock cliffs
 	local coreSpecs = {
-		{ y = -6.8, s = 0.92, h = 9.0, col = PALETTE.rockCore:Lerp(PALETTE.rockBottom, 0.28) },
-		{ y = -13.6, s = 0.80, h = 11.2, col = PALETTE.rockCore:Lerp(PALETTE.rockBottom, 0.18) },
-		{ y = -20.6, s = 0.61, h = 11.2, col = PALETTE.rockCore },
-		{ y = -26.8, s = 0.39, h = 9.8, col = PALETTE.rockCrack },
-		{ y = -31.2, s = 0.20, h = 7.4, col = PALETTE.rockCrack },
+		{ y = -7.0, s = 0.85, h = 8.4, col = PALETTE.rockBottom },
+		{ y = -14.2, s = 0.72, h = 10.6, col = PALETTE.rockCore:Lerp(PALETTE.rockBottom, 0.45) },
+		{ y = -21.6, s = 0.54, h = 11.0, col = PALETTE.rockCore },
+		{ y = -28.2, s = 0.35, h = 9.8, col = PALETTE.rockCrack },
+		{ y = -33.2, s = 0.18, h = 7.4, col = PALETTE.rockCrack },
 	}
 	for _, cs in coreSpecs do
 		makeEllipsoid(
@@ -2270,122 +2323,216 @@ local function buildRock(decor: Instance)
 			CFrame.new(0, cs.y, 0),
 			v3(2 * RX * cs.s, cs.h, 2 * RZ * cs.s),
 			cs.col,
-			Enum.Material.SmoothPlastic
+			Enum.Material.Slate
 		)
 	end
 
-	-- Four interlocked tiers of large, plump, rounded sculpted rock lobes tapering smoothly to the keel
+	-- Sculpted organic faceted cliff boulders: each rock lobe pairs a tapered inverted-wedge crag
+	-- (narrower toward the bottom, matching hand-painted floating-island stone!) with a rounded
+	-- sunlit Slate shoulder so there are zero flat boxy walls and zero smooth brown balloons.
 	for k, layer in ROCK_LAYERS do
 		local tcol = (k - 1) / (#ROCK_LAYERS - 1)
 		local baseColor = PALETTE.rockTop:Lerp(PALETTE.rockBottom, tcol)
-		local lean = 0.16 + 0.34 * (1 - layer.s)
+		local lean = 0.22 + 0.26 * (1 - layer.s)
 		for j = 0, layer.n - 1 do
-			local a = (j + layer.phase + rand(-0.08, 0.08)) / layer.n * TAU
+			local a = (j + layer.phase + rand(-0.07, 0.07)) / layer.n * TAU
 			local outer = edgePoint(a, layer.s)
 			local n = edgeNormal(a)
 			local tangent = v3(-n.Z, 0, n.X)
-			-- Large plump boulder spanning ~1.06 of sector arc so neighbors tuck cleanly with a groove between them
-			local w = TAU * avgR * layer.s / layer.n * rand(1.04, 1.18)
-			local h = layer.h * rand(0.96, 1.12)
-			local d = math.max(11.0, w * 0.72) * (0.68 + 0.32 * layer.s)
-			local inset = if k == 1 then 1.0 else rand(0.6, 1.5)
-			local pos = outer - n * (d * 0.36 + inset) + v3(0, layer.y + rand(-0.45, 0.45), 0)
+			local w = TAU * avgR * layer.s / layer.n * rand(1.12, 1.28)
+			local h = layer.h * rand(0.96, 1.14)
+			local d = math.max(10.0, w * 0.78) * (0.68 + 0.32 * layer.s)
+			local inset = if k == 1 then 0.65 else rand(0.45, 1.2)
+			local pos = outer - n * (d * 0.36 + inset) + v3(0, layer.y + rand(-0.5, 0.5), 0)
 			if k == 1 then
-				-- Keep top of tier-1 boulder cleanly tucked under the marble rim lip (Y <= -3.95)
-				pos = v3(pos.X, math.min(pos.Y, -3.95 - h * 0.46), pos.Z)
+				pos = v3(pos.X, math.min(pos.Y, -3.55 - h * 0.44), pos.Z)
 			end
 			local cf = edgeFrame(pos, tangent)
-				* CFrame.Angles(-lean, rand(-0.08, 0.08), rand(-0.06, 0.06))
-			local col = jitter(baseColor, 0.02)
-			-- Main plump sculpted rock boulder mass
-			makeEllipsoid(rockF, "RockMass", cf, v3(w, h, d), col, Enum.Material.SmoothPlastic)
-			-- Subtle sunlit warm upper shoulder bulge (gives chiseled painterly warmth without sharp shards!)
-			if k <= 3 then
-				makeEllipsoid(
-					rockF,
-					"RockShoulder",
-					cf * CFrame.new(rand(-w * 0.08, w * 0.08), h * 0.18, -d * 0.14),
-					v3(w * 0.78, h * 0.56, d * 0.66),
-					jitter(col:Lerp(PALETTE.rockHighlight, 0.36), 0.018),
-					Enum.Material.SmoothPlastic
-				)
-			end
+				* CFrame.Angles(-lean, rand(-0.16, 0.16), rand(-0.14, 0.14))
+			local col = jitter(baseColor, 0.025)
+			-- Sculpted tapered cliff crag: rotating 180 deg around Z puts the wide top edge at RimLip
+			-- and angles the sloped face outward & downward (-Z, -Y), tapering naturally to the keel!
+			makeWedge(
+				rockF,
+				"RockCrag",
+				cf * CFrame.Angles(0, 0, math.pi),
+				v3(w * 1.02, h * 1.12, d * 0.96),
+				col,
+				Enum.Material.Slate
+			)
+			-- Secondary angled cliff facet offset to the seam between crags for chiseled depth
+			local seamCol = jitter(
+				col:Lerp(if j % 2 == 0 then PALETTE.rockHighlight else PALETTE.rockBottom, 0.32),
+				0.02
+			)
+			makeWedge(
+				rockF,
+				"RockFacet",
+				cf
+					* CFrame.new(w * 0.42, -h * 0.14, d * 0.08)
+					* CFrame.Angles(0, rand(-0.28, 0.28), math.pi + rand(-0.18, 0.18)),
+				v3(w * 0.64, h * 0.86, d * 0.72),
+				seamCol,
+				Enum.Material.Slate
+			)
 		end
 	end
 
-	-- Smooth plump rounded underside keel finishing the taper naturally
+	-- Tapered rocky keel finishing the island underside cleanly
 	makeEllipsoid(
 		rockF,
 		"RockKeel",
-		CFrame.new(0, -31.8, 0),
+		CFrame.new(0, -33.6, 0),
 		v3(20, 9.6, 17),
 		PALETTE.rockBottom:Lerp(PALETTE.rockCore, 0.25),
-		Enum.Material.SmoothPlastic
+		Enum.Material.Slate
 	)
-	for i = 0, 3 do
-		local a = i / 4 * TAU + 0.4
-		local p = v3(math.cos(a) * 5.2, -32.2, math.sin(a) * 4.4)
-		makeEllipsoid(
+	for i = 0, 5 do
+		local a = i / 6 * TAU + 0.25
+		local p = v3(math.cos(a) * 6.4, -34.2, math.sin(a) * 5.4)
+		local dir = v3(math.cos(a), 0, math.sin(a))
+		makeWedge(
 			rockF,
-			"RockKeelLobe",
-			CFrame.new(p) * CFrame.Angles(0, a, 0.25),
-			v3(8.5, 6.2, 7.6),
-			jitter(PALETTE.rockBottom, 0.02),
-			Enum.Material.SmoothPlastic
+			"RockKeelCrag",
+			CFrame.lookAt(p, p + dir) * CFrame.Angles(math.pi, 0, rand(-0.12, 0.12)),
+			v3(8.2, 8.8, 6.8),
+			jitter(PALETTE.rockBottom, 0.025),
+			Enum.Material.Slate
 		)
 	end
 
-	-- HERO embedded crystal tufts (thick hexagonal gem prisms deeply seated in the rock mass)
+	-- HERO protruding crystal clusters angled diagonally so their full faceted shafts shine clearly
+	-- from both CameraShot and close-up!
 	local heroCrystals = {
-		{ a = math.rad(152), k = 2, dy = 0.6, scale = 2.25, col = PALETTE.crystalGold, n = 4 },
-		{ a = math.rad(128), k = 3, dy = 0.2, scale = 1.85, col = PALETTE.crystalCyan, n = 4 },
-		{ a = math.rad(102), k = 2, dy = -1.6, scale = 2.65, col = PALETTE.crystalGold, n = 5 },
-		{ a = math.rad(68), k = 3, dy = 0.4, scale = 2.35, col = PALETTE.crystalGold, n = 5 },
-		{ a = math.rad(40), k = 2, dy = 0.2, scale = 2.05, col = PALETTE.crystalGold, n = 4 },
-		{ a = math.rad(86), k = 4, dy = -1.4, scale = 2.1, col = PALETTE.crystalCyan, n = 4 },
-		{ a = math.rad(114), k = 4, dy = -1.2, scale = 1.9, col = PALETTE.crystalCyan, n = 4 },
+		{
+			a = math.rad(154),
+			k = 2,
+			dy = 1.6,
+			scale = 2.65,
+			col = PALETTE.crystalGold,
+			n = 4,
+			side = -0.55,
+		},
+		{
+			a = math.rad(132),
+			k = 3,
+			dy = 0.8,
+			scale = 2.15,
+			col = PALETTE.crystalCyan,
+			n = 4,
+			side = -0.45,
+		},
+		{
+			a = math.rad(104),
+			k = 2,
+			dy = -0.6,
+			scale = 3.05,
+			col = PALETTE.crystalGold,
+			n = 5,
+			side = -0.35,
+		},
+		{
+			a = math.rad(88),
+			k = 3,
+			dy = -1.2,
+			scale = 2.35,
+			col = PALETTE.crystalCyan,
+			n = 4,
+			side = 0.25,
+		},
+		{
+			a = math.rad(68),
+			k = 2,
+			dy = -0.4,
+			scale = 2.85,
+			col = PALETTE.crystalGold,
+			n = 5,
+			side = 0.40,
+		},
+		{
+			a = math.rad(42),
+			k = 2,
+			dy = 1.0,
+			scale = 2.45,
+			col = PALETTE.crystalGold,
+			n = 4,
+			side = 0.55,
+		},
+		{
+			a = math.rad(28),
+			k = 3,
+			dy = 0.0,
+			scale = 2.0,
+			col = PALETTE.crystalCyan,
+			n = 4,
+			side = 0.50,
+		},
+		{
+			a = math.rad(118),
+			k = 4,
+			dy = -0.8,
+			scale = 2.4,
+			col = PALETTE.crystalCyan,
+			n = 4,
+			side = -0.35,
+		},
+		{
+			a = math.rad(76),
+			k = 4,
+			dy = -1.0,
+			scale = 2.45,
+			col = PALETTE.crystalCyan,
+			n = 4,
+			side = 0.35,
+		},
 	}
 	for _, hc in heroCrystals do
 		local layer = ROCK_LAYERS[hc.k]
 		local n = edgeNormal(hc.a)
-		-- Embed base slightly inside rock surface so prisms emerge organically from the cliff
-		local pos = edgePoint(hc.a, layer.s) - n * 1.4 + v3(0, layer.y + hc.dy, 0)
-		local dir = (n * 0.84 + v3(0, -0.32, 0)).Unit
+		local tangent = v3(-n.Z, 0, n.X)
+		local pos = edgePoint(hc.a, layer.s) - n * 0.4 + v3(0, layer.y + hc.dy, 0)
+		local dir = (n * 0.62 + tangent * hc.side + v3(0, -0.52, 0)).Unit
 		makeCrystalCluster(crystF, cfFromUp(pos, dir, rand(0, math.pi)), hc.scale, hc.col, hc.n)
 	end
 
 	-- Supporting encrusted crystals around sides & back
-	for c = 1, 14 do
+	for c = 1, 12 do
 		local k = randInt(2, 3)
 		local layer = ROCK_LAYERS[k]
 		local a = rand(0, TAU)
 		local n = edgeNormal(a)
 		local tangent = v3(-n.Z, 0, n.X)
-		local pos = edgePoint(a, layer.s) - n * 1.5 + v3(0, layer.y + rand(-1.0, 1.2), 0)
-		local dir = (n * 0.86 + v3(0, rand(-0.45, 0.05), 0) + tangent * rand(-0.2, 0.2)).Unit
+		local pos = edgePoint(a, layer.s) - n * 0.6 + v3(0, layer.y + rand(-1.0, 1.2), 0)
+		local dir = (n * 0.72 + v3(0, rand(-0.55, -0.1), 0) + tangent * rand(-0.4, 0.4)).Unit
 		local color = if c % 3 == 0 then PALETTE.crystalCyan else PALETTE.crystalGold
 		makeCrystalCluster(
 			crystF,
 			cfFromUp(pos, dir, rand(0, math.pi)),
-			rand(1.25, 1.75),
+			rand(1.45, 2.0),
 			color,
 			randInt(3, 4)
 		)
 	end
-	-- Compact cyan gem tufts peeking out along the lower keel (embedded, pointing gently down-outward)
+	-- Bold cyan crystal clusters hanging from the lower keel (matches concept art!)
 	for c = 0, 3 do
 		local a = c / 4 * TAU + 0.55
-		local p = v3(math.cos(a) * 7.8, -32.2, math.sin(a) * 6.8)
-		local dir = (v3(math.cos(a) * 0.45, -1, math.sin(a) * 0.45)).Unit
+		local p = v3(math.cos(a) * 8.2, -34.6, math.sin(a) * 7.0)
+		local dir = (v3(math.cos(a) * 0.48, -1, math.sin(a) * 0.48)).Unit
 		makeCrystalCluster(
 			crystF,
 			cfFromUp(p, dir, rand(0, math.pi)),
-			rand(1.6, 2.0),
+			rand(2.0, 2.45),
 			PALETTE.crystalCyan,
 			4
 		)
 	end
-	makeCrystalCluster(crystF, cfFromUp(v3(0, -34.2, 0), v3(0, -1, 0)), 2.1, PALETTE.crystalCyan, 4)
+	makeCrystalCluster(
+		crystF,
+		cfFromUp(v3(0, -36.4, 0), v3(0, -1, 0)),
+		2.55,
+		PALETTE.crystalCyan,
+		4
+	)
 end
 
 local function buildPond(
@@ -2523,19 +2670,19 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 		TAG_PULSE,
 		{ Min = 0.54, Max = 0.72, Speed = 1.0, Target = "Transparency" }
 	)
-	-- Delicate creamy-gold concentric surface ripples
+	-- Delicate warm champagne-gold concentric surface ripples
 	for i, r in { 2.6, 5.1, 7.8, 10.6 } do
 		makeNeonRing(
 			focus,
 			"Ripple",
 			CFrame.new(fx.X, 0.47, fx.Z),
 			r,
-			0.12 - i * 0.012,
-			PALETTE.ringCream,
-			0.18 + i * 0.10
+			0.11 - i * 0.01,
+			PALETTE.goldGlow,
+			0.26 + i * 0.11
 		)
 	end
-	-- Three slender floating champagne-cream halos + two refined hovering golden orbs
+	-- Three slender floating golden-champagne halos + two refined hovering golden orbs
 	local halos = makePivotModel(focus, "FocusHalos", CFrame.new(fx.X, 4.8, fx.Z))
 	for i, spec in { { 6.2, 2.5 }, { 5.0, 4.9 }, { 3.9, 7.2 } } do
 		makeNeonRing(
@@ -2543,17 +2690,17 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 			"Halo",
 			CFrame.new(fx.X, spec[2], fx.Z),
 			spec[1],
-			0.20 - i * 0.015,
-			PALETTE.ringCream,
-			0.14
+			0.18 - i * 0.012,
+			PALETTE.goldLight:Lerp(PALETTE.ringCream, 0.35),
+			0.22
 		)
 		makeNeonRing(
 			halos,
 			"HaloAura",
 			CFrame.new(fx.X, spec[2], fx.Z),
 			spec[1],
-			0.38,
-			PALETTE.goldGlow,
+			0.40,
+			PALETTE.gold,
 			0.78
 		)
 	end
@@ -2598,8 +2745,9 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 	)
 	makeSparkles(glints, PALETTE.ringCream, 5, 0.34, 3.2, 0.9)
 
-	-- 3 TALL majestic crystal pillars (~15 studs tall) with soft golden Beam light shafts
-	local pillarSpots = { v3(-42.5, 0, -4.5), v3(-30.5, 0, -17.5), v3(-44.0, 0, 14.5) }
+	-- 2 TALL majestic crystal pillars (~15 studs tall) with soft golden Beam light shafts
+	-- plus 1 bold ground-mounted crystal cluster beside the Focus deck (matching concept art!)
+	local pillarSpots = { v3(-42.5, 0, -4.5), v3(-30.5, 0, -17.5) }
 	for i, p in pillarSpots do
 		local pcf = CFrame.new(p) * CFrame.Angles(0, rand(0, TAU), 0)
 		makePart(
@@ -2682,55 +2830,70 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 		)
 		addTag(holder, TAG_BOB, { Amplitude = 0.4, Speed = 1.25, Phase = i })
 		-- Soft ethereal upward-fading champagne-gold Beam light shafts
-		if i <= 2 then
-			local shaftAnchor = makePart(
-				decor,
-				"LightShaftAnchor",
-				CFrame.new(p + v3(0, 14.2, 0)),
-				v3(0.4, 0.4, 0.4),
-				PALETTE.ringCream,
-				Enum.Material.SmoothPlastic,
-				false,
-				1
-			)
-			for layer = 1, 2 do
-				local a0 = Instance.new("Attachment")
-				a0.Name = "ShaftA0_" .. layer
-				a0.Position = v3(0, -1.0, 0)
-				a0.Parent = shaftAnchor
-				local a1 = Instance.new("Attachment")
-				a1.Name = "ShaftA1_" .. layer
-				a1.Position = v3(0, 82, 0)
-				a1.Parent = shaftAnchor
-				local b = Instance.new("Beam")
-				b.Name = "LightShaftBeam_" .. layer
-				b.Attachment0 = a0
-				b.Attachment1 = a1
-				b.FaceCamera = true
-				b.Segments = 8
-				b.Width0 = if layer == 1 then 1.5 else 4.2
-				b.Width1 = if layer == 1 then 2.8 else 7.0
-				b.LightEmission = 0.65
-				b.LightInfluence = 0
-				b.Color = ColorSequence.new(PALETTE.ringCream, PALETTE.cloudSunset)
-				b.Transparency = if layer == 1
-					then NumberSequence.new({
-						NumberSequenceKeypoint.new(0, 0.46),
-						NumberSequenceKeypoint.new(0.45, 0.68),
-						NumberSequenceKeypoint.new(0.85, 0.90),
-						NumberSequenceKeypoint.new(1, 1),
-					})
-					else NumberSequence.new({
-						NumberSequenceKeypoint.new(0, 0.70),
-						NumberSequenceKeypoint.new(0.45, 0.84),
-						NumberSequenceKeypoint.new(0.85, 0.95),
-						NumberSequenceKeypoint.new(1, 1),
-					})
-				b.Parent = shaftAnchor
-			end
+		local shaftAnchor = makePart(
+			decor,
+			"LightShaftAnchor",
+			CFrame.new(p + v3(0, 14.2, 0)),
+			v3(0.4, 0.4, 0.4),
+			PALETTE.ringCream,
+			Enum.Material.SmoothPlastic,
+			false,
+			1
+		)
+		for layer = 1, 2 do
+			local a0 = Instance.new("Attachment")
+			a0.Name = "ShaftA0_" .. layer
+			a0.Position = v3(0, -1.0, 0)
+			a0.Parent = shaftAnchor
+			local a1 = Instance.new("Attachment")
+			a1.Name = "ShaftA1_" .. layer
+			a1.Position = v3(0, 82, 0)
+			a1.Parent = shaftAnchor
+			local b = Instance.new("Beam")
+			b.Name = "LightShaftBeam_" .. layer
+			b.Attachment0 = a0
+			b.Attachment1 = a1
+			b.FaceCamera = true
+			b.Segments = 8
+			b.Width0 = if layer == 1 then 1.5 else 4.4
+			b.Width1 = if layer == 1 then 3.0 else 7.6
+			b.LightEmission = 0.62
+			b.LightInfluence = 0
+			b.Color = ColorSequence.new(PALETTE.goldGlow, PALETTE.cloudSunset)
+			b.Transparency = if layer == 1
+				then NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.48),
+					NumberSequenceKeypoint.new(0.45, 0.70),
+					NumberSequenceKeypoint.new(0.85, 0.90),
+					NumberSequenceKeypoint.new(1, 1),
+				})
+				else NumberSequence.new({
+					NumberSequenceKeypoint.new(0, 0.74),
+					NumberSequenceKeypoint.new(0.45, 0.86),
+					NumberSequenceKeypoint.new(0.85, 0.95),
+					NumberSequenceKeypoint.new(1, 1),
+				})
+			b.Parent = shaftAnchor
 		end
 		addZone(p, nil, 2.8)
 	end
+	-- Large iridescent crystal cluster emerging from the grass beside the Focus deck (matches concept art!)
+	local sideCrystalPos = v3(-44.0, 0, 14.2)
+	makeCrystalCluster(
+		decor,
+		CFrame.new(sideCrystalPos) * CFrame.Angles(0, 0.35, -0.08),
+		2.15,
+		PALETTE.crystalCyan,
+		4
+	)
+	makeCrystalCluster(
+		decor,
+		CFrame.new(sideCrystalPos + v3(1.6, 0, 1.4)) * CFrame.Angles(0, -0.4, 0.16),
+		1.25,
+		PALETTE.crystalGold,
+		3
+	)
+	addZone(sideCrystalPos, nil, 3.0)
 
 	-- Instinct pond: painterly swirling sunset-galaxy pool (deep purple, rose, peach-gold & teal reflections)
 	buildPond(
@@ -2740,73 +2903,81 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 		PALETTE.instinctWater,
 		PALETTE.instinctDeep,
 		{ { math.pi, 0.22 }, { math.rad(35), 0.16 }, { math.rad(INSTINCT_DECK_ANGLE), 0.28 } },
-		0.44
+		0.48
 	)
 	local ix = INSTINCT_C + v3(0.8, 0, 0.6)
-	-- Organic asymmetric overlapping reflection pools (replaces flat bullseye circles!)
+	-- Organic asymmetric overlapping reflection pools (soft layered sunset wash, zero flat yellow disc!)
 	local reflectionPools = {
 		-- Deep violet outer wash
 		{
 			off = v3(-0.6, 0.06, -0.4),
-			sx = INSTINCT_R * 1.84,
-			sz = INSTINCT_R * 1.78,
+			sx = INSTINCT_R * 1.86,
+			sz = INSTINCT_R * 1.80,
 			yaw = 0.2,
-			col = Color3.fromRGB(98, 48, 146),
+			col = Color3.fromRGB(92, 42, 142),
 			t = 0,
 		},
 		-- Rose-magenta upper-right swirl
 		{
-			off = v3(1.8, 0.08, -2.4),
-			sx = INSTINCT_R * 1.48,
-			sz = INSTINCT_R * 1.12,
+			off = v3(1.6, 0.08, -2.2),
+			sx = INSTINCT_R * 1.50,
+			sz = INSTINCT_R * 1.18,
 			yaw = -0.42,
-			col = Color3.fromRGB(168, 76, 152),
-			t = 0.14,
+			col = Color3.fromRGB(168, 70, 152),
+			t = 0.22,
 		},
 		-- Warm dusty-rose center-left flow
 		{
-			off = v3(-1.4, 0.10, 1.8),
-			sx = INSTINCT_R * 1.32,
-			sz = INSTINCT_R * 0.98,
+			off = v3(-1.4, 0.095, 1.8),
+			sx = INSTINCT_R * 1.36,
+			sz = INSTINCT_R * 1.04,
 			yaw = 0.35,
-			col = Color3.fromRGB(196, 98, 148),
-			t = 0.18,
+			col = Color3.fromRGB(196, 88, 146),
+			t = 0.28,
 		},
-		-- Luminous seafoam-teal painterly reflection on the lower-left curve (matches concept art!)
+		-- Luminous seafoam-teal painterly reflection on the lower-left curve
 		{
-			off = v3(-6.2, 0.12, 3.6),
-			sx = INSTINCT_R * 0.86,
-			sz = INSTINCT_R * 0.56,
+			off = v3(-6.2, 0.11, 3.4),
+			sx = INSTINCT_R * 0.90,
+			sz = INSTINCT_R * 0.60,
 			yaw = 0.68,
-			col = Color3.fromRGB(78, 166, 174),
-			t = 0.34,
+			col = Color3.fromRGB(72, 158, 174),
+			t = 0.42,
 		},
 		-- Secondary soft aqua shimmer on the upper-left curve
 		{
-			off = v3(-6.8, 0.11, -3.2),
-			sx = INSTINCT_R * 0.68,
-			sz = INSTINCT_R * 0.44,
+			off = v3(-6.6, 0.105, -3.0),
+			sx = INSTINCT_R * 0.72,
+			sz = INSTINCT_R * 0.48,
 			yaw = -0.55,
-			col = Color3.fromRGB(96, 154, 178),
-			t = 0.42,
+			col = Color3.fromRGB(88, 146, 176),
+			t = 0.48,
 		},
-		-- Warm coral-peach sunset reflection sweeping across the middle
+		-- Warm coral-peach sunset glow sweeping smoothly across the middle
 		{
-			off = v3(0.8, 0.13, 0.4),
-			sx = INSTINCT_R * 1.12,
-			sz = INSTINCT_R * 0.78,
+			off = v3(0.6, 0.12, 0.4),
+			sx = INSTINCT_R * 1.16,
+			sz = INSTINCT_R * 0.84,
 			yaw = -0.25,
-			col = Color3.fromRGB(218, 134, 122),
-			t = 0.22,
+			col = Color3.fromRGB(214, 120, 114),
+			t = 0.38,
 		},
-		-- Warm amber-gold luminous heart
+		-- Soft diffuse amber-gold heart (translucent so it blends like reflected sunset light!)
 		{
-			off = v3(1.6, 0.15, 0.9),
-			sx = INSTINCT_R * 0.78,
-			sz = INSTINCT_R * 0.54,
+			off = v3(1.4, 0.135, 0.8),
+			sx = INSTINCT_R * 0.84,
+			sz = INSTINCT_R * 0.60,
 			yaw = 0.22,
-			col = PALETTE.instinctGold,
-			t = 0.18,
+			col = Color3.fromRGB(224, 156, 82),
+			t = 0.44,
+		},
+		{
+			off = v3(1.0, 0.145, 0.6),
+			sx = INSTINCT_R * 0.50,
+			sz = INSTINCT_R * 0.36,
+			yaw = -0.18,
+			col = Color3.fromRGB(238, 184, 102),
+			t = 0.56,
 		},
 	}
 	for idx, rp in reflectionPools do
@@ -2814,7 +2985,7 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 			instinct,
 			"WaterReflect" .. idx,
 			CFrame.new(INSTINCT_C + rp.off) * CFrame.Angles(0, rp.yaw, 0),
-			v3(rp.sx, 0.06, rp.sz),
+			v3(rp.sx, 0.05, rp.sz),
 			rp.col,
 			Enum.Material.SmoothPlastic,
 			rp.t
@@ -2823,18 +2994,18 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 	local instinctAura = makeEllipsoid(
 		instinct,
 		"WaterGlowAura",
-		CFrame.new(ix.X + 0.8, 0.17, ix.Z + 0.4) * CFrame.Angles(0, 0.25, 0),
-		v3(INSTINCT_R * 0.74, 0.04, INSTINCT_R * 0.52),
+		CFrame.new(ix.X + 0.8, 0.16, ix.Z + 0.4) * CFrame.Angles(0, 0.25, 0),
+		v3(INSTINCT_R * 0.70, 0.04, INSTINCT_R * 0.48),
 		PALETTE.goldGlow,
 		Enum.Material.Neon,
-		0.76
+		0.84
 	)
 	addTag(
 		instinctAura,
 		TAG_PULSE,
-		{ Min = 0.68, Max = 0.84, Speed = 1.0, Target = "Transparency" }
+		{ Min = 0.76, Max = 0.90, Speed = 1.0, Target = "Transparency" }
 	)
-	-- Organic curved caustic wave arcs (replaces perfect concentric yellow rings!)
+	-- Organic curved caustic wave arcs
 	local waveArcs = {
 		{
 			c = v3(-3.8, 0.46, 3.2),
@@ -2842,7 +3013,7 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 			a0 = 0.5,
 			a1 = 1.9,
 			col = Color3.fromRGB(142, 214, 218),
-			t = 0.54,
+			t = 0.56,
 		},
 		{
 			c = v3(2.4, 0.46, -2.0),
@@ -2850,17 +3021,17 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 			a0 = -1.2,
 			a1 = 0.4,
 			col = PALETTE.pastelPink,
-			t = 0.50,
+			t = 0.54,
 		},
-		{ c = v3(0.4, 0.46, 1.0), r = 4.2, a0 = 2.0, a1 = 3.5, col = PALETTE.ringCream, t = 0.48 },
-		{ c = v3(4.6, 0.46, 2.6), r = 3.8, a0 = -0.3, a1 = 1.2, col = PALETTE.goldGlow, t = 0.52 },
+		{ c = v3(0.4, 0.46, 1.0), r = 4.2, a0 = 2.0, a1 = 3.5, col = PALETTE.goldGlow, t = 0.54 },
+		{ c = v3(4.6, 0.46, 2.6), r = 3.8, a0 = -0.3, a1 = 1.2, col = PALETTE.goldGlow, t = 0.56 },
 		{
 			c = v3(-1.8, 0.46, -4.4),
 			r = 5.2,
 			a0 = 3.6,
 			a1 = 5.0,
 			col = PALETTE.pastelLilac,
-			t = 0.54,
+			t = 0.56,
 		},
 	}
 	for _, wa in waveArcs do
@@ -2887,15 +3058,16 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 		end
 	end
 
-	-- 4 SLEEK sinuous glowing underwater fish/shark silhouettes (multi-segment curved body, V-tail, dorsal fin!)
+	-- 4 VIBRANT glowing underwater shark/koi silhouettes (chunkier sculpted bodies in true gold,
+	-- rose-lilac, amber & rainbow colors — NO white Neon wash hiding their hues!)
 	-- Preserves Model names LegendaryFish1..4, PrimaryPart, and Orbit* attributes for PondAnimator.
 	local fishFolder = makeFolder(instinct, "LegendaryFish")
 	local fishSpecs = {
 		{
-			radius = 5.6,
-			speed = 0.36,
+			radius = 5.8,
+			speed = 0.34,
 			phase = 4.25,
-			len = 4.8,
+			len = 5.2,
 			curve = 1,
 			style = "gold",
 		},
@@ -2903,28 +3075,28 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 			radius = 8.4,
 			speed = -0.26,
 			phase = 2.45,
-			len = 5.8,
+			len = 6.2,
 			curve = -1,
 			style = "rose",
 		},
 		{
-			radius = 7.4,
-			speed = 0.30,
+			radius = 7.2,
+			speed = 0.28,
 			phase = 5.75,
-			len = 4.2,
+			len = 4.6,
 			curve = 1,
 			style = "amber",
 		},
 		{
-			radius = 9.8,
+			radius = 9.4,
 			speed = -0.24,
 			phase = 0.75,
-			len = 5.5,
+			len = 5.9,
 			curve = -1,
 			style = "rainbow",
 		},
 	}
-	local fishY = 0.25
+	local fishY = 0.27
 	for i, spec in fishSpecs do
 		local pos = INSTINCT_C
 			+ v3(math.cos(spec.phase) * spec.radius, fishY, math.sin(spec.phase) * spec.radius)
@@ -2939,80 +3111,80 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 		local rimColor: Color3
 		if spec.style == "rainbow" then
 			segColors = {
-				PALETTE.pastelAqua,
-				PALETTE.pastelMint,
-				PALETTE.pastelLemon,
-				PALETTE.pastelPink,
-				PALETTE.pastelLilac,
+				Color3.fromRGB(62, 224, 248), -- cyan snout
+				Color3.fromRGB(98, 244, 152), -- emerald-mint mid
+				Color3.fromRGB(255, 226, 74), -- solar gold
+				Color3.fromRGB(255, 118, 178), -- rose-pink
+				Color3.fromRGB(164, 118, 255), -- violet tail
 			}
-			rimColor = PALETTE.ringCream
+			rimColor = Color3.fromRGB(160, 244, 255)
 		elseif spec.style == "rose" then
 			segColors = {
-				Color3.fromRGB(204, 128, 186),
-				Color3.fromRGB(192, 114, 178),
-				Color3.fromRGB(178, 102, 172),
-				Color3.fromRGB(168, 96, 168),
-				Color3.fromRGB(186, 112, 174),
+				Color3.fromRGB(246, 156, 214),
+				Color3.fromRGB(232, 126, 204),
+				Color3.fromRGB(214, 108, 198),
+				Color3.fromRGB(196, 98, 192),
+				Color3.fromRGB(240, 148, 208),
 			}
-			rimColor = Color3.fromRGB(246, 204, 152)
+			rimColor = Color3.fromRGB(255, 196, 146)
 		elseif spec.style == "amber" then
 			segColors = {
-				Color3.fromRGB(224, 164, 96),
-				Color3.fromRGB(210, 142, 86),
-				Color3.fromRGB(192, 120, 92),
-				Color3.fromRGB(174, 102, 108),
-				Color3.fromRGB(198, 134, 102),
+				Color3.fromRGB(255, 184, 72),
+				Color3.fromRGB(244, 152, 62),
+				Color3.fromRGB(228, 124, 74),
+				Color3.fromRGB(212, 102, 92),
+				Color3.fromRGB(248, 164, 68),
 			}
-			rimColor = PALETTE.goldGlow
+			rimColor = Color3.fromRGB(255, 204, 92)
 		else
 			segColors = {
-				Color3.fromRGB(236, 186, 98),
-				Color3.fromRGB(228, 168, 82),
-				Color3.fromRGB(218, 154, 74),
-				Color3.fromRGB(206, 140, 68),
-				Color3.fromRGB(232, 180, 96),
+				Color3.fromRGB(255, 202, 68),
+				Color3.fromRGB(250, 182, 54),
+				Color3.fromRGB(240, 162, 48),
+				Color3.fromRGB(228, 144, 44),
+				Color3.fromRGB(255, 194, 64),
 			}
-			rimColor = PALETTE.ringCream
+			rimColor = Color3.fromRGB(255, 216, 106)
 		end
 
-		-- Sleek 4-segment S-curved tapered body (pointed shark/koi snout -> narrow tail stalk)
+		-- Fuller sleek 4-segment S-curved tapered shark/koi body (clearly legible underwater!)
 		local bodySegs = {
 			{
 				x = 0.02 * cSgn,
-				z = -len * 0.30,
-				w = len * 0.13,
-				h = 0.15,
-				l = len * 0.28,
+				z = -len * 0.29,
+				w = len * 0.19,
+				h = 0.22,
+				l = len * 0.30,
 				yaw = -0.08 * cSgn,
 			},
 			{
 				x = 0.0,
-				z = -len * 0.08,
-				w = len * 0.20,
-				h = 0.19,
-				l = len * 0.34,
+				z = -len * 0.06,
+				w = len * 0.28,
+				h = 0.26,
+				l = len * 0.36,
 				yaw = 0.02 * cSgn,
 			},
 			{
-				x = 0.07 * cSgn,
-				z = len * 0.16,
-				w = len * 0.14,
-				h = 0.16,
-				l = len * 0.28,
+				x = 0.08 * cSgn,
+				z = len * 0.17,
+				w = len * 0.20,
+				h = 0.22,
+				l = len * 0.30,
 				yaw = 0.16 * cSgn,
 			},
 			{
-				x = 0.20 * cSgn,
+				x = 0.21 * cSgn,
 				z = len * 0.38,
-				w = len * 0.075,
-				h = 0.12,
-				l = len * 0.24,
+				w = len * 0.11,
+				h = 0.16,
+				l = len * 0.25,
 				yaw = 0.28 * cSgn,
 			},
 		}
 		for si, bs in bodySegs do
 			local scf = fcf * CFrame.new(bs.x, 0, bs.z) * CFrame.Angles(0, bs.yaw, 0)
-			-- Rich colored underwater body core
+			-- Rich saturated glowing body segment (Neon with slightly deeper saturation avoids white wash!)
 			makeEllipsoid(
 				fish,
 				"FishSeg" .. si,
@@ -3022,15 +3194,15 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 				Enum.Material.SmoothPlastic,
 				0
 			)
-			-- Subtle luminous dorsal outline glow reading crisply beneath the translucent surface
+			-- Colored self-illuminated sheen (keeps true hue under the translucent violet water!)
 			makeEllipsoid(
 				fish,
 				"FishGlow" .. si,
-				scf * CFrame.new(0, bs.h * 0.38, 0),
-				v3(bs.w * 0.72, 0.05, bs.l * 0.92),
-				if spec.style == "rainbow" then segColors[si]:Lerp(rimColor, 0.35) else rimColor,
+				scf * CFrame.new(0, bs.h * 0.28, 0),
+				v3(bs.w * 0.88, 0.08, bs.l * 0.94),
+				segColors[si],
 				Enum.Material.Neon,
-				0.26
+				0.42
 			)
 		end
 
@@ -3038,25 +3210,25 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 		makeWedge(
 			fish,
 			"FishDorsal",
-			fcf * CFrame.new(0.02 * cSgn, 0.14, len * 0.04) * CFrame.Angles(0, 0.06 * cSgn, 0),
-			v3(0.07, 0.26, len * 0.26),
+			fcf * CFrame.new(0.02 * cSgn, 0.18, len * 0.04) * CFrame.Angles(0, 0.06 * cSgn, 0),
+			v3(0.09, 0.32, len * 0.28),
 			rimColor,
 			Enum.Material.Neon,
 			false,
-			0.18
+			0.35
 		)
 
-		-- Swept-back shark/koi pectoral fins (slender, graceful, swept back!)
+		-- Swept-back shark/koi pectoral fins (clearly visible V wings!)
 		for sx = -1, 1, 2 do
 			local finCF = fcf
-				* CFrame.new(sx * len * 0.18, -0.01, -len * 0.04)
-				* CFrame.Angles(0, sx * 0.62, 0)
+				* CFrame.new(sx * len * 0.22, -0.01, -len * 0.04)
+				* CFrame.Angles(0, sx * 0.58, 0)
 			makeEllipsoid(
 				fish,
 				"FishFin",
 				finCF,
-				v3(len * 0.08, 0.05, len * 0.34),
-				segColors[2]:Lerp(rimColor, 0.35),
+				v3(len * 0.11, 0.07, len * 0.38),
+				segColors[2],
 				Enum.Material.SmoothPlastic,
 				0
 			)
@@ -3064,10 +3236,10 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 				fish,
 				"FishFinGlow",
 				finCF * CFrame.new(0, 0.03, 0),
-				v3(len * 0.05, 0.03, len * 0.30),
+				v3(len * 0.09, 0.04, len * 0.34),
 				rimColor,
 				Enum.Material.Neon,
-				0.32
+				0.46
 			)
 		end
 
@@ -3077,13 +3249,13 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 			* CFrame.Angles(0, 0.32 * cSgn, 0)
 		for sx = -1, 1, 2 do
 			local tcf = tailBase
-				* CFrame.new(sx * len * 0.10, 0, len * 0.14)
-				* CFrame.Angles(0, sx * 0.52, 0)
+				* CFrame.new(sx * len * 0.12, 0, len * 0.15)
+				* CFrame.Angles(0, sx * 0.54, 0)
 			makeEllipsoid(
 				fish,
 				"FishTail",
 				tcf,
-				v3(len * 0.085, 0.06, len * 0.36),
+				v3(len * 0.11, 0.07, len * 0.38),
 				segColors[5],
 				Enum.Material.SmoothPlastic,
 				0
@@ -3092,10 +3264,10 @@ local function buildPonds(model: Model, decor: Instance): (Model, Model)
 				fish,
 				"FishTailGlow",
 				tcf * CFrame.new(0, 0.03, 0),
-				v3(len * 0.055, 0.03, len * 0.32),
-				rimColor,
+				v3(len * 0.09, 0.04, len * 0.34),
+				segColors[5]:Lerp(rimColor, 0.3),
 				Enum.Material.Neon,
-				0.28
+				0.44
 			)
 		end
 
@@ -3397,7 +3569,7 @@ local function buildPortal(walk: Instance, decor: Instance)
 	-- SEAMLESS OPAQUE IRIDESCENT ARCH BACKING + FULL-ARCH SPINNING RAINBOW SPIRAL
 	-- (Opaque backing at zP - 0.34 guarantees ZERO Roblox transparent z-sorting glitches!)
 	local openY = top + 11.6
-	local backCol = Color3.fromRGB(154, 114, 238)
+	local backCol = Color3.fromRGB(228, 176, 242)
 	makePart(
 		portalF,
 		"PortalGlow",
@@ -3419,56 +3591,69 @@ local function buildPortal(walk: Instance, decor: Instance)
 		0
 	)
 
-	local vc = v3(0, top + 8.6, zP + 0.02)
+	local vc = v3(0, top + 8.4, zP + 0.02)
 	local vortex = makePivotModel(portalF, "PortalVortex", CFrame.new(vc))
-	-- Opaque layered glowing pastel rainbow aura discs (clean depth order, zero transparency cuts!)
+	-- Full-arch pastel rainbow aura discs in SmoothPlastic (avoids white Bloom blowout in Play!)
 	local auraSpecs = {
-		{ r = 4.2, z = -0.20, col = PALETTE.pastelLilac },
-		{ r = 3.55, z = -0.14, col = PALETTE.pastelPink },
-		{ r = 2.9, z = -0.08, col = PALETTE.pastelAqua },
-		{ r = 2.2, z = -0.02, col = PALETTE.pastelMint },
-		{ r = 1.5, z = 0.04, col = PALETTE.pastelLemon },
+		{ rx = 4.2, ry = 7.4, z = -0.22, col = Color3.fromRGB(232, 134, 214) },
+		{ rx = 3.9, ry = 6.2, z = -0.16, col = Color3.fromRGB(192, 146, 242) },
+		{ rx = 3.4, ry = 5.0, z = -0.10, col = Color3.fromRGB(118, 214, 246) },
+		{ rx = 2.6, ry = 3.8, z = -0.04, col = Color3.fromRGB(132, 232, 198) },
+		{ rx = 1.8, ry = 2.4, z = 0.02, col = Color3.fromRGB(248, 224, 136) },
 	}
 	for _, au in auraSpecs do
-		makeCylinderZ(
+		makeEllipsoid(
 			vortex,
 			"VortexAura",
 			CFrame.new(vc + v3(0, 0, au.z)),
-			0.05,
-			au.r * 2,
+			v3(au.rx * 2, au.ry * 2, 0.08),
 			au.col,
-			Enum.Material.Neon,
+			Enum.Material.SmoothPlastic,
 			0
 		)
 	end
 	local armCols = {
-		PALETTE.pastelPink,
-		PALETTE.pastelPeach,
-		PALETTE.pastelLemon,
-		PALETTE.pastelMint,
-		PALETTE.pastelAqua,
-		PALETTE.pastelLilac,
+		Color3.fromRGB(246, 114, 178), -- vibrant pastel rose
+		Color3.fromRGB(252, 166, 102), -- warm sunset peach
+		Color3.fromRGB(246, 218, 92), -- sunny pastel lemon
+		Color3.fromRGB(92, 224, 172), -- fresh pastel mint
+		Color3.fromRGB(82, 198, 244), -- sky pastel aqua
+		Color3.fromRGB(172, 122, 242), -- soft pastel lilac
 	}
 	for arm = 0, 5 do
 		local prev = vc + v3(0, 0, 0.16)
 		local col = armCols[(arm % #armCols) + 1]
-		for k = 1, 20 do
-			local t = k / 20
-			local a = arm * (TAU / 6) + t * 2.75 * math.pi
-			local rx = 0.25 + 4.1 * t
-			local ry = 0.25 + 5.2 * t
+		for k = 1, 22 do
+			local t = k / 22
+			local a = arm * (TAU / 6) + t * 2.9 * math.pi
+			local rx = 0.25 + 4.15 * t
+			local ry = 0.25 + 6.4 * t
 			local p = vc + v3(math.cos(a) * rx, math.sin(a) * ry, 0.16)
 			makeSegment(
 				vortex,
 				"VortexArm",
 				prev,
 				p,
-				0.6 * (1.16 - t * 0.38),
+				0.78 * (1.18 - t * 0.34),
 				0.14,
 				col,
-				Enum.Material.Neon,
+				Enum.Material.SmoothPlastic,
 				0
 			)
+			-- Subtle translucent glowing highlight ribbon (gives magical glow without white blowout!)
+			if k >= 3 and k <= 18 then
+				makeSegment(
+					vortex,
+					"VortexArmGlow",
+					prev + v3(0, 0, 0.06),
+					p + v3(0, 0, 0.06),
+					0.30 * (1.15 - t * 0.3),
+					0.06,
+					col,
+					Enum.Material.Neon,
+					0.45
+				)
+			end
 			prev = p
 		end
 	end
@@ -3476,11 +3661,12 @@ local function buildPortal(walk: Instance, decor: Instance)
 		vortex,
 		"VortexEye",
 		vc + v3(0, 0, 0.26),
-		1.65,
-		Color3.fromRGB(255, 250, 234),
-		Enum.Material.Neon
+		1.25,
+		Color3.fromRGB(255, 244, 206),
+		Enum.Material.Neon,
+		0.24
 	)
-	addTag(eye, TAG_PULSE, { Min = 0.0, Max = 0.18, Speed = 1.4, Target = "Transparency" })
+	addTag(eye, TAG_PULSE, { Min = 0.18, Max = 0.38, Speed = 1.4, Target = "Transparency" })
 	addTag(vortex, TAG_SPIN, { Speed = 24, Axis = "Z", Phase = 0 })
 
 	local fx = makePart(
@@ -3940,15 +4126,20 @@ local function buildTree(decor: Instance)
 	end
 	local canopy = makePivotModel(treeF, "TreeCanopy", CFrame.new(top))
 	for _, cl in clumps do
-		-- Deep rose shaded base cloud (flattened slightly for organic layered sakura look)
-		makeEllipsoid(
-			canopy,
-			"BlossomBase",
-			CFrame.new(cl.c + v3(0, -cl.r * 0.22, 0)),
-			v3(cl.r * 1.9, cl.r * 1.08, cl.r * 1.85),
-			PALETTE.blossomDeep,
-			Enum.Material.SmoothPlastic
-		)
+		-- Organic clustered shaded base lobes (replaces single smooth balloon!)
+		for bi = 1, 3 do
+			local ba = bi / 3 * TAU + rand(-0.3, 0.3)
+			makeEllipsoid(
+				canopy,
+				"BlossomBase",
+				CFrame.new(
+					cl.c + v3(math.cos(ba) * cl.r * 0.38, -cl.r * 0.24, math.sin(ba) * cl.r * 0.38)
+				),
+				v3(cl.r * 1.18, cl.r * 0.72, cl.r * 1.12),
+				jitter(PALETTE.blossomDeep, 0.02),
+				Enum.Material.SmoothPlastic
+			)
+		end
 		-- Abundant varied smaller layered blossom tufts (organic sakura cloud, never smooth balloons!)
 		for _ = 1, 16 do
 			local a = rand(0, TAU)
@@ -4341,7 +4532,7 @@ end
 
 local function buildSky(decor: Instance)
 	local skyF = makeFolder(decor, "Sky")
-	-- Slender translucent cream-gold double orbit halo framing the island without obstructing it
+	-- Slender warm champagne-gold double orbit halo framing the island without obstructing it
 	local ring = makePivotModel(skyF, "OrbitRing", CFrame.new(0, RING_Y, 0))
 	makeRingBand(
 		ring,
@@ -4350,23 +4541,36 @@ local function buildSky(decor: Instance)
 		59.8,
 		0.22,
 		0.18,
-		PALETTE.ringCream,
+		PALETTE.goldLight:Lerp(PALETTE.ringCream, 0.45),
 		Enum.Material.Neon,
 		false,
-		0.34,
+		0.32,
 		3.8
+	)
+	makeRingBand(
+		ring,
+		"OrbitRingAAura",
+		CFrame.new(0, RING_Y, 0),
+		59.8,
+		0.72,
+		0.42,
+		PALETTE.goldGlow,
+		Enum.Material.Neon,
+		false,
+		0.80,
+		4.8
 	)
 	makeRingBand(
 		ring,
 		"OrbitRingB",
 		CFrame.new(0, RING_Y - 0.25, 0),
 		63.6,
-		0.13,
+		0.14,
 		0.12,
-		PALETTE.ringCream,
+		PALETTE.goldGlow,
 		Enum.Material.Neon,
 		false,
-		0.56,
+		0.52,
 		4.2
 	)
 	for i = 0, 11 do
@@ -4404,7 +4608,9 @@ local function buildSky(decor: Instance)
 	makeIslet(skyF, "IsletFrontRight", v3(58, -17, 26), 1.08, 2.2)
 	makeIslet(skyF, "IsletBack", v3(-33, -18, -68), 0.88, 4.1)
 
-	-- Separated billowing cumulus cloud sea well below the island (background depth, never competing!)
+	-- Layered billowing warm sunset cumulus cloud sea well below the island:
+	-- lower continuous soft cloud deck hides deep blue ocean gaps, upper cumulus banks add depth
+	-- while keeping the sculpted rock cliff & crystals 100% unobstructed!
 	local cloudF = makeFolder(skyF, "CloudSea")
 	local tints = {
 		PALETTE.cloudCream,
@@ -4413,27 +4619,53 @@ local function buildSky(decor: Instance)
 		PALETTE.cloudLilac,
 		PALETTE.cloudBlue,
 	}
+	-- Soft lower blanket of oversized pastel clouds (fills gaps far below so it reads as a true sea of clouds)
+	local deckRings = {
+		{ r = 0, n = 1, sx = 240, sy = 30, sz = 220, y = -98, col = PALETTE.cloudCream },
+		{ r = 130, n = 8, sx = 145, sy = 28, sz = 135, y = -94, col = PALETTE.cloudPink },
+		{ r = 245, n = 12, sx = 175, sy = 32, sz = 160, y = -92, col = PALETTE.cloudLilac },
+	}
+	for _, dr in deckRings do
+		for i = 0, dr.n - 1 do
+			local a = (i / dr.n) * TAU + rand(-0.12, 0.12)
+			local c = v3(math.cos(a) * dr.r, dr.y + rand(-3, 3), math.sin(a) * dr.r)
+			local col = if c.X < -40
+				then PALETTE.cloudSunset:Lerp(PALETTE.cloudCream, rand(0.25, 0.7))
+				elseif c.X > 40 then PALETTE.cloudLilac:Lerp(
+					PALETTE.cloudPink,
+					rand(0.25, 0.6)
+				)
+				else dr.col:Lerp(PALETTE.cloudCream, 0.4)
+			makeEllipsoid(
+				cloudF,
+				"CloudDeck",
+				CFrame.new(c) * CFrame.Angles(0, rand(0, TAU), 0),
+				v3(dr.sx, dr.sy, dr.sz),
+				jitter(col, 0.015),
+				Enum.Material.SmoothPlastic
+			)
+		end
+	end
 	local rings = {
-		{ r = 0, n = 1, scale = 54, y = -68, puffs = 4 },
-		{ r = 78, n = 6, scale = 46, y = -66, puffs = 4 },
-		{ r = 148, n = 9, scale = 58, y = -64, puffs = 4 },
-		{ r = 224, n = 12, scale = 72, y = -62, puffs = 4 },
-		{ r = 305, n = 14, scale = 92, y = -64, puffs = 4 },
+		{ r = 92, n = 7, scale = 46, y = -74, puffs = 4 },
+		{ r = 162, n = 10, scale = 58, y = -70, puffs = 4 },
+		{ r = 238, n = 12, scale = 72, y = -68, puffs = 4 },
+		{ r = 315, n = 14, scale = 92, y = -68, puffs = 4 },
 	}
 	for _, ringSpec in rings do
 		for i = 0, ringSpec.n - 1 do
-			local a = (i + rand(-0.26, 0.26)) / ringSpec.n * TAU
-			local rr = ringSpec.r + rand(-0.14, 0.14) * math.max(ringSpec.r, 14)
-			local c = v3(math.cos(a) * rr, ringSpec.y + rand(-4.0, 3.5), math.sin(a) * rr)
+			local a = (i + rand(-0.24, 0.24)) / ringSpec.n * TAU
+			local rr = ringSpec.r + rand(-0.12, 0.12) * math.max(ringSpec.r, 14)
+			local c = v3(math.cos(a) * rr, ringSpec.y + rand(-3.5, 3.0), math.sin(a) * rr)
 			local tint = if c.X < -30
 				then pickColor({ PALETTE.cloudSunset, PALETTE.cloudCream, PALETTE.cloudPink })
 				elseif c.X > 30 then pickColor({
 					PALETTE.cloudLilac,
 					PALETTE.cloudPink,
-					PALETTE.cloudBlue,
+					PALETTE.cloudCream,
 				})
 				else pickColor(tints)
-			makeCloud(cloudF, c, ringSpec.scale * rand(0.82, 1.18), ringSpec.puffs, tint)
+			makeCloud(cloudF, c, ringSpec.scale * rand(0.84, 1.16), ringSpec.puffs, tint)
 		end
 	end
 	-- Distant separated golden-hour cumulus horizon banks (framed well back so portal & tree stay crisp)
@@ -4451,7 +4683,7 @@ local function buildSky(decor: Instance)
 		makeCloud(cloudF, hs.pos, hs.scale, 4, hs.tint)
 	end
 
-	-- Soft sweeping pastel-rainbow aurora curtains (gentle transparency so sky breathes!)
+	-- Soft sweeping pastel-rainbow aurora curtains arcing gracefully behind the portal
 	local auroraF = makeFolder(skyF, "Aurora")
 	local anchor = makePart(
 		auroraF,
@@ -4465,18 +4697,18 @@ local function buildSky(decor: Instance)
 	)
 	local auroraFade = NumberSequence.new({
 		NumberSequenceKeypoint.new(0, 1),
-		NumberSequenceKeypoint.new(0.24, 0.50),
-		NumberSequenceKeypoint.new(0.68, 0.62),
+		NumberSequenceKeypoint.new(0.24, 0.42),
+		NumberSequenceKeypoint.new(0.68, 0.56),
 		NumberSequenceKeypoint.new(1, 1),
 	})
 	local auroraColors = {
-		Color3.fromRGB(238, 128, 174), -- soft rose
-		Color3.fromRGB(244, 178, 124), -- warm peach
-		Color3.fromRGB(242, 212, 134), -- soft champagne
-		Color3.fromRGB(116, 222, 186), -- pastel mint
-		Color3.fromRGB(122, 202, 236), -- soft aqua
-		Color3.fromRGB(178, 138, 226), -- soft lavender
-		Color3.fromRGB(232, 144, 196), -- sunset pink
+		Color3.fromRGB(246, 134, 184), -- soft rose
+		Color3.fromRGB(250, 184, 128), -- warm peach
+		Color3.fromRGB(248, 222, 138), -- soft champagne
+		Color3.fromRGB(118, 234, 194), -- pastel mint
+		Color3.fromRGB(122, 210, 244), -- soft aqua
+		Color3.fromRGB(186, 142, 236), -- soft lavender
+		Color3.fromRGB(242, 148, 204), -- sunset pink
 	}
 	for band = 1, 3 do
 		local count = 13
@@ -4503,13 +4735,13 @@ local function buildSky(decor: Instance)
 			beam.Name = "AuroraBeam"
 			beam.Attachment0 = a0
 			beam.Attachment1 = a1
-			beam.Width0 = 46
-			beam.Width1 = 62
+			beam.Width0 = 54
+			beam.Width1 = 72
 			beam.FaceCamera = true
 			beam.Segments = 8
 			beam.CurveSize0 = rand(-16, 16)
 			beam.CurveSize1 = rand(-16, 16)
-			beam.LightEmission = 0.34
+			beam.LightEmission = 0.44
 			beam.LightInfluence = 0
 			beam.Color = ColorSequence.new(colA, colB)
 			beam.Transparency = auroraFade

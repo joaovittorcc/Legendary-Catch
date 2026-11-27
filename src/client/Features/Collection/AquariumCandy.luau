@@ -10,6 +10,7 @@ Candy.cobalt = Color3.fromRGB(51, 101, 227)
 Candy.violet = Color3.fromRGB(142, 79, 229)
 Candy.coral = Color3.fromRGB(211, 41, 112)
 Candy.gold = Color3.fromRGB(255, 200, 50)
+Candy.mint = Color3.fromRGB(46, 204, 108)
 Candy.muted = Color3.fromRGB(178, 190, 216)
 Candy.secondary = Color3.fromRGB(76, 152, 228)
 

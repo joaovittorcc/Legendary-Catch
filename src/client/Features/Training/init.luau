@@ -84,10 +84,10 @@ local function attrNumber(name: string): number
 end
 
 local function boost(stat: string, level: number): string
-	if stat == "Control" then
-		return string.format(Text.controlBoost, (TrainingConfig.controlEase(level) - 1) * 100)
-	end
-	return string.format(Text.instinctBoost, TrainingConfig.luckMultiplier(level, 5))
+	local raw = if stat == "Control"
+		then string.format(Text.controlBoost, (TrainingConfig.controlEase(level) - 1) * 100)
+		else string.format(Text.instinctBoost, TrainingConfig.luckMultiplier(level, 5))
+	return (raw:gsub("(%d)%.(%d)", "%1" .. Strings.decimalSep .. "%2"))
 end
 
 local function showXp(amount: number, color: Color3)
@@ -279,21 +279,29 @@ local function addCards(frame: Frame, top: number)
 	refreshCards()
 end
 
-local function mountCard(name: string, height: number, color: Color3): Frame
+local function mountCard(name: string, height: number, color: Color3): (Frame, Frame)
+	local totalHeight = height + 26
 	local frame = Ui.frame(
 		Ui.screen(),
 		name,
-		UDim2.new(0.92, 0, 0, height),
+		UDim2.new(0.92, 0, 0, totalHeight),
 		UDim2.new(0.5, 0, 0, math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12)),
 		Theme.ink
 	)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
 	Art.panel(frame, color)
 	local cap = Instance.new("UISizeConstraint")
-	cap.MaxSize = Vector2.new(440, height)
+	cap.MaxSize = Vector2.new(456, totalHeight)
 	cap.Parent = frame
+	local inner = Instance.new("Frame")
+	inner.Name = "Content"
+	inner.BackgroundTransparency = 1
+	inner.Position = UDim2.fromOffset(12, 12)
+	inner.Size = UDim2.new(1, -24, 1, -26)
+	inner.ZIndex = 2
+	inner.Parent = frame
 	Hud.bindFishingVisibility(frame, false)(true)
-	return frame
+	return frame, inner
 end
 
 local function refreshPreview()
@@ -311,9 +319,9 @@ local function refreshPreview()
 		return
 	end
 	local usePower = TrainingConfig.powerEnabled()
-	local frame = mountCard("TrainingPreview", if usePower then 147 else 97, Theme.crystal)
+	local frame, inner = mountCard("TrainingPreview", if usePower then 147 else 97, Theme.crystal)
 	Ui.label(
-		frame,
+		inner,
 		"Title",
 		UDim2.new(0.92, 0, 0, 20),
 		UDim2.new(0.04, 0, 0, 7),
@@ -321,9 +329,9 @@ local function refreshPreview()
 		Theme.ink
 	).TextStrokeTransparency =
 		1
-	addCards(frame, 30)
+	addCards(inner, 30)
 	if usePower then
-		Power.fieldButton(frame, UDim2.new(0.04, 0, 0, 97), 0.92)
+		Power.fieldButton(inner, UDim2.new(0.04, 0, 0, 97), 0.92)
 	end
 	preview = frame
 	positionHud()
@@ -331,7 +339,7 @@ end
 
 local function buildHud(color: Color3)
 	local usePower = TrainingConfig.powerEnabled()
-	local frame = mountCard("TrainingHud", if usePower then 163 else 146, color)
+	local frame, inner = mountCard("TrainingHud", if usePower then 163 else 146, color)
 	if usePower then
 		local island = 1
 		local root = rootPart()
@@ -347,12 +355,12 @@ local function buildHud(color: Color3)
 				end
 			end
 		end
-		Power.mount(frame, activeStat, island)
-		Power.fieldButton(frame, UDim2.new(0.04, 0, 0, 113), 0.44)
+		Power.mount(inner, activeStat, island)
+		Power.fieldButton(inner, UDim2.new(0.04, 0, 0, 113), 0.44)
 	else
-		addCards(frame, 8)
+		addCards(inner, 8)
 		local statLabel = Ui.label(
-			frame,
+			inner,
 			"ActiveLevel",
 			UDim2.new(0.63, 0, 0, 20),
 			UDim2.new(0.04, 0, 0, 72),
@@ -362,7 +370,7 @@ local function buildHud(color: Color3)
 		statLabel.TextStrokeTransparency = 1
 		levelLabel = statLabel
 		local milestone = Ui.label(
-			frame,
+			inner,
 			"Milestone",
 			UDim2.new(0.63, 0, 0, 18),
 			UDim2.new(0.04, 0, 0, 92),
@@ -372,7 +380,7 @@ local function buildHud(color: Color3)
 		milestone.TextStrokeTransparency = 1
 		milestoneLabel = milestone
 		local track = Ui.frame(
-			frame,
+			inner,
 			"ActiveXpTrack",
 			UDim2.new(0.63, 0, 0, 22),
 			UDim2.new(0.04, 0, 0, 114),
@@ -391,10 +399,15 @@ local function buildHud(color: Color3)
 		count.ZIndex = 3
 		xpLabel = count
 	end
-	local button = Panel.button(frame, Strings.stop, Color3.fromRGB(247, 75, 91))
+	local button = Panel.button(inner, Strings.stop, Color3.fromRGB(247, 75, 91))
 	button.Name = "Stop"
 	button.Size = UDim2.new(if usePower then 0.44 else 0.25, 0, 0, 44)
 	button.Position = if usePower then UDim2.new(0.52, 0, 0, 113) else UDim2.new(0.71, 0, 0, 81)
+	button.TextScaled = true
+	local stopLimit = Instance.new("UITextSizeConstraint")
+	stopLimit.MinTextSize = 10
+	stopLimit.MaxTextSize = 16
+	stopLimit.Parent = button
 	button.Activated:Connect(function()
 		stopRemote:FireServer()
 	end)

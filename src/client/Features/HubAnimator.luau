@@ -56,6 +56,7 @@ local HubAnimator = {
 
 local entries: { [Instance]: Entry } = {}
 local entryList: { Entry } = {}
+local pendingModels: { [Instance]: RBXScriptConnection } = {}
 local connections: { RBXScriptConnection } = {}
 local started = false
 local reducedEffects = false
@@ -156,17 +157,21 @@ function registerTag(inst: Instance, tagName: string)
 		-- A model whose parts have not streamed in has no real pivot yet: capturing it here
 		-- would later drag the parts to the world origin. Wait for the first part.
 		if not inst:FindFirstChildWhichIsA("BasePart", true) then
-			local connection: RBXScriptConnection
-			connection = inst.DescendantAdded:Connect(function(desc: Instance)
-				if desc:IsA("BasePart") then
-					connection:Disconnect()
-					task.defer(function()
-						if inst.Parent and CollectionService:HasTag(inst, tagName) then
-							registerTag(inst, tagName)
-						end
-					end)
-				end
-			end)
+			if not pendingModels[inst] then
+				local connection: RBXScriptConnection
+				connection = inst.DescendantAdded:Connect(function(desc: Instance)
+					if desc:IsA("BasePart") then
+						connection:Disconnect()
+						pendingModels[inst] = nil
+						task.defer(function()
+							if inst.Parent and CollectionService:HasTag(inst, tagName) then
+								registerTag(inst, tagName)
+							end
+						end)
+					end
+				end)
+				pendingModels[inst] = connection
+			end
 			return
 		end
 		kind = "Model"
@@ -200,6 +205,11 @@ function registerTag(inst: Instance, tagName: string)
 end
 
 local function unregisterTag(inst: Instance, tagName: string)
+	local pending = pendingModels[inst]
+	if pending then
+		pending:Disconnect()
+		pendingModels[inst] = nil
+	end
 	local entry = entries[inst]
 	if not entry or not entry.tags[tagName] then
 		return
@@ -431,6 +441,10 @@ function HubAnimator.stop()
 		conn:Disconnect()
 	end
 	table.clear(connections)
+	for _, conn in pendingModels do
+		conn:Disconnect()
+	end
+	table.clear(pendingModels)
 
 	for _, entry in ipairs(entryList) do
 		restoreBaseState(entry)

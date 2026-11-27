@@ -17,7 +17,22 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
+local Training = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 local Zones = require(Shared:WaitForChild("Config"):WaitForChild("Zones"))
+
+local TRAINING_ISLAND_NAMES_PT: { [number]: string } = {
+	[1] = "Ilha do Aprendiz",
+	[2] = "Ilha do Recife",
+	[3] = "Abismo Estelar",
+	[4] = "Ilha Celestial",
+}
+
+local TRAINING_ISLAND_NAMES_EN: { [number]: string } = {
+	[1] = "Apprentice Island",
+	[2] = "Training Reef",
+	[3] = "Star Abyss",
+	[4] = "Celestial Island",
+}
 
 local Portals = {}
 Portals.order = 140
@@ -81,14 +96,35 @@ local function localizePrompt(
 	if destination == "main" then
 		prompt.ActionText = if pt then "Voltar" else "Return"
 		prompt.ObjectText = if pt then "Ilha Principal" else "Main Island"
-	else
-		local zName = Strings.zoneName[zoneId] or zoneId
-		prompt.ObjectText = zName
-		if unlocked then
-			prompt.ActionText = if pt then "Entrar" else "Enter"
+		return
+	end
+
+	local rawIsland = trigger:GetAttribute("TrainingIsland")
+	if typeof(rawIsland) == "number" then
+		local idx = Training.islandIndex(rawIsland)
+		local islandName = (if pt then TRAINING_ISLAND_NAMES_PT else TRAINING_ISLAND_NAMES_EN)[idx]
+			or destination
+		local def = Training.ISLANDS[idx]
+		if def and def.gate > 0 then
+			local gateText = Training.formatPower(def.gate, if pt then "," else ".")
+			prompt.ObjectText = if pt
+				then string.format("%s (×%d · %s Poder)", islandName, def.mult, gateText)
+				else string.format("%s (×%d · %s Power)", islandName, def.mult, gateText)
+		elseif def then
+			prompt.ObjectText = string.format("%s (×%d)", islandName, def.mult)
 		else
-			prompt.ActionText = string.format(Strings.zoneRequiredLevel, minLevel)
+			prompt.ObjectText = islandName
 		end
+		prompt.ActionText = if pt then "Entrar" else "Enter"
+		return
+	end
+
+	local zName = Strings.zoneName[zoneId] or zoneId
+	prompt.ObjectText = zName
+	if unlocked then
+		prompt.ActionText = if pt then "Entrar" else "Enter"
+	else
+		prompt.ActionText = string.format(Strings.zoneRequiredLevel, minLevel)
 	end
 end
 
@@ -169,7 +205,16 @@ local function registerPortal(inst: Instance)
 		else Color3.fromRGB(255, 210, 102)
 
 	local ringObj = model:FindFirstChild("PortalRing")
-	local ring = if ringObj and ringObj:IsA("Model") then ringObj else nil
+	-- Avoid fighting HubAnimator if the ring is already tagged HubSpin, and avoid capturing
+	-- an empty pivot before StreamingEnabled delivers the ring's parts.
+	local ring = if ringObj
+			and ringObj:IsA("Model")
+			and not CollectionService:HasTag(ringObj, "HubSpin")
+		then ringObj
+		else nil
+	local ringBaseCF: CFrame? = if ring and ring:FindFirstChildWhichIsA("BasePart", true)
+		then ring:GetPivot()
+		else nil
 	local coreObj = model:FindFirstChild("PortalCore")
 	local core = if coreObj and coreObj:IsA("BasePart") then coreObj else nil
 	local light = core and core:FindFirstChildOfClass("PointLight") or nil
@@ -190,7 +235,7 @@ local function registerPortal(inst: Instance)
 		primaryColor = primaryColor,
 		accentColor = accentColor,
 		ring = ring,
-		ringBaseCF = if ring then ring:GetPivot() else nil,
+		ringBaseCF = ringBaseCF,
 		core = core,
 		light = light,
 		emitter = emitter,

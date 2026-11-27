@@ -510,6 +510,10 @@ function Ambient.start()
 	end
 
 	local function step()
+		local cam = Workspace.CurrentCamera
+		if cam and (cam.CFrame.Position - Vector3.new(20, 10, 10)).Magnitude > 220 then
+			return
+		end
 		local t = os.clock()
 		local night = isNightOrDarkEvent()
 

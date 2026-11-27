@@ -19,7 +19,6 @@ local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
 
 local Hud = require(script.Parent:WaitForChild("Hud"))
-local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
 
 local LivingWorld = {}
@@ -192,6 +191,8 @@ local function collectLanterns(island: Instance?): { LanternTarget }
 			and (
 				d.Name == "LightSource"
 				or d.Name == "LanternLight"
+				or d.Name == "LanternGlow"
+				or d.Name == "LampGlow"
 				or string.find(d.Name, "^WelcomeLanternGlow") ~= nil
 			)
 		then
@@ -850,7 +851,7 @@ local function buildSpeechBubble(
 	local gui = Instance.new("BillboardGui")
 	gui.Name = "NpcSpeechBubble"
 	gui.Adornee = anchor
-	gui.Size = UDim2.fromOffset(252, 102)
+	gui.Size = UDim2.fromOffset(260, 108)
 	gui.StudsOffsetWorldSpace = Vector3.new(0, 2.0, 0)
 	gui.MaxDistance = maxDist + 6
 	gui.AlwaysOnTop = true
@@ -859,9 +860,14 @@ local function buildSpeechBubble(
 	local frame = Instance.new("Frame")
 	frame.Visible = false
 	frame.Size = UDim2.fromScale(1, 1)
-	frame.BackgroundColor3 = accent
+	-- Plain rounded card matching GuideBubble so text never clips against thick 9-slice art.
+	frame.BackgroundColor3 = Theme.cream
 	frame.BorderSizePixel = 0
-	Art.panel(frame, accent)
+	Theme.corner(frame, 18)
+	local border = Instance.new("UIStroke")
+	border.Color = accent
+	border.Thickness = 3
+	border.Parent = frame
 	frame.Parent = gui
 
 	local icon = Instance.new("Frame")
@@ -934,12 +940,16 @@ local function mountBubbleLoop(npc: AnimatedNpc)
 	local bubbleOpen = false
 	local lastSwap = 0
 
+	local playerGui = player:WaitForChild("PlayerGui")
 	task.spawn(function()
 		while gui.Parent and anchor.Parent do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
-			local near = Hud.panel() == ""
-				and not Hud.isFishingActive()
+			local busy = playerGui:FindFirstChild("IslandArrival") ~= nil
+				or Hud.panel() ~= ""
+				or Hud.isFishingActive()
+				or player:GetAttribute("CatchRevealActive") == true
+			local near = not busy
 				and root
 				and root:IsA("BasePart")
 				and (root.Position - anchor.WorldPosition).Magnitude <= npc.talkRadius

@@ -154,25 +154,34 @@ function PhotoMode.show(
 	local controlBounds = Instance.new("UISizeConstraint")
 	controlBounds.MaxSize = Vector2.new(420, 46)
 	controlBounds.Parent = controls
+	local function fitButton(btn: TextButton, maxSize: number)
+		btn.TextScaled = true
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MinTextSize = 11
+		limit.MaxTextSize = maxSize
+		limit.Parent = btn
+	end
 	local capture = Panel.button(controls, Text.photoTools.capture, Theme.crystal)
 	capture.Name = "Capture"
-	capture.Size = UDim2.new(1, -58, 1, 0)
+	capture.Size = UDim2.new(1, -84, 1, 0)
+	fitButton(capture, 16)
 	local save = Panel.button(controls, Text.photoTools.save, Theme.gold)
 	save.Name = "Save"
-	save.Size = UDim2.new(0.5, -31, 1, 0)
+	save.Size = UDim2.new(0.5, -45, 1, 0)
+	fitButton(save, 15)
 	save.Visible = false
 	local share = Panel.button(controls, Text.photoTools.share, Theme.crystal)
 	share.Name = "Share"
-	share.Position = UDim2.new(0.5, -23, 0, 0)
-	share.Size = UDim2.new(0.5, -35, 1, 0)
-	share.TextSize = 14
+	share.Position = UDim2.new(0.5, -39, 0, 0)
+	share.Size = UDim2.new(0.5, -45, 1, 0)
+	fitButton(share, 15)
 	share.Visible = false
 	local close = Panel.button(controls, Text.close, Theme.rose)
 	close.Name = "Close"
 	close.AnchorPoint = Vector2.new(1, 0)
 	close.Position = UDim2.fromScale(1, 0)
-	close.Size = UDim2.new(0, 52, 1, 0)
-	close.TextSize = 13
+	close.Size = UDim2.new(0, 76, 1, 0)
+	fitButton(close, 15)
 	controls.Parent = gui
 	gui.Parent = playerGui
 	camera.CameraType = Enum.CameraType.Scriptable
