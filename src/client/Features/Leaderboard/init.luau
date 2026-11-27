@@ -30,6 +30,9 @@ type Thumbnail = { holder: Frame, id: string, hidden: boolean }
 
 local function formatScore(board: string, score: number): string
 	local pattern = Text.leaderboard.units[board] or "%d"
+	if board == "Catches" then
+		return string.format(pattern, Theme.formatInt(score))
+	end
 	return string.format(pattern, math.round(score))
 end
 
@@ -391,8 +394,13 @@ function Leaderboard.start()
 
 				local nameLabel = Panel.label(card, label, 14)
 				nameLabel.TextStrokeTransparency = 1
-				nameLabel.Size = UDim2.fromScale(0.94, 0.24)
-				nameLabel.Position = UDim2.fromScale(0.03, 0.59)
+				nameLabel.TextScaled = true
+				nameLabel.Size = UDim2.fromScale(0.92, 0.24)
+				nameLabel.Position = UDim2.fromScale(0.04, 0.59)
+				local nameLimit = Instance.new("UITextSizeConstraint")
+				nameLimit.MinTextSize = 9
+				nameLimit.MaxTextSize = 14
+				nameLimit.Parent = nameLabel
 
 				local bestWeight = payload.bestWeights[entry.id]
 				local glyph = Theme.rarityGlyph(entry.rarity)
@@ -410,8 +418,13 @@ function Leaderboard.start()
 				)
 				foot.Name = "Footer"
 				foot.TextStrokeTransparency = 1
-				foot.Size = UDim2.fromScale(1, 0.17)
-				foot.Position = UDim2.fromScale(0, 0.82)
+				foot.TextScaled = true
+				foot.Size = UDim2.fromScale(0.92, 0.16)
+				foot.Position = UDim2.fromScale(0.04, 0.82)
+				local footLimit = Instance.new("UITextSizeConstraint")
+				footLimit.MinTextSize = 9
+				footLimit.MaxTextSize = 13
+				footLimit.Parent = foot
 
 				card.Parent = group
 			end
@@ -524,14 +537,18 @@ function Leaderboard.start()
 		nameLimit.MaxTextSize = 16
 		nameLimit.Parent = nameLabel
 
-		local scoreLabel =
-			Panel.label(row, string.format("%d", math.round(entry.score)), 16, Theme.wood)
+		local scoreLabel = Panel.label(row, Theme.formatInt(entry.score), 16, Theme.wood)
 		scoreLabel.Name = "Score"
 		scoreLabel.AnchorPoint = Vector2.new(1, 0)
 		scoreLabel.Position = UDim2.new(1, if inServer then -40 else -8, 0, 0)
 		scoreLabel.Size = UDim2.new(0.25, -8, 1, 0)
 		scoreLabel.TextXAlignment = Enum.TextXAlignment.Right
+		scoreLabel.TextScaled = true
 		scoreLabel.TextStrokeTransparency = 1
+		local scoreLimit = Instance.new("UITextSizeConstraint")
+		scoreLimit.MinTextSize = 11
+		scoreLimit.MaxTextSize = 16
+		scoreLimit.Parent = scoreLabel
 
 		if inServer then
 			local badge = Panel.label(row, "📖", 16, Theme.ink)
@@ -604,8 +621,13 @@ function Leaderboard.start()
 			local emptyTitle = Panel.label(emptyCard, Text.leaderboard.empty, 21, Theme.ink)
 			emptyTitle.Name = "EmptyTitle"
 			emptyTitle.TextStrokeTransparency = 1
+			emptyTitle.TextScaled = true
 			emptyTitle.Position = UDim2.fromOffset(14, 66)
 			emptyTitle.Size = UDim2.new(1, -28, 0, 28)
+			local emptyTitleLimit = Instance.new("UITextSizeConstraint")
+			emptyTitleLimit.MinTextSize = 12
+			emptyTitleLimit.MaxTextSize = 21
+			emptyTitleLimit.Parent = emptyTitle
 
 			local podium = Instance.new("Frame")
 			podium.Name = "PodiumIllustration"
@@ -668,8 +690,13 @@ function Leaderboard.start()
 			emptySub.Name = "EmptySubtitle"
 			emptySub.TextStrokeTransparency = 1
 			emptySub.TextWrapped = true
+			emptySub.TextScaled = true
 			emptySub.Position = UDim2.fromOffset(18, 178)
 			emptySub.Size = UDim2.new(1, -36, 0, 44)
+			local emptySubLimit = Instance.new("UITextSizeConstraint")
+			emptySubLimit.MinTextSize = 11
+			emptySubLimit.MaxTextSize = 15
+			emptySubLimit.Parent = emptySub
 
 			list.Size = UDim2.new(1, 0, 0, 232)
 			return

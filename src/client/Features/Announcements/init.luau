@@ -36,12 +36,18 @@ function Announcements.start()
 		card.AnchorPoint = Vector2.new(0.5, 0)
 		local eventGui = playerGui:FindFirstChild("OceanEventHud")
 		local event = eventGui and eventGui:FindFirstChild("EventBanner")
+		local season = eventGui and eventGui:FindFirstChild("SeasonBanner")
 		local eventBottom = if event
 				and event:IsA("GuiObject")
 				and event.Visible
 			then event.Position.Y.Offset + event.AbsoluteSize.Y
 			else 0
-		local top = math.max(Hud.navBottom(), Tutorial.cardBottom(), eventBottom) + 10
+		local seasonBottom = if season
+				and season:IsA("GuiObject")
+				and season.Visible
+			then season.Position.Y.Offset + season.AbsoluteSize.Y
+			else 0
+		local top = math.max(Hud.navBottom(), Tutorial.cardBottom(), eventBottom, seasonBottom) + 10
 		card.Position = UDim2.new(0.5, 0, 0, top)
 		card.Size = UDim2.new(0.84, 0, 0, 66)
 		card.GroupTransparency = 1

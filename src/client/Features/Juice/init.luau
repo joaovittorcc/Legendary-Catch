@@ -162,8 +162,7 @@ end
 type Reward = Net.AdventureReward
 
 local function formatNumber(n: number): string
-	local s = tostring(math.floor(n))
-	return s:reverse():gsub("(%d%d%d)", "%1."):reverse():gsub("^%.", "")
+	return Theme.formatInt(math.floor(n))
 end
 
 local function showReward(reward: Reward)

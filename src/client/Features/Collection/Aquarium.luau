@@ -391,7 +391,13 @@ function Aquarium.start(remotes: Instance)
 			end
 			View.mount(view, scroll, screenSource, showModel, function(container, snapshot)
 				if snapshot.status ~= "active" then
-					View.button(container, "BackToCollection", Text.collection, Candy.pearl, back)
+					View.button(
+						container,
+						"BackToCollection",
+						Text.collection,
+						Candy.secondary,
+						back
+					)
 				end
 			end)
 		end
@@ -418,7 +424,10 @@ function Aquarium.start(remotes: Instance)
 					tabs,
 					"Tab_" .. key,
 					tab.caption,
-					if key == selected then tab.tone elseif active then Candy.pearl else Candy.muted,
+					if key == selected
+						then tab.tone
+						elseif active then Candy.secondary
+						else Candy.muted,
 					if key ~= selected and active
 						then function()
 							show(key)

@@ -516,8 +516,8 @@ local PT = {
 	zoneRequiredLevel = "Precisa de nível %d",
 	zoneBonusHint = {
 		lagoon = "Águas calmas para começar",
-		coral = "+Raros (1.4×) e +Épicos (1.3×)",
-		abyss = "+Épicos (1.5×), +Lendários (1.6×) e +Místicos (1.3×)",
+		coral = "+Raros (1,4×) e +Épicos (1,3×)",
+		abyss = "+Épicos (1,5×), +Lendários (1,6×) e +Místicos (1,3×)",
 	} :: { [string]: string },
 	zoneLockedHint = "🔒 Nível %d necessário",
 	waiting = "Esperando a fisgada...",
@@ -546,7 +546,7 @@ local PT = {
 	},
 	guideEvent = "O mar mudou... é a hora de tentar os raros!",
 	npcLines = {
-		baitVendorName = "Marina · Iscas",
+		baitVendorName = "Lucy · Iscas",
 		baitVendor = {
 			"Iscas fresquinhas! Brilham mais quando o mar escurece.",
 			"Dica de píer: varas com mais Sorte puxam Raros mais fácil!",
@@ -558,7 +558,7 @@ local PT = {
 		shellGirl = {
 			"Cada concha aqui da escada guarda um som diferente do oceano!",
 			"Você já tentou pescar na hora dourada? A água fica mágica!",
-			"Ouvi dizer que existem 100 criaturas no álbum inteiro!",
+			"Ouvi dizer que existem 106 criaturas no álbum inteiro!",
 			"À noite os cristais da ilha brilham como estrelas na praia.",
 			"Se achar uma estrela-do-mar sonolenta, manda um oi pra ela!",
 		},
@@ -690,7 +690,7 @@ local EN: Strings = {
 		C44_Arraia_Pintada = "Spotted Ray",
 		C45_Tartaruguinha_Coral = "Coral Turtle Hatchling",
 		C46_Peixe_Leque = "Fan Fish",
-		C47_Medusa_Lanterna = "Lantern Jelly",
+		C47_Medusa_Lanterna = "Lantern Medusa",
 		C48_Peixe_Anjo_Real = "Royal Angelfish",
 		C49_Polvo_Bolinhas = "Polka Octopus",
 		C50_Tubarao_Baleia_Estrelado = "Starry Whale Shark",
@@ -1163,7 +1163,7 @@ local EN: Strings = {
 	},
 	guideEvent = "The sea changed... now's the time to try for the rare ones!",
 	npcLines = {
-		baitVendorName = "Marina · Bait",
+		baitVendorName = "Lucy · Bait",
 		baitVendor = {
 			"Fresh glowing bait! Works like magic when dusk falls.",
 			"Pier tip: rods with higher Luck reel in Rares way faster!",
@@ -1175,7 +1175,7 @@ local EN: Strings = {
 		shellGirl = {
 			"Every seashell by these steps sings a tiny song of the tide!",
 			"Have you tried fishing at golden hour? The water glows!",
-			"I heard there are 100 sea creatures in the whole album!",
+			"I heard there are 106 sea creatures in the whole album!",
 			"At night the island crystals sparkle like stars on the shore.",
 			"If you meet a sleepy starfish, tell her I said hi!",
 		},

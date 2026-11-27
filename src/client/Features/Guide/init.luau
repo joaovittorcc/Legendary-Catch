@@ -160,6 +160,14 @@ local function attach(npc: Instance)
 							gui.Size = UDim2.fromOffset(260, 108)
 							setBubbleVisible(true)
 							gui.Enabled = true
+						elseif not bubbleOpen then
+							bubbleOpen = true
+							welcomeSwap = os.clock()
+							line.Text = Strings.guideWelcome[welcomeIndex]
+							gui.MaxDistance = WELCOME_DISTANCE + 8
+							gui.Size = UDim2.fromOffset(260, 108)
+							setBubbleVisible(true)
+							gui.Enabled = true
 						elseif os.clock() - welcomeSwap >= WELCOME_LINE_SECONDS then
 							welcomeIndex += 1
 							if welcomeIndex <= #Strings.guideWelcome then

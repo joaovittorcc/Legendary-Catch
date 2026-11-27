@@ -57,11 +57,6 @@ function Settings.start()
 		label.Size = UDim2.new(1, -24, 0, 28)
 		label.Position = UDim2.fromOffset(12, 2)
 		label.TextStrokeTransparency = 1
-		local function refresh()
-			label.Text = string.format("%s  ·  %d%%", name, math.round(group.Volume * 100))
-		end
-		group:GetPropertyChangedSignal("Volume"):Connect(refresh)
-		refresh()
 		local hitArea = Instance.new("Frame")
 		hitArea.Name = "VolumeHitArea"
 		hitArea.Position = UDim2.fromOffset(16, 30)
@@ -98,6 +93,7 @@ function Settings.start()
 		fill.Name = "Fill"
 		fill.Position = UDim2.fromOffset(2, 2)
 		fill.Size = UDim2.new(group.Volume, -4, 1, -4)
+		fill.Visible = group.Volume > 0
 		fill.BackgroundColor3 = Color3.fromRGB(20, 186, 255)
 		fill.BorderSizePixel = 0
 		fill.ZIndex = 2
@@ -157,16 +153,24 @@ function Settings.start()
 		knobArt.Parent = knob
 		knob.Parent = track
 		track.Parent = hitArea
+		local function syncVisual()
+			local v = math.clamp(group.Volume, 0, 1)
+			label.Text = string.format("%s  ·  %d%%", name, math.round(v * 100))
+			fill.Visible = v > 0
+			fill.Size = UDim2.new(v, -4, 1, -4)
+			knob.Position = UDim2.fromScale(v, 0.5)
+		end
+		group:GetPropertyChangedSignal("Volume"):Connect(syncVisual)
 		local dragging = false
 		local inputConnections: { RBXScriptConnection } = {}
 		local function setFromX(x: number)
 			local value =
 				math.clamp((x - track.AbsolutePosition.X) / math.max(track.AbsoluteSize.X, 1), 0, 1)
 			group.Volume = math.round(value * 20) / 20
-			fill.Size = UDim2.new(group.Volume, -4, 1, -4)
-			knob.Position = UDim2.fromScale(group.Volume, 0.5)
+			syncVisual()
 			changed()
 		end
+		syncVisual()
 		table.insert(
 			inputConnections,
 			hitArea.InputBegan:Connect(function(input)

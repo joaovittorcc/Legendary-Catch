@@ -143,10 +143,20 @@ function Missions.start()
 			title.Size = UDim2.new(0.63, -64, 0.46, 0)
 			title.Position = UDim2.fromOffset(60, 4)
 			title.TextStrokeTransparency = 1
+			title.TextScaled = true
+			local titleLimit = Instance.new("UITextSizeConstraint")
+			titleLimit.MinTextSize = 11
+			titleLimit.MaxTextSize = 16
+			titleLimit.Parent = title
 			local status = Panel.label(row, "", 14, Theme.wood)
 			status.Size = UDim2.new(0.63, -64, 0.22, 0)
 			status.Position = UDim2.new(0, 60, 0.49, 0)
 			status.TextStrokeTransparency = 1
+			status.TextScaled = true
+			local statusLimit = Instance.new("UITextSizeConstraint")
+			statusLimit.MinTextSize = 10
+			statusLimit.MaxTextSize = 14
+			statusLimit.Parent = status
 			local bar, fill = Panel.progressBar(row, "lime", 14)
 			bar.Size = UDim2.new(0.63, -64, 0, 14)
 			bar.Position = UDim2.new(0, 60, 0.76, 0)
@@ -281,9 +291,8 @@ function Missions.start()
 	end
 	remotes.ChildAdded:Connect(watchResult)
 	Hud.panelChanged:Connect(function(name: string)
-		gui.Enabled = name == "Missions"
-		if gui.Enabled then
-			refresh()
+		if name == "Missions" then
+			render()
 			countdown()
 		end
 	end)

@@ -76,6 +76,17 @@ function Art.panel(parent: GuiObject, accent: Color3, themeName: string?)
 	if hasArt then
 		parent.BackgroundTransparency = 1
 		parent.BorderSizePixel = 0
+		local function fitSlice()
+			local s = parent.AbsoluteSize
+			if s.X > 0 and s.Y > 0 then
+				bodyArt.SliceScale = math.clamp(math.min(s.X, s.Y) / 900, 0.10, 0.24)
+			end
+		end
+		fitSlice()
+		local conn = parent:GetPropertyChangedSignal("AbsoluteSize"):Connect(fitSlice)
+		bodyArt.Destroying:Once(function()
+			conn:Disconnect()
+		end)
 		return
 	end
 

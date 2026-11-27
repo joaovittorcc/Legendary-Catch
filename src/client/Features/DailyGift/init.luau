@@ -28,7 +28,8 @@ local function makeLabel(
 	content: string,
 	size: number,
 	color: Color3,
-	strokeAlpha: number?
+	strokeAlpha: number?,
+	minSize: number?
 ): TextLabel
 	local lbl = Instance.new("TextLabel")
 	lbl.BackgroundTransparency = 1
@@ -41,7 +42,7 @@ local function makeLabel(
 	lbl.TextScaled = true
 	local limit = Instance.new("UITextSizeConstraint")
 	limit.MaxTextSize = size
-	limit.MinTextSize = 13
+	limit.MinTextSize = minSize or 11
 	limit.Parent = lbl
 	lbl.Parent = parent
 	return lbl
@@ -66,9 +67,12 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 	backdrop.ZIndex = 20
 	backdrop.Parent = gui
 
-	local height = 236
-		+ (if gift.shieldProtected then 28 else 0)
+	local viewportY = if gui.AbsoluteSize.Y > 0 then gui.AbsoluteSize.Y else 600
+	local baseHeight = 256
+		+ (if gift.shieldProtected then 26 else 0)
 		+ (if chestBonus > 0 then 42 else 0)
+	local height = math.min(baseHeight, math.max(220, viewportY - 22))
+	local compactHeight = height < baseHeight - 8
 	local panel = Instance.new("Frame")
 	panel.Name = "StreakPanel"
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)
@@ -78,13 +82,13 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 	Art.panel(panel, Theme.gold, "gold")
 	local bounds = Instance.new("UISizeConstraint")
 	bounds.MinSize = Vector2.new(290, 210)
-	bounds.MaxSize = Vector2.new(620, 340)
+	bounds.MaxSize = Vector2.new(620, 356)
 	bounds.Parent = panel
 
 	local cream = Instance.new("Frame")
 	cream.Name = "Cream"
-	cream.Position = UDim2.fromOffset(12, 12)
-	cream.Size = UDim2.new(1, -24, 1, -24)
+	cream.Position = UDim2.fromOffset(22, 22)
+	cream.Size = UDim2.new(1, -44, 1, -46)
 	cream.BackgroundTransparency = 1
 	cream.BorderSizePixel = 0
 	cream.ZIndex = 23
@@ -93,32 +97,34 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 	local titleText = if streak == 1 and (gift.days or 1) == 1
 		then Text.streak.welcome
 		else string.format(Text.streak.title, streak)
-	local title = makeLabel(cream, titleText, 24, Theme.ink, 1)
+	local titleH = if compactHeight then 24 else 28
+	local title = makeLabel(cream, titleText, 24, Theme.ink, 1, 12)
 	title.Name = "Title"
-	title.Position = UDim2.fromOffset(14, 10)
-	title.Size = UDim2.new(1, -28, 0, 30)
+	title.Position = UDim2.fromOffset(8, 2)
+	title.Size = UDim2.new(1, -16, 0, titleH)
 	title.ZIndex = 24
 
-	local yCursor = 44
+	local yCursor = titleH + 6
 	if gift.shieldProtected then
-		local shield = makeLabel(cream, Text.streak.shieldSaved, 15, Theme.wood, 1)
+		local shield = makeLabel(cream, Text.streak.shieldSaved, 15, Theme.wood, 1, 10)
 		shield.Name = "ShieldBanner"
-		shield.Position = UDim2.fromOffset(14, yCursor)
-		shield.Size = UDim2.new(1, -28, 0, 22)
+		shield.Position = UDim2.fromOffset(8, yCursor)
+		shield.Size = UDim2.new(1, -16, 0, 20)
 		shield.ZIndex = 24
-		yCursor += 26
+		yCursor += 24
 	end
 
+	local rowH = if compactHeight then 78 else 94
 	local row = Instance.new("Frame")
 	row.Name = "DaysRow"
-	row.Position = UDim2.fromOffset(12, yCursor)
-	row.Size = UDim2.new(1, -24, 0, 96)
+	row.Position = UDim2.fromOffset(6, yCursor)
+	row.Size = UDim2.new(1, -12, 0, rowH)
 	row.BackgroundTransparency = 1
 	row.ZIndex = 24
 	local rowLayout = Instance.new("UIListLayout")
 	rowLayout.FillDirection = Enum.FillDirection.Horizontal
 	rowLayout.HorizontalAlignment = Enum.HorizontalAlignment.Center
-	rowLayout.Padding = UDim.new(0, 6)
+	rowLayout.Padding = UDim.new(0, 5)
 	rowLayout.SortOrder = Enum.SortOrder.LayoutOrder
 	rowLayout.Parent = row
 	row.Parent = cream
@@ -160,10 +166,11 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 			string.format(Text.streak.dayShort, day),
 			14,
 			if active then Theme.wood else Theme.ink,
-			1
+			1,
+			9
 		)
-		dayLbl.Position = UDim2.fromOffset(2, 4)
-		dayLbl.Size = UDim2.new(1, -4, 0, 18)
+		dayLbl.Position = UDim2.fromOffset(2, 3)
+		dayLbl.Size = UDim2.new(1, -4, 0, 17)
 		dayLbl.ZIndex = 26
 
 		local iconText = if done or active
@@ -175,20 +182,20 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 			then Color3.fromRGB(45, 165, 85)
 			elseif isNext then Theme.crystal
 			else Theme.wood
-		local iconLbl = makeLabel(slot, iconText, 24, iconColor, 1)
+		local iconLbl = makeLabel(slot, iconText, 24, iconColor, 1, 12)
 		iconLbl.Name = "StatusIcon"
 		iconLbl.Position = UDim2.fromScale(0, 0.25)
-		iconLbl.Size = UDim2.fromScale(1, 0.38)
+		iconLbl.Size = UDim2.fromScale(1, 0.36)
 		iconLbl.ZIndex = 26
 
 		local footerText = if isNext
 			then Text.streak.nextBadge .. "\n" .. tostring(reward)
 			elseif isDay7 then "🎁 " .. tostring(reward)
 			else tostring(reward)
-		local amtLbl = makeLabel(slot, footerText, 14, Theme.wood, 1)
+		local amtLbl = makeLabel(slot, footerText, 13, Theme.wood, 1, 8)
 		amtLbl.Name = "Reward"
-		amtLbl.Position = UDim2.fromScale(0.05, 0.63)
-		amtLbl.Size = UDim2.fromScale(0.9, 0.33)
+		amtLbl.Position = UDim2.fromScale(0.04, 0.62)
+		amtLbl.Size = UDim2.fromScale(0.92, 0.35)
 		amtLbl.ZIndex = 26
 
 		if active and not reduced then
@@ -211,12 +218,12 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 		slot.Parent = row
 	end
 
-	yCursor += 104
+	yCursor += rowH + 6
 	if chestBonus > 0 then
 		local chestCard = Instance.new("Frame")
 		chestCard.Name = "Day7Chest"
-		chestCard.Position = UDim2.fromOffset(14, yCursor)
-		chestCard.Size = UDim2.new(1, -28, 0, 34)
+		chestCard.Position = UDim2.fromOffset(8, yCursor)
+		chestCard.Size = UDim2.new(1, -16, 0, if compactHeight then 30 else 34)
 		chestCard.BackgroundColor3 = Color3.fromRGB(255, 236, 170)
 		chestCard.BorderSizePixel = 0
 		chestCard.ZIndex = 24
@@ -230,20 +237,21 @@ local function showStreakModal(gui: ScreenGui, gift: Types.Daily)
 			string.format(Text.streak.chestBonus, chestBonus),
 			15,
 			Theme.wood,
-			1
+			1,
+			10
 		)
 		chestLbl.Position = UDim2.fromOffset(8, 2)
 		chestLbl.Size = UDim2.new(1, -16, 1, -4)
 		chestLbl.ZIndex = 25
 		chestCard.Parent = cream
-		yCursor += 42
+		yCursor += if compactHeight then 34 else 40
 	end
 
 	local okBtn = Panel.button(cream, Text.streak.collectOk, Color3.fromRGB(46, 212, 58))
 	okBtn.Name = "CollectClose"
 	okBtn.AnchorPoint = Vector2.new(0.5, 1)
-	okBtn.Position = UDim2.new(0.5, 0, 1, -6)
-	okBtn.Size = UDim2.new(0.46, 0, 0, 46)
+	okBtn.Position = UDim2.new(0.5, 0, 1, -2)
+	okBtn.Size = UDim2.new(0.46, 0, 0, 44)
 	okBtn.ZIndex = 25
 
 	panel.Parent = gui

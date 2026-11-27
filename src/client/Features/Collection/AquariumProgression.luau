@@ -114,7 +114,7 @@ local function addLevels(parent: Instance, state: State)
 		local detail = if isCurrent
 			then Tabs.current
 			elseif level.cost == 0 then "✓"
-			else string.format(Tabs.levelCost, level.cost, level.minSpecies)
+			else string.format(Tabs.levelCost, Theme.formatInt(level.cost), level.minSpecies)
 		Candy.metric(row, title, detail, tones[index])
 	end
 end
@@ -174,7 +174,15 @@ function Progression.mount(
 				string.format(Copy.expansionPreview, state.capacity, nextExpansion.capacity),
 				20
 			)
-			label(content, string.format(Copy.expansionCost, nextExpansion.cost, state.coins), 16)
+			label(
+				content,
+				string.format(
+					Copy.expansionCost,
+					Theme.formatInt(nextExpansion.cost),
+					Theme.formatInt(state.coins)
+				),
+				16
+			)
 			label(content, Copy.expansionKeepsSpecimens, 14)
 			local canBuy = nextExpansion.canBuy
 			if canBuy == nil then
@@ -221,7 +229,7 @@ function Progression.mount(
 				content,
 				"CancelExpansion",
 				Copy.cancelExpansion,
-				Candy.pearl,
+				Candy.secondary,
 				if pending
 					then nil
 					else function()

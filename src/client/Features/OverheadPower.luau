@@ -80,10 +80,8 @@ local function watch(player: Player)
 		local total = control + instinct
 		text.Text = "⚡ " .. Training.formatPower(total, Strings.decimalSep)
 		text.TextColor3 = Training.TIER_COLORS[Training.tier(total)]
-		-- The catch reveal owns the screen; hide your own number while it plays.
-		gui.Enabled = not (
-			player == localPlayer and player:GetAttribute("CatchRevealActive") == true
-		)
+		-- The catch reveal owns the screen; hide overhead power while it plays.
+		gui.Enabled = localPlayer:GetAttribute("CatchRevealActive") ~= true
 
 		local pop = scale
 		if
@@ -108,7 +106,13 @@ local function watch(player: Player)
 			billboard = nil
 		end
 		local head = character:WaitForChild("Head", 15)
-		if not head or not head:IsA("BasePart") or player.Character ~= character then
+		if
+			not head
+			or not head:IsA("BasePart")
+			or player.Character ~= character
+			or not player.Parent
+			or not watching[player]
+		then
 			return
 		end
 		billboard, label, scale = build(head)
@@ -129,7 +133,7 @@ local function watch(player: Player)
 		end),
 		player:GetAttributeChangedSignal(controlAttribute):Connect(refresh),
 		player:GetAttributeChangedSignal(instinctAttribute):Connect(refresh),
-		player:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh),
+		localPlayer:GetAttributeChangedSignal("CatchRevealActive"):Connect(refresh),
 		player.AncestryChanged:Connect(function(_, parent: Instance?)
 			if parent then
 				return

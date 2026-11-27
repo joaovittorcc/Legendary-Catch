@@ -646,7 +646,11 @@ function Shop.start()
 	end
 	ReplicatedStorage.ChildAdded:Connect(watchPreviews)
 	ProximityPromptService.PromptTriggered:Connect(function(prompt, player)
-		if player == Players.LocalPlayer and prompt.Name == "OpenWorkshop" then
+		if
+			player == Players.LocalPlayer
+			and prompt.Name == "OpenWorkshop"
+			and not Hud.isFishingActive()
+		then
 			Hud.showPanel("Shop")
 		end
 	end)

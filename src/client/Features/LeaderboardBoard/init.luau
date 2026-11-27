@@ -85,6 +85,9 @@ end
 
 local function formatScore(board: string, score: number): string
 	local pattern = Text.leaderboard.units[board] or "%d"
+	if board == "Catches" then
+		return string.format(pattern, Theme.formatInt(score))
+	end
 	return string.format(pattern, math.round(score))
 end
 

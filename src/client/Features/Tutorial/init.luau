@@ -19,8 +19,8 @@ local Motion = require(script.Parent.Hud:WaitForChild("Motion"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 
 local Tutorial = {}
-local CARD_HEIGHT = 54
-local CELEBRATE_HEIGHT = 92
+local CARD_HEIGHT = 62
+local CELEBRATE_HEIGHT = 104
 local layout = Instance.new("BindableEvent")
 local visibleBottom = 0
 Tutorial.layoutChanged = layout.Event
@@ -183,17 +183,17 @@ function Tutorial.start()
 	iconHolder.Text = ""
 	iconHolder.AutoButtonColor = false
 	iconHolder.AnchorPoint = Vector2.new(0, 0.5)
-	iconHolder.Position = UDim2.fromOffset(10, CARD_HEIGHT / 2)
-	iconHolder.Size = UDim2.fromOffset(40, 40)
+	iconHolder.Position = UDim2.fromOffset(14, CARD_HEIGHT / 2)
+	iconHolder.Size = UDim2.fromOffset(38, 38)
 	iconHolder.BackgroundColor3 = Theme.cream
 	iconHolder.BorderSizePixel = 0
 	iconHolder.ZIndex = 3
-	Theme.corner(iconHolder, 20)
+	Theme.corner(iconHolder, 19)
 	local iconStroke = Instance.new("UIStroke")
 	iconStroke.Color = Theme.outline
 	iconStroke.Thickness = 2
 	iconStroke.Parent = iconHolder
-	local stepIcon = Panel.label(iconHolder, "🧭", 24)
+	local stepIcon = Panel.label(iconHolder, "🧭", 22)
 	stepIcon.Size = UDim2.fromScale(1, 1)
 	stepIcon.TextScaled = true
 	stepIcon.TextStrokeTransparency = 1
@@ -206,29 +206,30 @@ function Tutorial.start()
 		end
 	end)
 	local message = Panel.label(card, "", 15)
-	message.Size = UDim2.new(1, -156, 1, -12)
+	message.Size = UDim2.new(1, -162, 1, -18)
 	message.TextScaled = true
+	message.TextStrokeTransparency = 1
 	message.TextXAlignment = Enum.TextXAlignment.Left
 	local textLimit = Instance.new("UITextSizeConstraint")
-	textLimit.MinTextSize = 14
-	textLimit.MaxTextSize = 17
+	textLimit.MinTextSize = 11
+	textLimit.MaxTextSize = 16
 	textLimit.Parent = message
-	message.Position = UDim2.fromOffset(58, 6)
+	message.Position = UDim2.fromOffset(58, 9)
 	local celebrateTitle = Panel.label(card, Text.firstCatchBanner, 16, Theme.wood)
 	celebrateTitle.Name = "CelebrateTitle"
-	celebrateTitle.Position = UDim2.fromOffset(58, 8)
-	celebrateTitle.Size = UDim2.new(1, -156, 0, 26)
+	celebrateTitle.Position = UDim2.fromOffset(58, 12)
+	celebrateTitle.Size = UDim2.new(1, -162, 0, 26)
 	celebrateTitle.TextStrokeTransparency = 1
 	celebrateTitle.TextXAlignment = Enum.TextXAlignment.Left
 	celebrateTitle.Visible = false
 	local skip = Panel.button(card, Text.skip, Theme.gold)
 	skip.Size = UDim2.fromOffset(78, 44)
 	skip.AnchorPoint = Vector2.new(1, 0.5)
-	skip.Position = UDim2.new(1, -12, 0.5, 0)
+	skip.Position = UDim2.new(1, -14, 0.5, 0)
 	local openAlbum = Panel.button(card, StringsUi.adventure.openAlbum, Theme.crystal)
 	openAlbum.Name = "OpenAlbum"
-	openAlbum.Size = UDim2.new(1, -156, 0, 44)
-	openAlbum.Position = UDim2.fromOffset(58, 40)
+	openAlbum.Size = UDim2.new(1, -162, 0, 44)
+	openAlbum.Position = UDim2.fromOffset(58, 44)
 	openAlbum.TextSize = 15
 	openAlbum.Visible = false
 	openAlbum.Activated:Connect(function()

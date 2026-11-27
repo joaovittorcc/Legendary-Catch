@@ -132,28 +132,28 @@ function Events.start()
 	Art.panel(banner, Theme.crystal)
 	local rim = banner:FindFirstChildWhichIsA("UIStroke")
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MinSize = Vector2.new(210, 48)
-	bounds.MaxSize = Vector2.new(300, 74)
+	bounds.MinSize = Vector2.new(210, 56)
+	bounds.MaxSize = Vector2.new(300, 82)
 	bounds.Parent = banner
 	local ratio = Instance.new("UIAspectRatioConstraint")
-	ratio.AspectRatio = 5
+	ratio.AspectRatio = 4.4
 	ratio.DominantAxis = Enum.DominantAxis.Width
 	ratio.Parent = banner
 
 	local iconHolder = Instance.new("Frame")
 	iconHolder.Name = "EventIcon"
 	iconHolder.AnchorPoint = Vector2.new(0, 0.5)
-	iconHolder.Position = UDim2.fromOffset(8, 25)
-	iconHolder.Size = UDim2.fromOffset(38, 38)
+	iconHolder.Position = UDim2.fromOffset(12, 28)
+	iconHolder.Size = UDim2.fromOffset(34, 34)
 	iconHolder.BackgroundColor3 = Theme.cream
 	iconHolder.BorderSizePixel = 0
 	iconHolder.ZIndex = 3
-	Theme.corner(iconHolder, 19)
+	Theme.corner(iconHolder, 17)
 	local iconStroke = Instance.new("UIStroke")
 	iconStroke.Color = Theme.outline
 	iconStroke.Thickness = 2
 	iconStroke.Parent = iconHolder
-	local icon = Panel.label(iconHolder, "🌊", 23)
+	local icon = Panel.label(iconHolder, "🌊", 21)
 	icon.TextScaled = true
 	icon.TextStrokeTransparency = 1
 	icon.Size = UDim2.fromScale(1, 1)
@@ -162,42 +162,44 @@ function Events.start()
 
 	local title = Panel.label(banner, "", 16, Theme.ink)
 	title.Name = "EventName"
-	title.Position = UDim2.fromOffset(54, 6)
-	title.Size = UDim2.new(1, -64, 0, 20)
+	title.Position = UDim2.fromOffset(52, 8)
+	title.Size = UDim2.new(1, -64, 0, 18)
 	title.TextScaled = true
 	title.TextStrokeTransparency = 1
 	title.TextXAlignment = Enum.TextXAlignment.Left
 	local titleLimit = Instance.new("UITextSizeConstraint")
-	titleLimit.MinTextSize = 14
-	titleLimit.MaxTextSize = 17
+	titleLimit.MinTextSize = 11
+	titleLimit.MaxTextSize = 16
 	titleLimit.Parent = title
 
 	local timer = Panel.label(banner, "", 14, Theme.wood)
 	timer.Name = "EventTimer"
-	timer.Position = UDim2.fromOffset(54, 24)
-	timer.Size = UDim2.new(1, -64, 0, 16)
+	timer.Position = UDim2.fromOffset(52, 26)
+	timer.Size = UDim2.new(1, -64, 0, 15)
 	timer.TextScaled = true
 	timer.TextStrokeTransparency = 1
 	timer.TextXAlignment = Enum.TextXAlignment.Left
 	local timerLimit = Instance.new("UITextSizeConstraint")
-	timerLimit.MaxTextSize = 14
+	timerLimit.MinTextSize = 10
+	timerLimit.MaxTextSize = 13
 	timerLimit.Parent = timer
 	local exclusive = Panel.label(banner, "", 14, Theme.ink)
 	exclusive.Name = "EventExclusives"
-	exclusive.Position = UDim2.fromOffset(54, 39)
-	exclusive.Size = UDim2.new(1, -64, 0, 16)
+	exclusive.Position = UDim2.fromOffset(52, 41)
+	exclusive.Size = UDim2.new(1, -64, 0, 15)
 	exclusive.TextScaled = true
 	exclusive.TextStrokeTransparency = 1
 	exclusive.TextXAlignment = Enum.TextXAlignment.Left
 	exclusive.Visible = false
 	local exclLimit = Instance.new("UITextSizeConstraint")
-	exclLimit.MaxTextSize = 14
+	exclLimit.MinTextSize = 10
+	exclLimit.MaxTextSize = 13
 	exclLimit.Parent = exclusive
 
 	local track = Instance.new("Frame")
 	track.Name = "EventTrack"
-	track.Size = UDim2.new(1, -66, 0, 4)
-	track.Position = UDim2.new(0, 54, 1, -11)
+	track.Size = UDim2.new(1, -64, 0, 4)
+	track.Position = UDim2.new(0, 52, 1, -12)
 	track.BackgroundColor3 = Theme.outline
 	track.BackgroundTransparency = 0.2
 	track.BorderSizePixel = 0
@@ -217,34 +219,34 @@ function Events.start()
 	seasonBanner.Name = "SeasonBanner"
 	seasonBanner.AnchorPoint = Vector2.new(0, 0)
 	seasonBanner.Position = UDim2.new(0.03, 0, 0, 80)
-	seasonBanner.Size = UDim2.fromOffset(250, 50)
+	seasonBanner.Size = UDim2.fromOffset(250, 56)
 	seasonBanner.BackgroundColor3 = Color3.fromRGB(228, 78, 96)
 	seasonBanner.BorderSizePixel = 0
 	seasonBanner.Visible = false
 	Art.panel(seasonBanner, Color3.fromRGB(228, 78, 96))
 	local seasonBounds = Instance.new("UISizeConstraint")
-	seasonBounds.MinSize = Vector2.new(210, 48)
+	seasonBounds.MinSize = Vector2.new(210, 56)
 	seasonBounds.MaxSize = Vector2.new(300, 74)
 	seasonBounds.Parent = seasonBanner
 	local seasonRatio = Instance.new("UIAspectRatioConstraint")
-	seasonRatio.AspectRatio = 5
+	seasonRatio.AspectRatio = 4.4
 	seasonRatio.DominantAxis = Enum.DominantAxis.Width
 	seasonRatio.Parent = seasonBanner
 
 	local sIconHolder = Instance.new("Frame")
 	sIconHolder.Name = "SeasonIcon"
 	sIconHolder.AnchorPoint = Vector2.new(0, 0.5)
-	sIconHolder.Position = UDim2.fromOffset(8, 25)
-	sIconHolder.Size = UDim2.fromOffset(38, 38)
+	sIconHolder.Position = UDim2.fromOffset(12, 28)
+	sIconHolder.Size = UDim2.fromOffset(34, 34)
 	sIconHolder.BackgroundColor3 = Theme.cream
 	sIconHolder.BorderSizePixel = 0
 	sIconHolder.ZIndex = 3
-	Theme.corner(sIconHolder, 19)
+	Theme.corner(sIconHolder, 17)
 	local sIconStroke = Instance.new("UIStroke")
 	sIconStroke.Color = Theme.outline
 	sIconStroke.Thickness = 2
 	sIconStroke.Parent = sIconHolder
-	local sIcon = Panel.label(sIconHolder, "🎄", 22)
+	local sIcon = Panel.label(sIconHolder, "🎄", 20)
 	sIcon.TextScaled = true
 	sIcon.TextStrokeTransparency = 1
 	sIcon.Size = UDim2.fromScale(1, 1)
@@ -253,20 +255,20 @@ function Events.start()
 
 	local sTitle = Panel.label(seasonBanner, Text.seasonBannerTitle, 16, Theme.ink)
 	sTitle.Name = "SeasonName"
-	sTitle.Position = UDim2.fromOffset(54, 6)
-	sTitle.Size = UDim2.new(1, -64, 0, 20)
+	sTitle.Position = UDim2.fromOffset(52, 9)
+	sTitle.Size = UDim2.new(1, -64, 0, 18)
 	sTitle.TextScaled = true
 	sTitle.TextStrokeTransparency = 1
 	sTitle.TextXAlignment = Enum.TextXAlignment.Left
 	local sTitleLimit = Instance.new("UITextSizeConstraint")
-	sTitleLimit.MinTextSize = 12
-	sTitleLimit.MaxTextSize = 17
+	sTitleLimit.MinTextSize = 11
+	sTitleLimit.MaxTextSize = 16
 	sTitleLimit.Parent = sTitle
 
 	local sSub = Panel.label(seasonBanner, Text.seasonBannerSub, 14, Theme.wood)
 	sSub.Name = "SeasonSub"
-	sSub.Position = UDim2.fromOffset(54, 26)
-	sSub.Size = UDim2.new(1, -64, 0, 18)
+	sSub.Position = UDim2.fromOffset(52, 29)
+	sSub.Size = UDim2.new(1, -64, 0, 16)
 	sSub.TextScaled = true
 	sSub.TextStrokeTransparency = 1
 	sSub.TextXAlignment = Enum.TextXAlignment.Left
@@ -339,8 +341,8 @@ function Events.start()
 		local portrait = size.Y > size.X
 		local width = math.clamp(size.X * (if portrait then 0.62 else 0.36), 210, 300)
 		local height = if exclusive.Visible
-			then (if portrait then 70 else 66)
-			else (if portrait then 56 else 50)
+			then (if portrait then 76 else 72)
+			else (if portrait then 60 else 56)
 		banner.Size = UDim2.fromOffset(width, height)
 		ratio.AspectRatio = width / height
 		local hudGui = player.PlayerGui:FindFirstChild("AdventureHud")
@@ -353,14 +355,14 @@ function Events.start()
 		local cardBottom = math.max(Tutorial.cardBottom(), Training.cardBottom(), ngBottom)
 		local top = if cardBottom > 0 then cardBottom + 8 else math.clamp(size.Y * 0.2, 76, 190)
 		banner.Position = UDim2.new(0.03, 0, 0, top)
-		iconHolder.Position = UDim2.fromOffset(8, height / 2)
+		iconHolder.Position = UDim2.fromOffset(12, height / 2)
 
-		local sHeight = if portrait then 56 else 50
+		local sHeight = if portrait then 60 else 56
 		seasonBanner.Size = UDim2.fromOffset(width, sHeight)
 		seasonRatio.AspectRatio = width / sHeight
 		local seasonTop = if banner.Visible then top + height + 8 else top
 		seasonBanner.Position = UDim2.new(0.03, 0, 0, seasonTop)
-		sIconHolder.Position = UDim2.fromOffset(8, sHeight / 2)
+		sIconHolder.Position = UDim2.fromOffset(12, sHeight / 2)
 	end
 
 	local lastId = ""
@@ -426,6 +428,7 @@ function Events.start()
 				end
 				exclusive.Visible = #perks > 0
 				exclusive.Text = table.concat(perks, "  ·  ")
+				layout()
 				fill.BackgroundColor3 = tint
 				clearVisualExtras()
 				if event.id == "thunderStorm" then

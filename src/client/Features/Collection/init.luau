@@ -686,13 +686,23 @@ function Collection.start()
 				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
 				local name = Panel.label(card, label, 14)
 				name.TextStrokeTransparency = 1
+				name.TextScaled = true
 				name.Size = UDim2.fromScale(0.94, 0.25)
 				name.Position = UDim2.fromScale(0.03, 0.6)
+				local nameLimit = Instance.new("UITextSizeConstraint")
+				nameLimit.MinTextSize = 10
+				nameLimit.MaxTextSize = 14
+				nameLimit.Parent = name
 				local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 14)
 				rarityName.TextStrokeTransparency = 1
+				rarityName.TextScaled = true
 				rarityName.Name = "Rarity"
-				rarityName.Size = UDim2.fromScale(1, 0.17)
-				rarityName.Position = UDim2.fromScale(0, 0.82)
+				rarityName.Size = UDim2.fromScale(0.94, 0.17)
+				rarityName.Position = UDim2.fromScale(0.03, 0.82)
+				local rarityLimit = Instance.new("UITextSizeConstraint")
+				rarityLimit.MinTextSize = 10
+				rarityLimit.MaxTextSize = 13
+				rarityLimit.Parent = rarityName
 				card.Activated:Connect(function()
 					selected = entry
 					scroll.CanvasPosition = Vector2.zero
@@ -742,12 +752,12 @@ function Collection.start()
 				Hud.showPanel("Collection")
 			end, aquariumHeading)
 		end
-		gui.Enabled = name == "Collection" or name == "Milestones"
+		local openCollection = name == "Collection" or name == "Milestones"
 		if rotation then
 			rotation:Disconnect()
 			rotation = nil
 		end
-		if gui.Enabled then
+		if openCollection then
 			selected = nil
 			showRewards = name == "Milestones"
 			lastSignature = collectionSignature()
@@ -790,7 +800,10 @@ function Collection.start()
 					end
 				end
 			end)
-		else
+		end
+	end)
+	gui:GetPropertyChangedSignal("Enabled"):Connect(function()
+		if not gui.Enabled then
 			selected = nil
 			showRewards = false
 			lastSignature = nil

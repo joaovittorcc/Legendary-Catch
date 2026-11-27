@@ -343,7 +343,7 @@ function Hud.start()
 	local counted = Instance.new("NumberValue")
 	counted.Parent = coins
 	counted.Changed:Connect(function(value)
-		balance.Text = tostring(math.round(value))
+		balance.Text = Theme.formatInt(value)
 	end)
 	local coinTween: Tween? = nil
 	local deltaLabel = Art.caption(coins, "CoinDelta", "", 20, Theme.gold)
@@ -365,7 +365,7 @@ function Hud.start()
 			if deltaTween then
 				deltaTween:Cancel()
 			end
-			deltaLabel.Text = `+{math.round(amount)}`
+			deltaLabel.Text = `+{Theme.formatInt(amount)}`
 			deltaLabel.Position = UDim2.fromScale(0.76, 0.22)
 			deltaLabel.TextTransparency = 0
 			deltaStroke.Transparency = 0
@@ -411,10 +411,10 @@ function Hud.start()
 		end
 		if player:GetAttribute("ReduceEffects") == true then
 			counted.Value = amount
-			balance.Text = tostring(math.round(amount))
+			balance.Text = Theme.formatInt(amount)
 			return
 		end
-		balance.Text = tostring(math.round(counted.Value))
+		balance.Text = Theme.formatInt(counted.Value)
 		local tween = TweenService:Create(
 			counted,
 			TweenInfo.new(0.35, Enum.EasingStyle.Quad),

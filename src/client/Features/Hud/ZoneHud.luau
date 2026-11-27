@@ -104,6 +104,8 @@ function ZoneHud.mount(
 	bannerTitle.Size = UDim2.new(1, -78, 0, 26)
 	bannerTitle.TextXAlignment = Enum.TextXAlignment.Left
 	bannerTitle.TextScaled = true
+	bannerTitle.TextStrokeColor3 = Theme.outline
+	bannerTitle.TextStrokeTransparency = 0.25
 	bannerTitle.ZIndex = 29
 	local titleLimit = Instance.new("UITextSizeConstraint")
 	titleLimit.MinTextSize = 14
@@ -115,9 +117,11 @@ function ZoneHud.mount(
 	bannerSub.Size = UDim2.new(1, -78, 0, 22)
 	bannerSub.TextXAlignment = Enum.TextXAlignment.Left
 	bannerSub.TextScaled = true
+	bannerSub.TextStrokeColor3 = Theme.outline
+	bannerSub.TextStrokeTransparency = 0.2
 	bannerSub.ZIndex = 29
 	local subLimit = Instance.new("UITextSizeConstraint")
-	subLimit.MinTextSize = 14
+	subLimit.MinTextSize = 11
 	subLimit.MaxTextSize = 15
 	subLimit.Parent = bannerSub
 	banner.Parent = gui
@@ -126,15 +130,25 @@ function ZoneHud.mount(
 		local size = gui.AbsoluteSize
 		local portrait = size.Y > size.X
 		local barHeight = bar.AbsoluteSize.Y
+		local barWidth = bar.AbsoluteSize.X
 		local rightStart = levelChip.Position.X.Offset + levelChip.Size.X.Offset + 10
 		local chipHeight = math.clamp(math.round(barHeight * 0.64), 30, 38)
-		local chipWidth = math.clamp(math.round(size.X * 0.24), 152, 210)
+		local chipWidth = math.clamp(math.round(size.X * 0.24), 132, 210)
 		if portrait then
-			chip.AnchorPoint = Vector2.new(1, 0)
-			chip.Position = UDim2.new(1, 0, 0, barHeight + 8)
+			chip.AnchorPoint = Vector2.new(0, 0)
+			chip.Position = UDim2.fromOffset(0, barHeight + 8)
 		else
-			chip.AnchorPoint = Vector2.new(0, 0.5)
-			chip.Position = UDim2.fromOffset(rightStart, math.round(barHeight / 2))
+			local moreBtn = bar:FindFirstChild("MoreButton")
+			local moreW = if moreBtn and moreBtn:IsA("GuiObject") then moreBtn.Size.X.Offset else 56
+			local available = math.floor(barWidth - rightStart - moreW - 14)
+			if available < 110 then
+				chip.AnchorPoint = Vector2.new(0, 0)
+				chip.Position = UDim2.fromOffset(0, barHeight + 6)
+			else
+				chipWidth = math.min(chipWidth, available)
+				chip.AnchorPoint = Vector2.new(0, 0.5)
+				chip.Position = UDim2.fromOffset(rightStart, math.round(barHeight / 2))
+			end
 		end
 		chip.Size = UDim2.fromOffset(chipWidth, chipHeight)
 	end

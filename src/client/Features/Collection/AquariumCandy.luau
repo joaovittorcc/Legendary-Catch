@@ -11,9 +11,15 @@ Candy.violet = Color3.fromRGB(142, 79, 229)
 Candy.coral = Color3.fromRGB(211, 41, 112)
 Candy.gold = Color3.fromRGB(255, 200, 50)
 Candy.muted = Color3.fromRGB(178, 190, 216)
+Candy.secondary = Color3.fromRGB(76, 152, 228)
 
 local function darkText(tone: Color3): boolean
 	return tone == Candy.cyan or tone == Candy.gold or tone == Candy.pearl or tone == Candy.muted
+end
+
+local function hasCardArt(card: Frame): boolean
+	local cardArt = card:FindFirstChild("CardArt")
+	return cardArt ~= nil and cardArt:IsA("ImageLabel") and cardArt.Visible
 end
 
 local function glaze(object: GuiObject, tone: Color3)
@@ -36,8 +42,11 @@ end
 function Candy.card(parent: Instance, tone: Color3, height: number): Frame
 	local card = Panel.card(parent, tone, height)
 	if tone ~= Candy.pearl then
-		local cardArt = card:FindFirstChild("CardArt")
-		if not (cardArt and cardArt:IsA("ImageLabel") and cardArt.Visible) then
+		if hasCardArt(card) then
+			if tone == Candy.gold then
+				Panel.setCardState(card, "selected", tone)
+			end
+		else
 			glaze(card, tone)
 		end
 		local stroke = card:FindFirstChildOfClass("UIStroke")
@@ -50,12 +59,26 @@ end
 
 function Candy.metric(parent: Instance, caption: string, value: string, tone: Color3): TextLabel
 	local card = Candy.card(parent, tone, 63)
-	local color = if darkText(tone) then Candy.ink else Candy.pearl
-	local name = Panel.label(card, caption, 13, color)
+	local artSurface = hasCardArt(card)
+	local titleColor = if artSurface
+		then (if tone == Candy.violet
+			then Color3.fromRGB(98, 42, 178)
+			elseif tone == Candy.coral then Color3.fromRGB(168, 28, 78)
+			elseif tone == Candy.cobalt then Color3.fromRGB(32, 74, 178)
+			else Candy.ink)
+		elseif darkText(tone) then Candy.ink
+		else Candy.pearl
+	local valueColor = if artSurface or darkText(tone) then Candy.ink else Candy.pearl
+	local name = Panel.label(card, caption, 13, titleColor)
 	name.TextStrokeTransparency = 1
 	name.Size = UDim2.new(1, -16, 0, 23)
 	name.Position = UDim2.fromOffset(8, 4)
-	local number = Panel.label(card, value, 20, color)
+	name.TextScaled = true
+	local nameLimit = Instance.new("UITextSizeConstraint")
+	nameLimit.MinTextSize = 10
+	nameLimit.MaxTextSize = 13
+	nameLimit.Parent = name
+	local number = Panel.label(card, value, 20, valueColor)
 	number.TextStrokeTransparency = 1
 	number.Size = UDim2.new(1, -16, 0, 30)
 	number.Position = UDim2.fromOffset(8, 26)

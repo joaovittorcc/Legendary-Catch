@@ -136,9 +136,11 @@ local token = 0
 
 -- Skin index from the player's Fishing Power (sum of the stats); "DevPowerBarSkin" forces one.
 local function skinIndex(): number
-	local forced = player:GetAttribute("DevPowerBarSkin")
-	if typeof(forced) == "number" then
-		return math.clamp(math.floor(forced), 1, #SKINS)
+	if RunService:IsStudio() then
+		local forced = player:GetAttribute("DevPowerBarSkin")
+		if typeof(forced) == "number" then
+			return math.clamp(math.floor(forced), 1, #SKINS)
+		end
 	end
 	local sum = 0
 	for _, stat in TrainingConfig.STATS do
@@ -217,15 +219,19 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	screen.DisplayOrder = 7
 	screen.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
+	local camera = Workspace.CurrentCamera
+	local shortScreen = camera ~= nil and camera.ViewportSize.Y > 0 and camera.ViewportSize.Y < 450
+	local rootY = if shortScreen then 0.50 else 0.56
+
 	-- Root on the right edge (thumb side); slides in from off-screen.
 	local root = Instance.new("Frame")
 	root.Name = "Root"
 	root.AnchorPoint = Vector2.new(1, 0.5)
-	root.Position = UDim2.fromScale(1.3, 0.56)
-	root.Size = UDim2.fromScale(0.23, 0.6)
+	root.Position = UDim2.fromScale(1.3, rootY)
+	root.Size = UDim2.fromScale(0.23, if shortScreen then 0.68 else 0.6)
 	root.BackgroundTransparency = 1
 	local limit = Instance.new("UISizeConstraint")
-	limit.MinSize = Vector2.new(190, 320)
+	limit.MinSize = Vector2.new(140, 190)
 	limit.MaxSize = Vector2.new(290, 520)
 	limit.Parent = root
 	root.Parent = screen
@@ -448,7 +454,7 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	TweenService:Create(
 		root,
 		TweenInfo.new(0.35, Enum.EasingStyle.Back),
-		{ Position = UDim2.fromScale(0.985, 0.56) }
+		{ Position = UDim2.fromScale(0.985, rootY) }
 	):Play()
 
 	local t0 = os.clock()
@@ -618,6 +624,7 @@ function PowerBar.result(band: string, luck: number?)
 	scale.Parent = word
 	TweenService:Create(scale, TweenInfo.new(0.28, Enum.EasingStyle.Back), { Scale = 1 }):Play()
 
+	local luckLabel: TextLabel? = nil
 	if luck and luck ~= 1 then
 		local text = string.format(
 			Strings.powerLuck,
@@ -631,6 +638,7 @@ function PowerBar.result(band: string, luck: number?)
 			UDim2.fromScale(0.25, 0.43)
 		)
 		l.ZIndex = 15
+		luckLabel = l
 	end
 
 	-- Freeze: the marker stays where it was and flashes in the stopped band's colour.
@@ -673,13 +681,20 @@ function PowerBar.result(band: string, luck: number?)
 		if root then
 			TweenService
 				:Create(root, TweenInfo.new(0.3, Enum.EasingStyle.Back, Enum.EasingDirection.In), {
-					Position = UDim2.fromScale(1.3, 0.56),
+					Position = UDim2.fromScale(1.3, root.Position.Y.Scale),
 				})
 				:Play()
 		end
 		TweenService:Create(word, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
 		if ws then
 			TweenService:Create(ws, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+		end
+		if luckLabel and luckLabel.Parent then
+			TweenService:Create(luckLabel, TweenInfo.new(0.3), { TextTransparency = 1 }):Play()
+			local ls = luckLabel:FindFirstChildOfClass("UIStroke")
+			if ls then
+				TweenService:Create(ls, TweenInfo.new(0.3), { Transparency = 1 }):Play()
+			end
 		end
 		task.delay(0.35, function()
 			if token == myToken and gui == screen then

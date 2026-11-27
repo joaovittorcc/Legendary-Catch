@@ -22,6 +22,7 @@ local Shared = ReplicatedStorage:WaitForChild("Shared")
 local RouletteConfig = require(Shared:WaitForChild("Config"):WaitForChild("Roulette"))
 local Strings = require(Shared:WaitForChild("Strings"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 local Roulette = require(script.Parent:WaitForChild("Roulette"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
 
@@ -88,12 +89,7 @@ end
 
 -- 1234567 -> "1.234.567" (PT) / "1,234,567" (EN).
 local function grouped(n: number): string
-	local s = tostring(math.max(1, math.floor(n + 0.5)))
-	local out = s:reverse():gsub("(%d%d%d)", "%1" .. Strings.thousandsSep):reverse()
-	if out:sub(1, 1) == Strings.thousandsSep then
-		out = out:sub(2)
-	end
-	return out
+	return Theme.formatInt(math.max(1, math.floor(n + 0.5)))
 end
 
 local function partialName(name: string, shown: number): string
@@ -413,24 +409,32 @@ function CatchShow.play(update: Update, info: Info)
 	vpScale.Scale = 0.3
 	vpScale.Parent = vp
 
-	-- Reel frame (wood + gold rim) and its parts, below the silhouette.
+	-- Reel frame: plump 3D cartoon gold/plum candy frame + inner window, matching Roulette.
 	local reelY = 0.63
 	local frame = Instance.new("Frame")
 	frame.AnchorPoint = Vector2.new(0.5, 0.5)
 	frame.Position = UDim2.fromScale(0.5, 1.4)
 	frame.Size = UDim2.fromScale(0.94, 0.25)
-	frame.BackgroundColor3 = Theme.wood
+	frame.BackgroundColor3 = WHITE
 	frame.BorderSizePixel = 0
 	frame.ZIndex = 3
 	local fc = Instance.new("UICorner")
-	fc.CornerRadius = UDim.new(0.14, 0)
+	fc.CornerRadius = UDim.new(0.18, 0)
 	fc.Parent = frame
+	local frameGrad = Instance.new("UIGradient")
+	frameGrad.Rotation = 90
+	frameGrad.Color = ColorSequence.new({
+		ColorSequenceKeypoint.new(0, UiAssets.GOLD_TOP),
+		ColorSequenceKeypoint.new(0.45, UiAssets.GOLD_MID),
+		ColorSequenceKeypoint.new(1, UiAssets.GOLD_BOT),
+	})
+	frameGrad.Parent = frame
 	local rim = Instance.new("UIStroke")
-	rim.Color = Theme.gold
+	rim.Color = UiAssets.OUTLINE
 	rim.Thickness = 6
 	rim.Parent = frame
 	local rimGradient = Instance.new("UIGradient")
-	rimGradient.Color = ColorSequence.new(Theme.gold, Color3.fromRGB(255, 255, 210))
+	rimGradient.Color = ColorSequence.new(UiAssets.OUTLINE, Color3.fromRGB(84, 34, 130))
 	rimGradient.Parent = rim
 	local limit = Instance.new("UISizeConstraint")
 	limit.MaxSize = Vector2.new(840, 240)
@@ -646,18 +650,23 @@ function CatchShow.play(update: Update, info: Info)
 		for i, ray in rays do
 			ray.Rotation = (i - 1) * (180 / K.RAY_COUNT) + (if reduce then 0 else t * raySpeed)
 		end
-		selStroke.Thickness = 4 + math.abs(math.sin(t * 5)) * 2
-		rimGradient.Rotation = (t * 60) % 360
-		for _, card in cards do
-			card.shine.Offset = Vector2.new(((t * 0.8 + card.phase) % 2) - 1, 0)
-			if card.spin then
-				card.spin.Rotation = (t * 90) % 360
+		if not reduce then
+			selStroke.Thickness = 4 + math.abs(math.sin(t * 5)) * 2
+			rimGradient.Rotation = (t * 60) % 360
+			for _, card in cards do
+				card.shine.Offset = Vector2.new(((t * 0.8 + card.phase) % 2) - 1, 0)
+				if card.spin then
+					card.spin.Rotation = (t * 90) % 360
+				end
 			end
+			glowScale.Scale = 1 + math.sin(t * 2.4) * 0.05
+		else
+			selStroke.Thickness = 4
+			glowScale.Scale = 1
 		end
 		if model then
 			model:PivotTo(CFrame.Angles(0, math.sin(t * 0.9) * 0.45, math.sin(t * 1.7) * 0.05))
 		end
-		glowScale.Scale = 1 + math.sin(t * 2.4) * 0.05
 		local s = strip
 		if s then
 			local centre = math.floor((0.5 - s.Position.X.Scale) / K.CARD_W + 0.5)

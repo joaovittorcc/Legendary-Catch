@@ -83,4 +83,16 @@ function Theme.surface(object: GuiObject, accent: Color3, radius: number, fill: 
 	stroke.Parent = object
 end
 
+function Theme.formatInt(value: number): string
+	local negative = value < 0
+	local digits = string.format("%.0f", math.floor(math.abs(value) + 0.5))
+	local sep = Strings.thousandsSep
+	local grouped = digits:reverse():gsub("(%d%d%d)", "%1" .. sep)
+	if grouped:sub(-#sep) == sep then
+		grouped = grouped:sub(1, -#sep - 1)
+	end
+	local text = grouped:reverse()
+	return if negative then "-" .. text else text
+end
+
 return Theme

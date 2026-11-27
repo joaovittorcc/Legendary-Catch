@@ -46,10 +46,16 @@ function Robux.start()
 			countdown = label
 		end
 		if id == 0 or reason then
-			local state = Panel.label(card, reason or Text.unavailable, 14)
+			local state = Panel.label(card, reason or Text.unavailable, 14, Theme.wood)
 			state.Name = "OfferStatus"
 			state.Size = UDim2.fromScale(0.30, 0.75)
 			state.Position = UDim2.fromScale(0.68, 0.125)
+			state.TextStrokeTransparency = 1
+			state.TextScaled = true
+			local stateLimit = Instance.new("UITextSizeConstraint")
+			stateLimit.MinTextSize = 11
+			stateLimit.MaxTextSize = 15
+			stateLimit.Parent = state
 			return countdown
 		end
 		local button = Panel.button(card, Text.price, Theme.gold)

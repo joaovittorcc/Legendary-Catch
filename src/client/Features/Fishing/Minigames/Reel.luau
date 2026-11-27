@@ -35,7 +35,7 @@ function Reel.run(
 		area,
 		"ReelDock",
 		UDim2.new(0, 124, 0.50, 0),
-		UDim2.fromScale(0.76, 0.66),
+		UDim2.fromScale(0.76, 0.56),
 		Theme.ink,
 		1
 	)
@@ -44,6 +44,15 @@ function Reel.run(
 	cap.MinSize = Vector2.new(124, 150)
 	cap.MaxSize = Vector2.new(124, 520)
 	cap.Parent = dock
+	local function layoutDock()
+		local size = area.AbsoluteSize
+		local compact = size.Y < 450 or size.Y > size.X
+		local y = if compact then 0.50 else 0.58
+		local x = if size.Y > size.X then 0.74 else 0.76
+		dock.Position = UDim2.fromScale(x, y)
+	end
+	layoutDock()
+	local dockLayoutConn = area:GetPropertyChangedSignal("AbsoluteSize"):Connect(layoutDock)
 	local rail =
 		Ui.frame(dock, "Bar", UDim2.new(0, 56, 1, -10), UDim2.fromOffset(2, 5), Theme.outline)
 	Ui.corner(rail, 0.32)
@@ -53,11 +62,11 @@ function Reel.run(
 		area,
 		"ReelControls",
 		UDim2.new(0.92, 0, 0, 22),
-		UDim2.new(0.5, 0, 1, -84),
+		UDim2.new(0.5, 0, 0, 48),
 		"",
 		Theme.sand
 	)
-	hint.AnchorPoint = Vector2.new(0.5, 1)
+	hint.AnchorPoint = Vector2.new(0.5, 0)
 	local function updateHint()
 		local input = UserInputService.PreferredInput
 		hint.Text = if input == Enum.PreferredInput.Touch
@@ -196,6 +205,7 @@ function Reel.run(
 	end
 
 	local function stop()
+		dockLayoutConn:Disconnect()
 		hintConnection:Disconnect()
 		controls.stop()
 		step:Disconnect()

@@ -116,7 +116,7 @@ local function summary(parent: Instance, snapshot: Snapshot, stacked: boolean?):
 		Candy.violet
 	)
 	local strip = Candy.card(parent, Candy.gold, 44)
-	local balance = label(strip, string.format(Copy.balance, snapshot.coins), 16)
+	local balance = label(strip, string.format(Copy.balance, Theme.formatInt(snapshot.coins)), 16)
 	balance.Size = UDim2.fromScale(1, 1)
 	balance.Name = "AquariumBalance"
 	local tween: Tween? = nil
@@ -124,7 +124,7 @@ local function summary(parent: Instance, snapshot: Snapshot, stacked: boolean?):
 	counter.Value = snapshot.coins
 	counter.Parent = balance
 	counter:GetPropertyChangedSignal("Value"):Connect(function()
-		balance.Text = string.format(Copy.balance, math.round(counter.Value))
+		balance.Text = string.format(Copy.balance, Theme.formatInt(counter.Value))
 	end)
 	balance.Destroying:Once(function()
 		if tween then
@@ -152,14 +152,21 @@ local function showSpecimen(
 	showModel: (Frame, string) -> ()
 )
 	local model = Candy.card(parent, Candy.cobalt, 142)
-	model.BackgroundColor3 = Theme.viewport
-	showModel(model, specimen.id)
+	local stage = Instance.new("Frame")
+	stage.Name = "SpecimenViewportStage"
+	stage.Position = UDim2.fromOffset(8, 8)
+	stage.Size = UDim2.new(1, -16, 1, -16)
+	stage.BackgroundColor3 = Theme.viewport
+	stage.BorderSizePixel = 0
+	Theme.corner(stage, 12)
+	stage.Parent = model
+	showModel(stage, specimen.id)
 	if effective then
 		local badge = Income.badge(effective, specimen.rarity)
 		badge.AnchorPoint = Vector2.new(0.5, 0)
 		badge.Position = UDim2.fromScale(0.5, 0.04)
 		badge.Size = UDim2.fromOffset(136, 32)
-		badge.Parent = model
+		badge.Parent = stage
 	end
 	label(parent, name(specimen), 21)
 	label(parent, Theme.rarityLabel(specimen.rarity) .. "  ·  " .. specimen.variant, 15)
@@ -454,7 +461,7 @@ function AquariumView.mount(
 				updateCoins = summary(stats, snapshot, true)
 				for _, synergy in ipairs(snapshot.synergies or {}) do
 					local card = Candy.card(stats, Candy.violet, 44)
-					local badge = label(card, synergy, 16, Candy.pearl)
+					local badge = label(card, synergy, 16, Color3.fromRGB(98, 42, 178))
 					badge.Size = UDim2.fromScale(1, 1)
 				end
 				overviewActions(stats, snapshot)
@@ -485,7 +492,7 @@ function AquariumView.mount(
 						stats,
 						"ReactToTank",
 						Text.aquariumProgression.react,
-						Candy.pearl,
+						Candy.secondary,
 						react
 					)
 				end
@@ -551,7 +558,7 @@ function AquariumView.mount(
 				view,
 				"BackStep",
 				Copy.back,
-				Candy.pearl,
+				Candy.secondary,
 				if busy == "confirm"
 					then nil
 					else function()

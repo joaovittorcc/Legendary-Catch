@@ -34,7 +34,7 @@ local function nextGoal(snapshot: Types.Snapshot): Goal?
 				text = if missing <= 0
 					then string.format(Text.rodReady, name)
 					elseif missing == 1 then string.format(Text.rodSingle, name)
-					else string.format(Text.rod, missing, name),
+					else string.format(Text.rod, Theme.formatInt(missing), name),
 				progress = math.clamp(snapshot.coins / rod.price, 0, 1),
 			}
 		end

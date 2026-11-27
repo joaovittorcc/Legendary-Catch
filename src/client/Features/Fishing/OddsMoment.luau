@@ -74,12 +74,7 @@ end
 
 -- 1234567 -> "1.234.567" (PT) / "1,234,567" (EN).
 local function grouped(n: number): string
-	local s = tostring(math.max(1, math.floor(n + 0.5)))
-	local out = s:reverse():gsub("(%d%d%d)", "%1" .. Strings.thousandsSep):reverse()
-	if out:sub(1, 1) == Strings.thousandsSep then
-		out = out:sub(2)
-	end
-	return out
+	return Theme.formatInt(math.max(1, math.floor(n + 0.5)))
 end
 
 -- "Bolhinha Azul" with k letters shown -> "Bol_____ ____" (spaces kept).
@@ -417,6 +412,7 @@ function OddsMoment.play(info: Info)
 			spin = (math.random() - 0.5) * 600,
 		})
 	end
+	local fading = false
 	local beat = RunService.RenderStepped:Connect(function(dt)
 		local t = os.clock() - t0
 		if not reduce then
@@ -424,13 +420,15 @@ function OddsMoment.play(info: Info)
 				ray.Rotation = (i - 1) * (180 / RAY_COUNT) + t * raySpeed
 			end
 		end
-		for _, ray in rays do
-			ray.BackgroundTransparency = rayAlpha
+		if not fading then
+			for _, ray in rays do
+				ray.BackgroundTransparency = rayAlpha
+			end
+			growing.TextTransparency = 0.25 + math.abs(math.sin(t * 3)) * 0.5
 		end
 		if model then
 			model:PivotTo(CFrame.Angles(0, math.sin(t * 0.9) * 0.45, math.sin(t * 1.7) * 0.05))
 		end
-		growing.TextTransparency = 0.25 + math.abs(math.sin(t * 3)) * 0.5
 		-- confetti
 		local rate = CONFETTI_RATE[tier] * (if reduce then 0.3 else 1)
 		spawnDebt += rate * dt
@@ -553,6 +551,7 @@ function OddsMoment.play(info: Info)
 	task.wait(hold)
 
 	-- Fade out (the reveal follows).
+	fading = true
 	local fade = TweenInfo.new(0.3)
 	TweenService:Create(bg, fade, { BackgroundTransparency = 1 }):Play()
 	for _, d in screen:GetDescendants() do
