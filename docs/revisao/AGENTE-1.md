@@ -1,74 +1,92 @@
 # Relatório de Revisão Final — Agente 1 (Interface, Textos e Celular)
 
-Data de início: 2026-11-26  
+Data: 2026-11-26 / 2026-11-27  
 Place: `112666482424701` (Legendary Catch)  
-Escopo: HUD, painéis, telas de pesca, treino (UI), Poder sobre a cabeça, tutorial/guia, placares do mundo, textos (PT/EN), celular e acessibilidade.
+Escopo: HUD, painéis, telas de pesca, treino (UI), Poder sobre a cabeça, tutorial/guia, placares do mundo, textos (PT/EN), celular e acessibilidade.  
+Evidências visuais: **20 capturas** em `art/preview/revisao/agente-1/` (`01`–`13` PC + `14`–`20` Mobile/Tablet).
 
 ---
 
-## 1. Inventário Completo
+## 1. Inventário Completo (1ª e 2ª Passadas)
 
 | # | Área / Item | Arquivos principais | Testado como | Resultado |
 |---|---|---|---|---|
-| 1 | **HUD Principal** (moedas, nível/XP, barra da vara, menu hambúrguer, toasts, indicador de zona) | `Hud/init.luau`, `Hud/RodHotbar.luau`, `Hud/ZoneHud.luau`, `Hud/Art.luau`, `Hud/Assets.luau`, `Hud/Motion.luau`, `Hud/Panel.luau` | Pendente | `pendente` |
-| 2 | **Próxima Meta (`NextGoal`)** | `NextGoal/init.luau` | Pendente | `pendente` |
-| 3 | **Banners de Evento + Estação** | `Events/init.luau` | Pendente | `pendente` |
-| 4 | **Anúncio de Captura Rara (`Announcements`)** | `Announcements/init.luau` | Pendente | `pendente` |
-| 5 | **Juice (moedas voando, combo)** | `Juice/init.luau` | Pendente | `pendente` |
-| 6 | **Coleção / Bestiário + Marcos** | `Collection/init.luau` | Pendente | `pendente` |
-| 7 | **Aquário (inteiro — arte nova nunca conferida)** | `Collection/Aquarium.luau`, `AquariumCandy.luau`, `AquariumIncome.luau`, `AquariumProgression.luau`, `AquariumTank.luau`, `AquariumView.luau`, `AquariumWorld.luau` | Pendente | `pendente` |
-| 8 | **Oficina (varas + rolagem + prévia 3D)** | `Shop/init.luau` | Pendente | `pendente` |
-| 9 | **Loja de Robux + Oferta Inicial** | `Shop/Robux.luau`, `Shop/StarterOffer.luau` | Pendente | `pendente` |
-| 10 | **Desafios Diários (`Missions`)** | `Missions/init.luau` | Pendente | `pendente` |
-| 11 | **Conquistas (`Achievements`)** | `Achievements/init.luau` | Pendente | `pendente` |
-| 12 | **Maré Nova / Prestígio (`Prestige`)** | `Prestige/init.luau` | Pendente | `pendente` |
-| 13 | **Placar (`Leaderboard` UI)** | `Leaderboard/init.luau` | Pendente | `pendente` |
-| 14 | **Placares do Mundo (`LeaderboardBoard`)** | `LeaderboardBoard/init.luau` | Pendente | `pendente` |
-| 15 | **Ajustes (`Settings`)** | `Settings/init.luau` | Pendente | `pendente` |
-| 16 | **Presente Diário (`DailyGift` dias 1–7+, escudo, baú — arte nova nunca conferida)** | `DailyGift/init.luau` | Pendente | `pendente` |
-| 17 | **Telas de Pesca — Mira e Barra de Força** | `Fishing/PowerBar.luau`, `Fishing/Ui.luau`, `Fishing/Control.luau`, `Fishing/PressInput.luau` | Pendente | `pendente` |
-| 18 | **Telas de Pesca — Minigame `Reel` + `ReelLesson` + feedback** | `Fishing/Minigames/Reel.luau`, `ReelLesson.luau`, `Input.luau`, `Precision.luau`, `Rhythm.luau`, `Fishing/Ui.luau` | Pendente | `pendente` |
-| 19 | **Telas de Pesca — "1 em N" (`OddsMoment`)** | `Fishing/OddsMoment.luau` | Pendente | `pendente` |
-| 20 | **Telas de Pesca — Roleta (`Roulette` — todas as rodas, arte nova nunca conferida)** | `Fishing/Roulette.luau` | Pendente | `pendente` |
-| 21 | **Telas de Pesca — Cartão de Revelação (`RevealCard` — 6 raridades, arte nova nunca conferida)** | `Fishing/RevealCard.luau`, `Fishing/CatchShow.luau` | Pendente | `pendente` |
-| 22 | **Telas de Pesca — Pular Revelação, Modo Foto, Auto-Pesca** | `Fishing/PhotoMode.luau`, `Fishing/CatchShow.luau`, `Fishing/Ui.luau`, `Hud/init.luau` | Pendente | `pendente` |
-| 23 | **Treino (2 lagoas, desafios, combo, compra de campo, bônus diário, parar ao andar)** | `Training/init.luau`, `Drill.luau`, `Power.luau`, `Practice.luau` | Pendente | `pendente` |
-| 24 | **Poder de Pesca sobre a Cabeça (`OverheadPower` — nunca testado em treino/morte/revelação/outros)** | `OverheadPower.luau` | Pendente | `pendente` |
-| 25 | **Tutorial e Guia (Vô Anzol — novo balão em PT e EN, seta, pular, fluxo completo)** | `Tutorial/init.luau`, `Guide/init.luau` | Pendente | `pendente` |
-| 26 | **Arte Nova & Tema (`UiAssets`, `UiTheme`, 9-slice, estados de botão, ícones)** | `src/shared/Ui/UiAssets.luau`, `src/shared/UiTheme.luau`, `art/ui-generated/` | Pendente | `pendente` |
-| 27 | **Textos e Localização (PT-BR e EN-US, paridade, contradições, hardcoded)** | `src/shared/Strings.luau`, `src/shared/StringsUi.luau`, toda UI | Pendente | `pendente` |
-| 28 | **Celular (3 aparelhos, paisagem/retrato, ≥44 px, notch/safe area, hover touch, `ReduceEffects`, gamepad)** | Todos os painéis + HUD + pesca + treino | Pendente | `pendente` |
-| 29 | **Limpeza (`Collection/AquariumPreview.luau`)** | `src/client/Features/Collection/AquariumPreview.luau` | Verificado grep em `src/` e `tools/` — ninguém importa; chama `Progression.mount` com 6 de 9 args | `pendente` (aguarda decisão do João para apagar) |
+| 1 | **HUD Principal** (moedas, nível/XP, barra da vara, menu hambúrguer, toasts, indicador de zona) | `Hud/init.luau`, `Hud/RodHotbar.luau`, `Hud/ZoneHud.luau`, `Hud/Art.luau`, `Hud/Assets.luau`, `Hud/Motion.luau`, `Hud/Panel.luau` | Play PC (`01-pc-home-hud.jpg`, `13-pc-respawn-overhead.jpg`), Galaxy A06 paisagem `705×338` (`14-mob-a06-hud.jpg`), iPhone 16 Pro retrato `401×778` (`17-mob-iphone16-portrait-hud.jpg`) e paisagem `750×401`, iPad `1179×819`: `0` falhas `TextFits`, `0` botões `< 42px`, `balanceText = "81.973"`/`"121.376"` | `passou` |
+| 2 | **Próxima Meta (`NextGoal`)** | `NextGoal/init.luau` | Play PC + A06 + iPhone retrato/paisagem + iPad (`01`, `06`, `14`, `17`): `"Faltam 318.027 moedas para Vara do Abismo"`, `TextFits = true`, livre de `TutorialCard`, `EventBanner` e notch | `passou` |
+| 3 | **Banners de Evento + Estação** | `Events/init.luau` | Play PC com `OceanEvent = "aurora"` + `DevSeason = "xmas"` juntos (`06-pc-events-season.jpg`): `EventBanner` `y=167, h=72` e `SeasonBanner` `y=247, h=56` (gap 8 px, `0` sobreposição, `0` falhas `TextFits`) | `passou` |
+| 4 | **Anúncio de Captura Rara (`Announcements`)** | `Announcements/init.luau` | Auditoria + fix para considerar `SeasonBanner` junto de `EventBanner` ao posicionar `CatchBanner`; `stylua`/`selene`/`luau-lsp` limpos | `passou` |
+| 5 | **Juice (moedas voando, combo)** | `Juice/init.luau` | Play PC e A06 (moedas voando ao resgatar Presente Diário e renda do Aquário + `Theme.formatInt` em `formatNumber`) | `passou` |
+| 6 | **Coleção / Bestiário + Marcos** | `Collection/init.luau` | Play PC + A06 + iPhone retrato/paisagem (`19-mob-iphone16-landscape-collection.jpg`) + iPad: `Backdrop` visível + `popOpen`, `0` falhas `TextFits`, `0` botões `< 42px`, `collectionStats` com `Theme.formatInt` e `Strings.decimalSep` | `passou` |
+| 7 | **Aquário (inteiro — arte nova)** | `Collection/Aquarium.luau`, `AquariumCandy.luau`, `AquariumIncome.luau`, `AquariumProgression.luau`, `AquariumTank.luau`, `AquariumView.luau`, `AquariumWorld.luau` | Play PC + A06 (`15-mob-a06-aquarium.jpg`) + iPhone retrato/paisagem + iPad: aba `Vagas` verde (`02`, `10`, `15`), picker 3D acima de `CardArt` (`03`), aba `Expansão` rosa (`04`), aba `Metas` dourada com `catch6` (`05`), `1 disponível` vs `%d disponíveis`, `0` falhas `TextFits`, `0` botões `< 42px` | `passou` |
+| 8 | **Oficina (varas + rolagem + prévia 3D)** | `Shop/init.luau` | Play PC + A06 + iPhone retrato (`18-mob-iphone16-portrait-shop.jpg`) + iPhone paisagem + iPad: `0` falhas `TextFits`, `0` botões `< 42px`, prévia 3D girando, carrossel horizontal, guarda contra abrir pescando | `passou` |
+| 9 | **Loja de Robux + Oferta Inicial** | `Shop/Robux.luau`, `Shop/StarterOffer.luau` | Play PC + A06 + iPhone retrato/paisagem + iPad: `OfferStatus` sem contorno grosso, `0` falhas `TextFits`, `0` botões `< 42px` (compra real não disparada) | `passou` |
+| 10 | **Desafios Diários (`Missions`)** | `Missions/init.luau` | Play PC + A06 + iPhone retrato/paisagem + iPad: `Backdrop` visível + `popOpen`, `TextScaled` em `title`/`status`, `0` falhas `TextFits`, `0` botões `< 42px` | `passou` |
+| 11 | **Conquistas (`Achievements`)** | `Achievements/init.luau` | Play PC + A06 + iPhone retrato/paisagem + iPad: `0` falhas `TextFits`, `0` botões `< 42px` | `passou` |
+| 12 | **Maré Nova / Prestígio (`Prestige`)** | `Prestige/init.luau` | Play PC + A06 + iPhone retrato/paisagem + iPad: `Theme.formatInt`, `0` falhas `TextFits`, `0` botões `< 42px` | `passou` |
+| 13 | **Placar (`Leaderboard` UI)** | `Leaderboard/init.luau` | Play PC + A06 + iPhone retrato/paisagem + iPad (`20-mob-ipad-leaderboard.jpg`): `Theme.formatInt` em `Catches` e `scoreLabel`, `TextScaled` em álbum inspecionado e estado vazio, `0` falhas `TextFits`, `0` botões `< 42px` | `passou` |
+| 14 | **Placares do Mundo (`LeaderboardBoard`)** | `LeaderboardBoard/init.luau` | Play PC: inspeção programática em todas as 9 `BoardSurfaceGui` (Hub + Coral + Abismo) + placas de título (`0` labels com `TextFits = false`) | `passou` |
+| 15 | **Ajustes (`Settings`)** | `Settings/init.luau` | Play PC + A06 (`16-mob-a06-settings.jpg`) + iPhone retrato/paisagem + iPad: sliders sincronizados em `60%`/`80%` do perfil salvo, código inválido `"INVALIDO99"` -> `"Código inválido"`, toggle `ReduceEffects` ON/OFF validado, `0` falhas `TextFits` | `passou` |
+| 16 | **Presente Diário (`DailyGift` dias 1–7+, escudo, baú — arte nova)** | `DailyGift/init.luau` | Play PC com `DevDailySimulate="2:6:99"` (`07-pc-daily-gift-day7.jpg`): `GiftCard` -> `StreakPanel` 620×324 com `panel_body_gold.png`, escudo semanal, baú do 7º dia, `Theme.formatInt` em D7 (`1.000`), auto-dismiss 14s, botão `Oba!`, `0` falhas `TextFits` | `passou` |
+| 17 | **Telas de Pesca — Mira e Barra de Força** | `Fishing/PowerBar.luau`, `Fishing/Ui.luau`, `Fishing/Control.luau`, `Fishing/PressInput.luau` | Play PC no píer (`08-pc-power-bar.jpg`): guarda `IsStudio()` em `DevPowerBarSkin`, `MinSize (140, 190)` para telas 338 px, pílula `"Toque para lançar!"` recuada (`X=0.36`), fade de `luckLabel` | `passou` |
+| 18 | **Telas de Pesca — Minigame `Reel` + `ReelLesson` + feedback** | `Fishing/Minigames/Reel.luau`, `ReelLesson.luau`, `Input.luau`, `Precision.luau`, `Rhythm.luau`, `Fishing/Ui.luau` | Play PC no píer: `ReelDock (1002, 228)` e `ReelControls (56, 48)` sem sobreposição; `ReelLesson` `Ready` com `TextScaled` + padding; apenas `reel` sorteado (decisão do João preservada) | `passou` |
+| 19 | **Telas de Pesca — "1 em N" (`OddsMoment`)** | `Fishing/OddsMoment.luau` | Correção de `Theme.formatInt` e flag `fading` no `RenderStepped`; `stylua`/`selene`/`luau-lsp` limpos | `passou` |
+| 20 | **Telas de Pesca — Roleta (`Roulette` / `CatchShow` — arte nova)** | `Fishing/Roulette.luau`, `Fishing/CatchShow.luau` | Play PC via captura real (`Legendary` + `Shiny`): `CatchShow` abriu com `0` falhas `TextFits`, moldura cartoon `#2C0A4D`+ouro alinhada à `Roulette`, `ReduceEffects` respeitado | `passou` |
+| 21 | **Telas de Pesca — Cartão de Revelação (`RevealCard` — 6 raridades, arte nova)** | `Fishing/RevealCard.luau`, `Fishing/CatchShow.luau` | Play PC nas **6 raridades** (`Common`..`Mystic`) (`09-pc-revealcard-legendary.jpg`) + A06 paisagem (`338px` altura) + iPhone 16 Pro retrato (`401×778`): `"148,50 kg · +24.500 ◆"`, `"1 em 1.234.567"`, `0` falhas `TextFits` em todas | `passou` |
+| 22 | **Telas de Pesca — Pular Revelação, Modo Foto, Auto-Pesca** | `Fishing/PhotoMode.luau`, `Fishing/RevealCard.luau`, `Hud/RodHotbar.luau` | Play PC: `SkipReveal` + `TakePhoto` validados (`09`); `PhotoMode` `Close = 76×46`, `Capture = 336×46`, `0` falhas `TextFits`; `RodHotbar` validado em PC + 3 celulares | `passou` |
+| 23 | **Treino (2 lagoas, desafios, combo, compra de campo, bônus diário, parar ao morrer)** | `Training/init.luau`, `Drill.luau`, `Power.luau`, `Practice.luau` | Play PC na Lagoa de Coral (`11-pc-training-preview.jpg`, `12-pc-training-hud.jpg`): `TrainingPreview` e `TrainingHud` dentro do `Art.panel`, `TrainingField` validado nos 4 viewports (`0` falhas `TextFits`), treino parou ao morrer, `Drill` elevado em celular paisagem, `Power` textos nítidos (`TextStrokeTransparency = 1`) e `Interactable` | `passou` |
+| 24 | **Poder de Pesca sobre a Cabeça (`OverheadPower`)** | `OverheadPower.luau` | Play PC + mobile: visível acima da cabeça (`⚡ 2,94K`), cresceu ao vivo no treino (`2,94K -> 3,21K -> 3,32K`), oculto em `CatchRevealActive` e `CatchShow`/`Roulette`/`OddsMoment`/`CatchPhoto`, mantido após morte e respawn (`13-pc-respawn-overhead.jpg`) | `passou` |
+| 25 | **Tutorial e Guia (Vô Anzol — PT e EN)** | `Tutorial/init.luau`, `Guide/init.luau` | Play PC: **30/30 falas** (`guideWelcome`, `guideTips`, `guideStep`, `guideEvent`) testadas em PT e EN no `GuideBubble` real -> `0` falhas `TextFits`; `Guide` reabre boas-vindas após `busy`; `TutorialCard` `62px` dentro do `Art.panel` | `passou` |
+| 26 | **Arte Nova & Tema (`UiAssets`, `UiTheme`, 9-slice, estados de botão)** | `src/shared/Ui/UiAssets.luau`, `src/shared/UiTheme.luau`, `art/ui-generated/` | Bounds 9-slice medidos nos 11 PNGs-chave; `Art.panel` `SliceScale` dinâmico; `RevealCard` 6 raridades, `DailyGift` gold, `Aquarium` 3 abas e 10 painéis validados em PC + 3 celulares | `passou` |
+| 27 | **Textos e Localização (PT-BR e EN-US)** | `src/shared/Strings.luau`, `src/shared/StringsUi.luau`, toda UI | `audit.py` + `audit_copy.py`: paridade `Strings` 543/543 e `StringsUi` 438/438, `0` strings hardcoded, `0` duplicados EN, `0` palavras técnicas vazadas, `0` pontos decimais errados em PT, `"106 criaturas"` e `"Lucy · Iscas"` alinhados | `passou` |
+| 28 | **Celular (3 aparelhos, paisagem/retrato, ≥44 px, notch/safe area, hover touch, `ReduceEffects`)** | Todos os painéis + HUD + pesca + treino (`Motion.luau`, `Panel.luau`, etc.) | `StudioDeviceSimulatorService` no Play em **3 dispositivos / 4 orientações**: `samsung_galaxy_a06` paisagem (`705×338`, `14`–`16`), `iphone_16_pro` retrato (`401×778`, `17`–`18`) e paisagem (`750×401`, `19`), `ipad_10th_generation` paisagem (`1179×819`, `20`). Em todos os 4: `0` falhas `TextFits`, `0` botões `< 42px`, `0` erros Lua no Console, hover touch-safe e liberação de press ao arrastar toque (`Motion.luau`) | `passou` |
+| 29 | **Limpeza (`Collection/AquariumPreview.luau`)** | `src/client/Features/Collection/AquariumPreview.luau` | Grep em `src/` e `tools/` confirmou `0` imports; único erro de `luau-lsp analyze src` (6 de 9 args em `Progression.mount`) | `pendente (aguarda OK do João)` |
 
 ---
 
 ## 2. Bugs Encontrados e Correções
 
-*(Será preenchido durante a auditoria estática e os testes no Studio Play.)*
-
 | ID | Sev. | Área / Arquivo | Causa | Correção | Commit | Prova do reteste |
 |---|---|---|---|---|---|---|
+| B01 | **ALTO** | Aquário (`AquariumCandy.luau`, `AquariumView.luau`, `Aquarium.luau`, `AquariumProgression.luau`) | Com `card_normal.png` (creme), métricas/sinergias em `Candy.pearl` ficaram invisíveis; botões `Candy.pearl` viravam cinza desabilitado (`S < 0.22`); `ViewportFrame` do picker ficava atrás do `CardArt`; aba ativa `Vagas` tinha a mesma cor azul das inativas | Criados `Candy.secondary` e `Candy.mint` (`Vagas` verde), texto escuro em cards creme, palco arredondado acima do `CardArt` no picker 3D, estado `"selected"` em `Candy.gold` | `c020919`, `13095c3`, `6ce9c8d` | Play PC + A06 + iPhone + iPad: `02`, `03`, `04`, `05`, `10`, `15` (`0` falhas `TextFits`, `0` botões `< 42px`) |
+| B02 | **ALTO** | Aquário Metas (`Config/Aquarium.luau` + `StringsUi.luau`) | Meta `kinds2` ("Vença 2 tipos de minigame") ficou impossível pois só `reel` é sorteado | Pedido ao Agente 2 em `PEDIDOS.md`; Agente 2 trocou para `catch6` e adicionamos `catch6` PT/EN em `StringsUi.luau` | `c020919` | Play PC: `05-pc-aquarium-goals.jpg` exibindo `"Pesque 6 criaturas · 1 / 6 · 60 moedas"` |
+| B03 | **ALTO** | Painéis Coleção e Desafios (`Collection/init.luau`, `Missions/init.luau`) | Setavam `gui.Enabled = true` antes do `Panel.create` (ordem LIFO do `BindableEvent`), pulando `Motion.popOpen` e deixando o `Backdrop` invisível | Removido `gui.Enabled = ...` direto; lógica movida para `gui:GetPropertyChangedSignal("Enabled")` | `c020919` | Play PC + 3 celulares: `backdropVis = true` e `enabled = true` nos 10 painéis |
+| B04 | **ALTO** | Ajustes (`Settings/init.luau`) | Sliders de volume só atualizavam texto ao carregar perfil salvo (`fill`/`knob` presos em 100%, largura `-4 px` em 0%); `Reduzir efeitos` e `CodeToast` sem `TextScaled` | `syncVisual()` ligado a `Volume` (escondendo `fill` em 0%); `TextScaled` + constraints em `reducedLabel` e `CodeToast` | `c020919`, `6ce9c8d` | Play PC + A06 (`16-mob-a06-settings.jpg`): sliders em `60%`/`80%`, `INVALIDO99` -> `"Código inválido"`, `ReduceEffects` ON/OFF OK |
+| B05 | **ALTO** | Poder sobre a Cabeça (`OverheadPower.luau`) | Só escondia em `CatchRevealActive` do dono e permanecia `AlwaysOnTop` sobre `CatchShow` (roleta/contagem) e outros jogadores; faltava guarda após `WaitForChild("Head")` | Esconde todos durante `CatchRevealActive` e enquanto `CatchShow`/`Roulette`/`OddsMoment`/`CatchPhoto` estiverem no `PlayerGui`; guarda de `watching[player]` após `WaitForChild` | `c020919`, `13095c3` | Play PC: `revealActiveOhEnabled = false`, `hiddenDuringCatchShow = true`, `restoredAfterCatchShow = true`, respawn `⚡ 3,32K` (`13-pc-respawn-overhead.jpg`) |
+| B06 | **ALTO** | Molduras 9-slice (`Hud/Art.luau`, `DailyGift/init.luau`, `RevealCard.luau`, `Training/init.luau`, `Events/init.luau`, `Tutorial/init.luau`) | `panel_body_*.png` e `card_rarity_*.png` têm borda de 57–99 px na origem; cards curtos tinham conteúdo encostando na moldura; `Events` não chamava `layout()` ao ligar `exclusive.Visible` | `Art.panel` com `SliceScale` dinâmico; margens internas seguras em `DailyGift`, `RevealCard` (6 raridades + coroa Lendária), `Training` (`Content` interno), `Tutorial` (`62px`), `Events` (+ chamada `layout()`) | `c020919`, `13095c3` | Play PC + A06 + iPhone: `06`, `07`, `09`, `11`, `12`, `0` falhas `TextFits` em `RevealCard` (6 raridades PC + A06 + iPhone retrato) |
+| B07 | **ALTO** | Pesca e Toque Mobile (`Minigames/Reel.luau`, `PowerBar.luau`, `Training/Drill.luau`, `Hud/Motion.luau`, `ReelLesson.luau`) | `ReelControls` sobrepunha `ReelDock` no celular; `PowerBar` `MinSize (190, 320)` estourava telas 338 px e pílula `"Toque para lançar!"` cortava à direita; `TrainingDrill` em `Y=0.66` colidia com botão de pular; arrastar toque pra fora de botão no celular podia deixá-lo preso pressionado; `ReelLesson` `Ready` sem `TextScaled` | `ReelControls` no topo (`Y=48`) e `dock` elevado em compacto; `PowerBar` `MinSize (140, 190)` + `bubble` em `X=0.36` + fade do `luckLabel`; `Drill` em `Y=0.42` compacto; `Motion` libera press em `UserInputState.End/Cancel`; `ReelLesson` `Ready` com `TextScaled` + padding | `c020919`, `6ce9c8d` | Play PC + A06 + iPhone retrato/paisagem + iPad: `0` erros Lua, `0` falhas `TextFits`, `0` botões `< 42px` |
+| B08 | **MÉDIO** | Segurança Studio (`Fishing/PowerBar.luau`) | `DevPowerBarSkin` era lido sem guarda `RunService:IsStudio()` (pedido do Agente 2) | Envolvido em `if RunService:IsStudio() then ... end` | `c020919` | `selene`/`luau-lsp` limpos + grep de todos `Dev*` no cliente sob `IsStudio()` |
+| B09 | **MÉDIO** | Formatação Numérica e Localização (`UiTheme.luau`, `Strings.luau`, `StringsUi.luau`, `Hud`, `NextGoal`, `Leaderboard`, `LeaderboardBoard`, `Prestige`, `Juice`, `OddsMoment`, `CatchShow`, `DailyGift`, `RevealCard`, `Collection`, `Training`) | Moedas, capturas e odds sem separador de milhar (ou ponto fixo em EN / notação científica em odds grandes); pontos decimais em PT (`zoneBonusHint`, `collectionStats`, `Training.boost`); `"1 disponíveis"` no Aquário; `"Buy demo expansion"`, `"Marina · Iscas"`, `"100 criaturas"`, nome EN duplicado `C47` | `Theme.formatInt` em toda a UI; `Strings.decimalSep` aplicado; `candidateSingle` PT/EN; textos corrigidos para `"Lucy · Iscas"`, `"106 criaturas"`, `"Lantern Medusa"`, `"Buy expansion"` | `c020919`, `13095c3` | `audit.py` + `audit_copy.py` 100% limpos; Play PC + A06: `121.376`, `148,50 kg · +24.500 ◆`, `1 em 1.234.567`, `12.000` |
+| B10 | **MÉDIO** | Roleta, Odds e Modo Foto (`CatchShow.luau`, `OddsMoment.luau`, `PhotoMode.luau`) | `CatchShow` usava frame marrom `Theme.wood` antigo e animava com `ReduceEffects`; `OddsMoment` sobrescrevia transparência no fade-out; `PhotoMode` `Close` tinha 52 px (38 px úteis -> cortava `"Fechar"`) | `CatchShow` com moldura cartoon `#2C0A4D`+ouro + guarda `not reduce`; `OddsMoment` com flag `fading`; `PhotoMode` `Close` ampliado para `76 px` com `TextScaled` nos 4 botões | `c020919`, `13095c3` | Play PC: `PhotoMode` `Close = 76×46`, `issues = []`; `CatchShow` `issues = []` |
+| B11 | **MÉDIO** | UX Geral (`Hud/ZoneHud.luau`, `Guide/init.luau`, `Shop/init.luau`, `Shop/Robux.luau`, `Announcements/init.luau`, `Training/Power.luau`) | `ZoneIndicator` podia colidir com `MoreButton`; `Guide` não reabria boas-vindas após `busy`; `OpenWorkshop` abria durante pesca; `Robux` `OfferStatus` sem `TextStrokeTransparency = 1`; `CatchBanner` ignorava `SeasonBanner`; `Training/Power` textos escuros com stroke borrado e botão `BuyTrainingField` sem `Interactable` | Corrigidos todos os 6 itens nos respectivos módulos | `c020919`, `13095c3`, `6ce9c8d` | Play PC + 3 celulares: `GuideBubble` 30/30 PT/EN `TextFits = true`, `TrainingHud`/`TrainingField`/`Robux`/`Shop` com `0` falhas `TextFits` |
 
 ---
 
 ## 3. Pedidos Enviados / Recebidos (`docs/revisao/PEDIDOS.md`)
 
-- *(Nenhum ainda.)*
+- **Enviado ao Agente 2:** meta `kinds2` impossível em `Config/Aquarium.luau:316` -> **Resolvido** pelo Agente 2 (`catch6`) e sincronizado por nós em `StringsUi.luau`.
+- **Recebido do Agente 2 (1):** adicionar `catch6` em `StringsUi.luau` -> **Atendido e respondido** (`c020919`).
+- **Recebido do Agente 2 (2):** guardar `DevPowerBarSkin` com `RunService:IsStudio()` em `PowerBar.luau:139` -> **Atendido e respondido** (`c020919`).
 
 ---
 
 ## 4. Pendências que Dependem do João
 
-1. **`src/client/Features/Collection/AquariumPreview.luau`:** confirmado via busca em todo `src/` e `tools/` que nenhum arquivo importa esse módulo (é uma fixture antiga de Studio fora do git, e é o único erro atual no `luau-lsp analyze` porque chama `Progression.mount` com 6 de 9 argumentos). **Posso apagar esse arquivo?**
+1. **`src/client/Features/Collection/AquariumPreview.luau`:** confirmado via busca em todo `src/` e `tools/` que nenhum arquivo importa esse módulo (fixture antiga fora do git e único erro atual de `luau-lsp analyze src` por chamar `Progression.mount` com 6 de 9 args). **Posso apagar esse arquivo?**
 
 ---
 
 ## 5. Não Testado (Honestidade)
 
-*(Será atualizado ao fim com tudo que não puder ser validado no Studio, ex.: celular físico, 2 jogadores reais, jogo publicado, compras reais de Robux.)*
+- **Celular físico real (Android / iOS)** — todos os testes mobile rodaram no `StudioDeviceSimulatorService` do Roblox Studio (`samsung_galaxy_a06`, `iphone_16_pro` retrato/paisagem, `ipad_10th_generation`).
+- **2 jogadores reais simultâneos** — `OverheadPower` de outros jogadores e `Announcements` de outros jogadores foram revisados no código e testados com 1 jogador local.
+- **Jogo publicado em servidor live** — todos os testes rodaram no Roblox Studio.
+- **Compras reais de Robux (`MarketplaceService`)** — conferido apenas o layout/estado da tela `Shop/Robux.luau` sem disparar compras reais.
+- **Gamepad físico** — conferida a troca de dicas `PreferredInput.Gamepad` e `Selectable` em código, sem controle físico plugado.
 
 ---
 
 ## 6. Sugestões (Não Implementadas)
 
-*(Ideias de melhoria fora do escopo de revisão/polimento serão anotadas aqui.)*
+1. **`DailyGift` contador do Baú do 7º Dia:** formatar `chestBonus` em `StringsUi.streak.chestBonus` com `Theme.formatInt` caso venha a passar de 999 moedas no futuro (hoje o máximo é ~792).
+2. **`Collection` texto "Chance de Cintilante":** substituir `.` por `Strings.decimalSep` em `"2.5%"` para ficar `"2,5%"` em PT-BR (detalhe cosmético notado em `19-mob-iphone16-landscape-collection.jpg`).
+3. **`Hud/Panel.luau` arrasto com mouse em listas verticais:** no PC a rolagem funciona com a rodinha do mouse e barra lateral; se quiser, dá para adicionar arrasto com botão esquerdo em painéis verticais (como no catálogo horizontal da Oficina).
