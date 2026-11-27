@@ -5041,8 +5041,6 @@ local function buildContractParts(root: Model, origin: Vector3)
 	)
 	portal.CanTouch = true
 	portal.CanQuery = true
-	portal.CanTouch = true
-	portal.CanQuery = true
 	CollectionService:AddTag(portal, "ZonePortal")
 	portal:SetAttribute("PortalId", "training_reef_to_main")
 	portal:SetAttribute("ZoneId", "lagoon")

@@ -193,6 +193,9 @@ local function collectLanterns(island: Instance?): { LanternTarget }
 				or d.Name == "LanternLight"
 				or d.Name == "LanternGlow"
 				or d.Name == "LampGlow"
+				or string.find(d.Name, "LanternGlow$") ~= nil
+				or string.find(d.Name, "Lantern[NS]Glow$") ~= nil
+				or string.find(d.Name, "TorchGlow$") ~= nil
 				or string.find(d.Name, "^WelcomeLanternGlow") ~= nil
 			)
 		then
@@ -355,13 +358,13 @@ local function buildPierHolidayDecor(island: Instance?): (Model?, { BasePart }, 
 	local archBeam: BasePart? = nil
 	for _, d in pier:GetDescendants() do
 		if d:IsA("BasePart") then
-			if d.Name == "PostCap" then
+			if d.Name == "PostCap" or d.Name == "PierLanternCap" then
 				if d.Position.Z < 8 then
 					table.insert(leftPosts, d.Position - Vector3.new(0, 0.45, 0))
 				else
 					table.insert(rightPosts, d.Position - Vector3.new(0, 0.45, 0))
 				end
-			elseif d.Name == "ArchBeam" then
+			elseif d.Name == "ArchBeam" or d.Name == "GateBeam" then
 				archBeam = d
 			end
 		end
@@ -381,8 +384,8 @@ local function buildPierHolidayDecor(island: Instance?): (Model?, { BasePart }, 
 	end
 	if archBeam then
 		local p = archBeam.Position
-		local span = archBeam.Size.Z * 0.42
-		addGarlandSpan(p - Vector3.new(0, 0.7, span), p - Vector3.new(0, 0.7, -span), true)
+		local span = math.max(archBeam.Size.X, archBeam.Size.Z) * 0.38
+		addGarlandSpan(p - Vector3.new(0, 1.1, span), p - Vector3.new(0, 1.1, -span), true)
 	end
 
 	model.Parent = Workspace
@@ -1103,6 +1106,8 @@ function LivingWorld.start()
 				or desc.Name == "GuideNPC"
 				or desc.Name == "LightSource"
 				or desc.Name == "LanternLight"
+				or string.find(desc.Name, "LanternGlow$") ~= nil
+				or string.find(desc.Name, "TorchGlow$") ~= nil
 				or desc:IsA("ParticleEmitter")
 			then
 				task.defer(scanIsland, initialIsland)
