@@ -490,6 +490,40 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?, options
 				scaleTo(1, 0.12)
 			end)
 		)
+		local function releasePointer()
+			if not pointerPressed then
+				return
+			end
+			pointerPressed = false
+			setPressedVisual(false)
+			if isReduced() then
+				scale.Scale = 1
+				return
+			end
+			skipActivatedPulse = true
+			local pop = TweenService:Create(
+				scale,
+				TweenInfo.new(0.11, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
+				{ Scale = 1.06 }
+			)
+			tween = pop
+			pop.Completed:Once(function(state)
+				if tween ~= pop or state ~= Enum.PlaybackState.Completed then
+					return
+				end
+				local settle = TweenService:Create(
+					scale,
+					TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
+					{ Scale = if hovered then 1.045 else 1 }
+				)
+				tween = settle
+				settle:Play()
+			end)
+			pop:Play()
+			task.delay(0.22, function()
+				skipActivatedPulse = false
+			end)
+		end
 		table.insert(
 			buttonSignals,
 			target.InputBegan:Connect(function(input)
@@ -506,49 +540,30 @@ function Motion.mount(target: GuiObject, sway: number?, period: number?, options
 				pointerPressed = true
 				setPressedVisual(true)
 				scaleTo(0.91, 0.065)
+				-- If a touch drags off the button (e.g. scrolling), target.InputEnded may not fire.
+				local stateConn: RBXScriptConnection? = nil
+				stateConn = input:GetPropertyChangedSignal("UserInputState"):Connect(function()
+					local st = input.UserInputState
+					if st == Enum.UserInputState.End or st == Enum.UserInputState.Cancel then
+						if stateConn then
+							stateConn:Disconnect()
+							stateConn = nil
+						end
+						releasePointer()
+					end
+				end)
 			end)
 		)
 		table.insert(
 			buttonSignals,
 			target.InputEnded:Connect(function(input)
 				if
-					not pointerPressed
-					or (
-						input.UserInputType ~= Enum.UserInputType.MouseButton1
-						and input.UserInputType ~= Enum.UserInputType.Touch
-					)
+					input.UserInputType ~= Enum.UserInputType.MouseButton1
+					and input.UserInputType ~= Enum.UserInputType.Touch
 				then
 					return
 				end
-				pointerPressed = false
-				setPressedVisual(false)
-				if isReduced() then
-					scale.Scale = 1
-					return
-				end
-				skipActivatedPulse = true
-				local pop = TweenService:Create(
-					scale,
-					TweenInfo.new(0.11, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-					{ Scale = 1.06 }
-				)
-				tween = pop
-				pop.Completed:Once(function(state)
-					if tween ~= pop or state ~= Enum.PlaybackState.Completed then
-						return
-					end
-					local settle = TweenService:Create(
-						scale,
-						TweenInfo.new(0.14, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-						{ Scale = if hovered then 1.045 else 1 }
-					)
-					tween = settle
-					settle:Play()
-				end)
-				pop:Play()
-				task.delay(0.22, function()
-					skipActivatedPulse = false
-				end)
+				releasePointer()
 			end)
 		)
 		table.insert(

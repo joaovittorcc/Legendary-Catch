@@ -362,6 +362,7 @@ function Power.start(buy: RemoteEvent)
 			else ""
 		button.Visible = nextDef ~= nil
 		button.Active = allowed and request == nil and Config.powerEnabled()
+		button.Interactable = button.Active
 		button.Selectable = button.Active
 		button.Text = if request then Text.pending else Text.upgrade
 		Panel.tintButton(button, if button.Active then Theme.crystal else Theme.muted)

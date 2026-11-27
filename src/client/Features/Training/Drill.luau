@@ -26,11 +26,15 @@ function Drill.run(
 	local camera = Workspace.CurrentCamera
 	local viewport = if camera then camera.ViewportSize else Vector2.new(800, 600)
 	local compact = viewport.Y < 520 and viewport.X > viewport.Y * 1.45
+	local portrait = viewport.Y > viewport.X
 	local panel = Ui.frame(
 		area,
 		"TrainingDrill",
 		UDim2.new(if compact then 0.44 else 0.89, 0, 0, 124),
-		UDim2.fromScale(if compact then 0.75 else 0.5, 0.66),
+		UDim2.fromScale(
+			if compact then 0.74 else 0.5,
+			if compact then 0.42 elseif portrait then 0.56 else 0.66
+		),
 		Theme.ink
 	)
 	panel.AnchorPoint = Vector2.new(0.5, 0.5)

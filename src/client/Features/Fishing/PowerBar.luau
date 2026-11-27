@@ -403,8 +403,8 @@ function PowerBar.show(layout: { FishingConfig.AimSegment }, aimStart: number)
 	local bubble = Instance.new("Frame")
 	bubble.Name = "Hint"
 	bubble.AnchorPoint = Vector2.new(0.5, 0)
-	bubble.Position = UDim2.fromScale(0.45, 0.96)
-	bubble.Size = UDim2.fromScale(1.25, 0.075)
+	bubble.Position = UDim2.fromScale(0.36, 0.96)
+	bubble.Size = UDim2.fromScale(1.10, 0.075)
 	bubble.BackgroundColor3 = WHITE
 	bubble.BorderSizePixel = 0
 	corner(bubble, 0.5)

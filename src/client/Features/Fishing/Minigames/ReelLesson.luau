@@ -82,9 +82,18 @@ function Lesson.show(kind: string): View?
 		target.Text = text
 		target.Font = Theme.font
 		target.TextSize = 14
+		target.TextScaled = true
 		target.TextColor3 = Theme.sand
 		target.TextStrokeColor3 = Theme.ink
 		target.TextStrokeTransparency = 0.1
+		local btnCap = Instance.new("UITextSizeConstraint")
+		btnCap.MinTextSize = 10
+		btnCap.MaxTextSize = 15
+		btnCap.Parent = target
+		local btnPad = Instance.new("UIPadding")
+		btnPad.PaddingLeft = UDim.new(0, 6)
+		btnPad.PaddingRight = UDim.new(0, 6)
+		btnPad.Parent = target
 		Theme.surface(target, accent, 18)
 		Motion.mount(target)
 		target.Parent = card

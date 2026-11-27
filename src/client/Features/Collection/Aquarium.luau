@@ -414,7 +414,7 @@ function Aquarium.start(remotes: Instance)
 			local labels = Text.aquariumTabs
 			for index, tab in
 				{
-					{ key = "slots", caption = labels.slots, tone = Candy.cyan },
+					{ key = "slots", caption = labels.slots, tone = Candy.mint },
 					{ key = "expansion", caption = labels.expansion, tone = Candy.violet },
 					{ key = "goals", caption = labels.goals, tone = Candy.gold },
 				}

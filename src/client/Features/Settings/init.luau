@@ -224,6 +224,11 @@ function Settings.start()
 	reducedLabel.Size = UDim2.new(1, -104, 1, 0)
 	reducedLabel.TextXAlignment = Enum.TextXAlignment.Left
 	reducedLabel.TextStrokeTransparency = 1
+	reducedLabel.TextScaled = true
+	local reducedLimit = Instance.new("UITextSizeConstraint")
+	reducedLimit.MinTextSize = 11
+	reducedLimit.MaxTextSize = 17
+	reducedLimit.Parent = reducedLabel
 	local toggleBtn, setToggle = Panel.toggle(
 		reducedRow,
 		player:GetAttribute("ReduceEffects") == true,
@@ -270,6 +275,12 @@ function Settings.start()
 	status.Position = UDim2.fromOffset(8, 133)
 	status.Size = UDim2.new(1, -16, 0, 30)
 	status.TextStrokeTransparency = 1
+	status.TextWrapped = true
+	status.TextScaled = true
+	local statusLimit = Instance.new("UITextSizeConstraint")
+	statusLimit.MinTextSize = 10
+	statusLimit.MaxTextSize = 15
+	statusLimit.Parent = status
 	status.Visible = false
 	codes.Parent = body
 
