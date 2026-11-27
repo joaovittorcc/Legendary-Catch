@@ -62,6 +62,8 @@ local reducedEffects = false
 local elapsed = 0
 local nextSeed = 1.37
 
+local registerTag: (Instance, string) -> ()
+
 local function numAttr(inst: Instance, name: string, defaultValue: number): number
 	local v = inst:GetAttribute(name)
 	if typeof(v) == "number" then
@@ -128,7 +130,7 @@ local function restoreBaseState(entry: Entry)
 	end
 end
 
-local function registerTag(inst: Instance, tagName: string)
+function registerTag(inst: Instance, tagName: string)
 	local existing = entries[inst]
 	if existing then
 		if not existing.tags[tagName] then
@@ -151,6 +153,22 @@ local function registerTag(inst: Instance, tagName: string)
 		baseSize = inst.Size
 		baseTrans = inst.Transparency
 	elseif inst:IsA("Model") then
+		-- A model whose parts have not streamed in has no real pivot yet: capturing it here
+		-- would later drag the parts to the world origin. Wait for the first part.
+		if not inst:FindFirstChildWhichIsA("BasePart", true) then
+			local connection: RBXScriptConnection
+			connection = inst.DescendantAdded:Connect(function(desc: Instance)
+				if desc:IsA("BasePart") then
+					connection:Disconnect()
+					task.defer(function()
+						if inst.Parent and CollectionService:HasTag(inst, tagName) then
+							registerTag(inst, tagName)
+						end
+					end)
+				end
+			end)
+			return
+		end
 		kind = "Model"
 		baseCf = inst:GetPivot()
 	elseif inst:IsA("Light") then

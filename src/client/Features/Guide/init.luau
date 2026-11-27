@@ -15,7 +15,6 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
-local Art = require(script.Parent.Hud:WaitForChild("Art"))
 local Panel = require(script.Parent.Hud:WaitForChild("Panel"))
 
 local Guide = { order = 140 }
@@ -55,9 +54,14 @@ local function buildBubble(anchor: Attachment): (BillboardGui, TextLabel, Frame)
 	local frame = Instance.new("Frame")
 	frame.Visible = false
 	frame.Size = UDim2.fromScale(1, 1)
-	frame.BackgroundColor3 = Theme.crystal
+	-- A plain rounded card: the thick panel art left no room and the line spilled outside.
+	frame.BackgroundColor3 = Theme.cream
 	frame.BorderSizePixel = 0
-	Art.panel(frame, Theme.crystal)
+	Theme.corner(frame, 18)
+	local border = Instance.new("UIStroke")
+	border.Color = Theme.crystal
+	border.Thickness = 3
+	border.Parent = frame
 	frame.Parent = gui
 
 	local icon = Instance.new("Frame")
@@ -93,8 +97,8 @@ local function buildBubble(anchor: Attachment): (BillboardGui, TextLabel, Frame)
 	name.Parent = frame
 
 	local line = Instance.new("TextLabel")
-	line.Size = UDim2.new(1, -24, 1, -52)
-	line.Position = UDim2.fromOffset(12, 48)
+	line.Size = UDim2.new(1, -28, 1, -58)
+	line.Position = UDim2.fromOffset(14, 49)
 	line.BackgroundTransparency = 1
 	line.TextWrapped = true
 	line.TextScaled = true
