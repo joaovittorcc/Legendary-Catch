@@ -2,7 +2,7 @@
 
 **Place:** `112666482424701` (Legendary Catch)
 **Início:** 2026-11-26 21:30 BRT
-**Status:** Etapa 1 (Inventário + auditoria de código + 16 correções em 16 arquivos com `stylua`/`selene`/`luau-lsp` limpos) concluída; auditoria técnica em Edit das 106 criaturas + 8 varas + 14 áudios concluída; **pendente reconexão do MCP do Roblox Studio** após reinicialização do PC para finalizar grades visuais das 106 criaturas + bateria completa em Play + capturas em `art/preview/revisao/agente-4/`.
+**Status:** Etapa 1 (Inventário + auditoria de código + 17 arquivos corrigidos com `stylua`/`selene`/`luau-lsp` limpos, commits `cfcc1b9` e `aaddf77`) concluída; auditoria técnica em Edit das 106 criaturas (`CREATURE_PRELOAD total=624 ok=624 fail=0`) + 8 varas + 14 áudios concluída; **63/106 criaturas já inspecionadas visualmente em grade** (`grid-mystic-legendary.jpg`, `grid-epic.jpg`, `grid-rare.jpg`); pendente terminar grades `Uncommon`/`Common`/`8 Rods` + remover `Workspace._Agent4AuditStage` + bateria completa em Play assim que o MCP do Studio reconectar após o reinício do servidor Antigravity.
 
 ---
 
@@ -50,15 +50,19 @@
 
 ## 2. Tabela das 106 Criaturas Ativas (`Config.Creatures.LIST`)
 
-> **Resumo da inspeção automatizada em Edit (`ReplicatedStorage.Creatures`):**
-> - **106/106** criaturas ativas presentes, **0** scripts internos, **0** partes com `CanCollide = true`, **0** `MeshId` vazios.
-> - **5 flags técnicas identificadas para inspeção prioritária nas grades/Play:**
->   1. `C93_Ouroboros_Cosmico` — `PP=RootPart, UNANCH=2, INVIS=1` (rig skinned com 20 `Bone`s; conferir comportamento em Reveal, Aquário, Coleção e Troféu).
->   2. `C94_Mare_Primordial` — `SCALE=5.54` (`5.54×3.42×2.21`; conferir enquadramento e tamanhos extremos).
->   3. `C90_Tartaruga_Mundo` — `PIVOFF=1.21` (conferir centralização/giro em Coleção, Aquário e Troféu).
->   4. `C62_Dragao_Dourado` — `PIVOFF=0.76` (auditoria antiga tinha 0/0/0; agora tem 9 partes/6 meshes — confirmar visual na grade).
->   5. `C82_Kitsune_Aquatica` — `PIVOFF=0.76` (conferir centralização na grade).
-> - Além das 5 acima, conferir na grade visual `C104_Polvo_Presente` (`3.85×2.60×3.98`, auditoria anterior apontou frente em `+X`).
+> **Resumo da inspeção automatizada e visual em Edit (`ReplicatedStorage.Creatures`):**
+> - **106/106** criaturas ativas presentes, **0** scripts internos, **0** partes com `CanCollide = true`, **0** `MeshId` vazios, **`CREATURE_PRELOAD total=624 ok=624 fail=0`** (100% dos assets de mesh/textura baixam com sucesso).
+> - **Grades visuais já capturadas (`art/preview/revisao/agente-4/`):**
+>   - `grid-mystic-legendary.jpg` (2 Místicas + 18 Lendárias = 20/20): 20/20 visíveis, frente `+Z` correta, `C62_Dragao_Dourado` agora renderiza perfeitamente (corrigido desde a auditoria antiga). **Achado de coerência visual:** `C91_Hipocampo_Imperial` parece um cavaleiro/golem bípede de armadura azul e dourada em vez de um hipocampo (cavalo-marinho).
+>   - `grid-epic.jpg` (21 Épicas): 16 visíveis na 1ª captura (`C22`, `C56`, `C58`, `C83`, `C96` tiveram `HttpError: NetFail` transitório e passaram `Success` logo em seguida no `PreloadAsync` — re-capturar após preload). `C104_Polvo_Presente` está de frente sem rosto visível em `+Z` (confirmar lateral `+X`).
+>   - `grid-rare.jpg` (22 Raras): 22/22 visíveis e nítidas. **Achados de orientação:** `C54_Peixe_Vela_Solar` está de perfil lateral esquerdo (em vez de `+Z`) e `C80_Peixe_Pavao_Eletrico` em 3/4 lateral esquerdo.
+>   - **Pendentes:** `grid-uncommon.jpg` (20), `grid-common.jpg` (23), `grid-rods.jpg` (8 varas), re-captura `grid-epic.jpg` (21/21) e destruição de `Workspace._Agent4AuditStage`.
+> - **5 flags técnicas identificadas para inspeção prioritária em Play:**
+>   1. `C93_Ouroboros_Cosmico` — `PP=RootPart, UNANCH=2, INVIS=1` (rig skinned com 20 `Bone`s; na grade visual ficou perfeito).
+>   2. `C94_Mare_Primordial` — `SCALE=5.54` (`5.54×3.42×2.21`; na grade visual ficou perfeito; conferir enquadramento e tamanhos extremos em Play).
+>   3. `C90_Tartaruga_Mundo` — `PIVOFF=1.21` (na grade visual ficou ótimo; conferir giro em Coleção, Aquário e Troféu).
+>   4. `C62_Dragao_Dourado` — `PIVOFF=0.76` (**confirmado visualmente OK na grade**).
+>   5. `C82_Kitsune_Aquatica` — `PIVOFF=0.76` (**confirmado visualmente OK na grade**).
 
 | # | ID | Raridade | Estilo | Tamanho (X×Y×Z) | Partes / Meshes / Neon / Bones | PrimaryPart | Pivô Offset | Flags Edit | Visual (Grade) |
 |---:|---|---|---|---|---|---|---:|---|---|
