@@ -11,14 +11,20 @@ type Feature = { start: (() -> ())?, order: number? }
 local features: { { name: string, module: Feature } } = {}
 for _, child in script:WaitForChild("Features"):GetChildren() do
 	if child:IsA("ModuleScript") then
-		local module = (require :: any)(child) :: Feature
-		if type(module) == "table" and module.start then
-			table.insert(features, { name = child.Name, module = module })
+		local ok, module = pcall(require :: any, child)
+		if ok and type(module) == "table" and (module :: Feature).start then
+			table.insert(features, { name = child.Name, module = module :: Feature })
+		elseif not ok then
+			warn(`[Server] feature {child.Name} failed to load: {module}`)
 		end
 	end
 end
 table.sort(features, function(a, b)
-	return (a.module.order or 100) < (b.module.order or 100)
+	local oa, ob = a.module.order or 100, b.module.order or 100
+	if oa ~= ob then
+		return oa < ob
+	end
+	return a.name < b.name
 end)
 
 for _, f in features do

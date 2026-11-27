@@ -146,19 +146,22 @@ local function readRequest(raw: any): AquariumState.Request?
 		return nil
 	end
 	local slot, version = raw.slot, raw.expectedVersion
+	local op = readString(raw.op, 16)
 	if
 		typeof(slot) ~= "number"
 		or slot ~= slot
+		or math.abs(slot) >= math.huge
 		or typeof(version) ~= "number"
 		or version ~= version
-		or typeof(raw.op) ~= "string"
+		or math.abs(version) >= math.huge
+		or not op
 	then
 		return nil
 	end
 	local creatureId = if raw.creatureId ~= nil then readString(raw.creatureId, 64) else nil
 	local variant = if raw.variant ~= nil then readString(raw.variant, 16) else nil
 	return {
-		op = raw.op,
+		op = op,
 		slot = slot,
 		creatureId = creatureId,
 		variant = variant,
@@ -285,7 +288,13 @@ local function onBuy(player: Player, raw: unknown)
 	local requestId = readString(rawTable.requestId, 36)
 	local levelId = readString(rawTable.levelId, 64)
 	local expected = rawTable.expectedVersion
-	if not requestId or not levelId or typeof(expected) ~= "number" or expected ~= expected then
+	if
+		not requestId
+		or not levelId
+		or typeof(expected) ~= "number"
+		or expected ~= expected
+		or math.abs(expected) >= math.huge
+	then
 		return
 	end
 	local stored = session.results[requestId]

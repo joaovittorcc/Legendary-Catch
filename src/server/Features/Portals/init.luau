@@ -13,6 +13,7 @@ local Workspace = game:GetService("Workspace")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
 local Strings = require(Shared:WaitForChild("Strings"))
+local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 local Zones = require(Shared:WaitForChild("Config"):WaitForChild("Zones"))
 
 local Features = script.Parent
@@ -33,6 +34,7 @@ local FALLBACK_MAIN_POS = Vector3.new(-6, 13.6, 16)
 
 local effectRemote: RemoteEvent
 local fishingUpdateRemote: RemoteEvent
+local trainingUpdateRemote: RemoteEvent
 local rng = Random.new()
 
 local lastTeleport: { [Player]: number } = {}
@@ -148,7 +150,7 @@ local function tryUsePortal(player: Player, portalPart: BasePart)
 	local rawZone = portalPart:GetAttribute("ZoneId")
 	local zoneId = if typeof(rawZone) == "string" then rawZone else Zones.DEFAULT_ID
 
-	-- Validate zone level requirement on the server (return to "main" is always allowed).
+	-- Validate zone level and training island power requirements on the server (return to "main" is always allowed).
 	if destination ~= "main" then
 		local zone = Zones.get(zoneId)
 		if zone and playerLevel(player) < zone.minLevel then
@@ -165,6 +167,24 @@ local function tryUsePortal(player: Player, portalPart: BasePart)
 				)
 			end
 			return
+		end
+		local rawIsland = portalPart:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE)
+		if typeof(rawIsland) == "number" and TrainingConfig.powerEnabled() then
+			local island = TrainingConfig.islandIndex(rawIsland)
+			if not TrainingConfig.islandAllowed(island, Training.powerSum(player)) then
+				if (lastLockedNotice[player] or 0) + LOCKED_COOLDOWN <= now then
+					lastLockedNotice[player] = now
+					trainingUpdateRemote:FireClient(
+						player,
+						{
+							event = "islandLocked",
+							island = island,
+							gate = TrainingConfig.ISLANDS[island].gate,
+						} :: Net.TrainingUpdate
+					)
+				end
+				return
+			end
 		end
 	end
 
@@ -205,10 +225,12 @@ local function tryUsePortal(player: Player, portalPart: BasePart)
 			liveChar:PivotTo(finalCF)
 		end
 
-		effectRemote:FireClient(player, {
-			phase = "done",
-			destination = destination,
-		})
+		if player.Parent then
+			effectRemote:FireClient(player, {
+				phase = "done",
+				destination = destination,
+			})
+		end
 		teleporting[player] = nil
 	end)
 end
@@ -260,8 +282,9 @@ local function hookPortal(inst: Instance)
 end
 
 function Portals.start()
-	effectRemote = Remotes.event("PortalEffect")
+	effectRemote = Remotes.event(Net.PORTAL_EFFECT)
 	fishingUpdateRemote = Remotes.event(Net.FISHING_UPDATE)
+	trainingUpdateRemote = Remotes.event(Net.TRAINING_UPDATE)
 
 	for _, inst in CollectionService:GetTagged(PORTAL_TAG) do
 		hookPortal(inst)

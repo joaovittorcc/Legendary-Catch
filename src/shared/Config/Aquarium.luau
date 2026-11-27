@@ -313,7 +313,7 @@ Aquarium.INCOME_GOALS = {
 --   kind: "catches" | "minigames" (distinct modes) | "discoveries" (new species)
 Aquarium.SESSION_GOALS = {
 	{ id = "catch3", kind = "catches", target = 3, coins = 40 },
-	{ id = "kinds2", kind = "minigames", target = 2, coins = 60 },
+	{ id = "catch6", kind = "catches", target = 6, coins = 60 },
 	{ id = "discover1", kind = "discoveries", target = 1, coins = 100 },
 } :: { { id: string, kind: string, target: number, coins: number } }
 Aquarium.SESSION_REENTRY_SECONDS = 600

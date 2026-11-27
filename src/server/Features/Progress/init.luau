@@ -235,9 +235,12 @@ function Progress.onCatch(
 	player: Player,
 	creature: Creatures.Creature,
 	value: number,
-	castId: number
+	castId: number,
+	isAuto: boolean?
 )
-	lastCaught[player] = { castId = castId, at = os.clock() }
+	if not isAuto then
+		lastCaught[player] = { castId = castId, at = os.clock() }
+	end
 	advanceTutorial(player, "fight")
 	addMissionProgress(player, function(kind)
 		return kind == "catch" or kind == "catchRarity:" .. creature.rarity
@@ -268,35 +271,49 @@ local function reply(player: Player, result: Net.ClaimResult)
 end
 
 local function onClaimMission(player: Player, index: unknown)
-	if typeof(index) ~= "number" then
+	if typeof(index) ~= "number" or index ~= index or math.abs(index) >= math.huge then
 		return
 	end
 	refreshMissions(player)
+	local idx = math.floor(index)
 	local profile = PlayerData.get(player)
-	local m = profile and profile.missions.list[math.floor(index)]
+	local m = profile and profile.missions.list[idx]
 	if not m then
-		reply(player, { ok = false, kind = "mission", id = tostring(index), reason = "unknown" })
+		reply(player, { ok = false, kind = "mission", id = tostring(idx), reason = "unknown" })
 		return
 	end
-	if m.claimed then
-		reply(player, { ok = false, kind = "mission", id = m.id, reason = "claimed" })
-		return
-	end
-	if m.progress < m.target then
-		reply(player, { ok = false, kind = "mission", id = m.id, reason = "notReady" })
-		return
-	end
+	local claimed = false
+	local reason: string? = nil
+	local rewardCoins = 0
 	PlayerData.update(player, function(p)
-		local target = p.missions.list[math.floor(index)]
+		local target = p.missions.list[idx]
+		if not target then
+			reason = "unknown"
+			return
+		end
+		if target.claimed then
+			reason = "claimed"
+			return
+		end
+		if target.progress < target.target then
+			reason = "notReady"
+			return
+		end
 		target.claimed = true
 		p.coins += target.reward
+		rewardCoins = target.reward
+		claimed = true
 	end)
-	Analytics.coins(player, true, m.reward, "Mission", m.id)
-	reply(player, { ok = true, kind = "mission", id = m.id, reward = m.reward })
+	if not claimed then
+		reply(player, { ok = false, kind = "mission", id = m.id, reason = reason or "unknown" })
+		return
+	end
+	Analytics.coins(player, true, rewardCoins, "Mission", m.id)
+	reply(player, { ok = true, kind = "mission", id = m.id, reward = rewardCoins })
 end
 
 local function onClaimMilestone(player: Player, id: unknown)
-	if typeof(id) ~= "string" then
+	if typeof(id) ~= "string" or #id == 0 or #id > 64 then
 		return
 	end
 	local milestone = Milestones.get(id)
@@ -305,24 +322,31 @@ local function onClaimMilestone(player: Player, id: unknown)
 		reply(player, { ok = false, kind = "milestone", id = id, reason = "unknown" })
 		return
 	end
-	if profile.milestones[id] then
-		reply(player, { ok = false, kind = "milestone", id = id, reason = "claimed" })
-		return
-	end
-	if not milestoneReady(profile, milestone) then
-		reply(player, { ok = false, kind = "milestone", id = id, reason = "notReady" })
-		return
-	end
+	local claimed = false
+	local reason: string? = nil
 	PlayerData.update(player, function(p)
+		if p.milestones[id] then
+			reason = "claimed"
+			return
+		end
+		if not milestoneReady(p, milestone) then
+			reason = "notReady"
+			return
+		end
 		p.milestones[id] = true
 		p.coins += milestone.reward
+		claimed = true
 	end)
+	if not claimed then
+		reply(player, { ok = false, kind = "milestone", id = id, reason = reason or "unknown" })
+		return
+	end
 	Analytics.coins(player, true, milestone.reward, "Milestone", id)
 	reply(player, { ok = true, kind = "milestone", id = id, reward = milestone.reward })
 end
 
 local function onTutorialEvent(player: Player, name: unknown)
-	if typeof(name) ~= "string" then
+	if typeof(name) ~= "string" or #name == 0 or #name > 64 then
 		return
 	end
 	local step = CLIENT_TUTORIAL_EVENTS[name]
@@ -365,6 +389,8 @@ local function onReportPerfect(player: Player, castId: unknown)
 	local last = lastCaught[player]
 	if
 		typeof(castId) ~= "number"
+		or castId ~= castId
+		or math.abs(castId) >= math.huge
 		or not last
 		or last.castId ~= castId
 		or os.clock() - last.at > 15

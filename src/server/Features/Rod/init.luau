@@ -255,7 +255,7 @@ local function reply(player: Player, result: Net.ShopResult)
 end
 
 local function onBuy(player: Player, rodId: unknown)
-	if typeof(rodId) ~= "string" then
+	if typeof(rodId) ~= "string" or #rodId == 0 or #rodId > 64 then
 		return
 	end
 	local rod = Rods.get(rodId)
@@ -264,18 +264,26 @@ local function onBuy(player: Player, rodId: unknown)
 		reply(player, { ok = false, action = "buy", rodId = rodId, reason = "unknown" })
 		return
 	end
-	if table.find(profile.rodsOwned, rod.id) then
-		reply(player, { ok = false, action = "buy", rodId = rod.id, reason = "owned" })
-		return
-	end
-	if not PlayerData.trySpend(player, rod.price) then
-		reply(player, { ok = false, action = "buy", rodId = rod.id, reason = "noCoins" })
-		return
-	end
+	local reason: string? = nil
+	local bought = false
 	PlayerData.update(player, function(p)
+		if table.find(p.rodsOwned, rod.id) then
+			reason = "owned"
+			return
+		end
+		if p.coins < rod.price then
+			reason = "noCoins"
+			return
+		end
+		p.coins -= rod.price
 		table.insert(p.rodsOwned, rod.id)
 		p.equippedRod = rod.id
+		bought = true
 	end)
+	if not bought then
+		reply(player, { ok = false, action = "buy", rodId = rod.id, reason = reason or "unknown" })
+		return
+	end
 	giveRod(player)
 	Analytics.coins(player, false, rod.price, "Rod", rod.id)
 	Analytics.step(player, "firstRodBought")
@@ -284,12 +292,12 @@ local function onBuy(player: Player, rodId: unknown)
 end
 
 local function onEquip(player: Player, rodId: unknown)
-	if typeof(rodId) ~= "string" then
+	if typeof(rodId) ~= "string" or #rodId == 0 or #rodId > 64 then
 		return
 	end
 	local profile = PlayerData.get(player)
 	if not profile or not Rods.get(rodId) then
-		reply(player, { ok = false, action = "equip", rodId = tostring(rodId), reason = "unknown" })
+		reply(player, { ok = false, action = "equip", rodId = rodId, reason = "unknown" })
 		return
 	end
 	if not table.find(profile.rodsOwned, rodId) then

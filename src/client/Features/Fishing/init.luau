@@ -52,6 +52,7 @@ local pendingPerfect = false
 
 -- "idle" | "casting" | "aiming" | "waiting" | "fighting" | "resolving" | "revealing"
 local state: string = "idle"
+local castAttempt = 0
 local aimStartAt = 0 -- server time the power bar starts (after the cast cutscene's pull-back)
 local castId = 0
 local line: Line.Line? = nil
@@ -165,6 +166,14 @@ local function onActivated()
 		end
 	end
 	state = "casting"
+	castAttempt += 1
+	local attempt = castAttempt
+	-- Watchdog: if the server drops a cast (rate limit / packet loss), never stay stuck in "casting".
+	task.delay(2.5, function()
+		if currentState() == "casting" and castAttempt == attempt then
+			state = "idle"
+		end
+	end)
 	-- With the power bar, the cast cutscene's pull-back replaces the quick slash.
 	if not FishingConfig.powerEnabled() then
 		playCastSwing(tool)
@@ -194,7 +203,8 @@ local function startCast(id: number)
 			FishingCamera.start(root, l.bobber)
 		end
 	end)
-	local flat = (root.CFrame.LookVector * Vector3.new(1, 0, 1)).Unit
+	local flatVec = root.CFrame.LookVector * Vector3.new(1, 0, 1)
+	local flat = if flatVec.Magnitude > 0 then flatVec.Unit else Vector3.zAxis
 	if fromCutscene then
 		-- The cutscene plays the whole-body throw: launch the bobber on its strike and stop
 		-- Line's own short swing (castTo starts it synchronously, this runs right after).
@@ -361,8 +371,12 @@ local function onUpdate(update: Net.FishingUpdate)
 	end
 	if update.event == "rejected" then
 		state = "idle"
+		if update.reason == "cooldown" then
+			return
+		end
 		local message = if update.reason == "loading"
 			then Strings.loading
+			elseif update.reason == "training" then StringsUi.autoFish.trainingStop
 			elseif update.reason == "levelLocked" then string.format(
 				Strings.zoneRequiredLevel,
 				update.minLevel or 1

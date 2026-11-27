@@ -58,7 +58,13 @@ export type Profile = {
 -- The Wally shim does not re-export ProfileStore's types; only the members used here.
 type Session = {
 	Data: any,
+	LastSavedData: any,
 	OnSessionEnd: { Connect: (self: any, listener: () -> ()) -> any },
+	OnLastSave: { Connect: (self: any, listener: (reason: string) -> ()) -> any },
+	OnAfterSave: {
+		Connect: (self: any, listener: (lastSaved: any) -> ()) -> any,
+		Wait: (self: any) -> any,
+	},
 	IsActive: (self: any) -> boolean,
 	Reconcile: (self: any) -> (),
 	EndSession: (self: any) -> (),
@@ -421,24 +427,32 @@ end
 
 -- Atomic spend: true and deducted when the player can afford it.
 function PlayerData.trySpend(player: Player, amount: number): boolean
+	if typeof(amount) ~= "number" or amount ~= amount or math.abs(amount) >= math.huge then
+		return false
+	end
 	local profile = profiles[player]
 	if not profile or amount < 0 or profile.coins < amount then
 		return false
 	end
-	PlayerData.update(player, function(p)
+	return PlayerData.update(player, function(p)
 		p.coins -= amount
 	end)
-	return true
 end
 
 function PlayerData.addCoins(player: Player, amount: number)
+	if typeof(amount) ~= "number" or amount ~= amount or math.abs(amount) >= math.huge then
+		return
+	end
+	local whole = math.floor(amount)
+	if whole <= 0 then
+		return
+	end
 	PlayerData.update(player, function(p)
-		p.coins += math.max(0, math.floor(amount))
+		p.coins += whole
 	end)
 end
 
--- Requests an immediate save (used before granting Robux purchases). False when the
--- session is gone, so the caller can tell Roblox to retry the receipt later.
+-- Requests an immediate save. False when the session is gone.
 function PlayerData.saveNow(player: Player): boolean
 	local session = sessions[player]
 	if not session or not session:IsActive() then
@@ -446,6 +460,39 @@ function PlayerData.saveNow(player: Player): boolean
 	end
 	session:Save()
 	return true
+end
+
+-- Waits until `purchaseId` is confirmed in ProfileStore's LastSavedData (official dev-product
+-- durability pattern). Returns false if the session ends before the save completes, so
+-- ProcessReceipt can return NotProcessedYet and Roblox will retry safely.
+function PlayerData.savePurchaseAsync(player: Player, purchaseId: string): boolean
+	local session = sessions[player]
+	if not session or not session:IsActive() then
+		return false
+	end
+	local function isSaved(): boolean
+		local saved = session.LastSavedData
+		return typeof(saved) == "table"
+			and typeof(saved.purchases) == "table"
+			and saved.purchases[purchaseId] == true
+	end
+	if isSaved() then
+		return true
+	end
+	while session:IsActive() do
+		local before = session.LastSavedData
+		session:Save()
+		if session.LastSavedData == before then
+			session.OnAfterSave:Wait()
+		end
+		if isSaved() then
+			return true
+		end
+		if session:IsActive() then
+			task.wait(5)
+		end
+	end
+	return false
 end
 
 PlayerData.Loaded = loadedEvent.Event
@@ -481,11 +528,33 @@ end
 
 local function activate(player: Player, session: Session)
 	local profile = session.Data :: Profile
+	local released = false
+	local function releaseOnce()
+		if released then
+			return
+		end
+		released = true
+		if profiles[player] == profile then
+			runBeforeRelease(player)
+		end
+	end
+	-- Runs right before the final DataStore save (Manual, External steal or Shutdown/BindToClose),
+	-- so last-second mutations like Aquarium exit settlement are guaranteed to persist.
+	session.OnLastSave:Connect(function()
+		releaseOnce()
+	end)
 	session.OnSessionEnd:Connect(function()
-		runBeforeRelease(player)
-		profiles[player] = nil
-		sessions[player] = nil
-		player:Kick(Strings.forLocale(player.LocaleId).dataSessionEnded)
+		releaseOnce()
+		if profiles[player] == profile then
+			profiles[player] = nil
+		end
+		if sessions[player] == session then
+			sessions[player] = nil
+		end
+		dirty[player] = nil
+		if player.Parent == Players then
+			player:Kick(Strings.forLocale(player.LocaleId).dataSessionEnded)
+		end
 	end)
 	sessions[player] = session
 	profiles[player] = profile
@@ -566,15 +635,16 @@ end
 
 local function onPlayerRemoving(player: Player)
 	local session = sessions[player]
-	if profiles[player] then
+	if session and session:IsActive() then
+		-- EndSession fires OnLastSave synchronously while profiles[player] is still active,
+		-- allowing beforeRelease hooks to mutate profile data before the final DataStore write.
+		session:EndSession()
+	elseif profiles[player] then
 		runBeforeRelease(player)
 	end
 	profiles[player] = nil
 	sessions[player] = nil
 	dirty[player] = nil
-	if session and session:IsActive() then
-		session:EndSession()
-	end
 end
 
 -- ProfileStore autosaves and saves every active session on shutdown by itself.

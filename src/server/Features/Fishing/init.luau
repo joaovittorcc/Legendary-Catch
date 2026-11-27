@@ -335,6 +335,7 @@ local function reset(player: Player, s: Session)
 	s.isAuto = false
 	s.kind = ""
 	s.creatureId = ""
+	s.eventId = ""
 	s.odds = 0
 	s.powerBand = "neutral"
 	s.aimStart = 0
@@ -409,7 +410,14 @@ end
 
 local function onPowerTap(player: Player, castId: unknown, clientTime: unknown)
 	local s = sessions[player]
-	if not s or typeof(castId) ~= "number" or s.castId ~= castId or s.phase ~= "aiming" then
+	if
+		not s
+		or typeof(castId) ~= "number"
+		or castId ~= castId
+		or math.abs(castId) >= math.huge
+		or s.castId ~= castId
+		or s.phase ~= "aiming"
+	then
 		return
 	end
 	local now = workspace:GetServerTimeNow()
@@ -420,6 +428,7 @@ local function onPowerTap(player: Player, castId: unknown, clientTime: unknown)
 	if
 		typeof(clientTime) == "number"
 		and clientTime == clientTime
+		and math.abs(clientTime) < math.huge
 		and purpleShare(s) <= FishingConfig.AIM.suspectPurpleShare
 	then
 		-- Forgive latency, but never accept a time from the future or too far in the past.
@@ -433,11 +442,32 @@ end
 local function onCast(player: Player)
 	local s = session(player)
 	local now = os.clock()
-	if s.autoEnabled or s.phase ~= "idle" or now - s.lastCast < FishingConfig.CAST_COOLDOWN then
+	if s.autoEnabled or s.phase ~= "idle" then
 		return
 	end
+	if now - s.lastCast < FishingConfig.CAST_COOLDOWN then
+		send(player, { event = "rejected", reason = "cooldown" })
+		return
+	end
+	local character = player.Character
 	local root = rootOf(player)
-	if not root then
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	local rodTool = character and character:FindFirstChild("Rod")
+	if
+		not (
+			character
+			and root
+			and humanoid
+			and humanoid.Health > 0
+			and rodTool
+			and rodTool:IsA("Tool")
+		)
+	then
+		send(player, { event = "rejected", reason = "cooldown" })
+		return
+	end
+	if (player:GetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE) or "") ~= "" then
+		send(player, { event = "rejected", reason = "training" })
 		return
 	end
 	if not PlayerData.get(player) then
@@ -702,13 +732,18 @@ local function payCatch(
 		Aquarium.onCatch(player, minigame or "", isNew)
 	end
 	Journey.onCatch(player, creature, isNew, isGiant)
-	Progress.onCatch(player, creature, value, castId)
+	Progress.onCatch(player, creature, value, castId, isAuto)
 	Social.onCatch(player, creature, if shiny then "Shiny" else "")
 	Trophy.onCatch(player, creature, weight, shiny)
 end
 
 local function onSubmit(player: Player, castId: unknown, success: unknown)
-	if typeof(castId) ~= "number" or castId ~= castId or typeof(success) ~= "boolean" then
+	if
+		typeof(castId) ~= "number"
+		or castId ~= castId
+		or math.abs(castId) >= math.huge
+		or typeof(success) ~= "boolean"
+	then
 		return
 	end
 	local s = sessions[player]
@@ -798,7 +833,7 @@ local function autoCanRun(player: Player, s: Session): (boolean, string?, Zones.
 		return false, "training", nil
 	end
 	local zoneId = syncPlayerZone(player)
-	if zoneId == "" then
+	if zoneId == "" or not FishingConfig.castSpotCheck(zoneId, root.Position) then
 		return false, "notInZone", nil
 	end
 	local zone = Zones.get(zoneId)
@@ -910,13 +945,14 @@ local function runAutoLoop(player: Player, s: Session, token: number)
 		end
 
 		local autoOdds = s.odds -- reset() clears it
+		local autoEvent = s.eventId
 		reset(player, s)
 		local tierPenalty = math.max(0, creature.tier - 3) * AUTO_TIER_PENALTY
 		local chance = math.clamp(AUTO_BASE_SUCCESS - tierPenalty, 0.10, AUTO_BASE_SUCCESS)
 		if rng:NextNumber() < chance then
 			s.wonCasts[castId] = true
 			s.lastCatchAt = os.clock()
-			payCatch(player, creature, castId, true, nil, s.eventId, autoOdds)
+			payCatch(player, creature, castId, true, nil, autoEvent, autoOdds)
 		else
 			send(player, { event = "escaped", castId = castId, auto = true })
 		end
@@ -950,7 +986,7 @@ local function onSetAutoFish(player: Player, enabled: unknown)
 		return
 	end
 	local zoneId = syncPlayerZone(player)
-	if zoneId == "" then
+	if zoneId == "" or not FishingConfig.castSpotCheck(zoneId, root.Position) then
 		send(player, { event = "rejected", reason = "notInZone", auto = true })
 		return
 	end
@@ -1011,8 +1047,7 @@ function Fishing.start()
 	Remotes.onServerEvent(Net.SUBMIT_CATCH, 2, 3, onSubmit)
 	Remotes.onServerEvent(Net.SET_AUTO_FISH, 1, 2, onSetAutoFish)
 	local function watchCharacter(player: Player, character: Model)
-		local humanoid = character:FindFirstChildOfClass("Humanoid")
-		if humanoid then
+		local function bindDeath(humanoid: Humanoid)
 			humanoid.Died:Connect(function()
 				local s = sessions[player]
 				if not s then
@@ -1022,15 +1057,38 @@ function Fishing.start()
 					stopAuto(player, s, nil)
 				elseif s.phase ~= "idle" then
 					reset(player, s)
-					send(player, { event = "cancelled", castId = s.castId })
+					send(
+						player,
+						{ event = "cancelled", castId = s.castId, comboLost = breakCombo(player) }
+					)
+				end
+			end)
+		end
+		local humanoid = character:FindFirstChildOfClass("Humanoid")
+		if humanoid then
+			bindDeath(humanoid)
+		else
+			task.spawn(function()
+				local found = character:WaitForChild("Humanoid", 5)
+				if found and found:IsA("Humanoid") and character.Parent then
+					bindDeath(found)
 				end
 			end)
 		end
 		character.ChildRemoved:Connect(function(child)
 			if child:IsA("Tool") and child.Name == "Rod" then
 				local s = sessions[player]
-				if s and s.autoEnabled then
+				if not s then
+					return
+				end
+				if s.autoEnabled then
 					stopAuto(player, s, nil)
+				elseif s.phase ~= "idle" then
+					reset(player, s)
+					send(
+						player,
+						{ event = "cancelled", castId = s.castId, comboLost = breakCombo(player) }
+					)
 				end
 			end
 		end)
@@ -1048,18 +1106,37 @@ function Fishing.start()
 		player:SetAttribute(Zones.PLAYER_ATTRIBUTE, "")
 		player:GetAttributeChangedSignal("EquippedRod"):Connect(function()
 			local s = sessions[player]
-			if s and s.autoEnabled then
+			if not s then
+				return
+			end
+			if s.autoEnabled then
 				stopAuto(player, s, nil)
+			elseif s.phase ~= "idle" then
+				reset(player, s)
+				send(player, { event = "cancelled", castId = s.castId })
+			end
+		end)
+		player:GetAttributeChangedSignal(PrestigeConfig.ATTRIBUTE):Connect(function()
+			local s = sessions[player]
+			if not s then
+				return
+			end
+			if s.autoEnabled then
+				stopAuto(player, s, nil)
+			elseif s.phase ~= "idle" then
+				reset(player, s)
+				send(player, { event = "cancelled", castId = s.castId })
 			end
 		end)
 		player:GetAttributeChangedSignal(TrainingConfig.ACTIVE_ATTRIBUTE):Connect(function()
 			local s = sessions[player]
-			if
-				s
-				and s.autoEnabled
-				and (player:GetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE) or "") ~= ""
-			then
-				stopAuto(player, s, "training")
+			if s and (player:GetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE) or "") ~= "" then
+				if s.autoEnabled then
+					stopAuto(player, s, "training")
+				elseif s.phase ~= "idle" then
+					reset(player, s)
+					send(player, { event = "cancelled", castId = s.castId })
+				end
 			end
 		end)
 		player:GetAttributeChangedSignal(Products.AUTO_FISH_OWNED_ATTRIBUTE):Connect(function()
@@ -1080,9 +1157,7 @@ function Fishing.start()
 				if s.autoEnabled then
 					stopAuto(player, s, nil)
 				elseif s.phase ~= "idle" then
-					s.phase = "idle"
-					s.kind = ""
-					s.creatureId = ""
+					reset(player, s)
 					send(player, { event = "cancelled", castId = s.castId })
 				end
 			end

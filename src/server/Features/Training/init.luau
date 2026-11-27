@@ -179,7 +179,11 @@ local function addXp(player: Player, stat: string, amount: number)
 		total = 0
 	end
 	PlayerData.update(player, function(p)
-		p.training[stat] = { level = lvl, xp = total }
+		p.training[stat] = {
+			level = lvl,
+			xp = total,
+			power = TrainingConfig.powerFromLevel(lvl, total),
+		}
 	end)
 	if lvl > t.level then
 		Achievements.check(player)
@@ -188,6 +192,10 @@ end
 
 local function start(player: Player, stat: string, spot: BasePart)
 	if not near(player, spot) or not PlayerData.get(player) then
+		return
+	end
+	local existing = sessions[player]
+	if existing and existing.stat == stat and existing.spot == spot then
 		return
 	end
 	local island = TrainingConfig.islandIndex(spot:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE))
@@ -255,6 +263,9 @@ local function addPrompts(spot: Instance)
 		if typeof(only) == "string" and only ~= "" and only ~= stat then
 			continue
 		end
+		if spot:FindFirstChild("Train" .. stat) then
+			continue
+		end
 		local prompt = Instance.new("ProximityPrompt")
 		prompt.Name = "Train" .. stat
 		prompt.ActionText = `{Strings.trainAction} {Strings.stat[stat] or stat}`
@@ -318,7 +329,12 @@ local function step()
 end
 
 local function onRingResult(player: Player, ringId: unknown, success: unknown)
-	if typeof(ringId) ~= "number" or typeof(success) ~= "boolean" then
+	if
+		typeof(ringId) ~= "number"
+		or ringId ~= ringId
+		or math.abs(ringId) >= math.huge
+		or typeof(success) ~= "boolean"
+	then
 		return
 	end
 	local s = sessions[player]
@@ -359,7 +375,11 @@ end
 
 -- Buys the next training field level (Fishing Power v2). Server checks coins, power and level.
 local function onBuyField(player: Player, requestId: unknown)
-	local id = if typeof(requestId) == "number" and requestId == requestId then requestId else 0
+	local id = if typeof(requestId) == "number"
+			and requestId == requestId
+			and math.abs(requestId) < math.huge
+		then requestId
+		else 0
 	local profile = PlayerData.get(player)
 	if not profile then
 		return
@@ -417,6 +437,11 @@ end
 -- Fishing Power of a stat (1 when never trained or the profile is not loaded).
 function Training.power(player: Player, stat: string): number
 	return powerOf(player, stat)
+end
+
+-- Total Fishing Power across all stats (used by portals to enforce island power gates).
+function Training.powerSum(player: Player): number
+	return powerSum(player)
 end
 
 -- Used by portals: cleanly stops any active training session before teleporting.

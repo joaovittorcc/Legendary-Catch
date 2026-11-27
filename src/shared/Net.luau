@@ -125,6 +125,7 @@ local Net = {
 	AQUARIUM_BUY_LEVEL = "AquariumBuyLevel",
 	AQUARIUM_RESULT = "AquariumResult",
 	AQUARIUM_CLAIM_GOAL = "AquariumClaimGoal",
+	PORTAL_EFFECT = "PortalEffect",
 }
 
 -- goalId: "income:<id>" or "session:<id>" (ids in Config/Aquarium). A repeated claim answers

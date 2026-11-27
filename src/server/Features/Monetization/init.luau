@@ -96,7 +96,7 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 
-	PlayerData.update(player, function(p)
+	local updated = PlayerData.update(player, function(p)
 		p.purchases[purchaseId] = true
 		p.purchaseOrder = p.purchaseOrder or {}
 		table.insert(p.purchaseOrder, purchaseId)
@@ -111,14 +111,17 @@ local function processReceipt(receipt: { [string]: any }): Enum.ProductPurchaseD
 			p.boosts.luckUntil = math.max(p.boosts.luckUntil, os.time()) + product.boostSeconds
 		end
 	end)
+	if not updated then
+		return Enum.ProductPurchaseDecision.NotProcessedYet
+	end
 	publishBoost(player)
 	if product.coins then
 		Analytics.coins(player, true, product.coins, "Robux", product.key)
 	end
 
-	-- ProfileStore saves on its own schedule; ask for a save now so the grant is durable
-	-- before telling Roblox the purchase is done.
-	if not PlayerData.saveNow(player) then
+	-- Wait until ProfileStore confirms the purchaseId is in LastSavedData before telling Roblox
+	-- the purchase is done; if the session ends first, Roblox retries safely on next join.
+	if not PlayerData.savePurchaseAsync(player, purchaseId) then
 		return Enum.ProductPurchaseDecision.NotProcessedYet
 	end
 	return Enum.ProductPurchaseDecision.PurchaseGranted
@@ -127,9 +130,9 @@ end
 function Monetization.start()
 	MarketplaceService.ProcessReceipt = processReceipt
 	MarketplaceService.PromptGamePassPurchaseFinished:Connect(function(player, passId, purchased)
-		if purchased then
+		if purchased and typeof(passId) == "number" and passId > 0 then
 			for _, pass in Products.PASSES do
-				if pass.id == passId then
+				if pass.id ~= 0 and pass.id == passId then
 					player:SetAttribute(Products.passAttribute(pass.key), true)
 				end
 			end

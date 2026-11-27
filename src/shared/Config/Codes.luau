@@ -5,6 +5,7 @@
 export type Code = {
 	code: string,
 	coins: number,
+	expiresAt: number?, -- optional UTC os.time() deadline; nil = never expires
 }
 
 local LIST: { Code } = {
@@ -24,7 +25,11 @@ Codes.LIST = LIST
 
 function Codes.find(text: string): Code?
 	local clean = string.gsub(text, "%s+", "")
-	return byCode[string.upper(clean)]
+	local code = byCode[string.upper(clean)]
+	if code and code.expiresAt and os.time() > code.expiresAt then
+		return nil
+	end
+	return code
 end
 
 return Codes
