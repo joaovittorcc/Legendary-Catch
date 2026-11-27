@@ -17,17 +17,22 @@ local function updateRarity(bobber: BasePart, rarity: string?)
 		return
 	end
 	local text = Theme.rarityLabel(rarity)
+	local rimColor = Theme.rarity[rarity] or Theme.crystal
 	if tag and tag:IsA("BillboardGui") then
 		local label = tag:FindFirstChildWhichIsA("TextLabel")
 		if label then
 			label.Text = text
+			local stroke = label:FindFirstChildWhichIsA("UIStroke")
+			if stroke then
+				stroke.Color = rimColor
+			end
 		end
 		return
 	end
 
 	local billboard = Instance.new("BillboardGui")
 	billboard.Name = "SpectatorRarity"
-	billboard.Size = UDim2.fromOffset(124, 24)
+	billboard.Size = UDim2.fromOffset(132, 24)
 	billboard.StudsOffsetWorldSpace = Vector3.new(0, 1.5, 0)
 	billboard.MaxDistance = 34
 	local label = Instance.new("TextLabel")
@@ -35,15 +40,20 @@ local function updateRarity(bobber: BasePart, rarity: string?)
 	label.Text = text
 	label.TextColor3 = Theme.sand
 	label.Font = Theme.font
-	label.TextSize = 13
-	Theme.surface(label, Theme.rarity[rarity] or Theme.crystal, 7, Theme.ink)
+	label.TextScaled = true
+	local cap = Instance.new("UITextSizeConstraint")
+	cap.MaxTextSize = 13
+	cap.Parent = label
+	Theme.surface(label, rimColor, 7, Theme.ink)
 	label.Parent = billboard
 	billboard.Parent = bobber
 end
 
 function Others.start()
 	local lines: { [Player]: Line.Line } = {}
+	local appliedRarity: { [Player]: string } = {}
 	local function remove(player: Player)
+		appliedRarity[player] = nil
 		local line = lines[player]
 		if line then
 			lines[player] = nil
@@ -105,8 +115,10 @@ function Others.start()
 				then rarity
 				else nil
 			updateRarity(line.bobber, fightingRarity)
-			if mode ~= line.mode then
+			local rarityKey = fightingRarity or ""
+			if mode ~= line.mode or appliedRarity[player] ~= rarityKey then
 				line.mode = mode
+				appliedRarity[player] = rarityKey
 				local color = if fightingRarity then Theme.rarity[fightingRarity] else nil
 				Line.setColor(line, color or Color3.fromRGB(220, 240, 255))
 			end

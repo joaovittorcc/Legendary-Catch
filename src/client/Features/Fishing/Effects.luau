@@ -195,6 +195,7 @@ end
 
 -- Bright column rising from the water (the "geyser" moment before rare reveals).
 function Effects.pillar(center: Vector3, color: Color3, height: number, duration: number)
+	local isReduced = reduced()
 	local column = fx(
 		"LightPillar",
 		Vector3.new(height, 1.6, 1.6),
@@ -203,12 +204,14 @@ function Effects.pillar(center: Vector3, color: Color3, height: number, duration
 		Enum.Material.Neon,
 		Enum.PartType.Cylinder
 	)
-	column.Transparency = 0.1
-	local light = Instance.new("PointLight")
-	light.Color = color
-	light.Brightness = 6
-	light.Range = 30
-	light.Parent = column
+	column.Transparency = if isReduced then 0.5 else 0.1
+	if not isReduced then
+		local light = Instance.new("PointLight")
+		light.Color = color
+		light.Brightness = 6
+		light.Range = 30
+		light.Parent = column
+	end
 	TweenService
 		:Create(column, TweenInfo.new(duration, Enum.EasingStyle.Quad, Enum.EasingDirection.In), {
 			Size = Vector3.new(height, 0.1, 0.1),
@@ -329,7 +332,19 @@ function Effects.shake(duration: number, magnitude: number)
 	local start = os.clock()
 	local seed = (start * 17.3) % 100
 	local smoothedFps = 60
+	local lastRot = CFrame.identity
+	local lastApplied: CFrame? = nil
 	RunService:BindToRenderStep(name, Enum.RenderPriority.Camera.Value + 1, function(dt: number)
+		if
+			lastRot ~= CFrame.identity
+			and lastApplied ~= nil
+			and camera.CFrame:FuzzyEq(lastApplied, 1e-3)
+		then
+			camera.CFrame = camera.CFrame * lastRot:Inverse()
+		end
+		lastRot = CFrame.identity
+		lastApplied = nil
+
 		local t = os.clock() - start
 		if t >= duration or reduced() then
 			RunService:UnbindFromRenderStep(name)
@@ -343,7 +358,11 @@ function Effects.shake(duration: number, magnitude: number)
 		local amp = magnitude * decay * decay
 		local rx = math.noise(t * freq, seed) * 2 * amp
 		local ry = math.noise(seed + 13.7, t * freq) * 2 * amp
-		camera.CFrame *= CFrame.Angles(math.rad(rx), math.rad(ry), 0)
+		local rot = CFrame.Angles(math.rad(rx), math.rad(ry), 0)
+		local applied = camera.CFrame * rot
+		camera.CFrame = applied
+		lastRot = rot
+		lastApplied = applied
 	end)
 end
 

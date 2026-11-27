@@ -17,6 +17,7 @@
 	  you can either paste their SoundId into SOUND_IDS or call SfxKit.registerId(name, id).
 ]]
 
+local ContentProvider = game:GetService("ContentProvider")
 local SoundService = game:GetService("SoundService")
 local TweenService = game:GetService("TweenService")
 local Workspace = game:GetService("Workspace")
@@ -288,8 +289,9 @@ local function resolveSoundAsset(name: string): string?
 	return "rbxassetid://" .. digits
 end
 
-local function ensureGroup(name: SoundCategory, defaultVolume: number): SoundGroup
-	local groupName = "LegendaryCatch_" .. name
+-- Share the same SoundService groups ("Music" and "Effects") that Audio/init and Settings
+-- control so the player's volume sliders mute/scale SfxKit sounds as well.
+local function ensureGroup(groupName: string, defaultVolume: number): SoundGroup
 	local existing = SoundService:FindFirstChild(groupName)
 	if existing and existing:IsA("SoundGroup") then
 		return existing
@@ -307,9 +309,11 @@ local function ensureInit()
 	end
 	initialized = true
 
-	soundGroups.SFX = ensureGroup("SFX", 0.85)
-	soundGroups.Music = ensureGroup("Music", 0.55)
-	soundGroups.UI = ensureGroup("UI", 0.80)
+	local effectsGroup = ensureGroup("Effects", 0.7)
+	local musicGroup = ensureGroup("Music", 0.5)
+	soundGroups.SFX = effectsGroup
+	soundGroups.Music = musicGroup
+	soundGroups.UI = effectsGroup
 
 	local existing2D = SoundService:FindFirstChild("LegendaryCatch_Sfx2D")
 	if existing2D and existing2D:IsA("Folder") then
@@ -330,6 +334,24 @@ local function ensureInit()
 		f.Parent = Workspace
 		folder3D = f
 	end
+
+	-- Preload active sound assets asynchronously to avoid first-splash hitch.
+	task.spawn(function()
+		local assets: { string } = {}
+		local seenAssets: { [string]: boolean } = {}
+		for name in pairs(SOUND_IDS) do
+			local assetId = resolveSoundAsset(name)
+			if assetId and not seenAssets[assetId] then
+				seenAssets[assetId] = true
+				table.insert(assets, assetId)
+			end
+		end
+		if #assets > 0 then
+			pcall(function()
+				ContentProvider:PreloadAsync(assets)
+			end)
+		end
+	end)
 end
 
 local function acquire2DSound(): Sound

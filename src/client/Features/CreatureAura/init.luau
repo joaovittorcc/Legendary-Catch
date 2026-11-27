@@ -10,6 +10,7 @@
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
+local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
@@ -150,6 +151,11 @@ local SPECS: { [string]: Spec } = {
 		mood = "rise",
 		texture = SMOKE,
 	},
+	C94_Mare_Primordial = {
+		a = Color3.fromRGB(92, 235, 255),
+		b = Color3.fromRGB(255, 215, 130),
+		mood = "bubble",
+	},
 }
 
 -- Fallback per rarity for anything without a hand-made spec.
@@ -160,23 +166,49 @@ local FALLBACK: { [string]: Spec } = {
 		b = Color3.fromRGB(255, 255, 210),
 		mood = "burst",
 	},
+	Mystic = {
+		a = Color3.fromRGB(115, 235, 255),
+		b = Color3.fromRGB(210, 130, 255),
+		mood = "burst",
+		rainbow = true,
+	},
 }
 
 local player = Players.LocalPlayer
+local CULL_DISTANCE_SQ = 150 * 150
+local ARC_MIN_INTERVAL = 0.42
+local ARC_MAX_INTERVAL = 0.65
+
+type EmitterEntry = {
+	emitter: ParticleEmitter,
+	fullRate: number,
+	secondary: boolean,
+}
 
 type Live = {
 	model: Model,
 	folder: Folder,
+	anchor: BasePart,
 	core: Attachment,
+	pillar: BasePart?,
 	ring: { BasePart },
 	orbs: { BasePart },
 	arcs: { Beam },
+	nextArcAt: { number },
+	emitters: { EmitterEntry },
 	light: PointLight,
+	baseScale: number,
+	baseRadius: number,
+	baseDrop: number,
+	baseOffset: CFrame,
 	radius: number,
 	drop: number, -- ring height below the center (half the creature height)
+	lastScaleRatio: number,
 	rainbow: boolean,
 	legendary: boolean,
 	born: number,
+	lastCalm: boolean,
+	culled: boolean,
 }
 local live: { Live } = {}
 local loop: RBXScriptConnection? = nil
@@ -187,7 +219,7 @@ local function emitter(
 	rate: number,
 	size: number,
 	legendary: boolean
-)
+): ParticleEmitter
 	local e = Instance.new("ParticleEmitter")
 	e.Texture = spec.texture or SPARKLE
 	e.Color = ColorSequence.new(spec.a, spec.b)
@@ -239,6 +271,7 @@ local function emitter(
 		e.Lifetime = NumberRange.new(e.Lifetime.Min * 1.3, e.Lifetime.Max * 1.3)
 	end
 	e.Parent = parent
+	return e
 end
 
 local function neonPart(name: string, size: Vector3, color: Color3, shape: Enum.PartType?): BasePart
@@ -258,17 +291,89 @@ local function neonPart(name: string, size: Vector3, color: Color3, shape: Enum.
 	return p
 end
 
+local function applyAuraVisibility(aura: Live, calm: boolean, culled: boolean)
+	local active = not culled
+	local full = active and not calm
+	aura.light.Enabled = full
+	for _, entry in aura.emitters do
+		if not active then
+			entry.emitter.Enabled = false
+		elseif calm then
+			entry.emitter.Enabled = not entry.secondary
+			entry.emitter.Rate = if entry.secondary then 0 else 4
+		else
+			entry.emitter.Enabled = true
+			entry.emitter.Rate = entry.fullRate
+		end
+	end
+	for _, rune in aura.ring do
+		rune.Transparency = if full then 0.15 else 1
+	end
+	for _, orb in aura.orbs do
+		orb.Transparency = if full then 0 else 1
+		local trail = orb:FindFirstChildOfClass("Trail")
+		if trail then
+			trail.Enabled = full
+		end
+	end
+	if aura.pillar then
+		aura.pillar.Transparency = if full then 0.7 else 1
+	end
+	if not full then
+		for _, arc in aura.arcs do
+			arc.Enabled = false
+		end
+	end
+end
+
 local function step()
 	local now = os.clock()
+	local calm = player:GetAttribute("ReduceEffects") == true
+	local cam = Workspace.CurrentCamera
+	local camPos = if cam then cam.CFrame.Position else nil
+
 	for i = #live, 1, -1 do
 		local aura = live[i]
-		if not aura.model.Parent or not aura.core.Parent then
+		if not aura.model.Parent or not aura.core.Parent or not aura.anchor.Parent then
 			aura.folder:Destroy()
 			table.remove(live, i)
 			continue
 		end
-		local t = now - aura.born
+
+		-- Track runtime model scaling (e.g. Reveal fromShow scaling from 0.12x to 1x).
+		local ratio = math.max(aura.model:GetScale(), 0.01) / aura.baseScale
+		if math.abs(ratio - aura.lastScaleRatio) > 0.02 then
+			aura.lastScaleRatio = ratio
+			aura.radius = aura.baseRadius * ratio
+			aura.drop = aura.baseDrop * ratio
+			aura.light.Range = aura.radius * (if aura.legendary then 4 else 2.6)
+			if aura.pillar then
+				aura.pillar.Size = Vector3.new(aura.radius * 0.35, 40, aura.radius * 0.35)
+			end
+		end
+
+		local scaledOffset = CFrame.new(aura.baseOffset.Position * ratio) * aura.baseOffset.Rotation
+		aura.anchor.CFrame = aura.model:GetPivot() * scaledOffset
 		local center = aura.core.WorldPosition
+		if aura.pillar then
+			aura.pillar.CFrame = CFrame.new(center + Vector3.new(0, 20 + aura.drop, 0))
+		end
+
+		local culled = false
+		if camPos then
+			local diff = center - camPos
+			culled = diff:Dot(diff) > CULL_DISTANCE_SQ
+		end
+		if calm ~= aura.lastCalm or culled ~= aura.culled then
+			aura.lastCalm = calm
+			aura.culled = culled
+			applyAuraVisibility(aura, calm, culled)
+		end
+		if culled or calm then
+			continue
+		end
+
+		local t = now - aura.born
 		-- Ring of runes turning slowly under the creature.
 		for index, rune in aura.ring do
 			local angle = t * 0.6 + index / #aura.ring * math.pi * 2
@@ -288,11 +393,18 @@ local function step()
 			orb.Position = center
 				+ Vector3.new(math.cos(angle) * aura.radius, y, math.sin(angle) * aura.radius)
 		end
-		-- Lightning arcs flicker on and off.
-		for _, arc in aura.arcs do
-			arc.Enabled = math.random() < 0.35
-			arc.CurveSize0 = math.random(-4, 4)
-			arc.CurveSize1 = math.random(-4, 4)
+		-- Lightning arcs toggle at a safe accessibility cadence (<= 2.4 Hz, under 3 flashes/s).
+		for idx, arc in aura.arcs do
+			if now >= aura.nextArcAt[idx] then
+				arc.Enabled = not arc.Enabled
+				if arc.Enabled then
+					arc.CurveSize0 = math.random(-4, 4)
+					arc.CurveSize1 = math.random(-4, 4)
+				end
+				aura.nextArcAt[idx] = now
+					+ ARC_MIN_INTERVAL
+					+ math.random() * (ARC_MAX_INTERVAL - ARC_MIN_INTERVAL)
+			end
 		end
 		-- Slow heartbeat light.
 		local pulse = 0.5 + 0.5 * math.sin(t * (if aura.legendary then 3 else 2))
@@ -357,23 +469,31 @@ function CreatureAura.attach(model: Model)
 	light.Range = radius * (if legendary then 4 else 2.6)
 	light.Brightness = 1.2
 	light.Shadows = false
+	light.Enabled = not calm
 	light.Parent = anchorPart
 
-	emitter(
+	local emitters: { EmitterEntry } = {}
+	local mainRate = if legendary then 22 else 10
+	local mainEmitter = emitter(
 		core,
 		spec,
-		if calm then 4 else (if legendary then 22 else 10),
+		if calm then 4 else mainRate,
 		if legendary then 0.55 else 0.35,
 		legendary
 	)
+	table.insert(emitters, { emitter = mainEmitter, fullRate = mainRate, secondary = false })
+
 	local ring: { BasePart } = {}
 	local orbs: { BasePart } = {}
 	local arcs: { Beam } = {}
+	local nextArcAt: { number } = {}
 	local pillarPart: BasePart? = nil
-	if legendary and not calm then
+	if legendary then
 		-- Second particle layer in the other color, bigger and slower.
 		local swapped: Spec = { a = spec.b, b = spec.a, mood = "burst", texture = SPARKLE }
-		emitter(core, swapped, 12, 1.5, true)
+		local secondEmitter = emitter(core, swapped, if calm then 0 else 12, 1.5, true)
+		secondEmitter.Enabled = not calm
+		table.insert(emitters, { emitter = secondEmitter, fullRate = 12, secondary = true })
 		-- Rune ring.
 		for i = 1, 10 do
 			local rune = neonPart(
@@ -381,7 +501,7 @@ function CreatureAura.attach(model: Model)
 				Vector3.new(0.22, 0.22, radius * 0.6),
 				if i % 2 == 0 then spec.a else spec.b
 			)
-			rune.Transparency = 0.15
+			rune.Transparency = if calm then 1 else 0.15
 			rune.Parent = folder
 			table.insert(ring, rune)
 		end
@@ -393,6 +513,7 @@ function CreatureAura.attach(model: Model)
 				if i % 2 == 0 then spec.a else spec.b,
 				Enum.PartType.Ball
 			)
+			orb.Transparency = if calm then 1 else 0
 			orb.Parent = folder
 			table.insert(orbs, orb)
 			local trailA = Instance.new("Attachment")
@@ -408,15 +529,17 @@ function CreatureAura.attach(model: Model)
 			trail.LightEmission = 1
 			trail.Lifetime = 0.35
 			trail.Transparency = NumberSequence.new(0.2, 1)
+			trail.Enabled = not calm
 			trail.Parent = orb
 		end
 		-- Light pillar straight up.
 		local pillar = neonPart("Pillar", Vector3.new(radius * 0.35, 40, radius * 0.35), spec.b)
-		pillar.Transparency = 0.7
+		pillar.Transparency = if calm then 1 else 0.7
 		pillar.Parent = folder
 		pillarPart = pillar
 		-- Lightning arcs (storm legendaries).
 		if spec.arcs then
+			local now = os.clock()
 			for i = 1, 4 do
 				local from = Instance.new("Attachment")
 				from.Position =
@@ -438,40 +561,40 @@ function CreatureAura.attach(model: Model)
 				arc.Enabled = false
 				arc.Parent = anchorPart
 				table.insert(arcs, arc)
+				table.insert(nextArcAt, now + (i - 1) * 0.15)
 			end
 		end
 	end
 	-- Beside the model, not inside: callers measure the model's bounding box.
 	folder.Parent = model.Parent
 
-	-- Keep the core on the model while it moves (reveal spin, photo mode).
-	local followConn: RBXScriptConnection
-	local offset = model:GetPivot():ToObjectSpace(box)
-	followConn = RunService.RenderStepped:Connect(function()
-		if not model.Parent or not anchorPart.Parent then
-			followConn:Disconnect()
-			return
-		end
-		anchorPart.CFrame = model:GetPivot() * offset
-		local pillar = pillarPart
-		if pillar then
-			pillar.CFrame = CFrame.new(anchorPart.Position + Vector3.new(0, 20 + size.Y * 0.5, 0))
-		end
-	end)
+	local baseOffset = model:GetPivot():ToObjectSpace(box)
+	local baseScale = math.max(model:GetScale(), 0.01)
 
 	table.insert(live, {
 		model = model,
 		folder = folder,
+		anchor = anchorPart,
 		core = core,
+		pillar = pillarPart,
 		ring = ring,
 		orbs = orbs,
 		arcs = arcs,
+		nextArcAt = nextArcAt,
+		emitters = emitters,
 		light = light,
+		baseScale = baseScale,
+		baseRadius = radius,
+		baseDrop = size.Y * 0.5,
+		baseOffset = baseOffset,
 		radius = radius,
 		drop = size.Y * 0.5,
+		lastScaleRatio = 1,
 		rainbow = spec.rainbow == true,
 		legendary = legendary,
 		born = os.clock(),
+		lastCalm = calm,
+		culled = false,
 	})
 	if not loop then
 		loop = RunService.RenderStepped:Connect(step)

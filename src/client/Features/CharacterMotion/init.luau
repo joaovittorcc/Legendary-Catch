@@ -20,6 +20,7 @@ type JointEntry = {
 
 local TRACKED_JOINTS: { [string]: boolean } = {
 	Root = true,
+	RootJoint = true,
 	Waist = true,
 	Neck = true,
 	RightShoulder = true,
@@ -29,6 +30,20 @@ local TRACKED_JOINTS: { [string]: boolean } = {
 	RightElbow = true,
 	LeftElbow = true,
 }
+
+-- Convert an R15-style offset (X = pitch forward/up, Y = yaw, Z = roll) into R6 joint axes.
+local function r6Offset(name: string, cf: CFrame): CFrame
+	local rx, ry, rz = cf:ToEulerAnglesXYZ()
+	local pos = cf.Position
+	if name == "Right Shoulder" then
+		return CFrame.new(pos) * CFrame.Angles(-rz, ry, rx)
+	elseif name == "Left Shoulder" then
+		return CFrame.new(pos) * CFrame.Angles(rz, -ry, -rx)
+	elseif name == "RootJoint" then
+		return CFrame.new(pos.X, pos.Z, pos.Y) * CFrame.Angles(-rx, rz, ry)
+	end
+	return cf
+end
 
 local function addOffset(offsets: { [string]: CFrame }, name: string, cf: CFrame)
 	local prev = offsets[name]
@@ -51,12 +66,12 @@ local function samplePose(
 			local amp = if reduced then 0.45 else 1
 			if t < 0.2 then
 				local p = math.sin((t / 0.2) * (math.pi * 0.5))
-				addOffset(offsets, "Root", CFrame.Angles(0.07 * p * amp, -0.16 * p * amp, 0))
-				addOffset(
-					offsets,
-					"LeftShoulder",
-					CFrame.Angles(-0.32 * p * amp, 0, -0.16 * p * amp)
-				)
+				local rootCf = CFrame.Angles(0.07 * p * amp, -0.16 * p * amp, 0)
+				local leftCf = CFrame.Angles(-0.32 * p * amp, 0, -0.16 * p * amp)
+				addOffset(offsets, "Root", rootCf)
+				addOffset(offsets, "RootJoint", r6Offset("RootJoint", rootCf))
+				addOffset(offsets, "LeftShoulder", leftCf)
+				addOffset(offsets, "Left Shoulder", r6Offset("Left Shoulder", leftCf))
 				addOffset(offsets, "RightElbow", CFrame.Angles(0.45 * p * amp, 0, 0))
 				addOffset(offsets, "LeftElbow", CFrame.Angles(0.35 * p * amp, 0, 0))
 				addOffset(offsets, "Neck", CFrame.Angles(0.1 * p * amp, 0.1 * p * amp, 0))
@@ -64,16 +79,13 @@ local function samplePose(
 				local u = math.clamp((t - 0.2) / 0.52, 0, 1)
 				local swing = math.sin(u * math.pi)
 				local settle = 1 - u
-				addOffset(
-					offsets,
-					"Root",
+				local rootCf =
 					CFrame.Angles((-0.1 * swing + 0.04 * settle) * amp, 0.16 * swing * amp, 0)
-				)
-				addOffset(
-					offsets,
-					"LeftShoulder",
-					CFrame.Angles(0.38 * swing * amp, 0, -0.14 * swing * amp)
-				)
+				local leftCf = CFrame.Angles(0.38 * swing * amp, 0, -0.14 * swing * amp)
+				addOffset(offsets, "Root", rootCf)
+				addOffset(offsets, "RootJoint", r6Offset("RootJoint", rootCf))
+				addOffset(offsets, "LeftShoulder", leftCf)
+				addOffset(offsets, "Left Shoulder", r6Offset("Left Shoulder", leftCf))
 				addOffset(offsets, "RightElbow", CFrame.Angles(0.15 * settle * amp, 0, 0))
 				addOffset(offsets, "LeftElbow", CFrame.Angles(0.28 * amp, 0, 0))
 				addOffset(
@@ -90,27 +102,14 @@ local function samplePose(
 		local breath = math.sin(wt * 1.55)
 		local drift = math.sin(wt * 0.85)
 		local amp = if reduced then 0.35 else 1
-		addOffset(offsets, "Waist", CFrame.Angles(breath * 0.03 * amp, drift * 0.04 * amp, 0))
-		addOffset(
-			offsets,
-			"RightShoulder",
-			CFrame.Angles(math.sin(wt * 1.55 + 0.45) * 0.055 * amp, 0.04 * amp, 0)
-		)
-		addOffset(
-			offsets,
-			"Right Shoulder",
-			CFrame.Angles(math.sin(wt * 1.55 + 0.45) * 0.055 * amp, 0, 0)
-		)
-		addOffset(
-			offsets,
-			"LeftShoulder",
+		local rightCf = CFrame.Angles(math.sin(wt * 1.55 + 0.45) * 0.055 * amp, 0.04 * amp, 0)
+		local leftCf =
 			CFrame.Angles((0.2 + math.sin(wt * 1.55 - 0.5) * 0.04) * amp, 0.1 * amp, -0.06 * amp)
-		)
-		addOffset(
-			offsets,
-			"Left Shoulder",
-			CFrame.Angles((0.2 + math.sin(wt * 1.55 - 0.5) * 0.04) * amp, 0, -0.06 * amp)
-		)
+		addOffset(offsets, "Waist", CFrame.Angles(breath * 0.03 * amp, drift * 0.04 * amp, 0))
+		addOffset(offsets, "RightShoulder", rightCf)
+		addOffset(offsets, "Right Shoulder", r6Offset("Right Shoulder", rightCf))
+		addOffset(offsets, "LeftShoulder", leftCf)
+		addOffset(offsets, "Left Shoulder", r6Offset("Left Shoulder", leftCf))
 		addOffset(offsets, "RightElbow", CFrame.Angles((0.18 + breath * 0.035) * amp, 0, 0))
 		addOffset(offsets, "LeftElbow", CFrame.Angles((0.28 + breath * 0.035) * amp, 0, 0))
 		addOffset(
@@ -129,25 +128,16 @@ local function samplePose(
 		local amp = if reduced then 0.3 else 1
 		local pull = math.sin(t * 3.1)
 		local tremor = if reduced then 0 else math.sin(t * 23) * 0.025
-		addOffset(
-			offsets,
-			"Root",
-			CFrame.Angles(
-				0.16 * amp + tremor * 0.5,
-				pull * 0.07 * amp,
-				math.sin(t * 6.2) * 0.03 * amp
-			)
+		local rootCf = CFrame.Angles(
+			0.16 * amp + tremor * 0.5,
+			pull * 0.07 * amp,
+			math.sin(t * 6.2) * 0.03 * amp
 		)
-		addOffset(
-			offsets,
-			"LeftShoulder",
-			CFrame.Angles((1.05 + pull * 0.14) * amp + tremor, 0, 0.34 * amp)
-		)
-		addOffset(
-			offsets,
-			"Left Shoulder",
-			CFrame.Angles((1.05 + pull * 0.14) * amp + tremor, 0, 0.34 * amp)
-		)
+		local leftCf = CFrame.Angles((1.05 + pull * 0.14) * amp + tremor, 0, 0.34 * amp)
+		addOffset(offsets, "Root", rootCf)
+		addOffset(offsets, "RootJoint", r6Offset("RootJoint", rootCf))
+		addOffset(offsets, "LeftShoulder", leftCf)
+		addOffset(offsets, "Left Shoulder", r6Offset("Left Shoulder", leftCf))
 		addOffset(
 			offsets,
 			"RightElbow",
@@ -173,29 +163,23 @@ local function samplePose(
 		local wave = math.sin(t * 5.2)
 		local sway = math.sin(t * 3.6)
 		local hopY = if not reduced and t < 0.55 then math.sin((t / 0.55) * math.pi) * 1.1 else 0
-		addOffset(
-			offsets,
-			"Root",
-			CFrame.new(0, hopY, 0) * CFrame.Angles(0.06 * amp, sway * 0.06 * amp, sway * 0.04 * amp)
-		)
-		addOffset(offsets, "LeftShoulder", CFrame.Angles((2.2 + wave * 0.1) * amp, 0, -0.4 * amp))
-		addOffset(offsets, "Left Shoulder", CFrame.Angles((2.2 + wave * 0.1) * amp, 0, -0.4 * amp))
+		local rootCf = CFrame.new(0, hopY, 0)
+			* CFrame.Angles(0.06 * amp, sway * 0.06 * amp, sway * 0.04 * amp)
+		local leftCf = CFrame.Angles((2.2 + wave * 0.1) * amp, 0, -0.4 * amp)
+		addOffset(offsets, "Root", rootCf)
+		addOffset(offsets, "RootJoint", r6Offset("RootJoint", rootCf))
+		addOffset(offsets, "LeftShoulder", leftCf)
+		addOffset(offsets, "Left Shoulder", r6Offset("Left Shoulder", leftCf))
 		addOffset(offsets, "LeftElbow", CFrame.Angles(0.24 * amp, 0, 0))
 		addOffset(offsets, "RightElbow", CFrame.Angles(0.24 * amp, 0, 0))
 		addOffset(offsets, "Neck", CFrame.Angles(0.14 * amp, sway * 0.06 * amp, 0))
 		if not yieldRightAndWaist then
 			local blend = math.clamp((t - 0.96) / 0.28, 0, 1)
 			local rightBaseX = if holdingTool then 0.9 else 2.2
-			addOffset(
-				offsets,
-				"RightShoulder",
+			local rightCf =
 				CFrame.Angles((rightBaseX - wave * 0.1) * amp * blend, 0, 0.35 * amp * blend)
-			)
-			addOffset(
-				offsets,
-				"Right Shoulder",
-				CFrame.Angles((rightBaseX - wave * 0.1) * amp * blend, 0, 0.35 * amp * blend)
-			)
+			addOffset(offsets, "RightShoulder", rightCf)
+			addOffset(offsets, "Right Shoulder", r6Offset("Right Shoulder", rightCf))
 			addOffset(
 				offsets,
 				"Waist",
@@ -210,10 +194,11 @@ end
 
 local function attachCharacter(player: Player, character: Model)
 	local joints: { [string]: JointEntry } = {}
-	for _, child in character:GetDescendants() do
+	local function registerJoint(child: Instance)
 		if
 			TRACKED_JOINTS[child.Name]
 			and (child:IsA("Motor6D") or child.ClassName == "AnimationConstraint")
+			and not joints[child.Name]
 		then
 			local joint = (child :: any) :: Joint
 			joints[child.Name] = {
@@ -225,6 +210,11 @@ local function attachCharacter(player: Player, character: Model)
 			}
 		end
 	end
+	for _, child in character:GetDescendants() do
+		registerJoint(child)
+	end
+	local descendantConn = character.DescendantAdded:Connect(registerJoint)
+	local hum = character:FindFirstChildOfClass("Humanoid")
 
 	local mode = "idle"
 	local modeStart = os.clock()
@@ -251,6 +241,7 @@ local function attachCharacter(player: Player, character: Model)
 	local stepConn: RBXScriptConnection? = nil
 
 	local function cleanup()
+		descendantConn:Disconnect()
 		attrConn:Disconnect()
 		revealConn:Disconnect()
 		if stepConn then
@@ -273,7 +264,7 @@ local function attachCharacter(player: Player, character: Model)
 	end)
 
 	stepConn = RunService.PreSimulation:Connect(function()
-		if not character.Parent then
+		if not character.Parent or (hum ~= nil and hum.Health <= 0) then
 			ancestryConn:Disconnect()
 			cleanup()
 			return

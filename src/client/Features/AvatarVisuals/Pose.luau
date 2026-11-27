@@ -4,8 +4,17 @@ local RunService = game:GetService("RunService")
 local Pose = {}
 type Joint = { Transform: CFrame, Parent: Instance? }
 
+local function adaptOffset(name: string, offset: CFrame): CFrame
+	if name == "Right Shoulder" then
+		local rx, ry, rz = offset:ToEulerAnglesXYZ()
+		return CFrame.Angles(-rz, ry, rx)
+	end
+	return offset
+end
+
 function Pose.play(character: Model, sample: (number) -> CFrame?): () -> ()
-	local joints: { { joint: Joint, strength: number, base: CFrame, applied: CFrame? } } = {}
+	local joints: { { joint: Joint, name: string, strength: number, base: CFrame, applied: CFrame? } } =
+		{}
 	for _, child in character:GetDescendants() do
 		if
 			child.Name == "RightShoulder"
@@ -17,12 +26,14 @@ function Pose.play(character: Model, sample: (number) -> CFrame?): () -> ()
 				local joint = (child :: any) :: Joint
 				table.insert(joints, {
 					joint = joint,
+					name = child.Name,
 					strength = if child.Name == "Waist" then 0.22 else 1,
 					base = joint.Transform,
 				})
 			end
 		end
 	end
+	local hum = character:FindFirstChildOfClass("Humanoid")
 	local start = os.clock()
 	local connection: RBXScriptConnection? = nil
 	local function stop()
@@ -38,7 +49,7 @@ function Pose.play(character: Model, sample: (number) -> CFrame?): () -> ()
 	end
 	connection = RunService.PreSimulation:Connect(function()
 		local offset = sample(os.clock() - start)
-		if not offset or not character.Parent then
+		if not offset or not character.Parent or (hum ~= nil and hum.Health <= 0) then
 			stop()
 			return
 		end
@@ -48,7 +59,8 @@ function Pose.play(character: Model, sample: (number) -> CFrame?): () -> ()
 				if joint.Transform ~= entry.applied then
 					entry.base = joint.Transform
 				end
-				joint.Transform = entry.base * CFrame.new():Lerp(offset, entry.strength)
+				local adapted = adaptOffset(entry.name, offset)
+				joint.Transform = entry.base * CFrame.new():Lerp(adapted, entry.strength)
 				entry.applied = joint.Transform
 			end
 		end

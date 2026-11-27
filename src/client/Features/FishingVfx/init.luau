@@ -71,15 +71,18 @@ local charge: Charge? = nil
 local lastBand = "red"
 local waitingConn: RBXScriptConnection? = nil
 local lastBobberPos: Vector3? = nil
+local castToken = 0
 
 local function reduced(): boolean
 	return player:GetAttribute("ReduceEffects") == true
 end
 
 local function skinTier(): number
-	local forced = player:GetAttribute("DevPowerBarSkin")
-	if typeof(forced) == "number" then
-		return math.clamp(math.floor(forced), 1, 6)
+	if RunService:IsStudio() then
+		local forced = player:GetAttribute("DevPowerBarSkin")
+		if typeof(forced) == "number" then
+			return math.clamp(math.floor(forced), 1, 6)
+		end
 	end
 	local sum = 0
 	for _, stat in TrainingConfig.STATS do
@@ -205,9 +208,10 @@ local function startCharge(layout: { FishingConfig.AimSegment }, aimStart: numbe
 		sparks.Color = seq
 		orb.Color = ColorSequence.new(color)
 
+		local calmNow = reduced()
 		local rank = BAND_RANK[band] or 1
 		local strength = pos * 0.7 + (rank / 5) * 0.3
-		local rateScale = if calm then 0.35 else 1
+		local rateScale = if calmNow then 0.35 else 1
 		sparks.Rate = (14 + strength * 70) * rateScale
 		sparks.Speed = NumberRange.new(2 + strength * 4, 5 + strength * 12)
 		local sparkSize = 0.55 + strength * 1.3
@@ -223,11 +227,12 @@ local function startCharge(layout: { FishingConfig.AimSegment }, aimStart: numbe
 		})
 		orb.Transparency = NumberSequence.new(0.5 - strength * 0.3, 1)
 		if light then
+			light.Enabled = not calmNow
 			light.Color = color
 			light.Range = 8 + strength * 12
 			light.Brightness = 0.8 + strength * 2
 		end
-		if not calm and os.clock() >= nextRing then
+		if not calmNow and os.clock() >= nextRing then
 			nextRing = os.clock() + 0.95 - strength * 0.6
 			VfxKit.ring(
 				tipPart.Position,
@@ -305,8 +310,13 @@ local function onCast(update: any)
 		VfxKit.ring(tipPos, color, 3 + rank, 0.5, 0.5 + rank * 0.1, tier)
 		SfxKit.play("cast_whoosh", { pitch = 0.9 + rank * 0.05 })
 	end
-	-- Splash where the bobber lands (the server publishes the target a moment later).
-	task.delay(0.9, function()
+	-- Splash where the bobber lands (synced with Line.castTo; cancelled on recast/cancel/death).
+	castToken += 1
+	local myToken = castToken
+	task.delay(0.7, function()
+		if castToken ~= myToken then
+			return
+		end
 		local pos = targetPosition()
 		if pos then
 			CastFlightFx.onSplash(pos, math.clamp(rank / 5, 0.2, 1), tier)
@@ -352,13 +362,13 @@ local function startWaiting()
 			return
 		end
 		lastBobberPos = pos
-		if not attached and elapsed > 1 then
+		if not attached and elapsed > 0.75 and elapsed < 5 then
 			local bobber = findBobber(pos)
 			if bobber then
 				-- Line already moves the bobber; BobberFx only adds the glow, dips and bite alert.
 				bobberHandle = BobberFx.attach(bobber, { animateBobbing = false })
+				attached = true
 			end
-			attached = true
 		end
 		local handle = bobberHandle
 		if handle then
@@ -390,6 +400,7 @@ local function onBite(update: any)
 end
 
 local function onEnd(update: any)
+	castToken += 1
 	stopWaiting()
 	local pos = lastBobberPos or targetPosition()
 	detachBobber()
@@ -429,6 +440,7 @@ function FishingVfx.start()
 
 	-- A respawn or unequip must never leave the charge glowing.
 	player.CharacterRemoving:Connect(function()
+		castToken += 1
 		stopCharge()
 		stopWaiting()
 		detachBobber()

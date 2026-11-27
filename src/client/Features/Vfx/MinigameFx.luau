@@ -29,10 +29,41 @@ local RunService = game:GetService("RunService")
 local TweenService = game:GetService("TweenService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local Strings = require(Shared:WaitForChild("Strings"))
+local StringsUi = require(Shared:WaitForChild("StringsUi"))
 local VfxFolder = Shared:WaitForChild("Vfx")
 local Palette = require(VfxFolder:WaitForChild("Palette"))
 local SfxKit = require(VfxFolder:WaitForChild("SfxKit"))
 local VfxKit = require(VfxFolder:WaitForChild("VfxKit"))
+
+local function isPortuguese(): boolean
+	local lp = Players.LocalPlayer
+	return lp ~= nil and string.lower(string.sub(lp.LocaleId, 1, 2)) == "pt"
+end
+
+local function label(key: string): string
+	local pt = isPortuguese()
+	if key == "perfect" then
+		return StringsUi.perfect
+	elseif key == "great" then
+		return Strings.powerLabel.green .. "!"
+	elseif key == "escaped" then
+		return string.upper(Strings.escaped)
+	elseif key == "epic" then
+		return string.upper(Strings.rarity.Epic) .. "!"
+	elseif key == "legendary" then
+		return string.upper(Strings.rarity.Legendary) .. "!"
+	elseif key == "careful" then
+		return if pt then "CUIDADO!" else "CAREFUL!"
+	elseif key == "oops" then
+		return if pt then "OPS!" else "OOPS!"
+	elseif key == "caught" then
+		return if pt then "CAPTURADO!" else "CAUGHT!"
+	elseif key == "amazing" then
+		return if pt then "INCRÍVEL!" else "AMAZING!"
+	end
+	return key
+end
 
 export type MinigameType = "Reel" | "Precision" | "Rhythm"
 export type HitQuality = "good" | "great" | "perfect" | number
@@ -360,7 +391,10 @@ function MinigameFx.onHit(quality: HitQuality?, worldOverride: Vector3?)
 		VfxKit.burst(pos, "stars", 0.85, vfxTier, goldMix)
 		VfxKit.ring(pos, goldMix, 4.2, 0.42, 0.75, vfxTier)
 
-		local labelText = if combo >= 3 then string.format("PERFEITO! x%d", combo) else "PERFEITO!"
+		local perfectLabel = label("perfect")
+		local labelText = if combo >= 3
+			then string.format("%s x%d", perfectLabel, combo)
+			else perfectLabel
 		VfxKit.floatingText(
 			pos + Vector3.new(0, 2.2, 0),
 			labelText,
@@ -374,7 +408,10 @@ function MinigameFx.onHit(quality: HitQuality?, worldOverride: Vector3?)
 		VfxKit.burst(pos, "sparks", 0.6, vfxTier, streakColor)
 		VfxKit.ring(pos, streakColor, 3.0, 0.35, 0.5, vfxTier)
 
-		local labelText = if combo >= 3 then string.format("ÓTIMO! x%d", combo) else "ÓTIMO!"
+		local greatLabel = label("great")
+		local labelText = if combo >= 3
+			then string.format("%s x%d", greatLabel, combo)
+			else greatLabel
 		VfxKit.floatingText(pos + Vector3.new(0, 1.9, 0), labelText, streakColor, 0.8, 0.95)
 		spawnUiPopup(labelText, streakColor, 1.0)
 	else
@@ -407,16 +444,18 @@ function MinigameFx.onMiss(worldOverride: Vector3?)
 
 	if isFirstMiss then
 		-- Clear, friendly signal on first slip
+		local warnText = label("careful")
 		VfxKit.ring(pos, warnColor, 4.5, 0.45, 0.65, 2)
-		VfxKit.floatingText(pos + Vector3.new(0, 2.1, 0), "CUIDADO!", warnColor, 0.95, 1.08)
-		spawnUiPopup("CUIDADO!", warnColor, 1.1)
+		VfxKit.floatingText(pos + Vector3.new(0, 2.1, 0), warnText, warnColor, 0.95, 1.08)
+		spawnUiPopup(warnText, warnColor, 1.1)
 		if progressStroke and progressStroke.Parent then
 			progressStroke.Color = warnColor
 			progressStroke.Transparency = 0.15
 		end
 	else
-		VfxKit.floatingText(pos + Vector3.new(0, 1.8, 0), "OPS!", warnColor, 0.7, 0.9)
-		spawnUiPopup("OPS!", warnColor, 0.9)
+		local oopsText = label("oops")
+		VfxKit.floatingText(pos + Vector3.new(0, 1.8, 0), oopsText, warnColor, 0.7, 0.9)
+		spawnUiPopup(oopsText, warnColor, 0.9)
 	end
 end
 
@@ -438,21 +477,22 @@ function MinigameFx.onWin(rarity: string?, worldOverride: Vector3?)
 		pitch = 0.96 + tier * 0.04,
 	})
 
+	local caughtText = label("caught")
 	if tier == 1 then
 		-- Common: small clean burst
 		VfxKit.burst(pos, "sparks", 0.65, 1, theme.primary)
-		VfxKit.floatingText(pos + Vector3.new(0, 2.2, 0), "CAPTURADO!", theme.text, 0.95, 1.0)
+		VfxKit.floatingText(pos + Vector3.new(0, 2.2, 0), caughtText, theme.text, 0.95, 1.0)
 	elseif tier == 2 then
 		-- Uncommon: burst + ring
 		VfxKit.burst(pos, "sparks", 0.8, 2, theme.primary)
 		VfxKit.ring(pos, theme.primary, 6.0, 0.55, 0.8, 2)
-		VfxKit.floatingText(pos + Vector3.new(0, 2.4, 0), "CAPTURADO!", theme.text, 1.0, 1.08)
+		VfxKit.floatingText(pos + Vector3.new(0, 2.4, 0), caughtText, theme.text, 1.0, 1.08)
 	elseif tier == 3 then
 		-- Rare: burst + stars + ring
 		VfxKit.burst(pos, "stars", 0.85, 3, theme.primary)
 		VfxKit.ring(pos, theme.primary, 8.0, 0.62, 0.9, 3)
 		VfxKit.fakeGlow(pos + Vector3.new(0, 0.8, 0), theme.primary, 7.0, 0.7)
-		VfxKit.floatingText(pos + Vector3.new(0, 2.6, 0), "INCRÍVEL!", theme.text, 1.1, 1.15)
+		VfxKit.floatingText(pos + Vector3.new(0, 2.6, 0), label("amazing"), theme.text, 1.1, 1.15)
 	elseif tier == 4 then
 		-- Epic: burst + stars + shockwave
 		VfxKit.burst(pos, "stars", 0.95, 4, theme.primary)
@@ -464,7 +504,7 @@ function MinigameFx.onWin(rarity: string?, worldOverride: Vector3?)
 			4
 		)
 		VfxKit.cameraShake(0.24, 0.2)
-		VfxKit.floatingText(pos + Vector3.new(0, 2.8, 0), "ÉPICO!", theme.text, 1.15, 1.25)
+		VfxKit.floatingText(pos + Vector3.new(0, 2.8, 0), label("epic"), theme.text, 1.15, 1.25)
 	else
 		-- Legendary / Mystic: golden event burst
 		VfxKit.burst(pos, "stars", 1.0, 5, theme.primary)
@@ -478,10 +518,16 @@ function MinigameFx.onWin(rarity: string?, worldOverride: Vector3?)
 		)
 		VfxKit.cameraShake(0.38, 0.28)
 		VfxKit.screenFlash(theme.glow, 0.35, 0.12)
-		VfxKit.floatingText(pos + Vector3.new(0, 3.0, 0), "LENDÁRIO!", theme.text, 1.25, 1.35)
+		VfxKit.floatingText(
+			pos + Vector3.new(0, 3.0, 0),
+			label("legendary"),
+			theme.text,
+			1.25,
+			1.35
+		)
 	end
 
-	spawnUiPopup("CAPTURADO!", theme.primary, 1.2)
+	spawnUiPopup(caughtText, theme.primary, 1.2)
 	MinigameFx.endSession()
 end
 
@@ -489,18 +535,19 @@ end
 function MinigameFx.onLose(worldOverride: Vector3?)
 	MinigameFx.start()
 	local pos = resolveWorldPosition(worldOverride)
+	local escapedText = label("escaped")
 
 	SfxKit.play("minigame_lose", { volume = 0.6 })
 	VfxKit.burst(pos, "bubbles", 0.55, 1)
 	VfxKit.ring(pos, Color3.fromRGB(168, 214, 232), 4.2, 0.6, 0.45, 1)
 	VfxKit.floatingText(
 		pos + Vector3.new(0, 2.0, 0),
-		"ESCAPOU...",
+		escapedText,
 		Color3.fromRGB(210, 226, 242),
 		1.0,
 		0.95
 	)
-	spawnUiPopup("ESCAPOU...", Color3.fromRGB(210, 226, 242), 1.0)
+	spawnUiPopup(escapedText, Color3.fromRGB(210, 226, 242), 1.0)
 	MinigameFx.endSession()
 end
 

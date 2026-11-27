@@ -27,6 +27,7 @@ local stylesModule = script.Parent.Parent:WaitForChild("RevealStyles")
 local RevealStyles = require(stylesModule)
 local Legendary = require(stylesModule:WaitForChild("Legendary"))
 local Audio = require(script.Parent.Parent:WaitForChild("Audio"))
+local FishingCamera = require(script.Parent:WaitForChild("Camera"))
 local Effects = require(script.Parent:WaitForChild("Effects"))
 local PhotoMode = require(script.Parent:WaitForChild("PhotoMode"))
 local Ui = require(script.Parent:WaitForChild("Ui"))
@@ -115,6 +116,56 @@ local function sparkles(model: Model, color: Color3, shiny: boolean)
 	e.Speed = NumberRange.new(1, 3)
 	e.SpreadAngle = Vector2.new(180, 180)
 	e.Parent = holder
+end
+
+local function safeRevealCamera(
+	camCf: CFrame,
+	target: Vector3,
+	character: Instance?,
+	creatureModel: Model
+): CFrame
+	local wanted = camCf.Position
+	local clamped = if wanted.Y < 1.2 then Vector3.new(wanted.X, 1.2, wanted.Z) else wanted
+	local baseFilter: { Instance } = { creatureModel }
+	if character then
+		table.insert(baseFilter, character)
+	end
+	local params = RaycastParams.new()
+	params.FilterType = Enum.RaycastFilterType.Exclude
+	params.FilterDescendantsInstances = baseFilter
+	params.IgnoreWater = true
+	params.RespectCanCollide = true
+
+	local origin = target
+	local safePos = clamped
+	local skipped: { Instance }? = nil
+	for _ = 1, 6 do
+		local delta = clamped - origin
+		if delta.Magnitude < 0.05 then
+			break
+		end
+		local hit = Workspace:Raycast(origin, delta, params)
+		if not hit then
+			break
+		end
+		local inst = hit.Instance
+		if inst:IsA("BasePart") and inst.Transparency >= 0.8 then
+			if not skipped then
+				skipped = table.clone(baseFilter)
+			end
+			table.insert(skipped :: { Instance }, inst)
+			params.FilterDescendantsInstances = skipped :: { Instance }
+			origin = hit.Position + delta.Unit * 0.05
+		else
+			local pulled = hit.Position + (target - hit.Position).Unit * 0.8
+			safePos = if pulled.Y < 1.2 then Vector3.new(pulled.X, 1.2, pulled.Z) else pulled
+			break
+		end
+	end
+	if safePos == wanted then
+		return camCf
+	end
+	return CFrame.new(safePos) * camCf.Rotation
 end
 
 local function clearForeground(root: BasePart): () -> ()
@@ -242,7 +293,8 @@ function Reveal.play(
 	local creature = Creatures.get(creatureId)
 	local motif = if creature then creature.revealStyle else "splash"
 	local recipe = Cinematics.recipes[creatureId]
-	if recipe and not fromShow then
+	if recipe then
+		FishingCamera.stop()
 		local repeatView = seen[creatureId] == true or (info ~= nil and info.isNew == false)
 		if
 			Cinematics.play(
@@ -274,10 +326,15 @@ function Reveal.play(
 		end)
 		skipButton = button
 	end
+	local hum = if root.Parent then root.Parent:FindFirstChildOfClass("Humanoid") else nil
+	local startPos = root.Position
 	local function cancelled(): boolean
-		return skipped or not root:IsDescendantOf(Workspace)
+		return skipped
+			or not root:IsDescendantOf(Workspace)
+			or (hum ~= nil and hum.Health <= 0)
+			or (root.Position - startPos).Magnitude > 25
 	end
-	if level >= 5 and not fromShow then
+	if level >= 5 then
 		Audio.play("legendary", 0.24, 0.74)
 	end
 	local restore: (() -> ())? = nil
@@ -374,176 +431,277 @@ function Reveal.play(
 	local camera = Workspace.CurrentCamera
 	local flightCamera = if not fromShow and visualScale ~= 1 and not reduced then camera else nil
 	local restoreFlightCamera: (() -> ())? = nil
-	if flightCamera then
-		if restore then
-			restore()
-			restore = nil
-		end
-		local oldType, oldCF, oldFocus, oldFov =
-			flightCamera.CameraType,
-			flightCamera.CFrame,
-			flightCamera.Focus,
-			flightCamera.FieldOfView
-		flightCamera.CameraType = Enum.CameraType.Scriptable
-		flightCamera.FieldOfView = SHOT_FOV
-		restoreFlightCamera = function()
-			flightCamera.CFrame = oldCF
-			flightCamera.Focus = oldFocus
-			flightCamera.FieldOfView = oldFov
-			flightCamera.CameraType = oldType
-		end
-	end
-	local start = os.clock()
-	local flight = if fromShow
-		then 0.43
-		elseif reduced then math.min(REDUCED_FLIGHT_MAX, style.flight)
-		else style.flight
-	local finalScale = model:GetScale()
-	while not cancelled() do
-		local elapsed = os.clock() - start
-		local a = if reduced and (visualScale ~= 1 or fromShow)
-			then 1
-			else math.min(elapsed / flight, 1)
-		if level >= 5 and not reduced then
-			a = TweenService:GetValue(a, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
-		end
-		local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
-		if fromShow then
-			model:ScaleTo(finalScale * (0.12 + 0.88 * a))
-		end
-		local turn = if reduced then 0 else (1 - a) ^ 2 * math.pi * (if fromShow then 0.5 else 2)
-		local pose = Framing.pose(bounds, p, viewer, turn)
-		model:PivotTo(
-			if fromShow
-				then pose + pose:VectorToWorldSpace(bounds.center) * (0.88 * (1 - a))
-				else pose
-		)
-		if flightCamera then
-			local viewport = flightCamera.ViewportSize
-			if viewport.X > 0 and viewport.Y > 0 then
-				local region = RevealCard.subjectRegion(viewport)
-				flightCamera.CFrame =
-					Framing.camera(bounds, pose, axes, p, viewport, SHOT_FOV, region, shotPadding)
-				flightCamera.Focus = CFrame.new(p)
-			end
-		end
-		if paintMutation then
-			paintMutation(elapsed, reduced)
-		end
-		if mutationSparks then
-			mutationSparks.Enabled = not reduced
-		end
-		if a >= 1 then
-			break
-		end
-		RunService.RenderStepped:Wait()
-	end
-
-	local name = Strings.creatureName[creatureId] or creatureId
-	local card: RevealCard.Card? = nil
-	local takePhoto = false
-	local photoButton: TextButton? = nil
-	local holdStart = os.clock()
-	local base = Framing.pose(bounds, display, viewer)
 	local restoreCamera: (() -> ())? = nil
 	local restoreForeground: (() -> ())? = nil
+	local card: RevealCard.Card? = nil
+	local photoButton: TextButton? = nil
 	local touchControls = GuiService.TouchControlsEnabled
+	local previewUsed = false
+	local revealActiveSet = false
 
-	if not cancelled() then
+	local ok, err = pcall(function()
+		if flightCamera then
+			FishingCamera.stop()
+			if restore then
+				restore()
+				restore = nil
+			end
+			local oldType = if flightCamera.CameraType == Enum.CameraType.Scriptable
+				then Enum.CameraType.Custom
+				else flightCamera.CameraType
+			local oldFov = if flightCamera.CameraType == Enum.CameraType.Scriptable
+				then 70
+				else flightCamera.FieldOfView
+			local oldCF, oldFocus = flightCamera.CFrame, flightCamera.Focus
+			flightCamera.CameraType = Enum.CameraType.Scriptable
+			flightCamera.FieldOfView = SHOT_FOV
+			restoreFlightCamera = function()
+				flightCamera.CFrame = oldCF
+				flightCamera.Focus = oldFocus
+				flightCamera.FieldOfView = oldFov
+				flightCamera.CameraType = oldType
+			end
+		end
+		local start = os.clock()
+		local flight = if fromShow
+			then 0.43
+			elseif reduced then math.min(REDUCED_FLIGHT_MAX, style.flight)
+			else style.flight
+		local finalScale = model:GetScale()
+		while not cancelled() do
+			local elapsed = os.clock() - start
+			local a = if reduced and (visualScale ~= 1 or fromShow)
+				then 1
+				else math.min(elapsed / flight, 1)
+			if level >= 5 and not reduced then
+				a = TweenService:GetValue(a, Enum.EasingStyle.Sine, Enum.EasingDirection.InOut)
+			end
+			local p = from:Lerp(apex, a):Lerp(apex:Lerp(display, a), a)
+			if fromShow then
+				model:ScaleTo(finalScale * (0.12 + 0.88 * a))
+			end
+			local turn = if reduced
+				then 0
+				else (1 - a) ^ 2 * math.pi * (if fromShow then 0.5 else 2)
+			local pose = Framing.pose(bounds, p, viewer, turn)
+			model:PivotTo(
+				if fromShow
+					then pose + pose:VectorToWorldSpace(bounds.center) * (0.88 * (1 - a))
+					else pose
+			)
+			if flightCamera then
+				local viewport = flightCamera.ViewportSize
+				if viewport.X > 0 and viewport.Y > 0 then
+					local region = RevealCard.subjectRegion(viewport)
+					local wantedCf = Framing.camera(
+						bounds,
+						pose,
+						axes,
+						p,
+						viewport,
+						SHOT_FOV,
+						region,
+						shotPadding
+					)
+					flightCamera.CFrame = safeRevealCamera(wantedCf, p, character, model)
+					flightCamera.Focus = CFrame.new(p)
+				end
+			end
+			if paintMutation then
+				paintMutation(elapsed, reduced)
+			end
+			if mutationSparks then
+				mutationSparks.Enabled = not reduced
+			end
+			if a >= 1 then
+				break
+			end
+			RunService.RenderStepped:Wait()
+		end
+
+		local name = Strings.creatureName[creatureId] or creatureId
+		local takePhoto = false
+		local holdStart = os.clock()
+		local base = Framing.pose(bounds, display, viewer)
+
+		if not cancelled() then
+			FishingCamera.stop()
+			if restore then
+				restore()
+				restore = nil
+			end
+			Audio.capture(rarity, shiny)
+			if info and (info.isRecord or info.isGiant) then
+				Audio.play("level", 0.23, if info.isGiant then 0.9 else 1.12)
+			end
+			previewUsed = true
+			local activeCard = RevealCard.open(
+				Ui.screen(),
+				preview,
+				creatureId,
+				name,
+				rarity,
+				color,
+				info,
+				reduced
+			)
+			card = activeCard
+			restoreForeground = clearForeground(root)
+			GuiService.TouchControlsEnabled = false
+			revealActiveSet = true
+			Players.LocalPlayer:SetAttribute("CatchRevealActive", true)
+			if level >= 4 then
+				local button =
+					RevealCard.action(Ui.screen(), "TakePhoto", Text.photo, Theme.crystal)
+				photoButton = button
+				button.Activated:Connect(function()
+					takePhoto = true
+				end)
+			end
+			if camera then
+				local oldType = if camera.CameraType == Enum.CameraType.Scriptable
+					then Enum.CameraType.Custom
+					else camera.CameraType
+				local oldFov = if camera.CameraType == Enum.CameraType.Scriptable
+					then 70
+					else camera.FieldOfView
+				local oldCFrame, oldFocus = camera.CFrame, camera.Focus
+				camera.CameraType = Enum.CameraType.Scriptable
+				local lastViewport = Vector2.zero
+				local shot = oldCFrame
+				RunService:BindToRenderStep(SHOT_BINDING, Enum.RenderPriority.Last.Value, function()
+					local viewport = camera.ViewportSize
+					if viewport ~= lastViewport and viewport.X > 0 and viewport.Y > 0 then
+						lastViewport = viewport
+						local region = RevealCard.subjectRegion(viewport)
+						shot = Framing.camera(
+							bounds,
+							base,
+							axes,
+							display,
+							viewport,
+							SHOT_FOV,
+							region,
+							shotPadding
+						)
+						base = Framing.pose(bounds, display, shot.Position - display)
+						shot = safeRevealCamera(
+							Framing.camera(
+								bounds,
+								base,
+								axes,
+								display,
+								viewport,
+								SHOT_FOV,
+								region,
+								shotPadding
+							),
+							display,
+							character,
+							model
+						)
+					end
+					local elapsed = os.clock() - holdStart
+					local quiet = reduced
+						or Players.LocalPlayer:GetAttribute("ReduceEffects") == true
+					local blend = if quiet or flightCamera
+						then 1
+						else math.min(elapsed / SHOT_BLEND, 1)
+					local eased = TweenService:GetValue(
+						blend,
+						Enum.EasingStyle.Quad,
+						Enum.EasingDirection.Out
+					)
+					camera.CFrame = oldCFrame:Lerp(shot, eased)
+					camera.FieldOfView = oldFov + (SHOT_FOV - oldFov) * eased
+					camera.Focus = CFrame.new(display)
+					if not quiet then
+						CreatureMotion.pose(motion, base, elapsed, false)
+						activeCard.preview(elapsed)
+					else
+						model:PivotTo(base)
+					end
+					if paintMutation then
+						paintMutation(flight + elapsed, quiet)
+					end
+					if mutationSparks then
+						if quiet and mutationSparks.Enabled then
+							mutationSparks:Clear()
+						end
+						mutationSparks.Enabled = not quiet
+					end
+				end)
+				restoreCamera = function()
+					RunService:UnbindFromRenderStep(SHOT_BINDING)
+					camera.FieldOfView = oldFov
+					camera.CFrame = oldCFrame
+					camera.Focus = oldFocus
+					camera.CameraType = oldType
+				end
+			end
+		end
+
+		local hold = if reduced and level == 6 then REDUCED_MYSTIC_HOLD else style.hold
+		while card and not cancelled() and not takePhoto and os.clock() - holdStart < hold do
+			RunService.RenderStepped:Wait()
+		end
+		if restoreCamera then
+			restoreCamera()
+			restoreCamera = nil
+		end
+		if restoreFlightCamera then
+			restoreFlightCamera()
+			restoreFlightCamera = nil
+		end
+		if skipButton then
+			skipButton:Destroy()
+			skipButton = nil
+		end
+		if photoButton then
+			photoButton:Destroy()
+			photoButton = nil
+		end
+		CreatureMotion.reset(motion, base)
+		if signature then
+			signature:Destroy()
+			signature = nil
+		end
 		if restore then
 			restore()
 			restore = nil
 		end
-		Audio.capture(rarity, shiny)
-		if info and (info.isRecord or info.isGiant) then
-			Audio.play("level", 0.23, if info.isGiant then 0.9 else 1.12)
+		if card then
+			card.close(takePhoto or cancelled())
+			card = nil
 		end
-		local activeCard =
-			RevealCard.open(Ui.screen(), preview, creatureId, name, rarity, color, info, reduced)
-		card = activeCard
-		restoreForeground = clearForeground(root)
-		GuiService.TouchControlsEnabled = false
-		Players.LocalPlayer:SetAttribute("CatchRevealActive", true)
-		if level >= 4 then
-			local button = RevealCard.action(Ui.screen(), "TakePhoto", Text.photo, Theme.crystal)
-			photoButton = button
-			button.Activated:Connect(function()
-				takePhoto = true
-			end)
+		if not cancelled() then
+			seen[creatureId] = true
 		end
-		if camera then
-			local oldType, oldCFrame, oldFocus, oldFov =
-				camera.CameraType, camera.CFrame, camera.Focus, camera.FieldOfView
-			camera.CameraType = Enum.CameraType.Scriptable
-			local lastViewport = Vector2.zero
-			local shot = oldCFrame
-			RunService:BindToRenderStep(SHOT_BINDING, Enum.RenderPriority.Last.Value, function()
-				local viewport = camera.ViewportSize
-				if viewport ~= lastViewport and viewport.X > 0 and viewport.Y > 0 then
-					lastViewport = viewport
-					local region = RevealCard.subjectRegion(viewport)
-					shot = Framing.camera(
-						bounds,
-						base,
-						axes,
-						display,
-						viewport,
-						SHOT_FOV,
-						region,
-						shotPadding
-					)
-					base = Framing.pose(bounds, display, shot.Position - display)
-					shot = Framing.camera(
-						bounds,
-						base,
-						axes,
-						display,
-						viewport,
-						SHOT_FOV,
-						region,
-						shotPadding
-					)
+		if takePhoto and not cancelled() then
+			PhotoMode.show(
+				model,
+				root,
+				name,
+				rarity,
+				color,
+				base:VectorToWorldSpace(bounds.forward)
+			)
+		elseif not reduced and not cancelled() then
+			local outStart = os.clock()
+			local baseScale = model:GetScale()
+			while not cancelled() do
+				local a = math.min((os.clock() - outStart) / EXIT_SECONDS, 1)
+				model:ScaleTo(math.max(baseScale * (1 - a), 0.01))
+				model:PivotTo(CFrame.new((root.Position - display) * a) * base)
+				if a >= 1 then
+					break
 				end
-				local elapsed = os.clock() - holdStart
-				local quiet = reduced or Players.LocalPlayer:GetAttribute("ReduceEffects") == true
-				local blend = if quiet or flightCamera then 1 else math.min(elapsed / SHOT_BLEND, 1)
-				local eased =
-					TweenService:GetValue(blend, Enum.EasingStyle.Quad, Enum.EasingDirection.Out)
-				camera.CFrame = oldCFrame:Lerp(shot, eased)
-				camera.FieldOfView = oldFov + (SHOT_FOV - oldFov) * eased
-				camera.Focus = CFrame.new(display)
-				if not quiet then
-					CreatureMotion.pose(motion, base, elapsed, false)
-					activeCard.preview(elapsed)
-				else
-					model:PivotTo(base)
-				end
-				if paintMutation then
-					paintMutation(flight + elapsed, quiet)
-				end
-				if mutationSparks then
-					if quiet and mutationSparks.Enabled then
-						mutationSparks:Clear()
-					end
-					mutationSparks.Enabled = not quiet
-				end
-			end)
-			restoreCamera = function()
-				RunService:UnbindFromRenderStep(SHOT_BINDING)
-				camera.FieldOfView = oldFov
-				camera.CFrame = oldCFrame
-				camera.Focus = oldFocus
-				camera.CameraType = oldType
+				RunService.RenderStepped:Wait()
 			end
 		end
-	else
-		preview:Destroy()
-	end
+	end)
 
-	local hold = if reduced and level == 6 then REDUCED_MYSTIC_HOLD else style.hold
-	while card and not cancelled() and not takePhoto and os.clock() - holdStart < hold do
-		RunService.RenderStepped:Wait()
-	end
+	-- Guaranteed restoration even if an error or abrupt interruption occurs.
 	if restoreCamera then
 		restoreCamera()
 	end
@@ -556,7 +714,6 @@ function Reveal.play(
 	if photoButton then
 		photoButton:Destroy()
 	end
-	CreatureMotion.reset(motion, base)
 	if signature then
 		signature:Destroy()
 	end
@@ -564,33 +721,23 @@ function Reveal.play(
 		restore()
 	end
 	if card then
-		card.close(takePhoto or cancelled())
+		card.close(true)
 	end
-	if not cancelled() then
-		seen[creatureId] = true
+	if not previewUsed and preview.Parent == nil then
+		preview:Destroy()
 	end
-	if takePhoto and not cancelled() then
-		PhotoMode.show(model, root, name, rarity, color, base:VectorToWorldSpace(bounds.forward))
-	elseif not reduced and not cancelled() then
-		local outStart = os.clock()
-		local baseScale = model:GetScale()
-		while not cancelled() do
-			local a = math.min((os.clock() - outStart) / EXIT_SECONDS, 1)
-			model:ScaleTo(math.max(baseScale * (1 - a), 0.01))
-			model:PivotTo(CFrame.new((root.Position - display) * a) * base)
-			if a >= 1 then
-				break
-			end
-			RunService.RenderStepped:Wait()
-		end
+	if model.Parent then
+		model:Destroy()
 	end
-	model:Destroy()
 	if restoreForeground then
 		restoreForeground()
 	end
-	if card then
+	if revealActiveSet then
 		GuiService.TouchControlsEnabled = touchControls
 		Players.LocalPlayer:SetAttribute("CatchRevealActive", false)
+	end
+	if not ok then
+		warn("[Reveal] error during reveal:", err)
 	end
 end
 

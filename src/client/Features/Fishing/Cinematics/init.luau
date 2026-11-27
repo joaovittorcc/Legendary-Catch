@@ -172,27 +172,75 @@ function Cinematics.play(
 	local oldControls = GuiService.TouchControlsEnabled
 	local oldActive = player:GetAttribute("CatchRevealActive")
 	local oldType, oldCF, oldFocus = Enum.CameraType.Custom, CFrame.identity, CFrame.identity
-	local oldFov = if camera then camera.FieldOfView else FINAL_FOV
+	local oldFov = FINAL_FOV
 	if camera then
-		oldType, oldCF, oldFocus = camera.CameraType, camera.CFrame, camera.Focus
+		if camera.CameraType == Enum.CameraType.Scriptable then
+			oldType = Enum.CameraType.Custom
+			oldFov = 70
+		else
+			oldType = camera.CameraType
+			oldFov = camera.FieldOfView
+		end
+		oldCF, oldFocus = camera.CFrame, camera.Focus
 		if not reduced then
 			camera.CameraType = Enum.CameraType.Scriptable
 		end
 	end
 	GuiService.TouchControlsEnabled = false
 	player:SetAttribute("CatchRevealActive", true)
+	local startPos = root.Position
 	local forward = (origin - root.Position) * Vector3.new(1, 0, 1)
 	forward = if forward.Magnitude > 0.1 then forward.Unit else Vector3.zAxis
-	local waterShot =
-		CFrame.lookAt(origin - forward * 24 + Vector3.yAxis * 8, origin + Vector3.yAxis * 2)
 	local right = Vector3.new(forward.Z, 0, -forward.X)
 	local mystic: MysticShots.Shot? = nil
 	local finale = false
+	local baseCameraIgnore: { Instance } = { root.Parent or root, world }
 	local cameraRay = RaycastParams.new()
 	cameraRay.FilterType = Enum.RaycastFilterType.Exclude
-	cameraRay.FilterDescendantsInstances = { root.Parent or root, world }
+	cameraRay.FilterDescendantsInstances = baseCameraIgnore
 	cameraRay.IgnoreWater = true
 	cameraRay.RespectCanCollide = true
+	local function safeCinemaCam(camCf: CFrame, target: Vector3): CFrame
+		local wanted = camCf.Position
+		local clamped = if wanted.Y < 1.2 then Vector3.new(wanted.X, 1.2, wanted.Z) else wanted
+		local safePos = clamped
+		local probe = target
+		local skipped: { Instance }? = nil
+		for _ = 1, 6 do
+			local delta = clamped - probe
+			if delta.Magnitude < 0.05 then
+				break
+			end
+			local hit = Workspace:Raycast(probe, delta, cameraRay)
+			if not hit then
+				break
+			end
+			local inst = hit.Instance
+			if inst:IsA("BasePart") and inst.Transparency >= 0.8 then
+				if not skipped then
+					skipped = table.clone(baseCameraIgnore)
+				end
+				table.insert(skipped :: { Instance }, inst)
+				cameraRay.FilterDescendantsInstances = skipped :: { Instance }
+				probe = hit.Position + delta.Unit * 0.05
+			else
+				local pulled = hit.Position + (target - hit.Position).Unit * 0.8
+				safePos = if pulled.Y < 1.2 then Vector3.new(pulled.X, 1.2, pulled.Z) else pulled
+				break
+			end
+		end
+		if skipped then
+			cameraRay.FilterDescendantsInstances = baseCameraIgnore
+		end
+		if safePos == wanted then
+			return camCf
+		end
+		return CFrame.new(safePos) * camCf.Rotation
+	end
+	local waterShot = safeCinemaCam(
+		CFrame.lookAt(origin - forward * 24 + Vector3.yAxis * 8, origin + Vector3.yAxis * 2),
+		origin + Vector3.yAxis * 2
+	)
 	local function showCatch(size: Vector2, age: number)
 		if not camera then
 			return
@@ -221,7 +269,7 @@ function Cinematics.play(
 			local axes = CFrame.lookAt(Vector3.zero, -facing)
 			model:PivotTo(pose)
 			Motion.poseBones(motion, 8 + age * 0.45)
-			camera.CFrame = Framing.camera(
+			local wantedCf = Framing.camera(
 				bounds,
 				pose,
 				axes,
@@ -231,6 +279,7 @@ function Cinematics.play(
 				Card.subjectRegion(size),
 				1.24 * smallModelPadding
 			)
+			camera.CFrame = safeCinemaCam(wantedCf, center)
 			camera.Focus = CFrame.new(center)
 			camera.FieldOfView = FINAL_FOV
 			return
@@ -257,6 +306,9 @@ function Cinematics.play(
 				eye += Vector3.yAxis * 3.5
 			end
 		end
+		if eye.Y < 1.2 then
+			eye = Vector3.new(eye.X, 1.2, eye.Z)
+		end
 		local facing = if kind == "tide" then eye - shoulder else forward
 		local turn = if kind == "tide" then math.rad(-12) else 0
 		model:PivotTo(Framing.pose(bounds, shoulder, facing, turn))
@@ -275,6 +327,7 @@ function Cinematics.play(
 		return player.Parent ~= nil
 			and root:IsDescendantOf(Workspace)
 			and (hum == nil or hum.Health > 0)
+			and (root.Position - startPos).Magnitude <= 25
 			and gui.Parent ~= nil
 	end
 	local skipApplied = false

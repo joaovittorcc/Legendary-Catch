@@ -32,6 +32,8 @@ local Fishing = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Audio = { order = 15 }
 local sounds: { [string]: Sound } = {}
+local defaultVolumes: { [string]: number } = {}
+local lastCastAt = 0
 local player = Players.LocalPlayer
 
 function Audio.group(name: string): SoundGroup
@@ -72,6 +74,7 @@ local function get(cue: string): Sound?
 	sound.SoundGroup = Audio.group(if cue == "music" then "Music" else "Effects")
 	sound.Parent = SoundService
 	sounds[cue] = sound
+	defaultVolumes[cue] = sound.Volume
 	return sound
 end
 
@@ -80,8 +83,17 @@ function Audio.play(cue: string, volume: number?, speed: number?): Sound?
 	if not sound or not sound.IsLoaded then
 		return nil
 	end
-	if volume then
+	if cue == "cast" then
+		local now = os.clock()
+		if now - lastCastAt < 0.22 then
+			return nil
+		end
+		lastCastAt = now
+	end
+	if volume ~= nil then
 		sound.Volume = volume
+	elseif defaultVolumes[cue] ~= nil then
+		sound.Volume = defaultVolumes[cue]
 	end
 	sound.PlaybackSpeed = speed or 1
 	sound:Stop()
@@ -125,6 +137,7 @@ local function ambientLoop(cue: string, volume: number?)
 end
 
 function Audio.start()
+	ReplicatedStorage:WaitForChild("Audio", 5)
 	for _, rarity in Fishing.RARITY_ORDER do
 		Catalog["stinger_" .. rarity] = "Stinger_" .. rarity
 	end
@@ -184,6 +197,16 @@ function Audio.start()
 		end
 	end)
 	player.CharacterRemoving:Connect(stopTension)
+	local function watchDeath(character: Model)
+		local hum = character:FindFirstChildOfClass("Humanoid")
+		if hum then
+			hum.Died:Connect(stopTension)
+		end
+	end
+	if player.Character then
+		watchDeath(player.Character)
+	end
+	player.CharacterAdded:Connect(watchDeath)
 
 	local training = remotes:WaitForChild(Net.TRAINING_UPDATE) :: RemoteEvent
 	training.OnClientEvent:Connect(function(update: Net.TrainingUpdate)
@@ -220,6 +243,7 @@ function Audio.start()
 	end)
 
 	task.spawn(function()
+		local lastGain = -1
 		while water and water.Parent do
 			local character = player.Character
 			local root = character and character:FindFirstChild("HumanoidRootPart")
@@ -234,7 +258,11 @@ function Audio.start()
 					end
 				end
 			end
-			TweenService:Create(water, TweenInfo.new(0.45), { Volume = waterVolume * gain }):Play()
+			if math.abs(gain - lastGain) > 0.015 then
+				lastGain = gain
+				TweenService:Create(water, TweenInfo.new(0.45), { Volume = waterVolume * gain })
+					:Play()
+			end
 			task.wait(0.5)
 		end
 	end)

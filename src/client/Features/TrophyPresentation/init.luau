@@ -114,7 +114,11 @@ function TrophyPresentation.start()
 			and playerGui:FindFirstChild("CatchPhoto") == nil
 	end
 	local function whenOverlayChanges(child: Instance)
-		if child.Name ~= "IslandArrival" and child.Name ~= "IslandTitle" then
+		if
+			child.Name ~= "IslandArrival"
+			and child.Name ~= "IslandTitle"
+			and child.Name ~= "CatchPhoto"
+		then
 			return
 		end
 		for pedestal in active do

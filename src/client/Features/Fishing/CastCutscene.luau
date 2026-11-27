@@ -137,6 +137,7 @@ local JOINT_KEYS: { [string]: string } = {
 	Waist = "Waist",
 	Neck = "Neck",
 	Root = "Root",
+	RootJoint = "Root",
 	RightHip = "RightHip",
 	["Right Hip"] = "RightHip",
 	LeftHip = "LeftHip",
@@ -154,7 +155,7 @@ local HOLD_FOV = 55
 local BAR_HEIGHT = 0.11 -- letterbox bar, share of the screen height
 
 type Joint = { Transform: CFrame, Parent: Instance? }
-type Entry = { joint: Joint, key: string, base: CFrame, applied: CFrame? }
+type Entry = { joint: Joint, rawName: string, key: string, base: CFrame, applied: CFrame? }
 
 type Run = {
 	poseConn: RBXScriptConnection?,
@@ -215,13 +216,28 @@ local function sample(keys: { Key }, t: number, joint: string): Vector3
 	return keys[#keys].pose[joint] or Vector3.zero
 end
 
+-- Convert R15 Euler offsets to the local joint axes of R6 Motor6Ds when needed.
+local function jointAngles(rawName: string, r: Vector3): CFrame
+	if rawName == "Right Shoulder" or rawName == "Right Hip" then
+		return CFrame.Angles(-r.Z, r.Y, r.X)
+	elseif rawName == "Left Shoulder" or rawName == "Left Hip" then
+		return CFrame.Angles(r.Z, -r.Y, -r.X)
+	elseif rawName == "RootJoint" then
+		return CFrame.Angles(-r.X, r.Z, r.Y)
+	end
+	return CFrame.Angles(r.X, r.Y, r.Z)
+end
+
 local function collectJoints(character: Model): { Entry }
 	local list: { Entry } = {}
 	for _, child in character:GetDescendants() do
 		local key = JOINT_KEYS[child.Name]
 		if key and (child:IsA("Motor6D") or child.ClassName == "AnimationConstraint") then
 			local joint = (child :: any) :: Joint
-			table.insert(list, { joint = joint, key = key, base = joint.Transform })
+			table.insert(
+				list,
+				{ joint = joint, rawName = child.Name, key = key, base = joint.Transform }
+			)
 		end
 	end
 	return list
@@ -337,24 +353,39 @@ local function unbindCamera(run: Run)
 	end
 end
 
--- First solid, visible thing between `from` and `to` (invisible colliders do not block a shot).
-local function blocked(from: Vector3, to: Vector3, ignore: { Instance }): boolean
+-- First solid, visible thing between `from` and `to` (invisible colliders/triggers do not block).
+local function firstSolidHit(from: Vector3, to: Vector3, ignore: { Instance }): RaycastResult?
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
 	params.IgnoreWater = true
+	params.RespectCanCollide = true
 	local skip = table.clone(ignore)
 	for _ = 1, 6 do
 		params.FilterDescendantsInstances = skip
 		local hit = Workspace:Raycast(from, to - from, params)
 		if not hit then
-			return false
+			return nil
 		end
-		if hit.Instance.Transparency < 0.8 then
-			return true
+		if hit.Instance:IsA("BasePart") and hit.Instance.Transparency < 0.8 then
+			return hit
 		end
 		table.insert(skip, hit.Instance)
 	end
-	return false
+	return nil
+end
+
+local function blocked(from: Vector3, to: Vector3, ignore: { Instance }): boolean
+	return firstSolidHit(from, to, ignore) ~= nil
+end
+
+local function unblockedPos(from: Vector3, to: Vector3, ignore: { Instance }): Vector3
+	local clamped = if to.Y < 1.2 then Vector3.new(to.X, 1.2, to.Z) else to
+	local hit = firstSolidHit(from, clamped, ignore)
+	if hit then
+		local pulled = hit.Position + (from - hit.Position).Unit * 0.8
+		return if pulled.Y < 1.2 then Vector3.new(pulled.X, 1.2, pulled.Z) else pulled
+	end
+	return clamped
 end
 
 -- Low shot in front of the player looking up at them; moves around to a front 3/4 if the
@@ -368,18 +399,21 @@ local function shotFor(root: BasePart): (Vector3, Vector3, Vector3, Vector3)
 	local look = root.Position + UP * 0.9
 	local ignore: { Instance } = { root.Parent :: Instance }
 	for _, offset in { 3.5, 6, 1, -3.5 } do
-		local position = root.Position + forward * 8.5 + side * offset - UP * 1.3
+		local raw = root.Position + forward * 8.5 + side * offset - UP * 1.3
+		local position = if raw.Y < 1.2 then Vector3.new(raw.X, 1.2, raw.Z) else raw
 		if not blocked(look, position, ignore) then
 			return position, look, forward, side
 		end
 	end
-	return root.Position + forward * 5 + side * 5 + UP * 1, look, forward, side
+	local fallback = root.Position + forward * 5 + side * 5 + UP * 1
+	return unblockedPos(look, fallback, ignore), look, forward, side
 end
 
 local function startPoseLoop(run: Run, character: Model)
 	local calm = reduced()
+	local hum = character:FindFirstChildOfClass("Humanoid")
 	run.poseConn = RunService.PreSimulation:Connect(function()
-		if not character.Parent then
+		if not character.Parent or (hum ~= nil and hum.Health <= 0) then
 			stopPose(run)
 			return
 		end
@@ -415,7 +449,7 @@ local function startPoseLoop(run: Run, character: Model)
 						r += V(math.sin(t * 1.7 + 1) * 0.06, 0, 0) * hold
 					end
 				end
-				joint.Transform = entry.base * CFrame.Angles(r.X, r.Y, r.Z)
+				joint.Transform = entry.base * jointAngles(entry.rawName, r)
 				entry.applied = joint.Transform
 			end
 		end
@@ -430,7 +464,14 @@ function CastCutscene.windup(character: Model?)
 	if not (camera and character and root and root:IsA("BasePart")) then
 		return
 	end
+	local hum = character:FindFirstChildOfClass("Humanoid")
 	local calm = reduced()
+	local savedType = if camera.CameraType == Enum.CameraType.Scriptable
+		then Enum.CameraType.Custom
+		else camera.CameraType
+	local savedFov = if camera.CameraType == Enum.CameraType.Scriptable
+		then 70
+		else camera.FieldOfView
 	local run: Run = {
 		entries = collectJoints(character),
 		started = os.clock(),
@@ -438,18 +479,20 @@ function CastCutscene.windup(character: Model?)
 		cameraBound = false,
 		hidden = {},
 		backpack = false,
-		oldType = camera.CameraType,
-		oldFov = camera.FieldOfView,
+		oldType = savedType,
+		oldFov = savedFov,
 	}
 	current = run
 	startPoseLoop(run, character)
 
 	local position, look, forward, side = shotFor(root)
 	local baseFov = run.oldFov or 70
+	local ignore: { Instance } = { character }
 	camera.CameraType = Enum.CameraType.Scriptable
 	run.cameraBound = true
 	RunService:BindToRenderStep(RENDER_NAME, Enum.RenderPriority.Camera.Value + 1, function()
-		if not root.Parent then
+		if not root.Parent or (hum ~= nil and hum.Health <= 0) then
+			CastCutscene.stop()
 			return
 		end
 		local now = os.clock()
@@ -478,9 +521,10 @@ function CastCutscene.windup(character: Model?)
 			local flatTo = (behind * Vector3.new(1, 0, 1)).Magnitude
 			local radius = flatFrom + (flatTo - flatFrom) * e
 			local height = from.Y + (behind.Y - from.Y) * e
-			local pos = root.Position
+			local rawPos = root.Position
 				+ (forward * math.cos(yaw) + side * math.sin(yaw)) * radius
 				+ UP * height
+			local pos = unblockedPos(root.Position + UP * 1.5, rawPos, ignore)
 			local target = (root.Position + UP * 0.9):Lerp(
 				root.Position + forward * 16 + UP * 0.5,
 				e
@@ -493,7 +537,11 @@ function CastCutscene.windup(character: Model?)
 		local t = now - run.started
 		local drift = if calm then 0 else math.min(t, 5)
 		-- Slow push-in and a slight orbit, so the hold never feels frozen.
-		local pos = position - forward * (drift * 0.3) + side * (drift * 0.22) + UP * (drift * 0.04)
+		local rawPos = position
+			- forward * (drift * 0.3)
+			+ side * (drift * 0.22)
+			+ UP * (drift * 0.04)
+		local pos = unblockedPos(look, rawPos, ignore)
 		local roll = if calm then 0 else math.rad(3)
 		local goal = CFrame.lookAt(pos, look) * CFrame.Angles(0, 0, roll)
 		-- Hard cut (a glide from the play camera would cross posts and rails), a slow zoom in.
@@ -545,7 +593,9 @@ function CastCutscene.release(onHandover: (() -> ())?)
 	local camera = Workspace.CurrentCamera
 	run.releaseCf = camera and camera.CFrame
 	task.delay(0.1, function()
-		Audio.play("cast", 0.65, 1.25) -- the strike
+		if current == run then
+			Audio.play("cast", 0.65, 1.25) -- the strike
+		end
 	end)
 	if reduced() or not run.cameraBound then
 		CastCutscene.finish()

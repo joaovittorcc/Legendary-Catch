@@ -84,8 +84,13 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 		return
 	end
 	FishingCamera.stop()
-	oldType = camera.CameraType
-	oldFov = camera.FieldOfView
+	if camera.CameraType == Enum.CameraType.Scriptable then
+		oldType = Enum.CameraType.Custom
+		oldFov = 70
+	else
+		oldType = camera.CameraType
+		oldFov = camera.FieldOfView
+	end
 	camera.CameraType = Enum.CameraType.Scriptable
 	phase = "waiting"
 	shotIndex = 1
@@ -97,25 +102,57 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 	local flat = root.CFrame.LookVector * Vector3.new(1, 0, 1)
 	local forward = if flat.Magnitude > 0.01 then flat.Unit else Vector3.zAxis
 	local side = forward:Cross(UP).Unit
-	-- Keeps the camera out of the pier, posts and rocks: if something is between the look-at
-	-- point and the wanted position, stop just in front of it.
+	-- Keeps the camera out of the pier, posts and rocks: if something solid is between the
+	-- look-at anchor and the wanted position, stop just in front of it. RespectCanCollide avoids
+	-- invisible FishingZone volumes, and transparent barriers are stepped past.
+	local baseFilter: { Instance } = { root.Parent :: Instance, bobber }
 	local params = RaycastParams.new()
 	params.FilterType = Enum.RaycastFilterType.Exclude
-	params.FilterDescendantsInstances = { root.Parent :: Instance, bobber }
+	params.FilterDescendantsInstances = baseFilter
 	params.IgnoreWater = true
+	params.RespectCanCollide = true
 	-- Cast from whatever the shot is built around (the player's head or the bobber, whichever
 	-- is closer to the camera), like the default camera does from the character.
 	local function unblocked(position: Vector3): Vector3
+		local safePos = if position.Y < 1.2
+			then Vector3.new(position.X, 1.2, position.Z)
+			else position
 		local head = root.Position + UP * 2
 		local float = bobber.Position + UP * 1.5
-		local anchor = if (position - head).Magnitude <= (position - float).Magnitude
+		local anchor = if (safePos - head).Magnitude <= (safePos - float).Magnitude
 			then head
 			else float
-		local hit = Workspace:Raycast(anchor, position - anchor, params)
-		if hit then
-			return hit.Position + (anchor - hit.Position).Unit * 0.8
+		local skipped: { Instance }? = nil
+		local origin = anchor
+		for _ = 1, 6 do
+			local delta = safePos - origin
+			if delta.Magnitude < 0.05 then
+				break
+			end
+			local hit = Workspace:Raycast(origin, delta, params)
+			if not hit then
+				break
+			end
+			local inst = hit.Instance
+			if inst:IsA("BasePart") and inst.Transparency >= 0.8 then
+				if not skipped then
+					skipped = table.clone(baseFilter)
+				end
+				table.insert(skipped :: { Instance }, inst)
+				params.FilterDescendantsInstances = skipped :: { Instance }
+				origin = hit.Position + delta.Unit * 0.05
+			else
+				if skipped then
+					params.FilterDescendantsInstances = baseFilter
+				end
+				local pulled = hit.Position + (anchor - hit.Position).Unit * 0.8
+				return if pulled.Y < 1.2 then Vector3.new(pulled.X, 1.2, pulled.Z) else pulled
+			end
 		end
-		return position
+		if skipped then
+			params.FilterDescendantsInstances = baseFilter
+		end
+		return safePos
 	end
 
 	-- The glide works on `smooth`; the fight tremor is added on top so it never accumulates.
@@ -163,7 +200,9 @@ function FishingCamera.start(root: BasePart, bobber: BasePart)
 	end
 
 	conn = RunService.RenderStepped:Connect(function(dt)
-		if not root.Parent or not bobber.Parent then
+		local character = root.Parent
+		local hum = if character then character:FindFirstChildOfClass("Humanoid") else nil
+		if not character or not bobber.Parent or (hum ~= nil and hum.Health <= 0) then
 			FishingCamera.stop()
 			return
 		end

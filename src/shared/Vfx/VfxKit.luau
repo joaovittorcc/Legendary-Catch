@@ -409,6 +409,7 @@ local reduceConn: RBXScriptConnection? = nil
 local shakeRenderBound = false
 local lastHumanoidShakeOffset = Vector3.zero
 local lastCameraShakeOffset = CFrame.identity
+local lastAppliedCamCf: CFrame? = nil
 local rng = Random.new()
 
 -- Temporary post-processing tracking (never leaves permanent FX behind)
@@ -423,10 +424,17 @@ local function refreshReduceEffects()
 	reducedEffects = nextState
 
 	if reducedEffects then
-		-- Immediately clear shakes and active flash when user turns on ReduceEffects
+		-- Immediately clear shakes, active flash, and temporary post-FX when user turns on ReduceEffects
 		table.clear(activeShakes)
 		if flashFrame then
 			flashFrame.BackgroundTransparency = 1
+		end
+		for i = #activeTempPostFx, 1, -1 do
+			local fx = activeTempPostFx[i]
+			if fx and fx.Parent then
+				fx:Destroy()
+			end
+			table.remove(activeTempPostFx, i)
 		end
 	end
 
@@ -726,14 +734,20 @@ local function clearAppliedShakeOffsets()
 	lastHumanoidShakeOffset = Vector3.zero
 
 	local cam = Workspace.CurrentCamera
-	if cam and lastCameraShakeOffset ~= CFrame.identity then
+	if
+		cam
+		and lastCameraShakeOffset ~= CFrame.identity
+		and lastAppliedCamCf ~= nil
+		and cam.CFrame:FuzzyEq(lastAppliedCamCf, 1e-3)
+	then
 		cam.CFrame = cam.CFrame * lastCameraShakeOffset:Inverse()
 	end
 	lastCameraShakeOffset = CFrame.identity
+	lastAppliedCamCf = nil
 end
 
 local function unbindShakeIfIdle()
-	if shakeRenderBound and #activeShakes == 0 then
+	if shakeRenderBound and (#activeShakes == 0 or reducedEffects) then
 		clearAppliedShakeOffsets()
 		RunService:UnbindFromRenderStep("LegendaryCatch_VfxCameraShake")
 		shakeRenderBound = false
@@ -778,21 +792,35 @@ local function ensureShakeRenderStep()
 
 			local cam = Workspace.CurrentCamera
 			if cam and cam.CameraType == Enum.CameraType.Scriptable then
-				-- Undo previous frame's scriptable offset before applying new one
-				if lastCameraShakeOffset ~= CFrame.identity then
+				-- Restore any lingering Humanoid offset when transitioning from Custom -> Scriptable
+				if lastHumanoidShakeOffset ~= Vector3.zero then
+					local hum = getLocalHumanoid()
+					if hum then
+						hum.CameraOffset -= lastHumanoidShakeOffset
+					end
+					lastHumanoidShakeOffset = Vector3.zero
+				end
+				-- Only undo previous scriptable offset if nothing else overwrote cam.CFrame
+				if
+					lastCameraShakeOffset ~= CFrame.identity
+					and lastAppliedCamCf ~= nil
+					and cam.CFrame:FuzzyEq(lastAppliedCamCf, 1e-3)
+				then
 					cam.CFrame = cam.CFrame * lastCameraShakeOffset:Inverse()
 				end
 				local nextCf = CFrame.new(totalOffset)
-				cam.CFrame = cam.CFrame * nextCf
+				local applied = cam.CFrame * nextCf
+				cam.CFrame = applied
 				lastCameraShakeOffset = nextCf
-				lastHumanoidShakeOffset = Vector3.zero
+				lastAppliedCamCf = applied
 			else
+				lastCameraShakeOffset = CFrame.identity
+				lastAppliedCamCf = nil
 				local hum = getLocalHumanoid()
 				if hum then
 					hum.CameraOffset = (hum.CameraOffset - lastHumanoidShakeOffset) + totalOffset
 					lastHumanoidShakeOffset = totalOffset
 				end
-				lastCameraShakeOffset = CFrame.identity
 			end
 
 			if #activeShakes == 0 then
@@ -818,6 +846,7 @@ local function ensureFlashGui()
 	gui.Name = "LegendaryCatch_VfxFlashGui"
 	gui.IgnoreGuiInset = true
 	gui.ResetOnSpawn = false
+	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 	gui.DisplayOrder = 900
 
 	local frame = Instance.new("Frame")
@@ -1491,12 +1520,23 @@ function VfxKit.pulseColorCorrection(
 	cc.Parent = Lighting
 	table.insert(activeTempPostFx, cc)
 
+	local inTw = TweenService:Create(
+		cc,
+		TweenInfo.new(fade, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
+		{
+			TintColor = tintColor,
+			Brightness = brightness,
+			Saturation = saturation,
+		}
+	)
+
 	local cleaned = false
 	local function cleanup()
 		if cleaned then
 			return
 		end
 		cleaned = true
+		inTw:Cancel()
 		local idx = table.find(activeTempPostFx, cc)
 		if idx then
 			table.remove(activeTempPostFx, idx)
@@ -1518,15 +1558,6 @@ function VfxKit.pulseColorCorrection(
 		end
 	end
 
-	local inTw = TweenService:Create(
-		cc,
-		TweenInfo.new(fade, Enum.EasingStyle.Sine, Enum.EasingDirection.Out),
-		{
-			TintColor = tintColor,
-			Brightness = brightness,
-			Saturation = saturation,
-		}
-	)
 	inTw:Play()
 
 	task.delay(fade + math.max(0.1, holdTime), cleanup)

@@ -23,6 +23,7 @@ local RunService = game:GetService("RunService")
 local Workspace = game:GetService("Workspace")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
+local StringsUi = require(Shared:WaitForChild("StringsUi"))
 local VfxFolder = Shared:WaitForChild("Vfx")
 local Palette = require(VfxFolder:WaitForChild("Palette"))
 local SfxKit = require(VfxFolder:WaitForChild("SfxKit"))
@@ -658,7 +659,7 @@ function FishingChargeFx.release(charge: number?, tier: number?, targetPosition:
 	if band == "Perfect" then
 		VfxKit.floatingText(
 			pos + Vector3.new(0, 1.8, 0),
-			"PERFEITO!",
+			StringsUi.perfect,
 			Palette.ChargeBands.PerfectGold,
 			0.9,
 			0.95
