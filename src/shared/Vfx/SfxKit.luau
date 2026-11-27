@@ -335,21 +335,27 @@ local function ensureInit()
 		folder3D = f
 	end
 
-	-- Preload active sound assets asynchronously to avoid first-splash hitch.
+	-- Preload active sound assets asynchronously using Sound instances (passing raw strings to
+	-- PreloadAsync requests Image assets and logs "Asset type does not match requested type").
 	task.spawn(function()
-		local assets: { string } = {}
+		local soundsToPreload: { Instance } = {}
 		local seenAssets: { [string]: boolean } = {}
 		for name in pairs(SOUND_IDS) do
 			local assetId = resolveSoundAsset(name)
 			if assetId and not seenAssets[assetId] then
 				seenAssets[assetId] = true
-				table.insert(assets, assetId)
+				local probe = Instance.new("Sound")
+				probe.SoundId = assetId
+				table.insert(soundsToPreload, probe)
 			end
 		end
-		if #assets > 0 then
+		if #soundsToPreload > 0 then
 			pcall(function()
-				ContentProvider:PreloadAsync(assets)
+				ContentProvider:PreloadAsync(soundsToPreload)
 			end)
+			for _, probe in ipairs(soundsToPreload) do
+				probe:Destroy()
+			end
 		end
 	end)
 end

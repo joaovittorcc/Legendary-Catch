@@ -94,7 +94,9 @@ local function makeBanner(): ScreenGui
 	TweenService:Create(title, show, { TextTransparency = 0, Size = UDim2.fromScale(0.8, 0.08) })
 		:Play()
 	task.delay(0.4, function()
-		TweenService:Create(sub, TweenInfo.new(0.4), { TextTransparency = 0 }):Play()
+		if gui.Parent then
+			TweenService:Create(sub, TweenInfo.new(0.4), { TextTransparency = 0 }):Play()
+		end
 	end)
 	task.delay(3.2, function()
 		if gui.Parent then
@@ -153,8 +155,15 @@ function Omen.start()
 		task.spawn(function()
 			task.wait(1.6)
 			while active and token == myToken and cc.Parent do
+				if player:GetAttribute("ReduceEffects") == true then
+					cc.Brightness = 0
+					break
+				end
 				TweenService:Create(cc, TweenInfo.new(0.12), { Brightness = 0.12 }):Play()
 				task.wait(0.14)
+				if not active or token ~= myToken or not cc.Parent then
+					break
+				end
 				TweenService:Create(cc, TweenInfo.new(0.5), { Brightness = 0 }):Play()
 				task.wait(PULSE_EVERY)
 			end
