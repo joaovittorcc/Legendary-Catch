@@ -5,8 +5,7 @@
 	- Periodic glossy shimmer sweeps across buttons/headers/cards
 	- Staggered gentle breathing for hero icons & mascots
 	- Rhythmic pulsing for notification badges
-	- Squash & stretch on button tap/press, hover lift (Touch-safe), elastic panel pop-open,
-	  fast pop-close, and cascaded list/grid item entrances.
+	- Squash & stretch on button tap/press, hover lift (Touch-safe), and a short panel entrance.
 	Strictly respects LocalPlayer attribute "ReduceEffects" (layout stays 100% identical).
 ]]
 
@@ -265,96 +264,14 @@ function Motion.pulseBadge(target: GuiObject): () -> ()
 	return Motion.breathe(target, 0.11, 5.4)
 end
 
--- Elastic panel pop-open animation (instant when ReduceEffects = true).
-function Motion.popOpen(target: GuiObject, backdrop: Frame?)
+-- The panel is immediately readable while the scale settles.
+function Motion.popOpen(target: GuiObject, backdrop: Frame)
+	backdrop.BackgroundTransparency = 0.62
 	local scale = ensureScale(target, "PanelScale")
-	if isReduced() then
-		scale.Scale = 1
-		if backdrop then
-			backdrop.BackgroundTransparency = 0.62
-		end
-		return
-	end
-	scale.Scale = 0.84
-	TweenService:Create(
-		scale,
-		TweenInfo.new(0.24, Enum.EasingStyle.Back, Enum.EasingDirection.Out),
-		{ Scale = 1 }
-	):Play()
-	if backdrop then
-		backdrop.BackgroundTransparency = 1
-		TweenService:Create(
-			backdrop,
-			TweenInfo.new(0.18, Enum.EasingStyle.Quad, Enum.EasingDirection.Out),
-			{ BackgroundTransparency = 0.62 }
-		):Play()
-	end
-end
-
--- Quick snappy close animation (instant when ReduceEffects = true).
-function Motion.popClose(target: GuiObject, backdrop: Frame?, onDone: () -> ())
-	local scale = ensureScale(target, "PanelScale")
-	if isReduced() then
-		scale.Scale = 1
-		onDone()
-		return
-	end
-	local tw = TweenService:Create(
-		scale,
-		TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-		{ Scale = 0.90 }
-	)
-	if backdrop then
-		TweenService:Create(
-			backdrop,
-			TweenInfo.new(0.11, Enum.EasingStyle.Quad, Enum.EasingDirection.In),
-			{ BackgroundTransparency = 1 }
-		):Play()
-	end
-	tw.Completed:Once(function()
-		scale.Scale = 1
-		onDone()
-	end)
-	tw:Play()
-end
-
--- Cascaded spring entrance for list/grid children (capped for mobile smoothness).
-function Motion.cascade(container: Instance, maxItems: number?)
-	if isReduced() then
-		return
-	end
-	local items: { GuiObject } = {}
-	for _, child in container:GetChildren() do
-		if child:IsA("GuiObject") and child.Visible then
-			table.insert(items, child)
-		end
-	end
-	if #items == 0 then
-		return
-	end
-	table.sort(items, function(a, b)
-		if a.LayoutOrder ~= b.LayoutOrder then
-			return a.LayoutOrder < b.LayoutOrder
-		end
-		return a.Name < b.Name
-	end)
-	local cap = math.min(#items, maxItems or 10)
-	for i = 1, cap do
-		local item = items[i]
-		local sc = ensureScale(item, "CascadeScale")
-		sc.Scale = 0.88
-		TweenService:Create(
-			sc,
-			TweenInfo.new(
-				0.22,
-				Enum.EasingStyle.Back,
-				Enum.EasingDirection.Out,
-				0,
-				false,
-				(i - 1) * 0.026
-			),
-			{ Scale = 1 }
-		):Play()
+	scale.Scale = 1
+	if not isReduced() then
+		scale.Scale = 0.97
+		TweenService:Create(scale, TweenInfo.new(0.12, Enum.EasingStyle.Quad), { Scale = 1 }):Play()
 	end
 end
 

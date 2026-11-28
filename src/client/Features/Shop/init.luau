@@ -581,14 +581,9 @@ function Shop.start()
 			end
 			layout()
 			refreshDetails()
-		else
-			reload(hero, hero.rod)
-			for _, slot in slots do
-				reload(slot, slot.rod)
-			end
 		end
 	end)
-	RunService.RenderStepped:Connect(function(dt: number)
+	RunService.Heartbeat:Connect(function(dt: number)
 		if not gui.Enabled then
 			return
 		end
@@ -597,12 +592,18 @@ function Shop.start()
 			mountRodViewport(hero, 0.8)
 			local left = catalog.AbsolutePosition.X
 			local right = left + catalog.AbsoluteWindowSize.X
+			local mounted = 0
 			for _, slot in slots do
 				local x = slot.holder.AbsolutePosition.X
 				if x < right and x + slot.holder.AbsoluteSize.X > left then
-					mountRodViewport(slot)
-				elseif slot.view then
-					reload(slot, slot.rod)
+					if not slot.view then
+						if mounted < 2 then
+							mountRodViewport(slot)
+							mounted += 1
+						else
+							previewsDirty = true
+						end
+					end
 				end
 			end
 		end

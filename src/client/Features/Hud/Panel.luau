@@ -15,11 +15,9 @@
 ]]
 
 local GuiService = game:GetService("GuiService")
-local Lighting = game:GetService("Lighting")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
-local UserInputService = game:GetService("UserInputService")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Theme = require(Shared:WaitForChild("UiTheme"))
@@ -29,9 +27,6 @@ local Motion = require(script.Parent:WaitForChild("Motion"))
 
 local Panel = {}
 local player = Players.LocalPlayer
-local panelBlur: BlurEffect? = nil
-local activeScreens: { [ScreenGui]: Frame } = {}
-local openTokens: { [ScreenGui]: number } = {}
 
 local ICONS: { [string]: string } = {
 	Collection = "🐠",
@@ -771,82 +766,6 @@ local function makeTitleIconGlyph(
 	return label
 end
 
-local function updatePanelBlur()
-	local anyOpen = false
-	for screen in activeScreens do
-		anyOpen = anyOpen or screen.Enabled
-	end
-	if not anyOpen and panelBlur then
-		TweenService:Create(panelBlur, TweenInfo.new(0.16), { Size = 0 }):Play()
-		task.delay(0.2, function()
-			if panelBlur and panelBlur.Parent and panelBlur.Size < 0.1 then
-				panelBlur:Destroy()
-				panelBlur = nil
-			end
-		end)
-	end
-end
-
-local function setOpen(gui: ScreenGui, shell: Frame, scroll: ScrollingFrame, opened: boolean)
-	local token = (openTokens[gui] or 0) + 1
-	openTokens[gui] = token
-	local backdropObj = gui:FindFirstChild("Backdrop")
-	local backdrop = if backdropObj and backdropObj:IsA("Frame") then backdropObj else nil
-
-	if opened then
-		local entering = not gui.Enabled
-		gui.Enabled = true
-		if entering then
-			Motion.popOpen(shell, backdrop)
-			-- Cascade immediate visible content items for snappy polish
-			task.defer(function()
-				if openTokens[gui] == token and gui.Enabled then
-					local firstChild = scroll:FindFirstChildWhichIsA("Frame")
-					local cascadeTarget: Instance = if firstChild
-							and #scroll:GetChildren() <= 3
-							and #firstChild:GetChildren() >= 2
-						then firstChild
-						else scroll
-					Motion.cascade(cascadeTarget, 10)
-				end
-			end)
-		end
-		local reduced = player:GetAttribute("ReduceEffects") == true
-		local touchOnly = UserInputService.TouchEnabled and not UserInputService.MouseEnabled
-		if not reduced and not touchOnly then
-			local blur = panelBlur
-			if not blur or blur.Parent ~= Lighting then
-				local effect = Instance.new("BlurEffect")
-				effect.Name = "CandyPanelBlur"
-				effect.Size = 0
-				effect.Parent = Lighting
-				panelBlur = effect
-				blur = effect
-			end
-			if blur then
-				TweenService:Create(blur, TweenInfo.new(0.18), { Size = 9 }):Play()
-			end
-		end
-	elseif gui.Enabled then
-		Motion.popClose(shell, backdrop, function()
-			if openTokens[gui] == token and gui.Parent then
-				gui.Enabled = false
-				updatePanelBlur()
-			end
-		end)
-		return
-	end
-	updatePanelBlur()
-end
-
-player:GetAttributeChangedSignal("ReduceEffects"):Connect(function()
-	if not panelBlur then
-		return
-	end
-	local target = if player:GetAttribute("ReduceEffects") == true then 0 else 9
-	TweenService:Create(panelBlur, TweenInfo.new(0.16), { Size = target }):Play()
-end)
-
 function Panel.create(
 	id: string,
 	title: string,
@@ -1261,20 +1180,17 @@ function Panel.create(
 	shell.Parent = gui
 	gui.Parent = player:WaitForChild("PlayerGui")
 	fit()
-	activeScreens[gui] = shell
 
 	local panelConn = Hud.panelChanged:Connect(function(name: string)
-		setOpen(gui, shell, scroll, name == id or (id == "Collection" and name == "Milestones"))
+		local opened = name == id or (id == "Collection" and name == "Milestones")
+		if opened and not gui.Enabled then
+			Motion.popOpen(shell, backdrop)
+		end
+		gui.Enabled = opened
 	end)
 	gui.Destroying:Once(function()
 		resizeConn:Disconnect()
 		panelConn:Disconnect()
-		activeScreens[gui] = nil
-		openTokens[gui] = nil
-		if panelBlur and next(activeScreens) == nil then
-			panelBlur:Destroy()
-			panelBlur = nil
-		end
 	end)
 	return gui, scroll, heading
 end

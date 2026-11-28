@@ -12,10 +12,11 @@ local Theme = require(Shared:WaitForChild("UiTheme"))
 local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
-local Hud = script.Parent:WaitForChild("Hud")
-local Panel = require(Hud:WaitForChild("Panel"))
-local Art = require(Hud:WaitForChild("Art"))
-local HudAssets = require(Hud:WaitForChild("Assets"))
+local HudModule = script.Parent:WaitForChild("Hud")
+local Hud = require(HudModule)
+local Panel = require(HudModule:WaitForChild("Panel"))
+local Art = require(HudModule:WaitForChild("Art"))
+local HudAssets = require(HudModule:WaitForChild("Assets"))
 local Arrival = { order = 0 }
 local player = Players.LocalPlayer
 local LOAD_TIMEOUT = 5
@@ -57,6 +58,13 @@ local function interfaceAssets(gui: PlayerGui): { ImageLabel }
 end
 
 local function preloadPreviews()
+	local function loadBatch(batch: { Instance })
+		repeat
+			task.wait(0.15)
+		until Hud.panel() == "" and not Hud.isMenuOpen() and not Hud.isFishingActive()
+		pcall(ContentProvider.PreloadAsync, ContentProvider, batch)
+		table.clear(batch)
+	end
 	for _, name in { "RodPreviews", "TrainingLevels", "AquariumLevels", Creatures.MODELS_FOLDER } do
 		local root = ReplicatedStorage:FindFirstChild(name)
 		if not root then
@@ -71,15 +79,13 @@ local function preloadPreviews()
 				or node:IsA("Texture")
 			then
 				table.insert(batch, node)
-				if #batch == 24 then
-					pcall(ContentProvider.PreloadAsync, ContentProvider, batch)
-					table.clear(batch)
-					RunService.Heartbeat:Wait()
+				if #batch == 12 then
+					loadBatch(batch)
 				end
 			end
 		end
 		if #batch > 0 then
-			pcall(ContentProvider.PreloadAsync, ContentProvider, batch)
+			loadBatch(batch)
 		end
 	end
 end

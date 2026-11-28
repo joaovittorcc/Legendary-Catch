@@ -162,6 +162,8 @@ function Collection.start()
 	local rotation: RBXScriptConnection? = nil
 	local selected: Creatures.Creature? = nil
 	local showRewards = false
+	local indexBuilt = false
+	local renderVersion = 0
 	local pending: string? = nil
 	local revision = 0
 	local thumbnails: { Thumbnail } = {}
@@ -206,13 +208,15 @@ function Collection.start()
 			newAquariumVariants[update.creatureId .. "/" .. update.variantId] = true
 		end
 	end)
-	local function refreshPreviews()
+	local function refreshPreviews(): boolean
 		if not gui.Enabled then
-			return
+			return false
 		end
 		local top = scroll.AbsolutePosition.Y - 44
 		local bottom = scroll.AbsolutePosition.Y + scroll.AbsoluteWindowSize.Y + 44
 		local remaining = 12
+		local created = 0
+		local queued = false
 		for _, thumbnail in thumbnails do
 			local holder = thumbnail.holder
 			local y, height = holder.AbsolutePosition.Y, holder.AbsoluteSize.Y
@@ -221,13 +225,19 @@ function Collection.start()
 			if show then
 				remaining -= 1
 				if not view then
-					thumbnail.pose = preview(holder, thumbnail.id, thumbnail.hidden)
+					if created < 2 then
+						thumbnail.pose = preview(holder, thumbnail.id, thumbnail.hidden)
+						created += 1
+					else
+						queued = true
+					end
 				end
 			elseif view then
 				thumbnail.pose = nil
 				view:Destroy()
 			end
 		end
+		return queued
 	end
 	local previewsDirty = false
 	local function queuePreviews()
@@ -263,6 +273,9 @@ function Collection.start()
 	end
 
 	local function render()
+		renderVersion += 1
+		local version = renderVersion
+		indexBuilt = false
 		heading.Text = if showRewards then Text.milestones.title else Text.collection
 		if titleIcon and titleIcon:IsA("TextLabel") then
 			titleIcon.Text = if showRewards then "🏆" else "🐠"
@@ -605,117 +618,140 @@ function Collection.start()
 			scroll.CanvasPosition = Vector2.zero
 			render()
 		end)
-		for _, rarity in Fishing.RARITY_ORDER do
-			local color = Theme.rarity[rarity]
-			local count, total = discovered[rarity] or 0, totals[rarity] or 0
-			local section = Panel.label(
-				body,
-				string.format("%s  ·  %d / %d", Theme.rarityLabel(rarity), count, total),
-				17
-			)
-			section.TextStrokeTransparency = 1
-			local mystic = Theme.rarityRank(rarity) == 6
-			if mystic then
-				section.BackgroundTransparency = 0
-				Theme.corner(section, 10)
-				Theme.iridescent(section)
+		indexBuilt = true
+		task.defer(function()
+			if version ~= renderVersion then
+				return
 			end
-			progressBar(body, count, total, color)
-			local group = Instance.new("Frame")
-			group.BackgroundTransparency = 1
-			group.Size = UDim2.fromScale(1, 0)
-			group.AutomaticSize = Enum.AutomaticSize.Y
-			local grid = Instance.new("UIGridLayout")
-			grid.CellSize = UDim2.fromOffset(128, 128)
-			grid.CellPadding = UDim2.fromOffset(10, 10)
-			grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
-			grid.Parent = group
-			table.insert(grids, grid)
-			for _, entry in Creatures.ofRarity(rarity) do
-				local record = snapshot.collection[entry.id]
-				local found = record ~= nil
-				local shiny = record and record.shiny
-				local label = if found then Strings.creatureName[entry.id] or entry.id else "???"
-				if typeof(shiny) == "number" and shiny > 0 then
-					label = "✦ " .. label
-				end
-				local card = Instance.new("TextButton")
-				card.Name = entry.id
-				card.Text = ""
-				card.AutoButtonColor = false
-				card.BorderSizePixel = 0
-				card.BackgroundColor3 = color:Lerp(Theme.cream, 0.86)
-				Theme.corner(card, 14)
-				local outline = Instance.new("UIStroke")
-				outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
-				outline.Color = color
-				outline.Thickness = 3
-				outline.Parent = card
+			local built = 0
+			for _, rarity in Fishing.RARITY_ORDER do
+				local color = Theme.rarity[rarity]
+				local count, total = discovered[rarity] or 0, totals[rarity] or 0
+				local section = Panel.label(
+					body,
+					string.format("%s  ·  %d / %d", Theme.rarityLabel(rarity), count, total),
+					17
+				)
+				section.TextStrokeTransparency = 1
+				local mystic = Theme.rarityRank(rarity) == 6
 				if mystic then
-					Theme.iridescent(card)
+					section.BackgroundTransparency = 0
+					Theme.corner(section, 10)
+					Theme.iridescent(section)
 				end
-				local hasBadge = entry.event ~= nil or entry.season ~= nil
-				local icon = Instance.new("Frame")
-				icon.BackgroundTransparency = 1
-				icon.Size = UDim2.fromScale(1, if hasBadge then 0.43 else 0.61)
-				if entry.event then
-					icon.Position = UDim2.fromScale(0, 0.18)
-					local event = Panel.label(card, Text.adventure.eventOnly, 14, Theme.ink)
-					event.Name = "EventBadge"
-					event.Size = UDim2.new(0.86, 0, 0, 20)
-					event.Position = UDim2.new(0.07, 0, 0, 4)
-					event.TextScaled = true
-					event.TextStrokeTransparency = 1
-					local evLimit = Instance.new("UITextSizeConstraint")
-					evLimit.MaxTextSize = 14
-					evLimit.Parent = event
-					Theme.surface(event, Theme.crystal, 9, Theme.crystal:Lerp(Theme.cream, 0.55))
-				elseif entry.season then
-					icon.Position = UDim2.fromScale(0, 0.18)
-					local season = Panel.label(card, Text.adventure.seasonOnly, 14, Theme.ink)
-					season.Name = "SeasonBadge"
-					season.Size = UDim2.new(0.86, 0, 0, 20)
-					season.Position = UDim2.new(0.07, 0, 0, 4)
-					season.TextScaled = true
-					season.TextStrokeTransparency = 1
-					local sLimit = Instance.new("UITextSizeConstraint")
-					sLimit.MaxTextSize = 14
-					sLimit.Parent = season
-					Theme.surface(season, Theme.rose, 9, Theme.rose:Lerp(Theme.cream, 0.55))
+				progressBar(body, count, total, color)
+				local group = Instance.new("Frame")
+				group.BackgroundTransparency = 1
+				group.Size = UDim2.fromScale(1, 0)
+				group.AutomaticSize = Enum.AutomaticSize.Y
+				local grid = Instance.new("UIGridLayout")
+				grid.CellSize = UDim2.fromOffset(128, 128)
+				grid.CellPadding = UDim2.fromOffset(10, 10)
+				grid.HorizontalAlignment = Enum.HorizontalAlignment.Center
+				grid.Parent = group
+				table.insert(grids, grid)
+				group.Parent = body
+				updateGrids()
+				for _, entry in Creatures.ofRarity(rarity) do
+					local record = snapshot.collection[entry.id]
+					local found = record ~= nil
+					local shiny = record and record.shiny
+					local label = if found
+						then Strings.creatureName[entry.id] or entry.id
+						else "???"
+					if typeof(shiny) == "number" and shiny > 0 then
+						label = "✦ " .. label
+					end
+					local card = Instance.new("TextButton")
+					card.Name = entry.id
+					card.Text = ""
+					card.AutoButtonColor = false
+					card.BorderSizePixel = 0
+					card.BackgroundColor3 = color:Lerp(Theme.cream, 0.86)
+					Theme.corner(card, 14)
+					local outline = Instance.new("UIStroke")
+					outline.ApplyStrokeMode = Enum.ApplyStrokeMode.Border
+					outline.Color = color
+					outline.Thickness = 3
+					outline.Parent = card
+					if mystic then
+						Theme.iridescent(card)
+					end
+					local hasBadge = entry.event ~= nil or entry.season ~= nil
+					local icon = Instance.new("Frame")
+					icon.BackgroundTransparency = 1
+					icon.Size = UDim2.fromScale(1, if hasBadge then 0.43 else 0.61)
+					if entry.event then
+						icon.Position = UDim2.fromScale(0, 0.18)
+						local event = Panel.label(card, Text.adventure.eventOnly, 14, Theme.ink)
+						event.Name = "EventBadge"
+						event.Size = UDim2.new(0.86, 0, 0, 20)
+						event.Position = UDim2.new(0.07, 0, 0, 4)
+						event.TextScaled = true
+						event.TextStrokeTransparency = 1
+						local evLimit = Instance.new("UITextSizeConstraint")
+						evLimit.MaxTextSize = 14
+						evLimit.Parent = event
+						Theme.surface(
+							event,
+							Theme.crystal,
+							9,
+							Theme.crystal:Lerp(Theme.cream, 0.55)
+						)
+					elseif entry.season then
+						icon.Position = UDim2.fromScale(0, 0.18)
+						local season = Panel.label(card, Text.adventure.seasonOnly, 14, Theme.ink)
+						season.Name = "SeasonBadge"
+						season.Size = UDim2.new(0.86, 0, 0, 20)
+						season.Position = UDim2.new(0.07, 0, 0, 4)
+						season.TextScaled = true
+						season.TextStrokeTransparency = 1
+						local sLimit = Instance.new("UITextSizeConstraint")
+						sLimit.MaxTextSize = 14
+						sLimit.Parent = season
+						Theme.surface(season, Theme.rose, 9, Theme.rose:Lerp(Theme.cream, 0.55))
+					end
+					icon.Parent = card
+					table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
+					local name = Panel.label(card, label, 14)
+					name.TextStrokeTransparency = 1
+					name.TextScaled = true
+					name.Size = UDim2.fromScale(0.94, 0.25)
+					name.Position = UDim2.fromScale(0.03, 0.6)
+					local nameLimit = Instance.new("UITextSizeConstraint")
+					nameLimit.MinTextSize = 10
+					nameLimit.MaxTextSize = 14
+					nameLimit.Parent = name
+					local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 14)
+					rarityName.TextStrokeTransparency = 1
+					rarityName.TextScaled = true
+					rarityName.Name = "Rarity"
+					rarityName.Size = UDim2.fromScale(0.94, 0.17)
+					rarityName.Position = UDim2.fromScale(0.03, 0.82)
+					local rarityLimit = Instance.new("UITextSizeConstraint")
+					rarityLimit.MinTextSize = 10
+					rarityLimit.MaxTextSize = 13
+					rarityLimit.Parent = rarityName
+					card.Activated:Connect(function()
+						selected = entry
+						scroll.CanvasPosition = Vector2.zero
+						render()
+					end)
+					Motion.mount(card)
+					card.Parent = group
+					built += 1
+					if built % 8 == 0 then
+						queuePreviews()
+						RunService.Heartbeat:Wait()
+						if version ~= renderVersion then
+							return
+						end
+					end
 				end
-				icon.Parent = card
-				table.insert(thumbnails, { holder = icon, id = entry.id, hidden = not found })
-				local name = Panel.label(card, label, 14)
-				name.TextStrokeTransparency = 1
-				name.TextScaled = true
-				name.Size = UDim2.fromScale(0.94, 0.25)
-				name.Position = UDim2.fromScale(0.03, 0.6)
-				local nameLimit = Instance.new("UITextSizeConstraint")
-				nameLimit.MinTextSize = 10
-				nameLimit.MaxTextSize = 14
-				nameLimit.Parent = name
-				local rarityName = Panel.label(card, Theme.rarityLabel(entry.rarity), 14)
-				rarityName.TextStrokeTransparency = 1
-				rarityName.TextScaled = true
-				rarityName.Name = "Rarity"
-				rarityName.Size = UDim2.fromScale(0.94, 0.17)
-				rarityName.Position = UDim2.fromScale(0.03, 0.82)
-				local rarityLimit = Instance.new("UITextSizeConstraint")
-				rarityLimit.MinTextSize = 10
-				rarityLimit.MaxTextSize = 13
-				rarityLimit.Parent = rarityName
-				card.Activated:Connect(function()
-					selected = entry
-					scroll.CanvasPosition = Vector2.zero
-					render()
-				end)
-				Motion.mount(card)
-				card.Parent = group
 			end
-			group.Parent = body
-		end
-		updateGrids()
-		queuePreviews()
+			updateGrids()
+			queuePreviews()
+		end)
 	end
 
 	renderCollection = render
@@ -744,14 +780,19 @@ function Collection.start()
 		Hud.showPanel("Aquarium")
 	end)
 	Hud.panelChanged:Connect(function(name: string)
-		aquariumBody:ClearAllChildren()
 		if name == "Aquarium" then
-			aquariumScroll.CanvasPosition = Vector2.zero
-			aquarium.mount(aquariumBody, aquariumScroll, function(holder, id)
-				preview(holder, id, false)
-			end, function()
-				Hud.showPanel("Collection")
-			end, aquariumHeading)
+			task.delay(0, function()
+				if Hud.panel() == "Aquarium" and not aquariumBody:FindFirstChild("Aquarium") then
+					aquariumScroll.CanvasPosition = Vector2.zero
+					aquarium.mount(aquariumBody, aquariumScroll, function(holder, id)
+						preview(holder, id, false)
+					end, function()
+						Hud.showPanel("Collection")
+					end, aquariumHeading)
+				end
+			end)
+		elseif aquariumBody:FindFirstChild("Aquarium") then
+			aquariumBody:ClearAllChildren()
 		end
 		local openCollection = name == "Collection" or name == "Milestones"
 		if rotation then
@@ -761,20 +802,30 @@ function Collection.start()
 		if openCollection then
 			selected = nil
 			showRewards = name == "Milestones"
-			lastSignature = collectionSignature()
+			local signature = collectionSignature()
+			local available = aquarium.available()
 			scroll.CanvasPosition = Vector2.zero
-			render()
+			if
+				showRewards
+				or not indexBuilt
+				or signature ~= lastSignature
+				or available ~= aquariumAvailable
+			then
+				lastSignature = signature
+				aquariumAvailable = available
+				render()
+			end
+			queuePreviews()
 			local elapsed = 0
 			local wasReduced = false
-			rotation = RunService.RenderStepped:Connect(function(dt)
+			rotation = RunService.Heartbeat:Connect(function(dt)
 				elapsed += dt
 				if elapsed < 1 / 30 then
 					return
 				end
 				elapsed = 0
 				if previewsDirty then
-					previewsDirty = false
-					refreshPreviews()
+					previewsDirty = refreshPreviews()
 				end
 				local reduced = Players.LocalPlayer:GetAttribute("ReduceEffects") == true
 				if reduced and wasReduced then
@@ -804,13 +855,19 @@ function Collection.start()
 		end
 	end)
 	gui:GetPropertyChangedSignal("Enabled"):Connect(function()
-		if not gui.Enabled then
-			selected = nil
-			showRewards = false
-			lastSignature = nil
-			table.clear(thumbnails)
-			spinning = nil
+		if gui.Enabled then
+			return
+		end
+		for _, thumbnail in thumbnails do
+			local view = thumbnail.holder:FindFirstChildWhichIsA("ViewportFrame")
+			if view then
+				view:Destroy()
+			end
+			thumbnail.pose = nil
+		end
+		if not indexBuilt then
 			body:ClearAllChildren()
+			spinning = nil
 		end
 	end)
 	Data.changed:Connect(function()
