@@ -10,7 +10,9 @@ local Input = require(Fishing.Minigames.Input)
 local Drill = {}
 type ReturnInput = { held: () -> boolean, stop: () -> () }
 local CONTROL_TIME = 5.5
-local BITE_WINDOW = 0.95
+local CONTROL_TARGET = 1.9
+local CONTROL_HALF_ZONE = 0.21
+local BITE_WINDOW = 1.3
 
 function Drill.run(
 	area: Frame,
@@ -58,7 +60,7 @@ function Drill.run(
 	local zone = Ui.frame(
 		track,
 		"Zone",
-		UDim2.fromScale(if control then 0.32 else 0, 1),
+		UDim2.fromScale(if control then 2 * CONTROL_HALF_ZONE else 0, 1),
 		UDim2.fromScale(0.34, 0),
 		color
 	)
@@ -120,19 +122,21 @@ function Drill.run(
 		if control then
 			tension =
 				math.clamp(tension + dt * (if input and input.held() then 0.72 else -0.53), 0, 1)
-			local center = 0.5 + math.sin(elapsed * 2.6) * 0.14
-			zone.Position = UDim2.fromScale(center - 0.16, 0)
-			local inside = math.abs(tension - center) <= 0.16
+			local center = 0.5 + math.sin(elapsed * 2.1) * 0.12
+			zone.Position = UDim2.fromScale(center - CONTROL_HALF_ZONE, 0)
+			local inside = math.abs(tension - center) <= CONTROL_HALF_ZONE
 			if inside then
 				onTarget += dt
 			end
 			marker.Position = UDim2.fromScale(tension, 0.5)
 			marker.BackgroundColor3 = if inside then Theme.sand else Theme.rose
-			progress.Text =
-				string.format(Text.tensionProgress, math.floor(math.min(onTarget / 2.55, 1) * 100))
+			progress.Text = string.format(
+				Text.tensionProgress,
+				math.floor(math.min(onTarget / CONTROL_TARGET, 1) * 100)
+			)
 			sample(tension, false)
-			if elapsed >= CONTROL_TIME or onTarget >= 2.55 then
-				finish(onTarget >= 2.55)
+			if elapsed >= CONTROL_TIME or onTarget >= CONTROL_TARGET then
+				finish(onTarget >= CONTROL_TARGET)
 			end
 		else
 			local biting = elapsed >= biteAt

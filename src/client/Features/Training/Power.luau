@@ -36,6 +36,8 @@ type PowerHud = {
 	stat: string,
 	value: TextButton,
 	gain: TextLabel,
+	session: TextLabel,
+	earned: number,
 }
 local hud: PowerHud? = nil
 local sequence = 0
@@ -126,6 +128,23 @@ function Power.fieldButton(parent: Frame, position: UDim2, width: number): TextB
 	return button
 end
 
+function Power.mountLauncher(frame: Frame)
+	local function title(): string
+		local level = fieldLevel()
+		return string.format(Text.fieldLevel, level, multiplierText(Config.FIELD[level].mult))
+	end
+	local info = Art.caption(frame, "CurrentField", title(), 15)
+	info.Size = UDim2.new(1, 0, 0, 22)
+	local button = Power.fieldButton(frame, UDim2.fromOffset(0, 25), 1)
+	button.Text = Text.upgrade
+	local changed = player:GetAttributeChangedSignal(Config.FIELD_ATTRIBUTE):Connect(function()
+		info.Text = title()
+	end)
+	frame.Destroying:Once(function()
+		changed:Disconnect()
+	end)
+end
+
 function Power.mount(frame: Frame, activeStat: string, color: Color3, field: TextButton)
 	local value = Instance.new("TextButton")
 	value.Name = "FishingPower"
@@ -151,21 +170,45 @@ function Power.mount(frame: Frame, activeStat: string, color: Color3, field: Tex
 	gainLimit.MaxTextSize = 15
 	gainLimit.Parent = gain
 
-	local instance: PowerHud = { frame = frame, stat = activeStat, value = value, gain = gain }
+	local session =
+		Art.caption(frame, "SessionPower", string.format(Text.sessionGain, "0"), 14, Theme.sand)
+	session.Position = UDim2.fromOffset(0, 26)
+	session.Size = UDim2.new(1, 0, 0, 18)
+	session.TextXAlignment = Enum.TextXAlignment.Left
+	local track, fill =
+		Panel.progressBar(frame, if activeStat == "Control" then "cyan" else "gold", 9)
+	track.Position = UDim2.fromOffset(0, 48)
+	local instance: PowerHud = {
+		frame = frame,
+		stat = activeStat,
+		value = value,
+		gain = gain,
+		session = session,
+		earned = 0,
+	}
 	hud = instance
 	local full = false
-	local shown = math.log10(powerOf(activeStat))
+	local shown = powerOf(activeStat)
+	local from, goal = shown, shown
+	local elapsed = 0
 	local delta = 0
 	local statName = Strings.stat[activeStat] or activeStat
 	local function draw(dt: number)
 		local target = powerOf(activeStat)
-		local logTarget = math.log10(target)
-		shown += (logTarget - shown) * (if Ui.reduced() then 1 else 1 - math.exp(-dt * 12))
-		local visible = if math.abs(shown - logTarget) < 0.0003 then target else 10 ^ shown
-		local text = if full then Theme.formatInt(target) else numberText(visible)
+		if target ~= goal then
+			from, goal, elapsed = shown, target, 0
+		end
+		elapsed = math.min(elapsed + dt, 0.78)
+		shown = if Ui.reduced() or elapsed >= 0.78
+			then goal
+			else from + (goal - from) * elapsed / 0.78
+		local text = if full or shown < 10000 then Theme.formatInt(shown) else numberText(shown)
 		value.Text = statName .. "  ·  " .. text
 		value.TextColor3 = color:Lerp(Config.TIER_COLORS[Config.tier(target)], 0.38)
 		field.Text = Text.field .. "  ×" .. multiplierText(Config.FIELD[fieldLevel()].mult)
+		local decade = math.log10(shown)
+		local progress = if shown >= Config.POWER_CAP then 1 else decade % 1
+		fill.Size = UDim2.fromScale(progress, 1)
 	end
 	value.Activated:Connect(function()
 		full = not full
@@ -174,7 +217,7 @@ function Power.mount(frame: Frame, activeStat: string, color: Color3, field: Tex
 	draw(0)
 	local tick = RunService.Heartbeat:Connect(function(dt)
 		delta += dt
-		if delta >= 0.1 then
+		if delta >= 0.05 then
 			draw(delta)
 			delta = 0
 		end
@@ -200,9 +243,9 @@ local function previewField(viewport: ViewportFrame, level: number)
 	local box, extents = model:GetBoundingBox()
 	local distance = math.max(extents.X, extents.Y, extents.Z, 1)
 	local camera = Instance.new("Camera")
-	camera.FieldOfView = 38
+	camera.FieldOfView = 34
 	camera.CFrame =
-		CFrame.lookAt(box.Position + Vector3.new(0.86, 0.64, 0.86) * distance, box.Position)
+		CFrame.lookAt(box.Position + Vector3.new(0.71, 0.54, 0.71) * distance, box.Position)
 	camera.Parent = viewport
 	viewport.CurrentCamera = camera
 	local world = Instance.new("WorldModel")
@@ -222,21 +265,31 @@ local function requirement(parent: Frame, x: number, variant: string): (TextLabe
 end
 
 function Power.start(buy: RemoteEvent)
-	local _, body = Panel.create(FIELD_PANEL, Text.fieldTitle, Theme.crystal, 0.96, 530)
+	local _, body = Panel.create(FIELD_PANEL, Text.fieldTitle, Theme.crystal, 0.96, 620, true)
 	Panel.stack(body)
-	local current = Panel.label(body, "", 19, Theme.ink)
+	local comparison = Panel.card(body, Theme.crystal, 142)
+	local current = Art.caption(comparison, "CurrentMultiplier", "", 19, Theme.ink)
+	current.Position = UDim2.fromScale(0.02, 0.13)
+	current.Size = UDim2.fromScale(0.53, 0.29)
 	current.TextStrokeTransparency = 1
-	local nextLevel = Art.caption(body, "UpgradeMultiplier", "", 18, Theme.ink)
-	nextLevel.Size = UDim2.new(1, 0, 0, 36)
+	local nextLevel = Art.caption(comparison, "UpgradeMultiplier", "", 19, Theme.ink)
+	nextLevel.Position = UDim2.fromScale(0.02, 0.45)
+	nextLevel.Size = UDim2.fromScale(0.53, 0.43)
 	nextLevel.TextStrokeTransparency = 1
 	local preview = Instance.new("ViewportFrame")
 	preview.Name = "NextField"
-	preview.Size = UDim2.new(1, 0, 0, 135)
+	preview.Position = UDim2.fromScale(0.58, 0.07)
+	preview.Size = UDim2.fromScale(0.4, 0.86)
 	preview.BackgroundColor3 = Theme.outline
 	preview.Ambient = Theme.sand
 	preview.LightColor = Theme.cream
 	Theme.corner(preview, 12)
-	preview.Parent = body
+	preview.Parent = comparison
+	local function resizeComparison()
+		comparison.Size = UDim2.new(1, 0, 0, math.clamp(body.AbsoluteWindowSize.Y * 0.34, 74, 156))
+	end
+	body:GetPropertyChangedSignal("AbsoluteWindowSize"):Connect(resizeComparison)
+	resizeComparison()
 	local gates =
 		Ui.frame(body, "UpgradeRequirements", UDim2.new(1, 0, 0, 40), UDim2.new(), Theme.ink, 1)
 	local coinLabel, coinFill = requirement(gates, 0, "gold")
@@ -245,6 +298,8 @@ function Power.start(buy: RemoteEvent)
 	button.Name = "BuyTrainingField"
 	local status = Panel.label(body, "", 15)
 	status.TextStrokeTransparency = 1
+	local benefit = Panel.label(body, Text.fieldBenefit, 15, Theme.ink)
+	benefit.TextStrokeTransparency = 1
 	local aim = Panel.label(body, "", 15)
 	aim.TextStrokeTransparency = 1
 	local gauge = Ui.frame(body, "AimPreview", UDim2.new(1, 0, 0, 12), UDim2.new(), Theme.outline)
@@ -262,6 +317,7 @@ function Power.start(buy: RemoteEvent)
 		)
 	end
 	local shownPreview = 0
+	local pendingPreview = 0
 	local function refresh()
 		if Hud.panel() ~= FIELD_PANEL then
 			return
@@ -276,15 +332,25 @@ function Power.start(buy: RemoteEvent)
 			string.format(Text.fieldLevel, level, multiplierText(Config.FIELD[level].mult))
 		nextLevel.Text = if nextDef
 			then string.format(Text.nextLevel, level + 1, multiplierText(nextDef.mult))
-				.. "  ·  "
+				.. "\n"
 				.. string.format(
 					Text.upgradeMultiplier,
 					multiplierText(nextDef.mult / Config.FIELD[level].mult)
 				)
 			else Text.max
-		if shownPreview ~= (if nextDef then level + 1 else level) then
-			shownPreview = if nextDef then level + 1 else level
-			previewField(preview, shownPreview)
+		local previewLevel = if nextDef then level + 1 else level
+		if shownPreview ~= previewLevel and pendingPreview ~= previewLevel then
+			pendingPreview = previewLevel
+			task.delay(0, function()
+				if pendingPreview ~= previewLevel then
+					return
+				end
+				pendingPreview = 0
+				if Hud.panel() == FIELD_PANEL then
+					previewField(preview, previewLevel)
+					shownPreview = previewLevel
+				end
+			end)
 		end
 		gates.Visible = nextDef ~= nil
 		if nextDef then
@@ -309,7 +375,11 @@ function Power.start(buy: RemoteEvent)
 		Panel.tintButton(button, if button.Active then Theme.crystal else Theme.muted)
 		status.Text = response
 			or (
-				if reason == "power" then Text.power elseif reason == "coins" then Text.coins else ""
+				if allowed
+					then Text.fieldReady
+					elseif reason == "power" then Text.power
+					elseif reason == "coins" then Text.coins
+					else ""
 			)
 		status.Visible = status.Text ~= ""
 		local rod = profile and Rods.get(profile.equippedRod)
@@ -377,8 +447,20 @@ function Power.onUpdate(update: Net.TrainingUpdate)
 	elseif event == "islandLocked" and update.gate then
 		Hud.toast(string.format(Text.locked, numberText(update.gate)), Theme.rose)
 	elseif frame and update.stat == frame.stat then
-		if event == "power" and update.gain then
-			frame.gain.Text = string.format(Text.powerGain, numberText(update.gain))
+		local gain = update.gain
+		if gain and gain > 0 then
+			frame.earned += gain
+			local label = string.format(Text.sessionGain, numberText(frame.earned))
+			local combo = update.combo or player:GetAttribute("TrainingCombo")
+			if typeof(combo) == "number" and combo > 1 then
+				label ..= "  ·  " .. string.format(Text.combo, combo)
+			end
+			frame.session.Text = label
+		end
+		if event == "power" and gain then
+			frame.gain.Text = if gain > 0
+				then string.format(Text.powerGain, numberText(gain))
+				else Text.powerMax
 		elseif event == "powerMilestone" and update.milestone then
 			local mark = update.milestone
 			local color = Config.TIER_COLORS[Config.tier(mark)]

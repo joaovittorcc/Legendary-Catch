@@ -36,6 +36,7 @@ type Session = {
 }
 
 local Training = {}
+local POWER_GAIN_MULTIPLIER = 10
 Training.order = 40
 
 local sessions: { [Player]: Session } = {}
@@ -80,21 +81,21 @@ local function currentGain(player: Player, stat: string, island: number): number
 	local profile = PlayerData.get(player)
 	local field = if profile then profile.trainingField else 1
 	local mult = TrainingConfig.multiplier(field, island, prestigeOf(player))
-	return TrainingConfig.gainPerSecond(powerOf(player, stat), mult)
+	return TrainingConfig.gainPerSecond(powerOf(player, stat), mult) * POWER_GAIN_MULTIPLIER
 end
 
 -- Adds power, keeps level/xp in step (old UI, achievements) and announces level-ups and
 -- each power of ten crossed.
-local function addPower(player: Player, stat: string, amount: number)
+local function addPower(player: Player, stat: string, amount: number): number
 	local profile = PlayerData.get(player)
 	local t = profile and profile.training[stat]
 	if not t then
-		return
+		return 0
 	end
 	local before = TrainingConfig.clampPower(t.power)
 	local after = TrainingConfig.addPower(before, amount)
 	if after == before then
-		return
+		return 0
 	end
 	local oldLevel = TrainingConfig.legacyLevel(before)
 	local newLevel, newXp = TrainingConfig.legacyLevel(after)
@@ -124,6 +125,7 @@ local function addPower(player: Player, stat: string, amount: number)
 	if newLevel > oldLevel then
 		Achievements.check(player)
 	end
+	return after - before
 end
 
 local function rootOf(player: Player): BasePart?
@@ -233,8 +235,11 @@ local function start(player: Player, stat: string, spot: BasePart)
 			p.stats.trainDay = today
 		end)
 		if TrainingConfig.powerEnabled() then
-			local bonus = currentGain(player, stat, island) * TrainingConfig.DAILY_GAIN_SECONDS
-			addPower(player, stat, bonus)
+			local bonus = addPower(
+				player,
+				stat,
+				currentGain(player, stat, island) * TrainingConfig.DAILY_GAIN_SECONDS
+			)
 			update:FireClient(
 				player,
 				{ event = "dailyBonus", stat = stat, gain = bonus } :: Net.TrainingUpdate
@@ -293,8 +298,7 @@ local function step()
 			continue
 		end
 		if TrainingConfig.powerEnabled() then
-			local gain = currentGain(player, s.stat, s.island)
-			addPower(player, s.stat, gain)
+			local gain = addPower(player, s.stat, currentGain(player, s.stat, s.island))
 			update:FireClient(
 				player,
 				{
@@ -347,10 +351,11 @@ local function onRingResult(player: Player, ringId: unknown, success: unknown)
 		-- Streak of rings in a row: +10% bonus XP per step, up to +50%.
 		local mult = 1 + math.min(s.combo - 1, 5) * 0.1
 		if TrainingConfig.powerEnabled() then
-			local bonus = currentGain(player, s.stat, s.island)
-				* TrainingConfig.RING_GAIN_SECONDS
-				* mult
-			addPower(player, s.stat, bonus)
+			local bonus = addPower(
+				player,
+				s.stat,
+				currentGain(player, s.stat, s.island) * TrainingConfig.RING_GAIN_SECONDS * mult
+			)
 			update:FireClient(
 				player,
 				{

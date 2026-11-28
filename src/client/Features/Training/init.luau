@@ -55,6 +55,9 @@ local sessionHits = 0
 local sessionLevels = 0
 local sessionStart = 0
 local drillFeedback: TextLabel? = nil
+local powerFloat: BillboardGui? = nil
+local powerFloatTween: Tween? = nil
+local powerFloatBonusUntil = 0
 local preview: Frame? = nil
 local nearbyPrompts: { [ProximityPrompt]: boolean } = {}
 local cards: { [string]: { level: TextLabel, benefit: TextLabel, fill: Frame } } = {}
@@ -224,8 +227,20 @@ local function positionHud()
 		local compact = viewport.Y < 520 and viewport.X > viewport.Y * 1.45
 		local top = math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12)
 		if TrainingConfig.powerEnabled() then
+			if frame == preview then
+				local playerGui = frame:FindFirstAncestorOfClass("PlayerGui")
+				local adventure = playerGui and playerGui:FindFirstChild("AdventureHud")
+				local rod = adventure and adventure:FindFirstChild("RodHotbar")
+				local clearance = if rod and rod:IsA("GuiObject")
+					then math.max(78, rod.AbsoluteSize.Y + 22)
+					else 110
+				frame.AnchorPoint = Vector2.new(0.5, 1)
+				frame.Size = UDim2.new(if compact then 0.48 else 0.84, 0, 0, frame.Size.Y.Offset)
+				frame.Position = UDim2.new(0.5, 0, 1, -clearance)
+				return
+			end
 			frame.AnchorPoint = Vector2.zero
-			frame.Size = UDim2.new(if compact then 0.4 else 0.86, 0, 0, frame.Size.Y.Offset)
+			frame.Size = UDim2.new(if compact then 0.45 else 0.86, 0, 0, frame.Size.Y.Offset)
 			frame.Position = UDim2.new(0.02, 0, 0, top)
 			return
 		end
@@ -236,7 +251,7 @@ local function positionHud()
 end
 
 function Training.cardBottom(): number
-	local frame = hud or preview
+	local frame = hud or (if TrainingConfig.powerEnabled() then nil else preview)
 	return if frame then frame.Position.Y.Offset + frame.AbsoluteSize.Y else 0
 end
 
@@ -311,7 +326,7 @@ local function mountCard(
 		Art.panel(frame, color)
 	end
 	local cap = Instance.new("UISizeConstraint")
-	cap.MaxSize = Vector2.new(if slim then 284 else 456, totalHeight)
+	cap.MaxSize = Vector2.new(if slim then 326 else 456, totalHeight)
 	cap.Parent = frame
 	local inner = Instance.new("Frame")
 	inner.Name = "Content"
@@ -320,7 +335,17 @@ local function mountCard(
 	inner.Size = UDim2.new(1, -2 * padding, 0, height)
 	inner.ZIndex = 2
 	inner.Parent = frame
-	Hud.bindFishingVisibility(frame, false)(true)
+	local setVisible = Hud.bindFishingVisibility(frame, false)
+	local function updateVisibility()
+		setVisible(Hud.panel() == "" and not Hud.isMenuOpen())
+	end
+	local panelConn = Hud.panelChanged:Connect(updateVisibility)
+	local menuConn = Hud.menuChanged:Connect(updateVisibility)
+	frame.Destroying:Once(function()
+		panelConn:Disconnect()
+		menuConn:Disconnect()
+	end)
+	updateVisibility()
 	return frame, inner
 end
 
@@ -340,9 +365,9 @@ local function refreshPreview()
 	end
 	local usePower = TrainingConfig.powerEnabled()
 	local frame, inner =
-		mountCard("TrainingPreview", if usePower then 44 else 97, Theme.crystal, usePower)
+		mountCard("TrainingPreview", if usePower then 69 else 97, Theme.crystal, usePower)
 	if usePower then
-		Power.fieldButton(inner, UDim2.new(), 1)
+		Power.mountLauncher(inner)
 		preview = frame
 		positionHud()
 		return
@@ -363,9 +388,9 @@ end
 
 local function buildHud(color: Color3)
 	local usePower = TrainingConfig.powerEnabled()
-	local frame, inner = mountCard("TrainingHud", if usePower then 69 else 146, color, usePower)
+	local frame, inner = mountCard("TrainingHud", if usePower then 105 else 146, color, usePower)
 	if usePower then
-		local field = Power.fieldButton(inner, UDim2.fromOffset(0, 25), 0.58)
+		local field = Power.fieldButton(inner, UDim2.fromOffset(0, 61), 0.58)
 		Power.mount(inner, activeStat, color, field)
 	else
 		addCards(inner, 8)
@@ -412,7 +437,7 @@ local function buildHud(color: Color3)
 	local button = Panel.button(inner, Strings.stop, Color3.fromRGB(247, 75, 91))
 	button.Name = "Stop"
 	button.Size = UDim2.new(if usePower then 0.39 else 0.25, 0, 0, 44)
-	button.Position = if usePower then UDim2.new(0.61, 0, 0, 25) else UDim2.new(0.71, 0, 0, 81)
+	button.Position = if usePower then UDim2.new(0.61, 0, 0, 61) else UDim2.new(0.71, 0, 0, 81)
 	button.TextScaled = true
 	local stopLimit = Instance.new("UITextSizeConstraint")
 	stopLimit.MinTextSize = 10
@@ -528,6 +553,12 @@ local function stopVisuals()
 		practice.stop()
 	end
 	practice = nil
+	if powerFloatTween then
+		powerFloatTween:Cancel()
+		powerFloatTween = nil
+	end
+	powerFloat = nil
+	powerFloatBonusUntil = 0
 	drillAwardUntil = 0
 	sessionXp, sessionHits, sessionLevels, sessionStart = 0, 0, 0, 0
 	drillFeedback = nil
@@ -693,9 +724,66 @@ local function onRing(update: Net.TrainingUpdate)
 	end)
 end
 
+local function floatPower(gain: number, bonus: boolean)
+	local scene = practice
+	if not scene then
+		return
+	end
+	local now = os.clock()
+	if not bonus and now < powerFloatBonusUntil then
+		return
+	end
+	if bonus then
+		powerFloatBonusUntil = now + 0.78
+	end
+	local board: BillboardGui = powerFloat or Instance.new("BillboardGui")
+	if not powerFloat then
+		board.Name = "TrainingPowerGain"
+		board.AlwaysOnTop = true
+		board.Size = UDim2.fromOffset(160, 30)
+		board.MaxDistance = 48
+		local label = Ui.label(board, "Amount", UDim2.fromScale(1, 1), UDim2.new(), "", Theme.sand)
+		local limit = Instance.new("UITextSizeConstraint")
+		limit.MaxTextSize = 20
+		limit.Parent = label
+		board.Parent = scene.bobber
+		powerFloat = board
+	end
+	local label = board:FindFirstChild("Amount") :: TextLabel
+	label.Text = "+" .. TrainingConfig.formatPower(gain, Strings.decimalSep)
+	label.TextColor3 = if bonus then Theme.gold else STAT_COLORS[activeStat] or Theme.crystal
+	board.StudsOffsetWorldSpace = Vector3.new(0, 1.1, 0)
+	if powerFloatTween then
+		powerFloatTween:Cancel()
+	end
+	if Ui.reduced() then
+		board.Enabled = false
+		return
+	end
+	board.Enabled = true
+	local tween = TweenService:Create(board, TweenInfo.new(0.85, Enum.EasingStyle.Quad), {
+		StudsOffsetWorldSpace = Vector3.new(0, if bonus then 2.9 else 2.05, 0),
+	})
+	powerFloatTween = tween
+	tween.Completed:Once(function(playback)
+		if playback == Enum.PlaybackState.Completed and powerFloatTween == tween then
+			board.Enabled = false
+		end
+	end)
+	tween:Play()
+	local particles = emitter
+	if particles then
+		particles:Emit(if bonus then 10 else 2)
+	end
+end
+
 local function onUpdate(update: Net.TrainingUpdate)
 	if TrainingConfig.powerEnabled() then
 		Power.onUpdate(update)
+		local gain = update.gain
+		if update.stat == activeStat and gain and gain > 0 and not Ui.reduced() then
+			floatPower(gain, update.event ~= "power")
+		end
 		if update.event == "levelUp" then
 			return
 		end

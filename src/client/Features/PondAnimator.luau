@@ -8,6 +8,7 @@ local Players = game:GetService("Players")
 local RunService = game:GetService("RunService")
 
 local TRAINING_ISLANDS_NAME = "TrainingIslands"
+local EXPEDITION_ISLANDS_NAME = "ExpeditionIslands"
 local TRAINING_SPOT_TAG = "TrainingSpot"
 local ACTIVE_RADIUS = 160
 local TRAIN_SPOT_RADIUS = 16
@@ -15,6 +16,13 @@ local RESCAN_INTERVAL = 1.5
 local AWAKEN_DURATION = 1.5
 local COMBO_PULSE_DURATION = 1.25
 local MAX_BULK_PARTS_PER_POND = 440
+local WATER_RIPPLE_IMAGE = "rbxassetid://114949105591916" -- art/ponds/water-ripples.png
+local WATER_TINTS = {
+	{ Color3.fromRGB(70, 179, 183), Color3.fromRGB(143, 132, 233) },
+	{ Color3.fromRGB(93, 221, 202), Color3.fromRGB(119, 169, 248) },
+	{ Color3.fromRGB(117, 166, 246), Color3.fromRGB(182, 129, 249) },
+	{ Color3.fromRGB(250, 210, 139), Color3.fromRGB(246, 171, 199) },
+}
 
 local TWO_PI = math.pi * 2
 
@@ -173,6 +181,7 @@ type PondState = {
 	waterY: number,
 	radiusX: number,
 	radiusZ: number,
+	waterArt: { plate: Part, image: ImageLabel }?,
 
 	-- Runtime animation state
 	active: boolean,
@@ -1460,7 +1469,7 @@ local ApprenticeInstinctProfile: PondProfile = {
 		end
 
 		local arc = root:FindFirstChild("InstinctRainbowArc")
-		if arc then
+		if arc and not state.waterArt then
 			for _, d in arc:GetDescendants() do
 				if d:IsA("BasePart") then
 					getPartOrig(d)
@@ -2778,6 +2787,17 @@ local CelestialInstinctProfile: PondProfile = {
 }
 
 -- Profile Registry
+local function expeditionPool(island: string, theme: number, pond: string): PondProfile
+	return {
+		islandName = island,
+		islandIndex = theme,
+		pondName = pond,
+		statName = "",
+		scan = function() end,
+		update = function() end,
+	}
+end
+
 local POND_PROFILES: { PondProfile } = {
 	ApprenticeFocusProfile,
 	ApprenticeInstinctProfile,
@@ -2787,6 +2807,8 @@ local POND_PROFILES: { PondProfile } = {
 	AbyssInstinctProfile,
 	CelestialFocusProfile,
 	CelestialInstinctProfile,
+	expeditionPool("CoralReefIsland", 2, "CoralTrainingPool"),
+	expeditionPool("StarAbyssIsland", 3, "AbyssTrainingPool"),
 }
 
 local PROFILE_LOOKUP: { [string]: PondProfile } = {}
@@ -2801,6 +2823,7 @@ end
 local function updatePondGeometry(state: PondState): ()
 	local ws = state.model:FindFirstChild("WaterSurface", true)
 		or state.model:FindFirstChild("Water", true)
+		or state.model:FindFirstChild("PoolWater")
 	if ws and ws:IsA("BasePart") then
 		state.waterSurface = ws
 		local orig = getPartOrig(ws)
@@ -2819,11 +2842,107 @@ local function updatePondGeometry(state: PondState): ()
 			state.radiusZ = math.max(10, orig.size.Z * 0.5)
 		end
 	else
+		state.waterSurface = nil
 		local pivot = state.model:GetPivot()
 		state.centerPos = pivot.Position
 		state.waterY = pivot.Position.Y
 		state.radiusX = 14
 		state.radiusZ = 12
+	end
+end
+
+local function refreshWaterArt(state: PondState)
+	local water = state.waterSurface
+	if not water or not water.Parent then
+		return
+	end
+	local tint =
+		WATER_TINTS[state.profile.islandIndex][if state.profile.statName == "Control" then 1 else 2]
+	local bedTint = Color3.fromRGB(22, 35, 68):Lerp(tint, 0.45)
+	local original = getPartOrig(water)
+	water.Color = original.color:Lerp(tint, 0.52)
+	if not state.waterArt then
+		local plate = Instance.new("Part")
+		plate.Name = "_PondWatershine"
+		plate.Anchored = true
+		plate.Transparency = 1
+		plate.CanCollide = false
+		plate.CanQuery = false
+		plate.CanTouch = false
+		plate.CastShadow = false
+		local surface = Instance.new("SurfaceGui")
+		surface.Name = "_PondWatershineSurface"
+		surface.Face = Enum.NormalId.Top
+		surface.CanvasSize = Vector2.new(512, 512)
+		surface.LightInfluence = 0.32
+		local image = Instance.new("ImageLabel")
+		image.Name = "_PondWatershineImage"
+		image.BackgroundTransparency = 1
+		image.AnchorPoint = Vector2.new(0.5, 0.5)
+		image.Position = UDim2.fromScale(0.5, 0.5)
+		image.Size = UDim2.fromScale(0.91, 0.91)
+		image.Image = WATER_RIPPLE_IMAGE
+		image.ImageColor3 = tint:Lerp(Color3.new(1, 1, 1), 0.38)
+		image.ImageTransparency = 0.3
+		image.Parent = surface
+		surface.Parent = plate
+		state.waterArt = { plate = plate, image = image }
+		table.insert(state.createdInstances, plate)
+	end
+	local art = state.waterArt
+	if not art then
+		return
+	end
+	local width = if math.abs(water.CFrame.RightVector.Y) > 0.7 then water.Size.Y else water.Size.X
+	art.plate.Size = Vector3.new(width * 0.94, 0.02, water.Size.Z * 0.94)
+	art.plate.CFrame = CFrame.new(state.centerPos.X, state.waterY + 0.04, state.centerPos.Z)
+	art.plate.Parent = state.model
+
+	-- Keep the shoreline and fish. Quiet the existing bands under the new surface texture.
+	for _, child in state.model:GetChildren() do
+		local name = child.Name
+		if
+			name == "InstinctRainbowArc"
+			or name == "WaterCellPattern"
+			or name == "FocusLightRings"
+			or name == "FocusHalos"
+			or string.match(name, "^WaterRipple_")
+			or string.match(name, "^FocusWaterRing")
+		then
+			for _, node in child:GetDescendants() do
+				if node:IsA("BasePart") then
+					node.LocalTransparencyModifier = if name == "InstinctRainbowArc"
+						then 1
+						else 0.68
+				elseif node:IsA("Beam") and node.Name == "FocusVerticalColumn" then
+					node.LightEmission = 0.35
+					node.Transparency = NumberSequence.new(0.86, 1)
+				end
+			end
+		elseif child:IsA("BasePart") then
+			if
+				child.Material == Enum.Material.Neon
+				and (
+					string.match(name, "^PondFloor")
+					or string.match(name, "^GalaxyCore")
+					or string.match(name, "^Nebula")
+					or name == "FocusBedGlow"
+					or name == "FocusCenterGlow"
+				)
+			then
+				local bed = getPartOrig(child)
+				child.Material = Enum.Material.SmoothPlastic
+				child.Color = bed.color:Lerp(bedTint, 0.68)
+			elseif
+				name == "Ripple"
+				or name == "WaterCaustic"
+				or string.match(name, "^SpiralArm_")
+				or string.match(name, "^VioletRimGlow_")
+				or name == "WaterShimmer"
+			then
+				child.LocalTransparencyModifier = 0.66
+			end
+		end
 	end
 end
 
@@ -2908,7 +3027,6 @@ local function registerPond(islandModel: Instance, pondModel: Model): ()
 	local existing = ponds[key]
 	if existing then
 		if existing.model == pondModel then
-			existing.dirty = true
 			return
 		else
 			cleanupPond(key)
@@ -3008,56 +3126,32 @@ local function registerPond(islandModel: Instance, pondModel: Model): ()
 	end)
 end
 
-local function scanTrainingIslandsFolder(folder: Instance): ()
-	for _, island in folder:GetChildren() do
-		for _, child in island:GetChildren() do
-			if
-				child:IsA("Model") and (child.Name == "FocusPond" or child.Name == "InstinctPond")
-			then
+local function hookPondFolder(folder: Instance)
+	local function watchIsland(island: Instance)
+		local function consider(child: Instance)
+			if child:IsA("Model") then
 				registerPond(island, child)
 			end
 		end
-	end
-end
-
-local function hookTrainingIslands(folder: Instance): ()
-	scanTrainingIslandsFolder(folder)
-
-	folder.ChildAdded:Connect(function(island: Instance)
 		for _, child in island:GetChildren() do
-			if
-				child:IsA("Model") and (child.Name == "FocusPond" or child.Name == "InstinctPond")
-			then
-				registerPond(island, child)
-			end
+			consider(child)
 		end
-		island.ChildAdded:Connect(function(child: Instance)
-			if
-				child:IsA("Model") and (child.Name == "FocusPond" or child.Name == "InstinctPond")
-			then
-				registerPond(island, child)
-			end
-		end)
-	end)
-
-	for _, island in folder:GetChildren() do
-		island.ChildAdded:Connect(function(child: Instance)
-			if
-				child:IsA("Model") and (child.Name == "FocusPond" or child.Name == "InstinctPond")
-			then
-				registerPond(island, child)
-			end
-		end)
+		island.ChildAdded:Connect(consider)
 	end
+	for _, island in folder:GetChildren() do
+		watchIsland(island)
+	end
+	folder.ChildAdded:Connect(watchIsland)
 end
 
 -- ============================================================================
 -- Training Spot Reactivity & Local Combo Pulse
 -- ============================================================================
 
-local function isPlayerTrainingAtPond(player: Player, profile: PondProfile): boolean
+local function isPlayerTrainingAtPond(player: Player, state: PondState): boolean
+	local profile = state.profile
 	local pStat = getStringAttr(player, "TrainingStat", "")
-	if pStat ~= profile.statName then
+	if pStat == "" or (profile.statName ~= "" and pStat ~= profile.statName) then
 		return false
 	end
 	local char = player.Character
@@ -3074,7 +3168,10 @@ local function isPlayerTrainingAtPond(player: Player, profile: PondProfile): boo
 		if spot.Parent ~= nil then
 			local spotIsland = getNumberAttr(spot, "TrainingIsland", -1)
 			local spotStat = getStringAttr(spot, "TrainingStat", "")
-			if spotIsland == profile.islandIndex and spotStat == profile.statName then
+			local matches = if profile.statName == ""
+				then spot:IsDescendantOf(state.model)
+				else spotIsland == profile.islandIndex and spotStat == profile.statName
+			if matches then
 				if (spot.Position - hrpPos).Magnitude <= TRAIN_SPOT_RADIUS then
 					return true
 				end
@@ -3085,9 +3182,9 @@ local function isPlayerTrainingAtPond(player: Player, profile: PondProfile): boo
 	return false
 end
 
-local function isAnyoneTrainingAtPond(profile: PondProfile): boolean
+local function isAnyoneTrainingAtPond(state: PondState): boolean
 	for _, player in Players:GetPlayers() do
-		if isPlayerTrainingAtPond(player, profile) then
+		if isPlayerTrainingAtPond(player, state) then
 			return true
 		end
 	end
@@ -3104,7 +3201,7 @@ local function triggerComboPulseForLocalPlayer(): ()
 	end
 
 	for _, state in ponds do
-		if state.active and isPlayerTrainingAtPond(localPlayer, state.profile) then
+		if state.active and isPlayerTrainingAtPond(localPlayer, state) then
 			state.comboPulse = 1.0
 			local pool = ensureComboRing(state)
 			if pool then
@@ -3179,9 +3276,17 @@ local function onHeartbeat(dt: number): ()
 	-- Light periodic rescan for StreamingEnabled safety
 	if elapsedGlobal >= nextRescanTime then
 		nextRescanTime = elapsedGlobal + RESCAN_INTERVAL
-		local ti = workspace:FindFirstChild(TRAINING_ISLANDS_NAME)
-		if ti then
-			scanTrainingIslandsFolder(ti)
+		for _, name in { TRAINING_ISLANDS_NAME, EXPEDITION_ISLANDS_NAME } do
+			local folder = workspace:FindFirstChild(name)
+			if folder then
+				for _, island in folder:GetChildren() do
+					for _, child in island:GetChildren() do
+						if child:IsA("Model") then
+							registerPond(island, child)
+						end
+					end
+				end
+			end
 		end
 	end
 
@@ -3200,6 +3305,10 @@ local function onHeartbeat(dt: number): ()
 		-- Refresh geometry if WaterSurface streamed in late
 		if state.waterSurface == nil or state.waterSurface.Parent == nil then
 			updatePondGeometry(state)
+			if state.waterSurface == nil then
+				continue
+			end
+			state.dirty = true
 		end
 
 		local dist = (state.centerPos - camPos).Magnitude
@@ -3224,12 +3333,13 @@ local function onHeartbeat(dt: number): ()
 			state.dirty = false
 			state.lastScanTime = elapsedGlobal
 			updatePondGeometry(state)
+			refreshWaterArt(state)
 			state.profile.scan(state)
 			applyReduceEffectsToCreatedEmitters()
 		end
 
 		-- Training reactivity: smooth 1.5s transition when anyone trains here
-		local someoneTraining = isAnyoneTrainingAtPond(state.profile)
+		local someoneTraining = isAnyoneTrainingAtPond(state)
 		local targetAwake = if someoneTraining then 1 else 0
 		local step = clampedDt / AWAKEN_DURATION
 		if state.awake < targetAwake then
@@ -3244,6 +3354,13 @@ local function onHeartbeat(dt: number): ()
 			speedMult = 1 + state.awake * 0.2
 		end
 		state.animTime += clampedDt * speedMult
+		local art = state.waterArt
+		if art and frameCounter % 3 == 0 then
+			art.image.Rotation = if reduceEffects then 0 else (state.animTime * 3.2) % 360
+			art.image.ImageTransparency = if reduceEffects
+				then 0.48
+				else 0.34 - 0.12 * math.max(state.awake, state.comboPulse)
+		end
 
 		-- Update created ambient emitter rates
 		for _, em in state.createdEmitters do
@@ -3333,14 +3450,15 @@ function PondAnimator.start(): ()
 		end
 	end)
 
-	-- Hook TrainingIslands (streaming-safe, no blocking WaitForChild)
-	local ti = workspace:FindFirstChild(TRAINING_ISLANDS_NAME)
-	if ti then
-		hookTrainingIslands(ti)
+	for _, rootName in { TRAINING_ISLANDS_NAME, EXPEDITION_ISLANDS_NAME } do
+		local folder = workspace:FindFirstChild(rootName)
+		if folder then
+			hookPondFolder(folder)
+		end
 	end
 	workspace.ChildAdded:Connect(function(child: Instance)
-		if child.Name == TRAINING_ISLANDS_NAME then
-			hookTrainingIslands(child)
+		if child.Name == TRAINING_ISLANDS_NAME or child.Name == EXPEDITION_ISLANDS_NAME then
+			hookPondFolder(child)
 		end
 	end)
 
