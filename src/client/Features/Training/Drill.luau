@@ -1,6 +1,5 @@
 --!strict
 local RunService = game:GetService("RunService")
-local Workspace = game:GetService("Workspace")
 local Shared = game:GetService("ReplicatedStorage"):WaitForChild("Shared")
 local Text = require(Shared:WaitForChild("StringsUi")).training
 local Theme = require(Shared:WaitForChild("UiTheme"))
@@ -23,24 +22,22 @@ function Drill.run(
 	isStop: (Vector2) -> boolean
 ): () -> ()
 	local control = stat == "Control"
-	local camera = Workspace.CurrentCamera
-	local viewport = if camera then camera.ViewportSize else Vector2.new(800, 600)
-	local compact = viewport.Y < 520 and viewport.X > viewport.Y * 1.45
-	local portrait = viewport.Y > viewport.X
 	local panel = Ui.frame(
 		area,
 		"TrainingDrill",
-		UDim2.new(if compact then 0.44 else 0.89, 0, 0, 124),
-		UDim2.fromScale(
-			if compact then 0.74 else 0.5,
-			if compact then 0.42 elseif portrait then 0.56 else 0.66
-		),
+		UDim2.new(0.82, 0, 0, 76),
+		UDim2.new(0.5, 0, 1, -72),
 		Theme.ink
 	)
-	panel.AnchorPoint = Vector2.new(0.5, 0.5)
-	Theme.surface(panel, color, 20, Theme.ink)
+	panel.AnchorPoint = Vector2.new(0.5, 1)
+	panel.BackgroundTransparency = 0.12
+	Theme.corner(panel, 14)
+	local outline = Instance.new("UIStroke")
+	outline.Color = color
+	outline.Transparency = 0.5
+	outline.Parent = panel
 	local cap = Instance.new("UISizeConstraint")
-	cap.MaxSize = Vector2.new(380, 124)
+	cap.MaxSize = Vector2.new(320, 76)
 	cap.Parent = panel
 	local title = Ui.label(
 		panel,

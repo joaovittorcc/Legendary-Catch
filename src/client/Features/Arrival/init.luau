@@ -9,38 +9,79 @@ local UserInputService = game:GetService("UserInputService")
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local UiAssets = require(Shared:WaitForChild("Ui"):WaitForChild("UiAssets"))
 local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
 local Hud = script.Parent:WaitForChild("Hud")
 local Panel = require(Hud:WaitForChild("Panel"))
+local Art = require(Hud:WaitForChild("Art"))
+local HudAssets = require(Hud:WaitForChild("Assets"))
 local Arrival = { order = 0 }
 local player = Players.LocalPlayer
-local LOAD_TIMEOUT = 2.6
+local LOAD_TIMEOUT = 5
+local COVER_IMAGE = "rbxassetid://127393649193984" -- art/arrival/fishing-lagoon.jpg
 local MINIMUM_DISPLAY = 0.45
 local FLYOVER_SECONDS = 2.3
 
-local function assetsFor(gui: PlayerGui): { Instance }
-	local assets: { Instance } = {}
-	local models = ReplicatedStorage:FindFirstChild(Creatures.MODELS_FOLDER)
-	if models then
-		for _, node in models:GetDescendants() do
+local function interfaceAssets(gui: PlayerGui): { ImageLabel }
+	local images: { ImageLabel } = {}
+	local seen: { [string]: boolean } = {}
+	local function add(id: string)
+		if id ~= "" and not seen[id] then
+			seen[id] = true
+			local probe = Instance.new("ImageLabel")
+			probe.Image = id
+			table.insert(images, probe)
+		end
+	end
+	local function catalog(value: unknown)
+		if type(value) == "table" then
+			for _, item in value :: { [any]: unknown } do
+				catalog(item)
+			end
+		elseif type(value) == "string" and string.match(value, "^rbxasset") then
+			add(value)
+		end
+	end
+
+	add(COVER_IMAGE)
+	catalog(HudAssets)
+	-- The catalogs also include images used by screens that build on first open.
+	catalog(UiAssets)
+	for _, node in gui:GetDescendants() do
+		if node:IsA("ImageLabel") or node:IsA("ImageButton") then
+			add(node.Image)
+		end
+	end
+	return images
+end
+
+local function preloadPreviews()
+	for _, name in { "RodPreviews", "TrainingLevels", "AquariumLevels", Creatures.MODELS_FOLDER } do
+		local root = ReplicatedStorage:FindFirstChild(name)
+		if not root then
+			continue
+		end
+		local batch: { Instance } = {}
+		for _, node in root:GetDescendants() do
 			if
 				node:IsA("MeshPart")
 				or node:IsA("SpecialMesh")
-				or node:IsA("SurfaceAppearance")
 				or node:IsA("Decal")
 				or node:IsA("Texture")
 			then
-				table.insert(assets, node)
+				table.insert(batch, node)
+				if #batch == 24 then
+					pcall(ContentProvider.PreloadAsync, ContentProvider, batch)
+					table.clear(batch)
+					RunService.Heartbeat:Wait()
+				end
 			end
 		end
-	end
-	for _, node in gui:GetDescendants() do
-		if (node:IsA("ImageLabel") or node:IsA("ImageButton")) and node.Image ~= "" then
-			table.insert(assets, node)
+		if #batch > 0 then
+			pcall(ContentProvider.PreloadAsync, ContentProvider, batch)
 		end
 	end
-	return assets
 end
 
 function Arrival.start()
@@ -52,42 +93,70 @@ function Arrival.start()
 	gui.ResetOnSpawn = false
 	gui.ZIndexBehavior = Enum.ZIndexBehavior.Sibling
 
-	local cover = Instance.new("CanvasGroup")
+	local cover = Instance.new("Frame")
+	cover.Name = "LoadingCover"
 	cover.Size = UDim2.fromScale(1, 1)
 	cover.BackgroundColor3 = Color3.new(1, 1, 1)
 	cover.BorderSizePixel = 0
 	cover.Active = true
 	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new(Color3.fromRGB(16, 45, 65), Color3.fromRGB(66, 36, 75))
-	gradient.Rotation = 32
+	gradient.Color = ColorSequence.new(Color3.fromRGB(23, 35, 74), Color3.fromRGB(8, 51, 62))
+	gradient.Rotation = 90
 	gradient.Parent = cover
+
+	local backdrop = Instance.new("ImageLabel")
+	backdrop.Name = "FishingLagoon"
+	backdrop.Size = UDim2.fromScale(1, 1)
+	backdrop.BackgroundTransparency = 1
+	backdrop.ScaleType = Enum.ScaleType.Crop
+	backdrop.Image = COVER_IMAGE
+	backdrop.Parent = cover
+
+	local shade = Instance.new("Frame")
+	shade.Size = UDim2.fromScale(1, 1)
+	shade.BackgroundColor3 = Color3.fromRGB(8, 15, 37)
+	shade.BorderSizePixel = 0
+	local fade = Instance.new("UIGradient")
+	fade.Rotation = 90
+	fade.Transparency = NumberSequence.new({
+		NumberSequenceKeypoint.new(0, 0.97),
+		NumberSequenceKeypoint.new(0.32, 0.9),
+		NumberSequenceKeypoint.new(0.58, 0.35),
+		NumberSequenceKeypoint.new(0.77, 0.62),
+		NumberSequenceKeypoint.new(1, 0.79),
+	})
+	fade.Parent = shade
+	shade.Parent = cover
+
 	local card = Instance.new("Frame")
-	card.Name = "Welcome"
+	card.Name = "LoadingProgress"
 	card.AnchorPoint = Vector2.new(0.5, 0.5)
-	card.Position = UDim2.fromScale(0.5, 0.48)
-	card.Size = UDim2.new(0.84, 0, 0, 178)
-	Theme.surface(card, Theme.crystal, 16)
+	card.Position = UDim2.fromScale(0.5, 0.56)
+	card.Size = UDim2.new(0.84, 0, 0, 122)
+	card.BackgroundTransparency = 1
 	local bounds = Instance.new("UISizeConstraint")
-	bounds.MaxSize = Vector2.new(480, 178)
+	bounds.MaxSize = Vector2.new(570, 122)
 	bounds.Parent = card
-	local title = Panel.label(card, Text.arrival.title, 28, Theme.crystal)
-	title.Position = UDim2.fromScale(0, 0.12)
-	title.Size = UDim2.fromScale(1, 0.28)
-	local status = Panel.label(card, Text.arrival.loading, 16, Theme.sand)
-	status.Position = UDim2.fromScale(0, 0.43)
-	status.Size = UDim2.fromScale(1, 0.24)
+	local title = Art.caption(card, "Title", Text.arrival.title, 66, Theme.gold)
+	title.Position = UDim2.fromScale(0, 0)
+	title.Size = UDim2.fromScale(1, 0.56)
+	local status = Art.caption(card, "Status", Text.arrival.loadingUi, 18, Theme.sand)
+	status.Position = UDim2.fromScale(0, 0.62)
+	status.Size = UDim2.fromScale(1, 0.2)
 	local meter = Instance.new("Frame")
-	meter.Position = UDim2.fromScale(0.1, 0.78)
-	meter.Size = UDim2.fromScale(0.8, 0.065)
-	meter.BackgroundColor3 = Theme.ink
+	meter.Position = UDim2.fromScale(0.20, 0.89)
+	meter.Size = UDim2.new(0.60, 0, 0, 7)
+	meter.BackgroundColor3 = Color3.fromRGB(29, 59, 84)
 	meter.BorderSizePixel = 0
-	meter.ClipsDescendants = true
 	Theme.corner(meter, 4)
 	local fill = Instance.new("Frame")
 	fill.Size = UDim2.fromScale(0, 1)
-	fill.BackgroundColor3 = Theme.crystal
+	fill.BackgroundColor3 = Color3.new(1, 1, 1)
 	fill.BorderSizePixel = 0
 	Theme.corner(fill, 4)
+	local sheen = Instance.new("UIGradient")
+	sheen.Color = ColorSequence.new(Color3.fromRGB(75, 221, 245), Theme.gold)
+	sheen.Parent = fill
 	fill.Parent = meter
 	meter.Parent = card
 	card.Parent = cover
@@ -106,26 +175,24 @@ function Arrival.start()
 	gui.Parent = playerGui
 
 	local opened = os.clock()
-	local progress = 0
+	local completed = 0
+	local total = 0
 	local ready = false
 	task.spawn(function()
-		-- Let the other client features mount their initial UI before collecting images.
+		-- Give start() handlers one frame to mount the initial UI.
 		RunService.Heartbeat:Wait()
-		local assets = assetsFor(playerGui)
-		for first = 1, #assets, 12 do
-			if not gui.Parent or os.clock() - opened > LOAD_TIMEOUT then
-				break
-			end
-			local batch = {}
-			for index = first, math.min(first + 11, #assets) do
-				table.insert(batch, assets[index])
-			end
-			pcall(function()
-				ContentProvider:PreloadAsync(batch)
+		local images = interfaceAssets(playerGui)
+		total = #images
+		pcall(function()
+			ContentProvider:PreloadAsync(images, function()
+				completed += 1
 			end)
-			progress = math.min(first + #batch - 1, #assets) / #assets
+		end)
+		for _, image in images do
+			image:Destroy()
 		end
 		ready = true
+		preloadPreviews()
 	end)
 
 	while os.clock() - opened < LOAD_TIMEOUT do
@@ -137,14 +204,13 @@ function Arrival.start()
 		then
 			break
 		end
+		status.Text = if ready then Text.arrival.loading else Text.arrival.loadingUi
 		fill.Size = UDim2.fromScale(
-			math.max(progress * 0.9, math.min((os.clock() - opened) / LOAD_TIMEOUT, 0.85)),
+			if ready then 1 else math.clamp(completed / math.max(total, 1), 0, 1),
 			1
 		)
 		RunService.Heartbeat:Wait()
 	end
-	fill.Size = UDim2.fromScale(1, 1)
-	status.Text = Text.arrival.ready
 	cover.Visible = false
 	cover.Active = false
 

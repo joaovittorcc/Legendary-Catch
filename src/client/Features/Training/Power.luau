@@ -15,6 +15,7 @@ local Theme = require(Shared.UiTheme)
 local Data = require(script.Parent.Parent.Parent.Data)
 local Hud = require(script.Parent.Parent.Hud)
 local Panel = require(script.Parent.Parent.Hud.Panel)
+local Art = require(script.Parent.Parent.Hud.Art)
 local Ui = require(script.Parent.Parent.Fishing.Ui)
 local Audio = require(script.Parent.Parent.Audio)
 
@@ -35,8 +36,6 @@ type PowerHud = {
 	stat: string,
 	value: TextButton,
 	gain: TextLabel,
-	milestone: TextLabel,
-	lastPower: number?,
 }
 local hud: PowerHud? = nil
 local sequence = 0
@@ -50,16 +49,9 @@ local function numberText(value: number): string
 end
 
 local function multiplierText(value: number): string
-	return (string.format("%g", value):gsub("%.", Strings.decimalSep))
-end
-
-local function integerText(value: number): string
-	local sep = Strings.thousandsSep
-	local reversed = string.format("%.0f", value):reverse():gsub("(%d%d%d)", "%1" .. sep)
-	if reversed:sub(-#sep) == sep then
-		reversed = reversed:sub(1, -#sep - 1)
-	end
-	return reversed:reverse()
+	return (
+		string.format("%.2f", value):gsub("0+$", ""):gsub("%.$", ""):gsub("%.", Strings.decimalSep)
+	)
 end
 
 local function powerOf(stat: string): number
@@ -122,7 +114,7 @@ local function celebrate(parent: Frame, color: Color3)
 end
 
 function Power.fieldButton(parent: Frame, position: UDim2, width: number): TextButton
-	local button = Panel.button(parent, Text.field, Theme.crystal)
+	local button = Panel.button(parent, Text.fieldTitle, Theme.crystal)
 	button.Name = "OpenTrainingField"
 	button.Position = position
 	button.Size = UDim2.new(width, 0, 0, 44)
@@ -134,124 +126,46 @@ function Power.fieldButton(parent: Frame, position: UDim2, width: number): TextB
 	return button
 end
 
-function Power.mount(frame: Frame, activeStat: string, island: number)
+function Power.mount(frame: Frame, activeStat: string, color: Color3, field: TextButton)
 	local value = Instance.new("TextButton")
 	value.Name = "FishingPower"
 	value.BackgroundTransparency = 1
-	value.Size = UDim2.new(0.92, 0, 0, 44)
-	value.Position = UDim2.fromScale(0.04, 0)
+	value.Size = UDim2.new(0.68, -4, 0, 24)
 	value.Font = Theme.font
-	value.TextColor3 = Theme.cream
+	value.TextXAlignment = Enum.TextXAlignment.Left
+	value.TextColor3 = color
 	value.AutoButtonColor = false
+	fitText(value, 17)
 	value.Parent = frame
-	fitText(value, 26)
 	local gain = Ui.label(
 		frame,
 		"PowerGain",
-		UDim2.new(0.92, 0, 0, 15),
-		UDim2.new(0.04, 0, 0, 41),
+		UDim2.new(0.32, 0, 0, 22),
+		UDim2.fromScale(0.68, 0),
 		"",
-		Theme.ink
+		Theme.sand
 	)
+	gain.TextXAlignment = Enum.TextXAlignment.Right
 	gain.TextStrokeTransparency = 1
-	local multipliers = Ui.label(
-		frame,
-		"Multipliers",
-		UDim2.new(0.92, 0, 0, 17),
-		UDim2.new(0.04, 0, 0, 57),
-		"",
-		Theme.ink
-	)
-	multipliers.TextStrokeTransparency = 1
-	local milestone = Ui.label(
-		frame,
-		"PowerMilestone",
-		UDim2.new(0.92, 0, 0, 20),
-		UDim2.new(0.04, 0, 0, 170),
-		"",
-		Theme.cream
-	)
-	milestone.Visible = false
-	local gradient = Instance.new("UIGradient")
-	gradient.Color = ColorSequence.new({
-		ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 99, 164)),
-		ColorSequenceKeypoint.new(0.24, Color3.fromRGB(255, 213, 82)),
-		ColorSequenceKeypoint.new(0.52, Color3.fromRGB(117, 252, 185)),
-		ColorSequenceKeypoint.new(0.76, Color3.fromRGB(93, 212, 255)),
-		ColorSequenceKeypoint.new(1, Color3.fromRGB(218, 133, 255)),
-	})
-	gradient.Enabled = false
-	gradient.Parent = value
+	local gainLimit = Instance.new("UITextSizeConstraint")
+	gainLimit.MaxTextSize = 15
+	gainLimit.Parent = gain
 
-	local rows: { [string]: { caption: TextLabel, fill: Frame } } = {}
-	for index, stat in Config.STATS do
-		local x = if index == 1 then 0.04 else 0.51
-		local color = if stat == "Control" then Theme.crystal else Color3.fromRGB(199, 144, 255)
-		local caption =
-			Ui.label(frame, stat, UDim2.new(0.44, 0, 0, 20), UDim2.new(x, 0, 0, 77), "", Theme.ink)
-		caption.TextStrokeTransparency = 1
-		local track = Ui.frame(
-			frame,
-			stat .. "Track",
-			UDim2.new(0.44, 0, 0, 8),
-			UDim2.new(x, 0, 0, 99),
-			Theme.outline
-		)
-		Theme.corner(track, 5)
-		local fill = Ui.frame(track, "Fill", UDim2.fromScale(0, 1), UDim2.fromScale(0, 0), color)
-		Theme.corner(fill, 5)
-		rows[stat] = { caption = caption, fill = fill }
-	end
-
-	local instance: PowerHud =
-		{ frame = frame, stat = activeStat, value = value, gain = gain, milestone = milestone }
+	local instance: PowerHud = { frame = frame, stat = activeStat, value = value, gain = gain }
 	hud = instance
 	local full = false
-	local shown = math.log10(totalPower())
+	local shown = math.log10(powerOf(activeStat))
 	local delta = 0
-	local lastTier = 0
+	local statName = Strings.stat[activeStat] or activeStat
 	local function draw(dt: number)
-		local target = totalPower()
-		local quiet = Ui.reduced()
-		shown += (math.log10(target) - shown) * (if quiet then 1 else 1 - math.exp(-dt * 12))
-		local visible = if math.abs(shown - math.log10(target)) < 0.0003 then target else 10 ^ shown
-		local tier = Config.tier(target)
-		local color = Config.TIER_COLORS[tier]
-		value.Text = Text.title
-			.. "  ·  "
-			.. (if full then integerText(target) else numberText(visible))
-		value.TextColor3 = Theme.ink:Lerp(color, if tier == 1 then 0 else 0.53)
-		if tier ~= lastTier then
-			lastTier = tier
-			gradient.Color = if tier == 7
-				then ColorSequence.new({
-					ColorSequenceKeypoint.new(0, Color3.fromRGB(255, 99, 164)),
-					ColorSequenceKeypoint.new(0.24, Color3.fromRGB(255, 213, 82)),
-					ColorSequenceKeypoint.new(0.52, Color3.fromRGB(117, 252, 185)),
-					ColorSequenceKeypoint.new(0.76, Color3.fromRGB(93, 212, 255)),
-					ColorSequenceKeypoint.new(1, Color3.fromRGB(218, 133, 255)),
-				})
-				else ColorSequence.new(
-					Color3.new(1, 1, 1),
-					if tier == 5 then Theme.rose else Theme.crystal
-				)
-		end
-		gradient.Enabled = tier >= 4 and not quiet
-		gradient.Rotation = if gradient.Enabled then (os.clock() * 52) % 360 else 0
-		for stat, row in rows do
-			local pp = powerOf(stat)
-			row.caption.Text = (Strings.stat[stat] or stat) .. "  ·  " .. numberText(pp)
-			row.fill.Size = UDim2.fromScale(Config.progress(pp), 1)
-		end
-		local level = fieldLevel()
-		local data = Data.get()
-		local prestige = if data then data.prestige else 0
-		multipliers.Text = string.format(
-			Text.multipliers,
-			multiplierText(Config.FIELD[level].mult),
-			multiplierText(Config.ISLANDS[island].mult),
-			multiplierText(1 + Config.PRESTIGE_GAIN_STEP * prestige)
-		)
+		local target = powerOf(activeStat)
+		local logTarget = math.log10(target)
+		shown += (logTarget - shown) * (if Ui.reduced() then 1 else 1 - math.exp(-dt * 12))
+		local visible = if math.abs(shown - logTarget) < 0.0003 then target else 10 ^ shown
+		local text = if full then Theme.formatInt(target) else numberText(visible)
+		value.Text = statName .. "  ·  " .. text
+		value.TextColor3 = color:Lerp(Config.TIER_COLORS[Config.tier(target)], 0.38)
+		field.Text = Text.field .. "  ×" .. multiplierText(Config.FIELD[fieldLevel()].mult)
 	end
 	value.Activated:Connect(function()
 		full = not full
@@ -296,12 +210,24 @@ local function previewField(viewport: ViewportFrame, level: number)
 	world.Parent = viewport
 end
 
+local function requirement(parent: Frame, x: number, variant: string): (TextLabel, Frame)
+	local cell =
+		Ui.frame(parent, variant, UDim2.fromScale(0.48, 1), UDim2.fromScale(x, 0), Theme.ink, 1)
+	local label = Art.caption(cell, "Progress", "", 15, Theme.ink)
+	label.TextStrokeTransparency = 1
+	label.Size = UDim2.new(1, 0, 0, 22)
+	local track, fill = Panel.progressBar(cell, variant, 12)
+	track.Position = UDim2.fromOffset(0, 25)
+	return label, fill
+end
+
 function Power.start(buy: RemoteEvent)
 	local _, body = Panel.create(FIELD_PANEL, Text.fieldTitle, Theme.crystal, 0.96, 530)
 	Panel.stack(body)
-	local current = Panel.label(body, "", 19)
+	local current = Panel.label(body, "", 19, Theme.ink)
 	current.TextStrokeTransparency = 1
-	local nextLevel = Panel.label(body, "", 18)
+	local nextLevel = Art.caption(body, "UpgradeMultiplier", "", 18, Theme.ink)
+	nextLevel.Size = UDim2.new(1, 0, 0, 36)
 	nextLevel.TextStrokeTransparency = 1
 	local preview = Instance.new("ViewportFrame")
 	preview.Name = "NextField"
@@ -311,8 +237,10 @@ function Power.start(buy: RemoteEvent)
 	preview.LightColor = Theme.cream
 	Theme.corner(preview, 12)
 	preview.Parent = body
-	local requirement = Panel.label(body, "", 16)
-	requirement.TextStrokeTransparency = 1
+	local gates =
+		Ui.frame(body, "UpgradeRequirements", UDim2.new(1, 0, 0, 40), UDim2.new(), Theme.ink, 1)
+	local coinLabel, coinFill = requirement(gates, 0, "gold")
+	local powerLabel, powerFill = requirement(gates, 0.52, "cyan")
 	local button = Panel.button(body, Text.upgrade, Theme.crystal)
 	button.Name = "BuyTrainingField"
 	local status = Panel.label(body, "", 15)
@@ -341,25 +269,38 @@ function Power.start(buy: RemoteEvent)
 		local level = fieldLevel()
 		local nextDef = Config.FIELD[level + 1]
 		local profile = Data.get()
-		local allowed, reason =
-			Config.canBuyField(level, totalPower(), if profile then profile.coins else 0)
+		local coins = if profile then profile.coins else 0
+		local power = totalPower()
+		local allowed, reason = Config.canBuyField(level, power, coins)
 		current.Text =
 			string.format(Text.fieldLevel, level, multiplierText(Config.FIELD[level].mult))
 		nextLevel.Text = if nextDef
 			then string.format(Text.nextLevel, level + 1, multiplierText(nextDef.mult))
+				.. "  ·  "
+				.. string.format(
+					Text.upgradeMultiplier,
+					multiplierText(nextDef.mult / Config.FIELD[level].mult)
+				)
 			else Text.max
 		if shownPreview ~= (if nextDef then level + 1 else level) then
 			shownPreview = if nextDef then level + 1 else level
 			previewField(preview, shownPreview)
 		end
-		requirement.Visible = nextDef ~= nil
-		requirement.Text = if nextDef
-			then string.format(
-				Text.requirements,
-				integerText(nextDef.cost),
+		gates.Visible = nextDef ~= nil
+		if nextDef then
+			coinLabel.Text = string.format(
+				Text.coinProgress,
+				Theme.formatInt(math.min(coins, nextDef.cost)),
+				Theme.formatInt(nextDef.cost)
+			)
+			powerLabel.Text = string.format(
+				Text.powerProgress,
+				numberText(math.min(power, nextDef.gate)),
 				numberText(nextDef.gate)
 			)
-			else ""
+			coinFill.Size = UDim2.fromScale(math.clamp(coins / math.max(nextDef.cost, 1), 0, 1), 1)
+			powerFill.Size = UDim2.fromScale(math.clamp(power / math.max(nextDef.gate, 1), 0, 1), 1)
+		end
 		button.Visible = nextDef ~= nil
 		button.Active = allowed and request == nil and Config.powerEnabled()
 		button.Interactable = button.Active
@@ -440,20 +381,13 @@ function Power.onUpdate(update: Net.TrainingUpdate)
 			frame.gain.Text = string.format(Text.powerGain, numberText(update.gain))
 		elseif event == "powerMilestone" and update.milestone then
 			local mark = update.milestone
-			frame.lastPower = mark
-			frame.milestone.Text = string.format(Text.milestone, numberText(mark))
-			frame.milestone.TextColor3 = Config.TIER_COLORS[Config.tier(mark)]
-			frame.milestone.Visible = true
+			local color = Config.TIER_COLORS[Config.tier(mark)]
+			Hud.toast(string.format(Text.milestone, numberText(mark)), color)
 			Audio.play("level", 0.17, 1.08)
 			if not Ui.reduced() then
 				Ui.bounce(frame.value)
-				celebrate(frame.frame, frame.milestone.TextColor3)
+				celebrate(frame.frame, color)
 			end
-			task.delay(1.7, function()
-				if hud == frame and frame.lastPower == mark then
-					frame.milestone.Visible = false
-				end
-			end)
 		elseif
 			(event == "dailyBonus" or event == "ringResult")
 			and update.gain

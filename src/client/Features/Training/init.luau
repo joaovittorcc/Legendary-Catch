@@ -3,7 +3,6 @@
 -- Owns the practice presentation and forwards drill results to the training server.
 -- Walking stops training (the server also stops it if the player leaves the spot).
 
-local CollectionService = game:GetService("CollectionService")
 local ProximityPromptService = game:GetService("ProximityPromptService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
@@ -223,10 +222,16 @@ local function positionHud()
 		local camera = Workspace.CurrentCamera
 		local viewport = if camera then camera.ViewportSize else Vector2.new(800, 600)
 		local compact = viewport.Y < 520 and viewport.X > viewport.Y * 1.45
+		local top = math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12)
+		if TrainingConfig.powerEnabled() then
+			frame.AnchorPoint = Vector2.zero
+			frame.Size = UDim2.new(if compact then 0.4 else 0.86, 0, 0, frame.Size.Y.Offset)
+			frame.Position = UDim2.new(0.02, 0, 0, top)
+			return
+		end
 		local x = if compact then 0.25 else 0.5
 		frame.Size = UDim2.new(if compact then 0.46 else 0.92, 0, 0, frame.Size.Y.Offset)
-		frame.Position =
-			UDim2.new(x, 0, 0, math.max(Hud.navBottom() + 8, Tutorial.cardBottom() + 12))
+		frame.Position = UDim2.new(x, 0, 0, top)
 	end
 end
 
@@ -279,8 +284,14 @@ local function addCards(frame: Frame, top: number)
 	refreshCards()
 end
 
-local function mountCard(name: string, height: number, color: Color3): (Frame, Frame)
-	local totalHeight = height + 26
+local function mountCard(
+	name: string,
+	height: number,
+	color: Color3,
+	slim: boolean?
+): (Frame, Frame)
+	local padding = if slim then 6 else 12
+	local totalHeight = height + (if slim then 2 * padding else 26)
 	local frame = Ui.frame(
 		Ui.screen(),
 		name,
@@ -289,15 +300,24 @@ local function mountCard(name: string, height: number, color: Color3): (Frame, F
 		Theme.ink
 	)
 	frame.AnchorPoint = Vector2.new(0.5, 0)
-	Art.panel(frame, color)
+	if slim then
+		Theme.corner(frame, 14)
+		frame.BackgroundTransparency = 0.13
+		local rim = Instance.new("UIStroke")
+		rim.Color = color
+		rim.Transparency = 0.55
+		rim.Parent = frame
+	else
+		Art.panel(frame, color)
+	end
 	local cap = Instance.new("UISizeConstraint")
-	cap.MaxSize = Vector2.new(456, totalHeight)
+	cap.MaxSize = Vector2.new(if slim then 284 else 456, totalHeight)
 	cap.Parent = frame
 	local inner = Instance.new("Frame")
 	inner.Name = "Content"
 	inner.BackgroundTransparency = 1
-	inner.Position = UDim2.fromOffset(12, 12)
-	inner.Size = UDim2.new(1, -24, 1, -26)
+	inner.Position = UDim2.fromOffset(padding, padding)
+	inner.Size = UDim2.new(1, -2 * padding, 0, height)
 	inner.ZIndex = 2
 	inner.Parent = frame
 	Hud.bindFishingVisibility(frame, false)(true)
@@ -319,7 +339,14 @@ local function refreshPreview()
 		return
 	end
 	local usePower = TrainingConfig.powerEnabled()
-	local frame, inner = mountCard("TrainingPreview", if usePower then 147 else 97, Theme.crystal)
+	local frame, inner =
+		mountCard("TrainingPreview", if usePower then 44 else 97, Theme.crystal, usePower)
+	if usePower then
+		Power.fieldButton(inner, UDim2.new(), 1)
+		preview = frame
+		positionHud()
+		return
+	end
 	Ui.label(
 		inner,
 		"Title",
@@ -330,33 +357,16 @@ local function refreshPreview()
 	).TextStrokeTransparency =
 		1
 	addCards(inner, 30)
-	if usePower then
-		Power.fieldButton(inner, UDim2.new(0.04, 0, 0, 97), 0.92)
-	end
 	preview = frame
 	positionHud()
 end
 
 local function buildHud(color: Color3)
 	local usePower = TrainingConfig.powerEnabled()
-	local frame, inner = mountCard("TrainingHud", if usePower then 163 else 146, color)
+	local frame, inner = mountCard("TrainingHud", if usePower then 69 else 146, color, usePower)
 	if usePower then
-		local island = 1
-		local root = rootPart()
-		local nearest = math.huge
-		for _, spot in CollectionService:GetTagged(TrainingConfig.SPOT_TAG) do
-			if root and spot:IsA("BasePart") then
-				local distance = (root.Position - spot.Position).Magnitude
-				if distance < nearest then
-					nearest = distance
-					island = TrainingConfig.islandIndex(
-						spot:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE)
-					)
-				end
-			end
-		end
-		Power.mount(inner, activeStat, island)
-		Power.fieldButton(inner, UDim2.new(0.04, 0, 0, 113), 0.44)
+		local field = Power.fieldButton(inner, UDim2.fromOffset(0, 25), 0.58)
+		Power.mount(inner, activeStat, color, field)
 	else
 		addCards(inner, 8)
 		local statLabel = Ui.label(
@@ -401,8 +411,8 @@ local function buildHud(color: Color3)
 	end
 	local button = Panel.button(inner, Strings.stop, Color3.fromRGB(247, 75, 91))
 	button.Name = "Stop"
-	button.Size = UDim2.new(if usePower then 0.44 else 0.25, 0, 0, 44)
-	button.Position = if usePower then UDim2.new(0.52, 0, 0, 113) else UDim2.new(0.71, 0, 0, 81)
+	button.Size = UDim2.new(if usePower then 0.39 else 0.25, 0, 0, 44)
+	button.Position = if usePower then UDim2.new(0.61, 0, 0, 25) else UDim2.new(0.71, 0, 0, 81)
 	button.TextScaled = true
 	local stopLimit = Instance.new("UITextSizeConstraint")
 	stopLimit.MinTextSize = 10
@@ -453,7 +463,7 @@ local function startOrbit(root: BasePart)
 	orbitConn = RunService.RenderStepped:Connect(function(dt: number)
 		angle += dt * (if stopRing then 0.09 else 0.24)
 		cameraPunch *= math.exp(-dt * 2.4)
-		local distance = (if stopRing then 10.5 else 13) - cameraPunch
+		local distance = (if stopRing then 14 else 15) - cameraPunch
 		local scene = practice
 		local focus = root.Position + Vector3.new(0, 1.1, 0)
 		if scene then

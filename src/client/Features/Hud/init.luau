@@ -1,5 +1,4 @@
 --!strict
-local ContentProvider = game:GetService("ContentProvider")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local TweenService = game:GetService("TweenService")
@@ -322,16 +321,6 @@ function Hud.start()
 			end
 			publishFishingState()
 		end)
-	end)
-	task.spawn(function()
-		local images =
-			{ Assets.coins, Assets.gift, Assets.goal, Assets.progress, Assets.rod, Assets.panel }
-		for _, set in { Assets.navigation, Assets.rarity } do
-			for _, id in set do
-				table.insert(images, id)
-			end
-		end
-		ContentProvider:PreloadAsync(images)
 	end)
 	local gui = Instance.new("ScreenGui")
 	gui.Name = "AdventureHud"
