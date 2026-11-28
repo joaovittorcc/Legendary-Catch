@@ -1,7 +1,6 @@
 --!strict
--- Lagoon training (server authority). Any part tagged TrainingSpot gets two prompts
--- (Control / Instinct). While training, XP ticks in every second; now and then a rhythm
--- ring event is offered for bonus XP. Walking away from the spot stops it.
+-- Lagoon training (server authority). Approaching a training stool starts a seated session.
+-- Periodic drills grant a bonus. Standing up or pressing Stop ends the session.
 --
 -- Levels live in the player profile (PlayerData); the profile mirrors them as attributes.
 --
@@ -16,7 +15,6 @@ local ReplicatedStorage = game:GetService("ReplicatedStorage")
 
 local Shared = ReplicatedStorage:WaitForChild("Shared")
 local Net = require(Shared:WaitForChild("Net"))
-local Strings = require(Shared:WaitForChild("Strings"))
 local TrainingConfig = require(Shared:WaitForChild("Config"):WaitForChild("Training"))
 
 local Achievements = require(script.Parent:WaitForChild("Achievements"))
@@ -24,10 +22,13 @@ local Analytics = require(script.Parent:WaitForChild("Analytics"))
 local PlayerData = require(script.Parent:WaitForChild("PlayerData"))
 local Progress = require(script.Parent:WaitForChild("Progress"))
 local Remotes = require(script.Parent.Parent:WaitForChild("Remotes"))
+local Seats = require(script:WaitForChild("Seats"))
 
 type Session = {
 	stat: string,
-	spot: BasePart,
+	seat: Seat,
+	humanoid: Humanoid,
+	seated: RBXScriptConnection?,
 	nextRingAt: number,
 	ringId: number,
 	ringExpires: number, -- 0 when no ring is pending
@@ -40,6 +41,8 @@ local POWER_GAIN_MULTIPLIER = 10
 Training.order = 40
 
 local sessions: { [Player]: Session } = {}
+local blockedSeats: { [Player]: Seat } = {}
+local stationGroups: { [BasePart]: { folder: Folder, stations: { Seats.Station } } } = {}
 local rng = Random.new()
 local update: RemoteEvent
 
@@ -134,24 +137,34 @@ local function rootOf(player: Player): BasePart?
 	return if root and root:IsA("BasePart") then root else nil
 end
 
-local function near(player: Player, spot: BasePart): boolean
-	local character = player.Character
-	local root = rootOf(player)
-	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
-	return root ~= nil
-		and humanoid ~= nil
-		and humanoid.Health > 0
-		and (root.Position - spot.Position).Magnitude <= TrainingConfig.SPOT_RADIUS
-end
-
 local function stop(player: Player, reason: string)
-	if not sessions[player] then
+	local session = sessions[player]
+	if not session then
 		return
 	end
 	sessions[player] = nil
+	blockedSeats[player] = session.seat
+	if session.seated then
+		session.seated:Disconnect()
+	end
+	if session.seat.Occupant == session.humanoid then
+		local weld = session.seat:FindFirstChild("SeatWeld")
+		if weld then
+			weld:Destroy()
+		end
+		session.humanoid.Sit = false
+	end
 	player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, "")
 	player:SetAttribute("TrainingCombo", 0)
-	update:FireClient(player, { event = "stopped", reason = reason } :: Net.TrainingUpdate)
+	if player.Parent == Players then
+		update:FireClient(player, { event = "stopped", reason = reason } :: Net.TrainingUpdate)
+	end
+end
+
+local function stillSeated(session: Session): boolean
+	return session.seat:IsDescendantOf(workspace)
+		and session.seat.Occupant == session.humanoid
+		and session.humanoid.Health > 0
 end
 
 local function addXp(player: Player, stat: string, amount: number)
@@ -192,19 +205,14 @@ local function addXp(player: Player, stat: string, amount: number)
 	end
 end
 
-local function start(player: Player, stat: string, spot: BasePart)
-	if not near(player, spot) or not PlayerData.get(player) then
-		return
-	end
-	local existing = sessions[player]
-	if existing and existing.stat == stat and existing.spot == spot then
-		return
-	end
+local function start(player: Player, humanoid: Humanoid, station: Seats.Station, spot: BasePart)
+	local seat, stat = station.seat, station.stat
 	local island = TrainingConfig.islandIndex(spot:GetAttribute(TrainingConfig.ISLAND_ATTRIBUTE))
 	if
 		TrainingConfig.powerEnabled()
 		and not TrainingConfig.islandAllowed(island, powerSum(player))
 	then
+		blockedSeats[player] = seat
 		update:FireClient(
 			player,
 			{
@@ -215,9 +223,14 @@ local function start(player: Player, stat: string, spot: BasePart)
 		)
 		return
 	end
-	sessions[player] = {
+	seat:Sit(humanoid)
+	if seat.Occupant ~= humanoid then
+		return
+	end
+	local session: Session = {
 		stat = stat,
-		spot = spot,
+		seat = seat,
+		humanoid = humanoid,
 		island = island,
 		nextRingAt = os.clock()
 			+ rng:NextNumber(TrainingConfig.RING_INTERVAL_MIN, TrainingConfig.RING_INTERVAL_MAX),
@@ -225,6 +238,12 @@ local function start(player: Player, stat: string, spot: BasePart)
 		ringExpires = 0,
 		combo = 0,
 	}
+	sessions[player] = session
+	session.seated = humanoid.Seated:Connect(function(active, currentSeat)
+		if sessions[player] == session and (not active or currentSeat ~= seat) then
+			stop(player, "stood")
+		end
+	end)
 	player:SetAttribute(TrainingConfig.ACTIVE_ATTRIBUTE, stat)
 	player:SetAttribute("TrainingCombo", 0)
 	-- First training of the (UTC) day: a bonus that grows a little with the stat level.
@@ -257,43 +276,87 @@ local function start(player: Player, stat: string, spot: BasePart)
 	Progress.onTrainingStarted(player)
 end
 
-local function addPrompts(spot: Instance)
+local function addStationGroup(spot: Instance)
+	if not spot:IsA("BasePart") or not spot:IsDescendantOf(workspace) or stationGroups[spot] then
+		return
+	end
+	-- Map builders can parent and tag a spot in the same frame as the decor.
+	task.defer(function()
+		if
+			stationGroups[spot]
+			or not spot:IsDescendantOf(workspace)
+			or not CollectionService:HasTag(spot, TrainingConfig.SPOT_TAG)
+		then
+			return
+		end
+		local folder, stations = Seats.build(spot, TrainingConfig.STATS)
+		stationGroups[spot] = { folder = folder, stations = stations }
+	end)
+end
+
+local function removeStationGroup(spot: Instance)
 	if not spot:IsA("BasePart") then
 		return
 	end
-	-- A spot can be dedicated to one stat (attribute TrainingStat, e.g. the Focus and Instinct
-	-- ponds of the training islands); without it the spot offers every stat.
-	local only = spot:GetAttribute(TrainingConfig.STAT_ATTRIBUTE)
-	for i, stat in TrainingConfig.STATS do
-		if typeof(only) == "string" and only ~= "" and only ~= stat then
-			continue
+	local group = stationGroups[spot]
+	if group then
+		stationGroups[spot] = nil
+		group.folder:Destroy()
+	end
+end
+
+local function tryNearbySeat(player: Player)
+	if sessions[player] or not PlayerData.get(player) then
+		return
+	end
+	local character = player.Character
+	local root = rootOf(player)
+	local humanoid = character and character:FindFirstChildOfClass("Humanoid")
+	if not character or not root or not humanoid or humanoid.Health <= 0 or humanoid.SeatPart then
+		return
+	end
+	local fishing = character:GetAttribute("FishingState")
+	if fishing == "waiting" or fishing == "fighting" then
+		return
+	end
+	local blocked = blockedSeats[player]
+	if
+		blocked
+		and (
+			not blocked:IsDescendantOf(workspace)
+			or Seats.distanceSquared(root.Position, blocked.Position) >= Seats.EXIT_RADIUS ^ 2
+		)
+	then
+		blockedSeats[player] = nil
+	end
+
+	local bestSpot: BasePart? = nil
+	local bestStation: Seats.Station? = nil
+	local bestDistance = Seats.ENTER_RADIUS ^ 2
+	for spot, group in stationGroups do
+		for _, station in group.stations do
+			local seat = station.seat
+			local distance = Seats.distanceSquared(root.Position, seat.Position)
+			if distance < bestDistance and math.abs(root.Position.Y - seat.Position.Y) <= 3.5 then
+				bestStation, bestSpot, bestDistance = station, spot, distance
+			end
 		end
-		if spot:FindFirstChild("Train" .. stat) then
-			continue
-		end
-		local prompt = Instance.new("ProximityPrompt")
-		prompt.Name = "Train" .. stat
-		prompt.ActionText = `{Strings.trainAction} {Strings.stat[stat] or stat}`
-		prompt.ObjectText = Strings.statHelp[stat] or Strings.trainingSpot
-		prompt.KeyboardKeyCode = if i == 1 then Enum.KeyCode.E else Enum.KeyCode.R
-		prompt.GamepadKeyCode = if i == 1 then Enum.KeyCode.ButtonX else Enum.KeyCode.ButtonY
-		prompt.HoldDuration = 0.3
-		prompt.MaxActivationDistance = 12
-		prompt.RequiresLineOfSight = false
-		prompt.UIOffset = if typeof(only) == "string" and only ~= ""
-			then Vector2.zero
-			else Vector2.new(0, (i - 1) * -72)
-		prompt.Triggered:Connect(function(player)
-			start(player, stat, spot)
-		end)
-		prompt.Parent = spot
+	end
+	if
+		bestStation
+		and bestSpot
+		and bestStation.seat ~= blockedSeats[player]
+		and bestStation.seat:IsDescendantOf(workspace)
+		and not bestStation.seat.Occupant
+	then
+		start(player, humanoid, bestStation, bestSpot)
 	end
 end
 
 local function step()
 	local now = os.clock()
 	for player, s in sessions do
-		if not near(player, s.spot) then
+		if not stillSeated(s) then
 			stop(player, "left")
 			continue
 		end
@@ -342,7 +405,7 @@ local function onRingResult(player: Player, ringId: unknown, success: unknown)
 		return
 	end
 	local s = sessions[player]
-	if not s or s.ringExpires == 0 or s.ringId ~= ringId then
+	if not s or not stillSeated(s) or s.ringExpires == 0 or s.ringId ~= ringId then
 		return
 	end
 	s.ringExpires = 0
@@ -479,7 +542,10 @@ function Training.start()
 		if player.Character then
 			task.spawn(watchCharacter, player.Character)
 		end
-		player.CharacterAdded:Connect(watchCharacter)
+		player.CharacterAdded:Connect(function(character)
+			blockedSeats[player] = nil
+			watchCharacter(character)
+		end)
 		player.CharacterRemoving:Connect(function()
 			stop(player, "respawn")
 		end)
@@ -489,17 +555,28 @@ function Training.start()
 		initPlayer(player)
 	end
 	Players.PlayerRemoving:Connect(function(player)
-		sessions[player] = nil
+		stop(player, "left")
+		blockedSeats[player] = nil
 	end)
 
 	-- The map is rebuilt in Studio, so spots can appear after start.
 	for _, spot in CollectionService:GetTagged(TrainingConfig.SPOT_TAG) do
-		addPrompts(spot)
+		addStationGroup(spot)
 	end
-	CollectionService:GetInstanceAddedSignal(TrainingConfig.SPOT_TAG):Connect(addPrompts)
+	CollectionService:GetInstanceAddedSignal(TrainingConfig.SPOT_TAG):Connect(addStationGroup)
+	CollectionService:GetInstanceRemovedSignal(TrainingConfig.SPOT_TAG):Connect(removeStationGroup)
 	if #CollectionService:GetTagged(TrainingConfig.SPOT_TAG) == 0 then
 		warn(`[Training] no part tagged "{TrainingConfig.SPOT_TAG}" in the map yet`)
 	end
+
+	task.spawn(function()
+		while true do
+			for _, player in Players:GetPlayers() do
+				tryNearbySeat(player)
+			end
+			task.wait(0.15)
+		end
+	end)
 
 	task.spawn(function()
 		while true do

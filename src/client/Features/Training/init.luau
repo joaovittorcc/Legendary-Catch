@@ -1,9 +1,9 @@
 --!strict
 -- Lagoon training (client): plays the semi-idle session the server runs.
 -- Owns the practice presentation and forwards drill results to the training server.
--- Walking stops training (the server also stops it if the player leaves the spot).
+-- A shared training Seat starts the session. Jumping or Stop ends it.
 
-local ProximityPromptService = game:GetService("ProximityPromptService")
+local CollectionService = game:GetService("CollectionService")
 local Players = game:GetService("Players")
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local RunService = game:GetService("RunService")
@@ -47,7 +47,6 @@ local hud: Frame? = nil
 local levelLabel: TextLabel? = nil
 local xpFill: Frame? = nil
 local orbitConn: RBXScriptConnection? = nil
-local moveConn: RBXScriptConnection? = nil
 local practice: Practice.Session? = nil
 local drillAwardUntil = 0
 local sessionXp = 0
@@ -59,7 +58,8 @@ local powerFloat: BillboardGui? = nil
 local powerFloatTween: Tween? = nil
 local powerFloatBonusUntil = 0
 local preview: Frame? = nil
-local nearbyPrompts: { [ProximityPrompt]: boolean } = {}
+local nearTrainingSeat = false
+local seatLabels: { [Seat]: BillboardGui } = {}
 local cards: { [string]: { level: TextLabel, benefit: TextLabel, fill: Frame } } = {}
 local previousCameraType: Enum.CameraType? = nil
 local aura: Attachment? = nil
@@ -350,7 +350,7 @@ local function mountCard(
 end
 
 local function refreshPreview()
-	if activeStat ~= "" or next(nearbyPrompts) == nil then
+	if activeStat ~= "" or not nearTrainingSeat then
 		if preview then
 			preview:Destroy()
 			preview = nil
@@ -545,10 +545,6 @@ end
 local function stopVisuals()
 	finishRing()
 	stopOrbit()
-	if moveConn then
-		moveConn:Disconnect()
-		moveConn = nil
-	end
 	if practice then
 		practice.stop()
 	end
@@ -601,11 +597,6 @@ local function startVisuals(stat: string)
 	if not Ui.reduced() then
 		Effects.ripple(root.Position - Vector3.new(0, 2.9, 0), color, 6, 0.8)
 	end
-	moveConn = humanoid:GetPropertyChangedSignal("MoveDirection"):Connect(function()
-		if humanoid.MoveDirection.Magnitude > 0.1 then
-			stopRemote:FireServer()
-		end
-	end)
 end
 
 local function onActiveChanged()
@@ -874,6 +865,45 @@ local function onUpdate(update: Net.TrainingUpdate)
 	end
 end
 
+local function registerSeat(instance: Instance)
+	if not instance:IsA("Seat") or seatLabels[instance] then
+		return
+	end
+	local stat = instance:GetAttribute(TrainingConfig.STAT_ATTRIBUTE)
+	if typeof(stat) ~= "string" or not STAT_COLORS[stat] then
+		return
+	end
+	local label = Instance.new("BillboardGui")
+	label.Name = "TrainingSeatLabel"
+	label.Size = UDim2.fromOffset(122, 28)
+	label.StudsOffsetWorldSpace = Vector3.new(0, 1.65, 0)
+	label.MaxDistance = 14
+	label.LightInfluence = 0
+	Ui.label(
+		label,
+		"Stat",
+		UDim2.fromScale(1, 1),
+		UDim2.new(),
+		Strings.stat[stat] or stat,
+		STAT_COLORS[stat]
+	)
+	label.Parent = instance
+	seatLabels[instance] = label
+end
+
+local function updateNearbySeats(root: BasePart?)
+	local nearby = false
+	for seat, label in seatLabels do
+		local gap = if root then (seat.Position - root.Position).Magnitude else math.huge
+		nearby = nearby or gap <= 12
+		label.Enabled = activeStat == "" and gap <= 12
+	end
+	if nearby ~= nearTrainingSeat then
+		nearTrainingSeat = nearby
+		refreshPreview()
+	end
+end
+
 local function watchNearbyTraining()
 	local observed: { [Player]: { character: Model, stat: string, session: Practice.Session } } = {}
 	local function remove(other: Player)
@@ -887,6 +917,7 @@ local function watchNearbyTraining()
 	task.spawn(function()
 		while true do
 			local localRoot = rootPart()
+			updateNearbySeats(localRoot)
 			for _, other in Players:GetPlayers() do
 				if other == player then
 					continue
@@ -931,15 +962,18 @@ function Training.start()
 
 	Tutorial.layoutChanged:Connect(positionHud)
 	Hud.layoutChanged:Connect(positionHud)
-	ProximityPromptService.PromptShown:Connect(function(prompt)
-		if prompt.Name == "TrainControl" or prompt.Name == "TrainInstinct" then
-			nearbyPrompts[prompt] = true
-			refreshPreview()
+	for _, seat in CollectionService:GetTagged("TrainingSeat") do
+		registerSeat(seat)
+	end
+	CollectionService:GetInstanceAddedSignal("TrainingSeat"):Connect(registerSeat)
+	CollectionService:GetInstanceRemovedSignal("TrainingSeat"):Connect(function(instance)
+		if instance:IsA("Seat") then
+			local label = seatLabels[instance]
+			if label then
+				label:Destroy()
+				seatLabels[instance] = nil
+			end
 		end
-	end)
-	ProximityPromptService.PromptHidden:Connect(function(prompt)
-		nearbyPrompts[prompt] = nil
-		refreshPreview()
 	end)
 	updateRemote.OnClientEvent:Connect(onUpdate)
 	player:GetAttributeChangedSignal(TrainingConfig.ACTIVE_ATTRIBUTE):Connect(onActiveChanged)
@@ -963,7 +997,7 @@ function Training.start()
 	player.CharacterAdded:Connect(function()
 		stopVisuals()
 		activeStat = ""
-		table.clear(nearbyPrompts)
+		nearTrainingSeat = false
 		refreshPreview()
 	end)
 	onActiveChanged()

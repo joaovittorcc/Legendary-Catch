@@ -21,6 +21,24 @@ export type Session = {
 }
 
 local function waterTarget(character: Model, root: BasePart): Vector3
+	local humanoid = character:FindFirstChildOfClass("Humanoid")
+	local seat = humanoid and humanoid.SeatPart
+	if not seat or not CollectionService:HasTag(seat, "TrainingSeat") then
+		local distance = 6
+		seat = nil
+		for _, candidate in CollectionService:GetTagged("TrainingSeat") do
+			if candidate:IsA("Seat") then
+				local gap = (candidate.Position - root.Position).Magnitude
+				if gap < distance then
+					seat, distance = candidate, gap
+				end
+			end
+		end
+	end
+	local seatTarget = seat and seat:FindFirstChild("PracticeTarget")
+	if seatTarget and seatTarget:IsA("Attachment") then
+		return seatTarget.WorldPosition
+	end
 	local nearest: BasePart? = nil
 	local distance = 20
 	for _, spot in CollectionService:GetTagged("TrainingSpot") do

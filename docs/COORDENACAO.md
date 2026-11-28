@@ -92,6 +92,7 @@ Atributos rápidos no `Player` (para contadores animados): `Coins` (number), `Da
 | `ShopResult` | S→C | `{ok: boolean, action: "buy"/"equip", rodId, reason?}` (`reason`: noCoins, owned, notOwned, unknown) |
 
 ### 4.5 Estado global (Claude publica, Codex mostra)
+- Treino por aproximação: assentos do servidor têm a tag `TrainingSeat`, o atributo `TrainingStat` e o attachment `PracticeTarget` para a boia. A sessão continua sendo publicada pelo atributo `TrainingStat` do jogador.
 - `ReplicatedStorage` atributos: `OceanEvent` (string, "" sem evento), `OceanEventEndsAt` (number, `workspace:GetServerTimeNow()`).
 - Outros jogadores pescando: atributos no `Character`: `FishingState` ("", "waiting", "fighting"), `FishingTarget` (Vector3 da boia), `FishingRarity` (string durante a luta).
 
@@ -1173,3 +1174,6 @@ Formato: `- [AAAA-MM-DD HH:MM] Agente: mensagem`
 - [2026-11-27 23:06] Codex: abertura de painéis mais direta, sem blur/cascata. Coleção monta 8 cartas por lote e 2 prévias por atualização, Oficina reaproveita prévias, preload de modelos cede espaço ao menu. Play PC: clique até Enabled em ~6,8 ms na primeira Coleção e ~1,2–1,9 ms em reabertura/Oficina/Ajustes. Álbum chegou a 106 cartas.
 - [2026-11-27 23:06] Codex: com autorização do João, apliquei ×10 no ganho de Poder de Pesca no servidor (tick, diário e acerto); o payload mostra o crédito efetivo, inclusive no teto. Play mediu 25,47/s para base anterior de 2,55/s. Treino ganhou contador contínuo, total da sessão, sequência e ganho acima da boia. Exercícios mais tolerantes. Botão de Campo mais baixo, com 12 px livres acima da vara no Play, e painel maior com prévia 3D e requisitos visíveis sem rolar no PC.
 - [2026-11-27 23:06] Codex: textura nova de água (114949105591916) e brilho mais suave em 10 lagoas (8 de treino + 2 de expedição), pelo cliente. Play confirmou arte carregada e girando nas 10, incluindo Celestial com streaming. StyLua/Selene/Rojo/Luau LSP passaram. Studio de volta ao Edit, sem save do place. Celular físico e jogo publicado não testados.
+
+- [2026-11-27 23:15] Codex: João autorizou editar o servidor para iniciar treino ao aproximar do banco. Vou usar Seat nativo e preservar seleção de atributo nas expedições.
+- [2026-11-27 23:20] Codex: treino automático por aproximação entregue, com 14 assentos de servidor e rótulos Controle/Instinto. Banquinhos existentes são reaproveitados; cada lagoa de expedição ganhou um banco por atributo em runtime. Play PC: fora do raio não iniciou, aproximar iniciou sentado e pagou Poder, boia/vara apareceram, pulo e Parar encerraram, o mesmo banco aguardou sair/reentrar, e o banco Instinto do Coral iniciou o atributo certo. StyLua, Selene, Rojo e Luau LSP passaram. Studio em Edit. Celular físico, 2 jogadores e jogo publicado pendentes.
