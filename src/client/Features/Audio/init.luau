@@ -31,6 +31,8 @@ local Net = require(Shared:WaitForChild("Net"))
 local Fishing = require(Shared:WaitForChild("Config"):WaitForChild("Fishing"))
 local Hud = require(script.Parent:WaitForChild("Hud"))
 local Audio = { order = 15 }
+-- Global mix attenuation (-60%) so default playback is comfortable and 100% never clips.
+local MASTER_GAIN = 0.4
 local sounds: { [string]: Sound } = {}
 local defaultVolumes: { [string]: number } = {}
 local lastCastAt = 0
@@ -43,7 +45,7 @@ function Audio.group(name: string): SoundGroup
 	end
 	local group = Instance.new("SoundGroup")
 	group.Name = name
-	group.Volume = if name == "Music" then 0.5 else 0.7
+	group.Volume = if name == "Music" then 0.5 else 0.65
 	group.Parent = SoundService
 	return group
 end
@@ -72,9 +74,11 @@ local function get(cue: string): Sound?
 	end
 	sound.Name = "Adventure_" .. cue
 	sound.SoundGroup = Audio.group(if cue == "music" then "Music" else "Effects")
+	local scaledVolume = sound.Volume * MASTER_GAIN
+	sound.Volume = scaledVolume
 	sound.Parent = SoundService
 	sounds[cue] = sound
-	defaultVolumes[cue] = sound.Volume
+	defaultVolumes[cue] = scaledVolume
 	return sound
 end
 
@@ -91,7 +95,7 @@ function Audio.play(cue: string, volume: number?, speed: number?): Sound?
 		lastCastAt = now
 	end
 	if volume ~= nil then
-		sound.Volume = volume
+		sound.Volume = volume * MASTER_GAIN
 	elseif defaultVolumes[cue] ~= nil then
 		sound.Volume = defaultVolumes[cue]
 	end
@@ -124,14 +128,14 @@ local function ambientLoop(cue: string, volume: number?)
 	if not sound then
 		return
 	end
-	if volume then
-		sound.Volume = volume
+	if volume ~= nil then
+		sound.Volume = volume * MASTER_GAIN
 	end
 	if sound.IsLoaded then
-		loop(cue)
+		loop(cue, volume)
 	else
 		sound.Loaded:Once(function()
-			loop(cue)
+			loop(cue, volume)
 		end)
 	end
 end
@@ -187,7 +191,7 @@ function Audio.start()
 				local crescendo = TweenService:Create(
 					tension,
 					TweenInfo.new(9),
-					{ Volume = 0.09, PlaybackSpeed = 0.7 }
+					{ Volume = 0.09 * MASTER_GAIN, PlaybackSpeed = 0.7 }
 				)
 				tensionFade = crescendo
 				crescendo:Play()

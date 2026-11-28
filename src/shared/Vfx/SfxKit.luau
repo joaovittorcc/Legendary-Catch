@@ -266,11 +266,14 @@ local folder3D: Folder? = nil
 local pool2D: { Sound } = {}
 local pool3D: { { part: Part, sound: Sound } } = {}
 
+-- Global mix attenuation (-60%) matching client Audio/init so defaults feel comfortable.
+local MASTER_GAIN = 0.4
+
 -- Music crossfade state
 local activeMusicSound: Sound? = nil
 local activeMusicRegion: string? = nil
 local activeMusicTweens: { Tween } = {}
-local musicBaseVolume = 0.42
+local musicBaseVolume = 0.42 * MASTER_GAIN
 
 -- Extract clean numeric asset ID; returns nil when placeholder ("0") or empty
 local function resolveSoundAsset(name: string): string?
@@ -309,7 +312,7 @@ local function ensureInit()
 	end
 	initialized = true
 
-	local effectsGroup = ensureGroup("Effects", 0.7)
+	local effectsGroup = ensureGroup("Effects", 0.65)
 	local musicGroup = ensureGroup("Music", 0.5)
 	soundGroups.SFX = effectsGroup
 	soundGroups.Music = musicGroup
@@ -496,7 +499,7 @@ function SfxKit.play(name: string, options: PlayOptions?): Sound?
 	local sound = acquire2DSound()
 	sound.SoundId = asset
 	sound.SoundGroup = soundGroups[category] or soundGroups.SFX
-	sound.Volume = if opts.volume ~= nil then opts.volume else meta.volume
+	sound.Volume = (if opts.volume ~= nil then opts.volume else meta.volume) * MASTER_GAIN
 	local basePitch = opts.pitch or 1.0
 	local jitter = if opts.pitchJitter ~= nil then opts.pitchJitter else meta.pitchJitter
 	sound.PlaybackSpeed = computeSpeed(basePitch, jitter)
@@ -553,7 +556,7 @@ function SfxKit.playAt(name: string, position: Vector3, options: PlayOptions?): 
 	local category: SoundCategory = opts.category or meta.category
 	sound.SoundId = asset
 	sound.SoundGroup = soundGroups[category] or soundGroups.SFX
-	sound.Volume = if opts.volume ~= nil then opts.volume else meta.volume
+	sound.Volume = (if opts.volume ~= nil then opts.volume else meta.volume) * MASTER_GAIN
 	sound.RollOffMinDistance = opts.rollOffMin or 10
 	sound.RollOffMaxDistance = opts.rollOffMax or meta.rollOffMax
 	local basePitch = opts.pitch or 1.0

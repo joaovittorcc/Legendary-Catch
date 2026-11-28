@@ -116,7 +116,7 @@ local function template(): Profile
 		achievements = {},
 		redeemed = {},
 		prestige = 0,
-		settings = { music = 0.6, sfx = 0.8, reduceEffects = false },
+		settings = { music = 0.5, sfx = 0.65, reduceEffects = false },
 		purchases = {},
 		purchaseOrder = {},
 		boosts = { luckUntil = 0 },
