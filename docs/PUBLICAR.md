@@ -18,12 +18,11 @@ Guia prático antes de clicar em **Publish to Roblox** e liberar o jogo ao públ
 
 ---
 
-## 2. Capacidade de Jogadores por Servidor (`MaxPlayers`)
+## 2. Ilha solo e visitas por convite
 
-- [ ] No Roblox Studio: **File → Game Settings → Places → Edit → Max Players**.
-- **Estado atual:** `30` jogadores.
-- **Recomendação para o lançamento:** **`12` a `16` jogadores** (ideal: **`14`**).
-  - *Por quê:* o anel de pesca na ponta do píer (`Fishing.CAST_SPOTS.lagoon`, raio `5.5` studs) e a praça central foram feitos para uma ilha compacta; com 30 avatares juntos o píer fica congestionado, o render mobile de avatares + linhas de outros jogadores (`Others`) pesa mais e os `OrderedDataStore` writes escalam com o número de jogadores. `12`–`16` mantém a ilha viva e social sem atrapalhar a visão nem o FPS no celular.
+- [ ] Implementar o roteamento de sessões. Na entrada normal, cada jogador começa na sua ilha. Ao aceitar um convite, o amigo entra na sessão do anfitrião.
+- [ ] Ajustar `MaxPlayers` junto com o roteamento. A sessão jogável precisa ter vagas para o anfitrião e seus convidados.
+- [ ] Validar com duas contas. As duas devem começar em sessões separadas. Depois de aceitar o convite, o convidado deve aparecer na ilha do anfitrião. Um convite expirado deve levar o convidado à própria ilha com aviso.
 
 ---
 

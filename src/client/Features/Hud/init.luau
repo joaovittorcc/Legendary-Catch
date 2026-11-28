@@ -10,6 +10,7 @@ local Creatures = require(Shared:WaitForChild("Config"):WaitForChild("Creatures"
 local Missions = require(Shared:WaitForChild("Config"):WaitForChild("Missions"))
 local Products = require(Shared:WaitForChild("Config"):WaitForChild("Products"))
 local Theme = require(Shared:WaitForChild("UiTheme"))
+local Strings = require(Shared:WaitForChild("Strings"))
 local Text = require(Shared:WaitForChild("StringsUi"))
 local Types = require(Shared:WaitForChild("Types"))
 local Data = require(script.Parent.Parent:WaitForChild("Data"))
@@ -24,6 +25,27 @@ local StarterOffer = require(script.Parent.Shop:WaitForChild("StarterOffer"))
 local COIN_RATIO = 1024 / 386
 local NAV_RATIO = 1024 / 819
 local RARITY_RATIO = 1024 / 341
+
+local function formatBalance(value: number): string
+	local amount = math.round(value)
+	if amount < 1e6 then
+		return Theme.formatInt(amount)
+	end
+
+	local unit, suffix = 1e6, "M"
+	if amount >= 1e12 then
+		unit, suffix = 1e12, "T"
+	elseif amount >= 1e9 then
+		unit, suffix = 1e9, "B"
+	end
+
+	local tenths = math.floor(amount / (unit / 10))
+	local whole = Theme.formatInt(math.floor(tenths / 10))
+	local fraction = tenths % 10
+	return if fraction == 0
+		then whole .. suffix
+		else `{whole}{Strings.decimalSep}{fraction}{suffix}`
+end
 
 local Hud = { order = 10 }
 local player = Players.LocalPlayer
@@ -336,14 +358,16 @@ function Hud.start()
 	coins.BackgroundTransparency = 1
 	Art.image(coins, Assets.coins)
 	local balance = Art.caption(coins, "Balance", "—", 48)
-	balance.Size = UDim2.fromScale(0.57, 0.64)
-	balance.Position = UDim2.fromScale(0.37, 0.17)
+	-- Center the text inside the blue inset, clear of the coin and gold rim.
+	balance.AnchorPoint = Vector2.new(0.5, 0.5)
+	balance.Position = UDim2.fromScale(0.62, 0.5)
+	balance.Size = UDim2.fromScale(0.56, 0.56)
 	coins.Parent = bar
 	local coinMotion = Motion.mount(coins, 0, 8)
 	local counted = Instance.new("NumberValue")
 	counted.Parent = coins
 	counted.Changed:Connect(function(value)
-		balance.Text = Theme.formatInt(value)
+		balance.Text = formatBalance(value)
 	end)
 	local coinTween: Tween? = nil
 	local deltaLabel = Art.caption(coins, "CoinDelta", "", 20, Theme.gold)
@@ -411,10 +435,10 @@ function Hud.start()
 		end
 		if player:GetAttribute("ReduceEffects") == true then
 			counted.Value = amount
-			balance.Text = Theme.formatInt(amount)
+			balance.Text = formatBalance(amount)
 			return
 		end
-		balance.Text = Theme.formatInt(counted.Value)
+		balance.Text = formatBalance(counted.Value)
 		local tween = TweenService:Create(
 			counted,
 			TweenInfo.new(0.35, Enum.EasingStyle.Quad),
