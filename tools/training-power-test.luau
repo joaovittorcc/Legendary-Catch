@@ -31,7 +31,7 @@ local ok, err = pcall(function()
 	eq(T.progress(1), 0, "p at 1")
 	eq(T.progress(T.POWER_CAP), 1, "p at cap")
 	near(T.equivalentLevel(1e6), 10, 1e-9, "1M = level 10")
-	near(T.luckMultiplier(T.equivalentLevel(T.POWER_CAP), 5), 2, 1e-9, "legendary x2 at cap")
+	near(T.luckMultiplier(T.equivalentLevel(T.POWER_CAP), 5), 5.5, 1e-9, "legendary x5.5 at cap")
 	near(T.controlEase(T.equivalentLevel(T.POWER_CAP)), 1.3, 1e-9, "ease x1.3 at cap")
 
 	-- migration both ways

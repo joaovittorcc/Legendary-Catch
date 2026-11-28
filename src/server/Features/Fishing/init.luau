@@ -220,6 +220,16 @@ local function luckyWeights(player: Player, zoneId: string?, band: string?): { [
 	local zone = if typeof(activeZoneId) == "string" and activeZoneId ~= ""
 		then Zones.get(activeZoneId)
 		else nil
+	-- Measure player progression luck at Legendary rank so lower tiers gently fade out
+	-- as the player unlocks top rods, high Fishing Power and Prestige (Lagoon with starter
+	-- rod stays untouched for completing early collection entries).
+	local progLeg = TrainingConfig.luckMultiplier(instinct, 5)
+		* Rods.luckMultiplier(rod, 5)
+		* PrestigeConfig.luckMultiplier(prestige, 5)
+	local commonDecay = 1 / (1 + math.max(0, progLeg - 1) * 0.14)
+	local uncommonDecay = 1 / (1 + math.max(0, progLeg - 1) * 0.06)
+	local rareDecay = 1 / (1 + math.max(0, progLeg - 8) * 0.03)
+
 	local weights: { [string]: number } = {}
 	for rank, rarity in FishingConfig.RARITY_ORDER do
 		-- A rarity with no creatures released yet never rolls (Mystic stays dormant until then).
@@ -228,15 +238,24 @@ local function luckyWeights(player: Player, zoneId: string?, band: string?): { [
 			* TrainingConfig.luckMultiplier(instinct, rank)
 			* Rods.luckMultiplier(rod, rank)
 			* PrestigeConfig.luckMultiplier(prestige, rank)
+		if rank == 1 then
+			w *= commonDecay
+		elseif rank == 2 then
+			w *= uncommonDecay
+		elseif rank == 3 then
+			w *= rareDecay
+		end
 		if event then
 			w *= event.rarityBoost[rarity] or 1
 		end
 		if zone then
 			w *= zone.rarityBoost[rarity] or 1
 		end
-		-- Paid luck boost only lifts Rare and above; it never guarantees anything.
+		-- Paid luck boost lifts Rare+ and pushes Legendary/Mystic extra hard without guaranteeing.
 		if boosted and rank >= 3 then
-			w *= Products.LUCK_BOOST_MULTIPLIER
+			w *= if rank >= 5
+				then Products.LUCK_BOOST_MULTIPLIER * 1.25
+				else Products.LUCK_BOOST_MULTIPLIER
 		end
 		-- Power bar (flag FishingPower): the band tilts luck, then every source together is
 		-- capped per rank so stacking never runs away.

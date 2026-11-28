@@ -153,7 +153,8 @@ Fishing.POWER_BAND_B = {
 } :: { [string]: number }
 
 -- With the bar on, every luck source together is capped per rank (Common .. Mystic).
-Fishing.LUCK_CAP = { 1, 2.5, 3.5, 4.5, 6, 8 }
+-- Low tiers saturate early while Legendary/Mystic stay generous so endgame luck stacks cleanly.
+Fishing.LUCK_CAP = { 1, 2.5, 5, 45, 2500, 30000 }
 
 -- Band widths by aim level (0..1): red, yellow, neutral, green, purple. Interpolated.
 local AIM_ROWS = {

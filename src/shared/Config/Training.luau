@@ -33,10 +33,14 @@ function Training.controlEase(level: number): number
 	return 1 + 0.012 * math.clamp(level, 0, Training.MAX_LEVEL)
 end
 
--- Instinct: multiplies the weight of a rarity by rank (1 = Common ... 5 = Legendary).
--- Max level: Uncommon x1.25, Rare x1.5, Epic x1.75, Legendary x2.
+-- Instinct: multiplies the weight of a rarity by rank (1 = Common ... 6 = Mystic).
+-- Scales steeper on higher tiers so late-game Fishing Power noticeably shifts catches
+-- toward Epic, Legendary and Mystic creatures.
+local LUCK_PER_LEVEL = { 0, 0.01, 0.035, 0.08, 0.18, 0.36 }
+
 function Training.luckMultiplier(level: number, rank: number): number
-	return 1 + 0.01 * math.clamp(level, 0, Training.MAX_LEVEL) * (rank - 1)
+	local slope = LUCK_PER_LEVEL[rank] or 0
+	return 1 + slope * math.clamp(level, 0, Training.MAX_LEVEL)
 end
 
 function Training.levelAttribute(stat: string): string

@@ -106,11 +106,13 @@ function Rods.get(id: string): Rod?
 	return byId[id]
 end
 
--- Weight multiplier for a rarity rank (1 = Common ... 5 = Legendary). Grows with the rank so
--- better rods shift catches toward rarer creatures. Simulated 2026-11-17: Astral earns ~45%
--- more coins/min than the starter and Legendary goes from 1% to ~1.9%.
+-- Weight multiplier for a rarity rank (1 = Common ... 6 = Mystic). Scales steeper on high
+-- ranks so top-tier rods strongly shift catches toward Epic, Legendary and Mystic creatures.
+local LUCK_RANK_SCALE = { 0, 0.6, 1.6, 3.8, 10.0, 24.0 }
+
 function Rods.luckMultiplier(rod: Rod?, rank: number): number
-	return 1 + (if rod then rod.luckBonus else 0) * (rank - 1)
+	local scale = LUCK_RANK_SCALE[rank] or 0
+	return 1 + (if rod then rod.luckBonus else 0) * scale
 end
 
 return Rods

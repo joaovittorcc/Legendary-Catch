@@ -16,10 +16,12 @@ function Prestige.coinMultiplier(level: number): number
 	return 1 + Prestige.COIN_BONUS_PER_LEVEL * p
 end
 
+local LUCK_PER_PRESTIGE = { 0, 0.02, 0.05, 0.10, 0.22, 0.45 }
+
 function Prestige.luckMultiplier(level: number, rank: number): number
 	local p = math.clamp(math.floor(level), 0, Prestige.MAX_LEVEL)
-	local ranksAboveCommon = math.max(0, rank - 1)
-	return 1 + Prestige.LUCK_BONUS_PER_LEVEL * p * ranksAboveCommon
+	local slope = LUCK_PER_PRESTIGE[rank] or 0
+	return 1 + slope * p
 end
 
 function Prestige.giftCoins(level: number): number
